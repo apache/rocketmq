@@ -42,7 +42,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -158,7 +158,7 @@ public class DLedgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> registerBroker(BrokerRegisterRequestHeader request) {
+    public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
         return this.scheduler.appendEvent("registerBroker",
             () -> this.replicasInfoManager.registerBroker(request), true);
     }

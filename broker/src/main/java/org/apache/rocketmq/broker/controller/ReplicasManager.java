@@ -37,7 +37,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -170,24 +170,20 @@ public class ReplicasManager {
                 newSyncStateSet.add(this.localAddress);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
-                if (this.localAddress.equals(masterAddress) && brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
-                    LOGGER.warn("The broker role is already master");
-                } else {
-                    // Change record
-                    this.masterAddress = this.localAddress;
+                // Change record
+                this.masterAddress = this.localAddress;
 
-                    // Handle the slave synchronise
-                    handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
+                // Handle the slave synchronise
+                handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
-                    // Notify ha service, change to master
-                    this.haService.changeToMaster(newMasterEpoch);
+                // Notify ha service, change to master
+                this.haService.changeToMaster(newMasterEpoch);
 
-                    this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
-                    this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
-                    this.brokerController.changeSpecialServiceStatus(true);
+                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                this.brokerController.changeSpecialServiceStatus(true);
 
-                    schedulingCheckSyncStateSet();
-                }
+                schedulingCheckSyncStateSet();
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -275,7 +271,7 @@ public class ReplicasManager {
     private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
-            final BrokerRegisterResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
+            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -285,6 +281,9 @@ public class ReplicasManager {
                 }
                 // Set isolated to false, make broker can register to namesrv regularly
                 brokerController.setIsolated(false);
+            } else {
+                LOGGER.warn("No master in controller");
+                return false;
             }
             return true;
         } catch (final Exception e) {

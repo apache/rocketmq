@@ -34,8 +34,8 @@ import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -234,11 +234,11 @@ public class ReplicasInfoManager {
         return null;
     }
 
-    public ControllerResult<BrokerRegisterResponseHeader> registerBroker(final BrokerRegisterRequestHeader request) {
+    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
-        final ControllerResult<BrokerRegisterResponseHeader> result = new ControllerResult<>(new BrokerRegisterResponseHeader());
-        final BrokerRegisterResponseHeader response = result.getResponse();
+        final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
+        final RegisterBrokerToControllerResponseHeader response = result.getResponse();
         boolean canBeElectedAsMaster;
         if (isContainsBroker(brokerName)) {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);

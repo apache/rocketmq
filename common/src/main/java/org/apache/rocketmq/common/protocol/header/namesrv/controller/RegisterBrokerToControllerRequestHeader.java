@@ -20,7 +20,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class BrokerRegisterRequestHeader implements CommandCustomHeader {
+public class RegisterBrokerToControllerRequestHeader implements CommandCustomHeader {
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
@@ -28,10 +28,10 @@ public class BrokerRegisterRequestHeader implements CommandCustomHeader {
     private Long heartbeatTimeoutMillis;
 
 
-    public BrokerRegisterRequestHeader() {
+    public RegisterBrokerToControllerRequestHeader() {
     }
 
-    public BrokerRegisterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;

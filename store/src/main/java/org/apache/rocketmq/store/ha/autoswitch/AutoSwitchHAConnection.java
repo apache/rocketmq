@@ -451,7 +451,6 @@ public class AutoSwitchHAConnection implements HAConnection {
             return this.nextTransferFromWhere;
         }
 
-        // Handle shake method
         private boolean buildHandshakeBuffer() {
             final List<EpochEntry> epochEntries = AutoSwitchHAConnection.this.epochCache.getAllEntries();
             final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();

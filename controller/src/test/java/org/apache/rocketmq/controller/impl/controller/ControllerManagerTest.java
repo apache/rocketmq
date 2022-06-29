@@ -28,8 +28,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.controller.ControllerManager;
@@ -115,11 +115,11 @@ public class ControllerManagerTest {
     /**
      * Register broker to controller
      */
-    public BrokerRegisterResponseHeader registerBroker(
+    public RegisterBrokerToControllerResponseHeader registerBroker(
         final String controllerAddress, final String clusterName,
         final String brokerName, final String address, final RemotingClient client) throws Exception {
 
-        final BrokerRegisterRequestHeader requestHeader = new BrokerRegisterRequestHeader(clusterName, brokerName, address);
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address);
         // Timeout = 3000
         requestHeader.setHeartbeatTimeoutMillis(4000L);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
@@ -127,7 +127,7 @@ public class ControllerManagerTest {
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(BrokerRegisterResponseHeader.class);
+                return response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
@@ -143,11 +143,11 @@ public class ControllerManagerTest {
         String leaderAddr = "localhost" + ":" + leader.getController().getRemotingServer().localListenPort();
 
         // Register two broker, the first one is master.
-        final BrokerRegisterResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient);
+        final RegisterBrokerToControllerResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient);
         assert responseHeader1 != null;
         assertEquals(responseHeader1.getBrokerId(), MixAll.MASTER_ID);
 
-        final BrokerRegisterResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1);
+        final RegisterBrokerToControllerResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1);
         assert responseHeader2 != null;
         assertEquals(responseHeader2.getBrokerId(), 2);
 

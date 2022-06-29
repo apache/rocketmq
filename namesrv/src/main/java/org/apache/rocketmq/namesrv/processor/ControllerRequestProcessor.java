@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.Controller;
@@ -84,7 +84,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 break;
             }
             case CONTROLLER_REGISTER_BROKER: {
-                final BrokerRegisterRequestHeader controllerRequest = request.decodeCommandCustomHeader(BrokerRegisterRequestHeader.class);
+                final RegisterBrokerToControllerRequestHeader controllerRequest = request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
                 final CompletableFuture<RemotingCommand> future = this.controller.registerBroker(controllerRequest);
                 if (future != null) {
                     return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);

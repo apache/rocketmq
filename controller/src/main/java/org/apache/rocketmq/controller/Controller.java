@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -80,7 +80,7 @@ public interface Controller {
      * @param request RegisterBrokerRequest
      * @return RemotingCommand(RegisterBrokerResponseHeader)
      */
-    CompletableFuture<RemotingCommand> registerBroker(final BrokerRegisterRequestHeader request);
+    CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerToControllerRequestHeader request);
 
     /**
      * Get the Replica Info for a target broker.

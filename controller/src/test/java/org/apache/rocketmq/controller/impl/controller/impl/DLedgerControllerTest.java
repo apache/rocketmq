@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -91,10 +91,10 @@ public class DLedgerControllerTest {
     public boolean registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
         boolean isFirstRegisteredBroker) throws Exception {
         // Register new broker
-        final BrokerRegisterRequestHeader registerRequest =
-            new BrokerRegisterRequestHeader(clusterName, brokerName, brokerAddress);
+        final RegisterBrokerToControllerRequestHeader registerRequest =
+            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
         final RemotingCommand response = leader.registerBroker(registerRequest).get(10, TimeUnit.SECONDS);
-        final BrokerRegisterResponseHeader registerResult = (BrokerRegisterResponseHeader) response.readCustomHeader();
+        final RegisterBrokerToControllerResponseHeader registerResult = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
         System.out.println("------------- Register broker done, the result is :" + registerResult);
 
         if (!isFirstRegisteredBroker) {
@@ -210,17 +210,17 @@ public class DLedgerControllerTest {
         assertEquals(replicaInfo.getMasterEpoch(), 2);
 
         // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
-        final BrokerRegisterRequestHeader request1 =
-            new BrokerRegisterRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
-        final BrokerRegisterResponseHeader r1 = (BrokerRegisterResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
+        final RegisterBrokerToControllerRequestHeader request1 =
+            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+        final RegisterBrokerToControllerResponseHeader r1 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getBrokerId(), 2);
         assertEquals(r1.getMasterAddress(), "");
         assertEquals(r1.getMasterEpoch(), 2);
 
         // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
-        final BrokerRegisterRequestHeader request2 =
-            new BrokerRegisterRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
-        final BrokerRegisterResponseHeader r2 = (BrokerRegisterResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
+        final RegisterBrokerToControllerRequestHeader request2 =
+            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+        final RegisterBrokerToControllerResponseHeader r2 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getBrokerId(), 0);
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");
         assertEquals(r2.getMasterEpoch(), 3);

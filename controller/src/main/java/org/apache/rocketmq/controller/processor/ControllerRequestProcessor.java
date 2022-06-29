@@ -25,8 +25,8 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
@@ -88,11 +88,11 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 break;
             }
             case CONTROLLER_REGISTER_BROKER: {
-                final BrokerRegisterRequestHeader controllerRequest = request.decodeCommandCustomHeader(BrokerRegisterRequestHeader.class);
+                final RegisterBrokerToControllerRequestHeader controllerRequest = request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
                 final CompletableFuture<RemotingCommand> future = this.controller.registerBroker(controllerRequest);
                 if (future != null) {
                     final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    final BrokerRegisterResponseHeader responseHeader = (BrokerRegisterResponseHeader) response.readCustomHeader();
+                    final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
                     if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                         this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
                             responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel());

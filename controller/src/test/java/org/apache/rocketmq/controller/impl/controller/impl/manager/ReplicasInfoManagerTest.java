@@ -23,8 +23,8 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -55,9 +55,9 @@ public class ReplicasInfoManagerTest {
 
     public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, boolean isFirstRegisteredBroker) {
         // Register new broker
-        final BrokerRegisterRequestHeader registerRequest =
-            new BrokerRegisterRequestHeader(clusterName, brokerName, brokerAddress);
-        final ControllerResult<BrokerRegisterResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest);
+        final RegisterBrokerToControllerRequestHeader registerRequest =
+            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
+        final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest);
         apply(registerResult.getEvents());
 
         if (isFirstRegisteredBroker) {
@@ -66,7 +66,7 @@ public class ReplicasInfoManagerTest {
             assertEquals(replicaInfo.getMasterAddress(), brokerAddress);
             assertEquals(replicaInfo.getMasterEpoch(), 1);
         } else {
-            final BrokerRegisterResponseHeader response = registerResult.getResponse();
+            final RegisterBrokerToControllerResponseHeader response = registerResult.getResponse();
             assertTrue(response.getBrokerId() > 0);
         }
         return true;

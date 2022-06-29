@@ -85,8 +85,8 @@ import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestH
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
@@ -1040,17 +1040,17 @@ public class BrokerOuterAPI {
     /**
      * Register broker to controller
      */
-    public BrokerRegisterResponseHeader registerBrokerToController(
+    public RegisterBrokerToControllerResponseHeader registerBrokerToController(
         final String controllerAddress, final String clusterName,
         final String brokerName, final String address) throws Exception {
 
-        final BrokerRegisterRequestHeader requestHeader = new BrokerRegisterRequestHeader(clusterName, brokerName, address);
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(BrokerRegisterResponseHeader.class);
+                return response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");

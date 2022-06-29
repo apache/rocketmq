@@ -19,14 +19,14 @@ package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class BrokerRegisterResponseHeader implements CommandCustomHeader {
+public class RegisterBrokerToControllerResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
     private int syncStateSetEpoch;
     // The id of this registered replicas.
     private long brokerId;
 
-    public BrokerRegisterResponseHeader() {
+    public RegisterBrokerToControllerResponseHeader() {
     }
 
     public String getMasterAddress() {

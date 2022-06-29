@@ -69,7 +69,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
-        this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
 
     @Override public void shutdown() {
