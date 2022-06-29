@@ -295,7 +295,7 @@ public class ClientActivity extends AbstractMessingActivity {
                     ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
                     runningInfo.setJstack(threadStack);
                     responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", runningInfo));
-                } else if (status.getCode().equals(Code.VERIFY_MESSAGE_FORBIDDEN)) {
+                } else if (status.getCode().equals(Code.VERIFY_FIFO_MESSAGE_UNSUPPORTED)) {
                     responseFuture.complete(new ProxyRelayResult<>(ResponseCode.NO_PERMISSION, "forbidden to verify message", null));
                 } else {
                     responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SYSTEM_ERROR, "verify message failed", null));

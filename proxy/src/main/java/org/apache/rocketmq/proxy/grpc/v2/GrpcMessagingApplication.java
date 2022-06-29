@@ -181,7 +181,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected void validateContext(ProxyContext context) {
         if (StringUtils.isBlank(context.getClientID())) {
-            throw new GrpcProxyException(Code.BAD_REQUEST_CLIENT_ID, "client id cannot be empty");
+            throw new GrpcProxyException(Code.CLIENT_ID_REQUIRED, "client id cannot be empty");
         }
     }
 
