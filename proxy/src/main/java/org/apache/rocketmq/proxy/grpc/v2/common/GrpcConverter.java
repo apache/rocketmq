@@ -45,6 +45,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class GrpcConverter {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -163,8 +164,11 @@ public class GrpcConverter {
         systemPropertiesBuilder.setBornTimestamp(Timestamps.fromMillis(bornTimestamp));
 
         // born_host
-        String bornHostString = messageExt.getBornHostString();
-        if (bornHostString != null) {
+        String bornHostString = messageExt.getProperty(MessageConst.PROPERTY_BORN_HOST);
+        if (StringUtils.isBlank(bornHostString)) {
+            bornHostString = messageExt.getBornHostString();
+        }
+        if (StringUtils.isNotBlank(bornHostString)) {
             systemPropertiesBuilder.setBornHost(bornHostString);
         }
 
@@ -175,7 +179,7 @@ public class GrpcConverter {
         // store_host
         SocketAddress storeHost = messageExt.getStoreHost();
         if (storeHost != null) {
-            systemPropertiesBuilder.setStoreHost(storeHost.toString());
+            systemPropertiesBuilder.setStoreHost(RemotingUtil.socketAddress2String(storeHost));
         }
 
         // delivery_timestamp
