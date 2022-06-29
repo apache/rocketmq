@@ -781,7 +781,7 @@ public class DLedgerCommitLog extends CommitLog {
     class MessageSerializer {
 
         // The maximum length of the message body
-        private int maxMessageBodySize;
+        private final int maxMessageBodySize;
 
         MessageSerializer(final int size) {
             this.maxMessageBodySize = size;
