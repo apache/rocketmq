@@ -30,7 +30,6 @@ import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
@@ -52,7 +51,6 @@ import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultMessagingProcessor extends AbstractStartAndShutdown implements MessagingProcessor {
