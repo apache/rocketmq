@@ -97,19 +97,19 @@ public class SendMessageActivity extends AbstractMessingActivity {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "topic in message is not same");
             }
             // here use topicName as producerGroup for transactional checker.
-            messageExtList.add(buildMessage(protoMessage, topicName));
+            messageExtList.add(buildMessage(context, protoMessage, topicName));
         }
         return messageExtList;
     }
 
-    protected Message buildMessage(apache.rocketmq.v2.Message protoMessage, String producerGroup) {
+    protected Message buildMessage(ProxyContext context, apache.rocketmq.v2.Message protoMessage, String producerGroup) {
         String topicName = GrpcConverter.wrapResourceWithNamespace(protoMessage.getTopic());
 
         validateMessageBodySize(protoMessage.getBody());
         Message messageExt = new Message();
         messageExt.setTopic(topicName);
         messageExt.setBody(protoMessage.getBody().toByteArray());
-        Map<String, String> messageProperty = this.buildMessageProperty(protoMessage, producerGroup);
+        Map<String, String> messageProperty = this.buildMessageProperty(context, protoMessage, producerGroup);
 
         MessageAccessor.setProperties(messageExt, messageProperty);
         return messageExt;
@@ -189,7 +189,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
     }
 
-    protected Map<String, String> buildMessageProperty(apache.rocketmq.v2.Message message, String producerGroup) {
+    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
         org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
         // set user properties
         Map<String, String> userProperties = message.getUserPropertiesMap();
@@ -254,6 +254,14 @@ public class SendMessageActivity extends AbstractMessingActivity {
         String traceContext = message.getSystemProperties().getTraceContext();
         if (!traceContext.isEmpty()) {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRACE_CONTEXT, traceContext);
+        }
+
+        String bornHost = message.getSystemProperties().getBornHost();
+        if (StringUtils.isBlank(bornHost)) {
+            bornHost = context.getRemoteAddress();
+        }
+        if (StringUtils.isNotBlank(bornHost)) {
+            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_BORN_HOST, bornHost);
         }
 
         validateMessagePropertySize(messageWithHeader.getProperties());
