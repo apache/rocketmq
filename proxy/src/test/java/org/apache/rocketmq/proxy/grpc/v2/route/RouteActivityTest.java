@@ -38,12 +38,14 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -109,15 +111,19 @@ public class RouteActivityTest extends BaseActivityTest {
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
             .thenThrow(new MQBrokerException(ResponseCode.TOPIC_NOT_EXIST, ""));
 
-        QueryRouteResponse response = this.routeActivity.queryRoute(
-            createContext(),
-            QueryRouteRequest.newBuilder()
-                .setEndpoints(grpcEndpoints)
-                .setTopic(GRPC_TOPIC)
-                .build()
-        ).get();
-
-        assertEquals(Code.TOPIC_NOT_FOUND, response.getStatus().getCode());
+        try {
+            this.routeActivity.queryRoute(
+                createContext(),
+                QueryRouteRequest.newBuilder()
+                    .setEndpoints(grpcEndpoints)
+                    .setTopic(GRPC_TOPIC)
+                    .build()
+            ).get();
+        } catch (Throwable t) {
+            assertEquals(Code.TOPIC_NOT_FOUND, ResponseBuilder.buildStatus(t).getCode());
+            return;
+        }
+        fail();
     }
 
     @Test

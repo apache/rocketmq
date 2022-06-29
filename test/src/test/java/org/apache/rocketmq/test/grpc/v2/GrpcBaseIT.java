@@ -378,7 +378,7 @@ public class GrpcBaseIT extends BaseConf {
         for (AckMessageResultEntry entry : ackMessageResponse.getEntriesList()) {
             if (entry.getStatus().getCode().equals(Code.OK)) {
                 okNum++;
-            } else if (entry.getStatus().getCode().equals(Code.RECEIPT_HANDLE_EXPIRED)) {
+            } else if (entry.getStatus().getCode().equals(Code.INVALID_RECEIPT_HANDLE)) {
                 expireNum++;
             }
         }

@@ -57,6 +57,7 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -147,9 +148,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     protected <V, T> void addExecutor(ExecutorService executor, ProxyContext context, V request, Runnable runnable,
-        StreamObserver<T> responseObserver,
-        T executeRejectResponse) {
-        executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, executeRejectResponse));
+        StreamObserver<T> responseObserver, Function<Status, T> statusResponseCreator) {
+        executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, statusResponseCreator.apply(flowLimitStatus())));
     }
 
     protected <V, T> void writeResponse(ProxyContext context, V request, T response, StreamObserver<T> responseObserver,
@@ -179,159 +179,218 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         return context;
     }
 
+    protected void validateContext(ProxyContext context) {
+        if (StringUtils.isBlank(context.getClientID())) {
+            throw new GrpcProxyException(Code.BAD_REQUEST_CLIENT_ID, "client id cannot be empty");
+        }
+    }
+
     protected String getDefaultStringMetadataInfo(Metadata headers, Metadata.Key<String> key) {
         return StringUtils.defaultString(headers.get(key));
     }
 
     @Override
     public void queryRoute(QueryRouteRequest request, StreamObserver<QueryRouteResponse> responseObserver) {
+        Function<Status, QueryRouteResponse> statusResponseCreator = status -> QueryRouteResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.routeThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.queryRoute(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> QueryRouteResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            QueryRouteResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.routeThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.queryRoute(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void heartbeat(HeartbeatRequest request, StreamObserver<HeartbeatResponse> responseObserver) {
+        Function<Status, HeartbeatResponse> statusResponseCreator = status -> HeartbeatResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.clientManagerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.heartbeat(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> HeartbeatResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            HeartbeatResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.clientManagerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.heartbeat(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
+        Function<Status, SendMessageResponse> statusResponseCreator = status -> SendMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.producerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.sendMessage(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> SendMessageResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            SendMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.producerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.sendMessage(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void queryAssignment(QueryAssignmentRequest request,
         StreamObserver<QueryAssignmentResponse> responseObserver) {
+        Function<Status, QueryAssignmentResponse> statusResponseCreator = status -> QueryAssignmentResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.routeThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.queryAssignment(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> QueryAssignmentResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            QueryAssignmentResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.routeThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.queryAssignment(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
+        Function<Status, ReceiveMessageResponse> statusResponseCreator = status -> ReceiveMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.consumerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.receiveMessage(context, request, responseObserver),
-            responseObserver,
-            ReceiveMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
-
+        try {
+            validateContext(context);
+            this.addExecutor(this.consumerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.receiveMessage(context, request, responseObserver),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void ackMessage(AckMessageRequest request, StreamObserver<AckMessageResponse> responseObserver) {
+        Function<Status, AckMessageResponse> statusResponseCreator = status -> AckMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.consumerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.ackMessage(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> AckMessageResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            AckMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
-
+        try {
+            validateContext(context);
+            this.addExecutor(this.consumerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.ackMessage(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void forwardMessageToDeadLetterQueue(ForwardMessageToDeadLetterQueueRequest request,
         StreamObserver<ForwardMessageToDeadLetterQueueResponse> responseObserver) {
+        Function<Status, ForwardMessageToDeadLetterQueueResponse> statusResponseCreator = status -> ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.producerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.forwardMessageToDeadLetterQueue(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.producerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.forwardMessageToDeadLetterQueue(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void endTransaction(EndTransactionRequest request, StreamObserver<EndTransactionResponse> responseObserver) {
+        Function<Status, EndTransactionResponse> statusResponseCreator = status -> EndTransactionResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.transactionThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.endTransaction(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> EndTransactionResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            EndTransactionResponse.newBuilder().setStatus(flowLimitStatus()).build());
+        try {
+            validateContext(context);
+            this.addExecutor(this.transactionThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.endTransaction(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void notifyClientTermination(NotifyClientTerminationRequest request,
         StreamObserver<NotifyClientTerminationResponse> responseObserver) {
+        Function<Status, NotifyClientTerminationResponse> statusResponseCreator = status -> NotifyClientTerminationResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.clientManagerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.notifyClientTermination(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> NotifyClientTerminationResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            NotifyClientTerminationResponse.newBuilder().setStatus(flowLimitStatus()).build());
-
+        try {
+            validateContext(context);
+            this.addExecutor(this.clientManagerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.notifyClientTermination(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public void changeInvisibleDuration(ChangeInvisibleDurationRequest request,
         StreamObserver<ChangeInvisibleDurationResponse> responseObserver) {
+        Function<Status, ChangeInvisibleDurationResponse> statusResponseCreator = status -> ChangeInvisibleDurationResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
-        this.addExecutor(this.consumerThreadPoolExecutor,
-            context,
-            request,
-            () -> grpcMessingActivity.changeInvisibleDuration(context, request)
-                .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable,
-                    status -> ChangeInvisibleDurationResponse.newBuilder().setStatus(status).build())),
-            responseObserver,
-            ChangeInvisibleDurationResponse.newBuilder().setStatus(flowLimitStatus()).build());
-
+        try {
+            validateContext(context);
+            this.addExecutor(this.consumerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessingActivity.changeInvisibleDuration(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
     }
 
     @Override
     public StreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
+        Function<Status, TelemetryCommand> statusResponseCreator = status -> TelemetryCommand.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         StreamObserver<TelemetryCommand> responseTelemetryCommand = grpcMessingActivity.telemetry(context, responseObserver);
         return new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand value) {
-                addExecutor(clientManagerThreadPoolExecutor,
-                    context,
-                    value,
-                    () -> responseTelemetryCommand.onNext(value),
-                    responseObserver,
-                    TelemetryCommand.newBuilder().setStatus(flowLimitStatus()).build());
+                try {
+                    validateContext(context);
+                    addExecutor(clientManagerThreadPoolExecutor,
+                        context,
+                        value,
+                        () -> responseTelemetryCommand.onNext(value),
+                        responseObserver,
+                        statusResponseCreator);
+                } catch (Throwable t) {
+                    writeResponse(context, value, null, responseObserver, t, statusResponseCreator);
+                }
             }
 
             @Override
@@ -371,7 +430,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         protected final T executeRejectResponse;
         protected final StreamObserver<T> streamObserver;
 
-        public GrpcTask(Runnable runnable, ProxyContext context, V request, StreamObserver<T> streamObserver, T executeRejectResponse) {
+        public GrpcTask(Runnable runnable, ProxyContext context, V request, StreamObserver<T> streamObserver,
+            T executeRejectResponse) {
             this.runnable = runnable;
             this.context = context;
             this.streamObserver = streamObserver;

@@ -38,7 +38,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
+        messagingProcessor = DefaultMessagingProcessor.createForLocalMode(brokerController1);
         messagingProcessor.start();
         grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
         grpcMessagingApplication.start();

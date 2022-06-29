@@ -37,11 +37,13 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
@@ -93,7 +95,31 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         grpcMessagingApplication.queryRoute(request, queryRouteResponseStreamObserver);
         future.complete(response);
         await().untilAsserted(() -> {
-            Mockito.verify(queryRouteResponseStreamObserver, Mockito.times(1)).onNext(response);
+            Mockito.verify(queryRouteResponseStreamObserver, Mockito.times(1)).onNext(Mockito.same(response));
         });
+    }
+
+    @Test
+    public void testQueryRouteWithBadClientID() {
+        Metadata metadata = new Metadata();
+        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
+        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+        Context.current()
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach();
+
+        QueryRouteRequest request = QueryRouteRequest.newBuilder()
+            .setEndpoints(grpcEndpoints)
+            .setTopic(Resource.newBuilder().setName(TOPIC).build())
+            .build();
+        grpcMessagingApplication.queryRoute(request, queryRouteResponseStreamObserver);
+
+        ArgumentCaptor<QueryRouteResponse> responseArgumentCaptor = ArgumentCaptor.forClass(QueryRouteResponse.class);
+        await().untilAsserted(() -> {
+            Mockito.verify(queryRouteResponseStreamObserver, Mockito.times(1)).onNext(responseArgumentCaptor.capture());
+        });
+
+        assertEquals(Code.BAD_REQUEST_CLIENT_ID, responseArgumentCaptor.getValue().getStatus().getCode());
     }
 }

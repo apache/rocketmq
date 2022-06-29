@@ -86,6 +86,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 actualInvisibleTime = Math.min(actualInvisibleTime, proxyConfig.getRenewSliceTimeMillis());
             }
 
+            validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
+
             String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
             String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
             FilterExpression filterExpression = request.getFilterExpression();

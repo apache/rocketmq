@@ -21,6 +21,7 @@ import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Resource;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -41,6 +42,7 @@ public class AckMessageActivityTest extends BaseActivityTest {
     private AckMessageActivity ackMessageActivity;
 
     private static final String TOPIC = "topic";
+    private static final String GROUP = "group";
 
     @Before
     public void before() throws Throwable {
@@ -51,7 +53,7 @@ public class AckMessageActivityTest extends BaseActivityTest {
     @Test
     public void testAckMessage() throws Throwable {
         when(this.messagingProcessor.ackMessage(any(), any(), eq("msg1"), anyString(), anyString()))
-            .thenThrow(new ProxyException(ProxyExceptionCode.RECEIPT_HANDLE_EXPIRED, "receipt handle is expired"));
+            .thenThrow(new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired"));
 
         AckResult msg2AckResult = new AckResult();
         msg2AckResult.setStatus(AckStatus.OK);
@@ -66,6 +68,8 @@ public class AckMessageActivityTest extends BaseActivityTest {
         AckMessageResponse response = this.ackMessageActivity.ackMessage(
             createContext(),
             AckMessageRequest.newBuilder()
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(GROUP).build())
                 .addEntries(AckMessageEntry.newBuilder()
                     .setMessageId("msg1")
                     .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis() - 10000, 1000))
@@ -83,7 +87,7 @@ public class AckMessageActivityTest extends BaseActivityTest {
 
         assertEquals(Code.MULTIPLE_RESULTS, response.getStatus().getCode());
         assertEquals(3, response.getEntriesCount());
-        assertEquals(Code.RECEIPT_HANDLE_EXPIRED, response.getEntries(0).getStatus().getCode());
+        assertEquals(Code.INVALID_RECEIPT_HANDLE, response.getEntries(0).getStatus().getCode());
         assertEquals(Code.OK, response.getEntries(1).getStatus().getCode());
         assertEquals(Code.INTERNAL_SERVER_ERROR, response.getEntries(2).getStatus().getCode());
     }

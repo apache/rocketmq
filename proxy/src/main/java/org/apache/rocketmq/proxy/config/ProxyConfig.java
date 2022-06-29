@@ -57,6 +57,27 @@ public class ProxyConfig {
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
 
+    /**
+     * the regex to check topic name, empty string means not to check
+     */
+    private String topicNameCheckRegex = "^[%a-zA-Z0-9_-]{1,127}$";
+    /**
+     * the regex to check consumer group name, empty string means not to check
+     */
+    private String consumerGroupNameCheckRegex = "^[%a-zA-Z0-9_-]{1,255}$";
+    /**
+     * max message body size, 0 or negative number means no limit for proxy
+     */
+    private int maxMessageSize = 4 * 1024 * 1024;
+    /**
+     * max user property size, 0 or negative number means no limit for proxy
+     */
+    private int maxUserPropertySize = 16 * 1024;
+    /**
+     * max message group size, 0 or negative number means no limit for proxy
+     */
+    private int maxMessageGroupSize = 1024;
+
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
 
@@ -265,6 +286,46 @@ public class ProxyConfig {
 
     public void setGrpcMaxInboundMessageSize(int grpcMaxInboundMessageSize) {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
+    }
+
+    public String getTopicNameCheckRegex() {
+        return topicNameCheckRegex;
+    }
+
+    public void setTopicNameCheckRegex(String topicNameCheckRegex) {
+        this.topicNameCheckRegex = topicNameCheckRegex;
+    }
+
+    public String getConsumerGroupNameCheckRegex() {
+        return consumerGroupNameCheckRegex;
+    }
+
+    public void setConsumerGroupNameCheckRegex(String consumerGroupNameCheckRegex) {
+        this.consumerGroupNameCheckRegex = consumerGroupNameCheckRegex;
+    }
+
+    public int getMaxMessageSize() {
+        return maxMessageSize;
+    }
+
+    public void setMaxMessageSize(int maxMessageSize) {
+        this.maxMessageSize = maxMessageSize;
+    }
+
+    public int getMaxUserPropertySize() {
+        return maxUserPropertySize;
+    }
+
+    public void setMaxUserPropertySize(int maxUserPropertySize) {
+        this.maxUserPropertySize = maxUserPropertySize;
+    }
+
+    public int getMaxMessageGroupSize() {
+        return maxMessageGroupSize;
+    }
+
+    public void setMaxMessageGroupSize(int maxMessageGroupSize) {
+        this.maxMessageGroupSize = maxMessageGroupSize;
     }
 
     public int getChannelExpiredInSeconds() {

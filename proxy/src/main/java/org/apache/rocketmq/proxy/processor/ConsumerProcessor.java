@@ -170,7 +170,7 @@ public class ConsumerProcessor extends AbstractProcessor {
     ) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
         try {
-            this.checkReceiptHandle(handle);
+            this.validateReceiptHandle(handle);
 
             AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
             ackMessageRequestHeader.setConsumerGroup(consumerGroup);
@@ -195,7 +195,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         String messageId, String groupName, String topicName, long invisibleTime, long timeoutMillis) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
         try {
-            this.checkReceiptHandle(handle);
+            this.validateReceiptHandle(handle);
 
             ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
             changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);

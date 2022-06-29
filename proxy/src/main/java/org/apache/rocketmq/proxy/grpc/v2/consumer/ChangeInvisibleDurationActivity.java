@@ -48,6 +48,8 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
         CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
 
         try {
+            validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
+            
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
 
             String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
