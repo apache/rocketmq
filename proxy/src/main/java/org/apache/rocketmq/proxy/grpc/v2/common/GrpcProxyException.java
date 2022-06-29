@@ -17,8 +17,8 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 
@@ -27,7 +27,7 @@ public class GrpcProxyException extends RuntimeException {
     private ProxyException proxyException;
     private Code code;
 
-    public static final Map<ProxyExceptionCode, Code> CODE_MAPPING = new HashMap<>();
+    public static final Map<ProxyExceptionCode, Code> CODE_MAPPING = new ConcurrentHashMap<>();
 
     static {
         CODE_MAPPING.put(ProxyExceptionCode.INVALID_BROKER_NAME, Code.BAD_REQUEST);
