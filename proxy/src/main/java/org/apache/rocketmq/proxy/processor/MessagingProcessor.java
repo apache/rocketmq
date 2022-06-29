@@ -100,18 +100,18 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
-    default void endTransaction(
+    default CompletableFuture<Void> endTransaction(
         ProxyContext ctx,
         String transactionId,
         String messageId,
         String producerGroup,
         TransactionStatus transactionStatus,
         boolean fromTransactionCheck
-    ) throws MQBrokerException, RemotingException, InterruptedException {
-        endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
+    ) {
+        return endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
     }
 
-    void endTransaction(
+    CompletableFuture<Void> endTransaction(
         ProxyContext ctx,
         String transactionId,
         String messageId,
@@ -119,7 +119,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         TransactionStatus transactionStatus,
         boolean fromTransactionCheck,
         long timeoutMillis
-    ) throws MQBrokerException, RemotingException, InterruptedException;
+    );
 
     CompletableFuture<PopResult> popMessage(
         ProxyContext ctx,

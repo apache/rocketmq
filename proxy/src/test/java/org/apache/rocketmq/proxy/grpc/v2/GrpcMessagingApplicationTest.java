@@ -120,6 +120,6 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
             Mockito.verify(queryRouteResponseStreamObserver, Mockito.times(1)).onNext(responseArgumentCaptor.capture());
         });
 
-        assertEquals(Code.BAD_REQUEST_CLIENT_ID, responseArgumentCaptor.getValue().getStatus().getCode());
+        assertEquals(Code.CLIENT_ID_REQUIRED, responseArgumentCaptor.getValue().getStatus().getCode());
     }
 }

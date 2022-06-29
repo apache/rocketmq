@@ -27,7 +27,7 @@ public class GrpcProxyException extends RuntimeException {
     private ProxyException proxyException;
     private Code code;
 
-    private static final Map<ProxyExceptionCode, Code> CODE_MAPPING = new HashMap<>();
+    public static final Map<ProxyExceptionCode, Code> CODE_MAPPING = new HashMap<>();
 
     static {
         CODE_MAPPING.put(ProxyExceptionCode.INVALID_BROKER_NAME, Code.BAD_REQUEST);

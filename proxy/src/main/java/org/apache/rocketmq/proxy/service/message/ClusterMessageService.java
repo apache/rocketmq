@@ -88,14 +88,21 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public void endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
-        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
-        this.mqClientAPIFactory.getClient().endTransactionOneway(
-            this.resolveBrokerAddr(brokerName),
-            requestHeader,
-            "end transaction from proxy",
-            timeoutMillis
-        );
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+        long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            this.mqClientAPIFactory.getClient().endTransactionOneway(
+                this.resolveBrokerAddr(brokerName),
+                requestHeader,
+                "end transaction from proxy",
+                timeoutMillis
+            );
+            future.complete(null);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
     }
 
     @Override

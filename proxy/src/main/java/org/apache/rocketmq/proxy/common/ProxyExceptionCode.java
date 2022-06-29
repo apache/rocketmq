@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.common;
 
 public enum ProxyExceptionCode {
     INVALID_BROKER_NAME,
+    TRANSACTION_DATA_NOT_FOUND,
     FORBIDDEN,
     MESSAGE_PROPERTY_DOES_NOT_MATCH_MESSAGE_TYPE,
     INVALID_RECEIPT_HANDLE,
