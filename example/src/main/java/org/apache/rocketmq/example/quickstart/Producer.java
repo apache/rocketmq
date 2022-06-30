@@ -44,9 +44,7 @@ public class Producer {
          * }
          * </pre>
          */
-        producer.setZoneMode(true);
-        producer.setZoneName("bd");
-        producer.setNamesrvAddr("127.0.0.1:9876");
+
         /*
          * Launch the instance.
          */

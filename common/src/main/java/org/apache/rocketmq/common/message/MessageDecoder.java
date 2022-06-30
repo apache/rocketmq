@@ -428,22 +428,20 @@ public class MessageDecoder {
             len += 2; // separator
         }
         StringBuilder sb = new StringBuilder(len);
-        if (properties != null) {
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                final String name = entry.getKey();
-                final String value = entry.getValue();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
 
-                if (value == null) {
-                    continue;
-                }
-                sb.append(name);
-                sb.append(NAME_VALUE_SEPARATOR);
-                sb.append(value);
-                sb.append(PROPERTY_SEPARATOR);
+            if (value == null) {
+                continue;
             }
-            if (sb.length() > 0) {
-                sb.deleteCharAt(sb.length() - 1);
-            }
+            sb.append(name);
+            sb.append(NAME_VALUE_SEPARATOR);
+            sb.append(value);
+            sb.append(PROPERTY_SEPARATOR);
+        }
+        if (sb.length() > 0) {
+            sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
     }
