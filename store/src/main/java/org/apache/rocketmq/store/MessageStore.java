@@ -235,7 +235,6 @@ public interface MessageStore {
 
     /**
      * HA runtime information
-     *
      * @return runtime information of ha
      */
     HARuntimeInfo getHARuntimeInfo();
@@ -464,6 +463,14 @@ public interface MessageStore {
      * @return Consume queue.
      */
     ConsumeQueueInterface getConsumeQueue(String topic, int queueId);
+
+    /**
+     * Get consume queue of the topic/queue. If consume queue not exist, will create one then return it.
+     * @param topic Topic.
+     * @param queueId Queue ID.
+     * @return Consume queue.
+     */
+    ConsumeQueueInterface findConsumeQueue(String topic, int queueId);
 
     /**
      * Get BrokerStatsManager of the messageStore.

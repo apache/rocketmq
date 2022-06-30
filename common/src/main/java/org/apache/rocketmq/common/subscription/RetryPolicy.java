@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.apis.exception;
+package org.apache.rocketmq.common.subscription;
 
-public class TimeoutException extends ClientException {
-    public TimeoutException(ErrorCode code, String message, Throwable cause) {
-        super(code, message, cause);
-    }
-
-    public TimeoutException(ErrorCode code, String message) {
-        super(code, message);
-    }
+public interface RetryPolicy {
+    /**
+     * Compute message's next delay duration by specify reconsumeTimes
+     *
+     * @param reconsumeTimes Message reconsumeTimes
+     * @return Message's nextDelayDuration in milliseconds
+     */
+    long nextDelayDuration(int reconsumeTimes);
 }

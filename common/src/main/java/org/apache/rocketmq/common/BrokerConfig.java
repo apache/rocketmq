@@ -225,7 +225,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int cleanOfflineBrokerInterval = 1000 * 30;
 
-    private boolean serverLoadBalancerEnabled = true;
+    private boolean serverLoadBalancerEnable = true;
 
     private MessageRequestMode defaultMessageRequestMode = MessageRequestMode.PULL;
 
@@ -1113,12 +1113,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.loadBalanceProcessorThreadPoolNums = loadBalanceProcessorThreadPoolNums;
     }
 
-    public boolean isServerLoadBalancerEnabled() {
-        return serverLoadBalancerEnabled;
+    public boolean isServerLoadBalancerEnable() {
+        return serverLoadBalancerEnable;
     }
 
-    public void setServerLoadBalancerEnabled(boolean serverLoadBalancerEnabled) {
-        this.serverLoadBalancerEnabled = serverLoadBalancerEnabled;
+    public void setServerLoadBalancerEnable(boolean serverLoadBalancerEnable) {
+        this.serverLoadBalancerEnable = serverLoadBalancerEnable;
     }
 
     public MessageRequestMode getDefaultMessageRequestMode() {
