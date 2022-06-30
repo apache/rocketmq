@@ -42,8 +42,6 @@ public class ResetOffsetByTimeCommandTest {
     public void before() {
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
-        Map<MessageQueue, Long> messageQueueLongMap = new HashMap<>();
-        when(mQClientAPIImpl.invokeBrokerToResetOffsetByTime(anyString(), anyString(), anyString(), anyLong(), anyBoolean(), anyLong())).thenReturn(messageQueueLongMap);
     }
 
     @After
@@ -56,9 +54,9 @@ public class ResetOffsetByTimeCommandTest {
     public void testExecute() throws SubCommandException {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-s 1412131213231", "-f false"};
+        String[] subargs = new String[]{"-g default-group", "-t unit-test", "-s 1412131213231", "-f false"};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 
