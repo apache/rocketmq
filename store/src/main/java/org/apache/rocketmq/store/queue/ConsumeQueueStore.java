@@ -78,8 +78,7 @@ public class ConsumeQueueStore {
     }
 
     public void correctMinOffset(ConsumeQueueInterface consumeQueue, long minCommitLogOffset) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
-        fileQueueLifeCycle.correctMinOffset(minCommitLogOffset);
+        consumeQueue.correctMinOffset(minCommitLogOffset);
     }
 
     /**
@@ -89,8 +88,7 @@ public class ConsumeQueueStore {
      * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
-        fileQueueLifeCycle.putMessagePositionInfoWrapper(request);
+        consumeQueue.putMessagePositionInfoWrapper(request);
     }
 
     public void putMessagePositionInfoWrapper(DispatchRequest dispatchRequest) {
@@ -315,8 +313,8 @@ public class ConsumeQueueStore {
     }
 
     public void assignQueueOffset(MessageExtBrokerInner msg, short messageNum) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(msg.getTopic(), msg.getQueueId());
-        fileQueueLifeCycle.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
+        consumeQueue.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
     }
 
     public void updateQueueOffset(String topic, int queueId, long offset) {
