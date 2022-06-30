@@ -105,7 +105,6 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        validateTopic(topic);
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -240,8 +239,7 @@ public class ClientActivity extends AbstractMessingActivity {
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request,
         StreamObserver<TelemetryCommand> responseObserver) {
         String clientId = ctx.getClientID();
-        grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
-        Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
+        Settings settings = request.getSettings();
         // Construct metric according to the proxy config
         final ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         final MetricCollectorMode metricCollectorMode =
@@ -269,6 +267,7 @@ public class ClientActivity extends AbstractMessingActivity {
         settings = settings.toBuilder().setMetric(metric).build();
         if (settings.hasPublishing()) {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
+                validateTopic(topic);
                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                 GrpcClientChannel producerChannel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                 producerChannel.setClientObserver(responseObserver);
@@ -279,6 +278,9 @@ public class ClientActivity extends AbstractMessingActivity {
             GrpcClientChannel consumerChannel = this.grpcChannelManager.createChannel(ctx, groupName, clientId);
             consumerChannel.setClientObserver(responseObserver);
         }
+
+        grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
+        settings = grpcClientSettingsManager.getClientSettings(ctx);
         return TelemetryCommand.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
