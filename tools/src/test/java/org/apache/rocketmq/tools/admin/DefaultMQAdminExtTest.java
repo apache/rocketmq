@@ -61,6 +61,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
+import org.assertj.core.util.Lists;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -81,12 +82,22 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQAdminExtTest {
@@ -449,6 +460,30 @@ public class DefaultMQAdminExtTest {
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getBrokerId()).isEqualTo(1234);
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getGroupName()).isEqualTo("Consumer-group-one");
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").isConsumeBroadcastEnable()).isTrue();
+    }
+
+    @Test
+    public void testResetOffsetByOffset() throws Exception {
+        String topic = "unit-topic";
+        String group = "default-group";
+        String brokerName = "default-broker";
+        int queueId = 1;
+        long offset = 101;
+
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(0L, "localhost:10911");
+        brokerAddrs.put(1L, "localhost:10912");
+        BrokerData brokerData = new BrokerData("default-cluster-1", brokerName, brokerAddrs);
+        BrokerData brokerDataTwo = new BrokerData("default-cluster-1", "default-broker-2", null);
+        List<BrokerData> brokerDataList = Lists.newArrayList(brokerData, brokerDataTwo);
+        TopicRouteData topicRouteData = new TopicRouteData();
+        topicRouteData.setBrokerDatas(brokerDataList);
+
+        when(defaultMQAdminExtImpl.examineTopicRouteInfo(topic)).thenReturn(topicRouteData);
+
+        defaultMQAdminExtImpl.resetOffsetByOffset(topic, group, brokerName, queueId, offset, false);
+        verify(mQClientAPIImpl, times(1)).invokeBrokerToResetOffsetByOffset("localhost:10911", topic, group, queueId, offset, false, 1000L);
+        verify(mQClientAPIImpl, times(0)).invokeBrokerToResetOffsetByOffset("localhost:10912", topic, group, queueId, offset, false, 1000L);
     }
 
     @Test

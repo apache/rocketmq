@@ -71,6 +71,7 @@ import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateNamesrvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
+import org.apache.rocketmq.tools.command.offset.ResetOffsetByOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
 import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
@@ -199,6 +200,7 @@ public class MQAdminStartup {
         initCommand(new AddWritePermSubCommand());
         initCommand(new ResetOffsetByTimeCommand());
         initCommand(new SkipAccumulationSubCommand());
+        initCommand(new ResetOffsetByOffsetCommand());
 
         initCommand(new UpdateOrderConfCommand());
         initCommand(new CleanExpiredCQSubCommand());

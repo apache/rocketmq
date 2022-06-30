@@ -42,6 +42,8 @@ public class ResetOffsetByTimeCommandTest {
     public void before() {
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        Map<MessageQueue, Long> messageQueueLongMap = new HashMap<>();
+        when(mQClientAPIImpl.invokeBrokerToResetOffsetByTime(anyString(), anyString(), anyString(), anyLong(), anyBoolean(), anyLong())).thenReturn(messageQueueLongMap);
     }
 
     @After
