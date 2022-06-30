@@ -274,6 +274,7 @@ public class ClientActivity extends AbstractMessingActivity {
             }
         }
         if (settings.hasSubscription()) {
+            validateConsumerGroup(settings.getSubscription().getGroup());
             String groupName = GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup());
             GrpcClientChannel consumerChannel = this.grpcChannelManager.createChannel(ctx, groupName, clientId);
             consumerChannel.setClientObserver(responseObserver);
