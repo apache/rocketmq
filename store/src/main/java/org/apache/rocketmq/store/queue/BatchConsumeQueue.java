@@ -51,7 +51,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     private static final int MSG_COMPACT_OFFSET_LENGTH = 4;
     public static final int INVALID_POS = -1;
     final MappedFileQueue mappedFileQueue;
-    private MessageStore defaultMessageStore;
+    private final MessageStore messageStore;
     private final String topic;
     private final int queueId;
     private final ByteBuffer byteBufferItem;
@@ -74,11 +74,11 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         final int queueId,
         final String storePath,
         final int mappedFileSize,
-        final MessageStore defaultMessageStore) {
+        final MessageStore messageStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
-        this.defaultMessageStore = defaultMessageStore;
-        this.commitLogSize = defaultMessageStore.getCommitLog().getCommitLogSize();
+        this.messageStore = messageStore;
+        this.commitLogSize = messageStore.getCommitLog().getCommitLogSize();
 
         this.topic = topic;
         this.queueId = queueId;
@@ -100,7 +100,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     private void refreshCache() {
-        if (!this.defaultMessageStore.getMessageStoreConfig().isSearchBcqByCacheEnable()) {
+        if (!this.messageStore.getMessageStoreConfig().isSearchBcqByCacheEnable()) {
             return ;
         }
         ConcurrentSkipListMap<Long, MappedFile> newOffsetCache = new ConcurrentSkipListMap<>();
@@ -447,7 +447,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
-        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
+        boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         if (request.getMsgBaseOffset() < 0 || request.getBatchSize() < 0) {
             log.warn("[NOTIFYME]unexpected dispacth request in batch consume queue topic:{} queue:{} offset:{}", topic, queueId, request.getCommitLogOffset());
             return;
@@ -457,10 +457,10 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
                 request.getMsgSize(), request.getTagsCode(),
                 request.getStoreTimestamp(), request.getMsgBaseOffset(), request.getBatchSize());
             if (result) {
-                if (BrokerRole.SLAVE == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
-                    this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
+                if (BrokerRole.SLAVE == this.messageStore.getMessageStoreConfig().getBrokerRole()) {
+                    this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
                 return;
             } else {
                 // XXX: warn and notify me
@@ -476,7 +476,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         }
         // XXX: warn and notify me
         log.error("[NOTIFYME]batch consume queue can not write, {} {}", this.topic, this.queueId);
-        this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
+        this.messageStore.getRunningFlags().makeLogicsQueueError();
     }
 
     @Override
@@ -594,7 +594,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
             targetBcq = lastBcq;
             targetMinOffset = minForLastBcq;
         } else {
-            boolean searchBcqByCacheEnable = this.defaultMessageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
+            boolean searchBcqByCacheEnable = this.messageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
             if (searchBcqByCacheEnable) {
                 // it's not the last BCQ file, so search it through cache.
                 targetBcq = this.searchOffsetFromCache(msgOffset);
@@ -675,7 +675,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
             targetBcq = lastBcq;
             targetMinOffset = minForLastBcq;
         } else {
-            boolean searchBcqByCacheEnable = this.defaultMessageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
+            boolean searchBcqByCacheEnable = this.messageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
             if (searchBcqByCacheEnable) {
                 // it's not the last BCQ file, so search it through cache.
                 targetBcq = this.searchTimeFromCache(timestamp);
@@ -941,7 +941,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public long rollNextFile(long offset) {
+    public long rollNextFile(long nextBeginOffset) {
         return 0;
     }
 
