@@ -89,4 +89,9 @@ public class LocalGrpcIT extends GrpcBaseIT {
     public void testSimpleConsumerToDLQ() throws Exception {
         super.testSimpleConsumerToDLQ();
     }
+
+    @Test
+    public void testConsumeOrderly() throws Exception {
+        super.testConsumeOrderly();
+    }
 }

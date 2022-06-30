@@ -92,8 +92,10 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
@@ -105,6 +107,7 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.test.util.RandomUtils;
 import org.junit.Rule;
 
+import static org.apache.rocketmq.common.TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE;
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -145,6 +148,7 @@ public class GrpcBaseIT extends BaseConf {
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
+        ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
 
         blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
         stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
@@ -226,7 +230,7 @@ public class GrpcBaseIT extends BaseConf {
 
         try {
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setSettings(buildPushConsumerClientSettings())
+                .setSettings(buildPushConsumerClientSettings(group))
                 .build());
             await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
@@ -281,7 +285,7 @@ public class GrpcBaseIT extends BaseConf {
             assertEndTransactionResponse(endTransactionResponse);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setSettings(buildPushConsumerClientSettings())
+                .setSettings(buildPushConsumerClientSettings(group))
                 .build());
 
             await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
@@ -310,11 +314,10 @@ public class GrpcBaseIT extends BaseConf {
         String group = MQRandomUtils.getRandomConsumerGroup();
 
         int maxDeliveryAttempts = 16;
-        boolean fifo = false;
         int bodySize = 4 * 1024;
 
         // init consumer offset
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
         receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
@@ -322,7 +325,7 @@ public class GrpcBaseIT extends BaseConf {
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendBigMessageRequest(topic, messageId, bodySize));
         assertSendMessage(sendResponse, messageId);
 
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
 
         Message message = assertAndGetReceiveMessage(receiveMessage(blockingStub, topic, group), messageId);
         assertThat(message.getSystemProperties().getBodyEncoding()).isEqualTo(Encoding.GZIP);
@@ -332,11 +335,9 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerSendAndRecv() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = MQRandomUtils.getRandomConsumerGroup();
-        int maxDeliveryAttempts = 16;
-        boolean fifo = false;
 
         // init consumer offset
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
         receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
@@ -344,7 +345,7 @@ public class GrpcBaseIT extends BaseConf {
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
 
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
 
         Message message = assertAndGetReceiveMessage(receiveMessage(blockingStub, topic, group), messageId);
 
@@ -390,10 +391,15 @@ public class GrpcBaseIT extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = MQRandomUtils.getRandomConsumerGroup();
         int maxDeliveryAttempts = 2;
-        boolean fifo = false;
+
+        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        groupConfig.setRetryMaxTimes(maxDeliveryAttempts);
+        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
 
         // init consumer offset
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
         receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
@@ -401,7 +407,7 @@ public class GrpcBaseIT extends BaseConf {
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
 
-        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
 
         AtomicInteger receiveMessageCount = new AtomicInteger(0);
 
@@ -428,6 +434,50 @@ public class GrpcBaseIT extends BaseConf {
         });
 
         assertThat(receiveMessageCount.get()).isEqualTo(maxDeliveryAttempts);
+    }
+
+    public void testConsumeOrderly() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.FIFO);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+
+        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        groupConfig.setConsumeMessageOrderly(true);
+        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+
+        this.sendClientSettings(stub, buildPushConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        String messageGroup = "group";
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        List<String> messageIdList = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            String messageId = createUniqID();
+            messageIdList.add(messageId);
+            SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendOrderMessageRequest(topic, messageId, messageGroup));
+            assertSendMessage(sendResponse, messageId);
+        }
+
+        List<String> messageRecvList = new ArrayList<>();
+        this.sendClientSettings(stub, buildPushConsumerClientSettings(group)).get();
+        await().atMost(java.time.Duration.ofSeconds(20)).until(() -> {
+            List<Message> retryMessageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+            if (retryMessageList.isEmpty()) {
+                return false;
+            }
+            for (Message message : retryMessageList) {
+                String messageId = message.getSystemProperties().getMessageId();
+                messageRecvList.add(messageId);
+                blockingStub.ackMessage(buildAckMessageRequest(topic, group,
+                    AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(message.getSystemProperties().getReceiptHandle()).build()));
+            }
+            return messageRecvList.size() == messageIdList.size();
+        });
+
+        for (int i = 0; i < messageIdList.size(); i++) {
+            assertThat(messageRecvList.get(i)).isEqualTo(messageIdList.get(i));
+        }
     }
 
     public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub,
@@ -491,6 +541,25 @@ public class GrpcBaseIT extends BaseConf {
             .build();
     }
 
+    public SendMessageRequest buildSendOrderMessageRequest(String topic, String messageId, String messageGroup) {
+        return SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(messageId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.FIFO)
+                    .setMessageGroup(messageGroup)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("123"))
+                .build())
+            .build();
+    }
+
     public SendMessageRequest buildSendBigMessageRequest(String topic, String messageId, int messageSize) {
         return SendMessageRequest.newBuilder()
             .addMessages(Message.newBuilder()
@@ -540,7 +609,7 @@ public class GrpcBaseIT extends BaseConf {
                     .build())
                 .setId(-1)
                 .build())
-            .setBatchSize(16)
+            .setBatchSize(1)
             .setInvisibleDuration(Duration.newBuilder()
                 .setSeconds(3)
                 .build())
@@ -634,30 +703,27 @@ public class GrpcBaseIT extends BaseConf {
             .build();
     }
 
-    public Settings buildSimpleConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
+    public Settings buildSimpleConsumerClientSettings(String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.SIMPLE_CONSUMER)
-            .setBackoffPolicy(RetryPolicy.newBuilder()
-                .setMaxAttempts(maxDeliveryAttempts)
-                .build())
             .setSubscription(Subscription.newBuilder()
-                .setFifo(fifo)
+                .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
             .build();
     }
 
-    public Settings buildPushConsumerClientSettings() {
-        return buildPushConsumerClientSettings(2, false);
+    public Settings buildPushConsumerClientSettings(String group) {
+        return buildPushConsumerClientSettings(2, group);
     }
 
-    public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
+    public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
             .setBackoffPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(maxDeliveryAttempts)
                 .build())
             .setSubscription(Subscription.newBuilder()
-                .setFifo(fifo)
+                .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
             .build();
     }
