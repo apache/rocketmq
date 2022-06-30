@@ -96,7 +96,7 @@ public class RouteActivity extends AbstractMessingActivity {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
 
         try {
-            validateTopic(request.getTopic());
+            validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
