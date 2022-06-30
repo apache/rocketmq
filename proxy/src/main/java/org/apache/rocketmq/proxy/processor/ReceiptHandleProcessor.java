@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -108,6 +109,17 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         for (Map.Entry<String, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
             String key = entry.getKey();
+            Pair<String, String> clientIdAndGroup = parseKey(key);
+            if (clientIdAndGroup == null) {
+                log.warn("client id and group is empty. key:{}, receiptHandleGroup:{}", key, entry.getValue());
+                clearGroup(key);
+                continue;
+            }
+            if (clientIsOffline(clientIdAndGroup.getLeft(), clientIdAndGroup.getRight())) {
+                clearGroup(key);
+                continue;
+            }
+
             ReceiptHandleGroup group = entry.getValue();
             group.scan((msgID, handleStr, v) -> {
                 ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandle());
@@ -158,6 +170,18 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
 
     protected String buildKey(String clientID, String group) {
         return clientID + "%" + group;
+    }
+
+    protected Pair<String, String> parseKey(String key) {
+        String[] strs = key.split("%");
+        if (strs.length < 2) {
+            return null;
+        }
+        return Pair.of(strs[0], strs[1]);
+    }
+
+    protected boolean clientIsOffline(String clientID, String group) {
+        return this.messagingProcessor.findConsumerChannel(createContext("JudgeClientOnline"), group, clientID) == null;
     }
 
     public void addReceiptHandle(String clientID, String group, String msgID, String receiptHandle,
@@ -212,26 +236,23 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         return res.get();
     }
 
-    public void clearGroup(String key) {
+    protected void clearGroup(String key) {
         if (key == null) {
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         ProxyContext context = createContext("ClearGroup");
-        receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
-                v.scan((msgID, handle, value0) -> {
-                    ReceiptHandle receiptHandle = ReceiptHandle.decode(value0.getReceiptHandle());
-                    messagingProcessor.changeInvisibleTime(
-                        context,
-                        receiptHandle,
-                        value0.getMessageId(),
-                        value0.getGroup(),
-                        value0.getTopic(),
-                        proxyConfig.getInvisibleTimeMillisWhenClear()
-                    );
-                });
-                return null;
-            }
-        );
+        ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
+        handleGroup.scan((msgID, handle, messageReceiptHandle) -> {
+            ReceiptHandle receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandle());
+            messagingProcessor.changeInvisibleTime(
+                context,
+                receiptHandle,
+                messageReceiptHandle.getMessageId(),
+                messageReceiptHandle.getGroup(),
+                messageReceiptHandle.getTopic(),
+                proxyConfig.getInvisibleTimeMillisWhenClear()
+            );
+        });
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.processor;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -71,8 +72,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Test
     public void testAddReceiptHandle() {
         String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
@@ -82,9 +84,10 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Test
     public void testRenewReceiptHandle() {
         String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         long newInvisibleTime = 2000L;
         ReceiptHandle newReceiptHandleClass = ReceiptHandle.builder()
             .startOffset(0L)
@@ -131,7 +134,8 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES, newInvisibleTime);
         String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
@@ -156,9 +160,10 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES, INVISIBLE_TIME);
         String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),

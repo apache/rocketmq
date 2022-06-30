@@ -56,10 +56,14 @@ public class RouteActivityTest extends BaseActivityTest {
 
     private static final String CLUSTER = "cluster";
     private static final String TOPIC = "topic";
+    private static final String GROUP = "group";
     private static final String BROKER_NAME = "brokerName";
     private static final Broker GRPC_BROKER = Broker.newBuilder().setName(BROKER_NAME).build();
     private static final Resource GRPC_TOPIC = Resource.newBuilder()
         .setName(TOPIC)
+        .build();
+    private static final Resource GRPC_GROUP = Resource.newBuilder()
+        .setName(GROUP)
         .build();
     private static Endpoints grpcEndpoints = Endpoints.newBuilder()
         .setScheme(AddressScheme.IPv4)
@@ -136,6 +140,7 @@ public class RouteActivityTest extends BaseActivityTest {
             QueryAssignmentRequest.newBuilder()
                 .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
                 .build()
         ).get();
 
@@ -152,6 +157,7 @@ public class RouteActivityTest extends BaseActivityTest {
             QueryAssignmentRequest.newBuilder()
                 .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
                 .build()
         ).get();
 
@@ -168,6 +174,7 @@ public class RouteActivityTest extends BaseActivityTest {
             QueryAssignmentRequest.newBuilder()
                 .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
                 .build()
         ).get();
 
