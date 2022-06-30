@@ -79,11 +79,10 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 return;
             }
 
-            final long requestInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
-            long actualInvisibleTime = requestInvisibleTime;
+            long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                actualInvisibleTime = Math.min(actualInvisibleTime, proxyConfig.getRenewSliceTimeMillis());
+                actualInvisibleTime = proxyConfig.getRenewSliceTimeMillis();
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
@@ -124,7 +123,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                             if (receiptHandle != null) {
                                 MessageReceiptHandle messageReceiptHandle =
                                     new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                                        messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
+                                        messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), proxyConfig.getRenewMaxTimeMillis());
                                 receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
                             }
                         }

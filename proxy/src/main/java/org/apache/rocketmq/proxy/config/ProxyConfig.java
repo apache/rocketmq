@@ -126,6 +126,7 @@ public class ProxyConfig {
     private boolean enableProxyAutoRenew = true;
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
     private long renewSliceTimeMillis = TimeUnit.SECONDS.toMillis(60);
+    private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
     private boolean enableACL = false;
@@ -662,6 +663,14 @@ public class ProxyConfig {
 
     public void setRenewSliceTimeMillis(long renewSliceTimeMillis) {
         this.renewSliceTimeMillis = renewSliceTimeMillis;
+    }
+
+    public long getRenewMaxTimeMillis() {
+        return renewMaxTimeMillis;
+    }
+
+    public void setRenewMaxTimeMillis(long renewMaxTimeMillis) {
+        this.renewMaxTimeMillis = renewMaxTimeMillis;
     }
 
     public long getRenewSchedulePeriodMillis() {
