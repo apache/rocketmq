@@ -118,7 +118,8 @@ public class MultiDispatch {
 
     public void updateMaxMessageSize(CommitLog.PutMessageThreadLocal putMessageThreadLocal) {
         int newMaxMessageSize = this.messageStore.getMessageStoreConfig().getMaxMessageSize();
-        if (putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
+        if (newMaxMessageSize >= 10 &&
+                putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
             putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
         }
     }

@@ -607,7 +607,8 @@ public class CommitLog {
     public void updateMaxMessageSize(PutMessageThreadLocal putMessageThreadLocal) {
         // dynamically adjust maxMessageSize, but not support DLedger mode temporarily
         int newMaxMessageSize = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize();
-        if (putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
+        if (newMaxMessageSize >= 10 &&
+                putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
             putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
         }
     }
