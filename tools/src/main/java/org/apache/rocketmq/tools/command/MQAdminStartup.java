@@ -66,10 +66,8 @@ import org.apache.rocketmq.tools.command.message.SendMessageCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
-import org.apache.rocketmq.tools.command.namesrv.GetNearbyRouteConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateNamesrvConfigCommand;
-import org.apache.rocketmq.tools.command.namesrv.UpdateNearbyRouteConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
@@ -229,9 +227,6 @@ public class MQAdminStartup {
         initCommand(new ExportMetadataCommand());
         initCommand(new ExportConfigsCommand());
         initCommand(new ExportMetricsCommand());
-        //namesrv nearby route
-        initCommand(new UpdateNearbyRouteConfigCommand());
-        initCommand(new GetNearbyRouteConfigCommand());
     }
 
     private static void initLogback() throws JoranException {

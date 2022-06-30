@@ -27,17 +27,18 @@ public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
-
+    private String zoneName;
     private final Random random = new Random();
 
     public BrokerData() {
 
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, String zoneName) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
+        this.zoneName = zoneName;
     }
 
     /**
@@ -73,7 +74,15 @@ public class BrokerData implements Comparable<BrokerData> {
         this.cluster = cluster;
     }
 
-    @Override
+    public String getZoneName() {
+        return zoneName;
+    }
+
+    public void setZoneName(String zoneName) {
+        this.zoneName = zoneName;
+    }
+
+	@Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;

@@ -87,6 +87,12 @@ public class MixAll {
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
+    public static final String ROCKETMQ_CLIENT_ZONE_ENV = "ROCKETMQ_CLIENT_ZONE";
+    public static final String ROCKETMQ_CLIENT_ZONE_PROPERTY = "rocketmq.client.zone";
+    public static final String ROCKETMQ_CLIENT_ZONE_MODE_ENV = "ROCKETMQ_CLIENT_ZONE_MODE";
+    public static final String ROCKETMQ_CLIENT_ZONE_MODE_PROPERTY = "rocketmq.client.zone.mode";
+    public static final String ZONE_NAME = "zoneName"; 
+    public static final String ZONE_MODE = "zoneMode";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static String getWSAddr() {

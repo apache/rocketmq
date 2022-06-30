@@ -100,7 +100,7 @@ public class RouteInfoManagerTestBase {
             brokerAddrMap.put(i, getBrokerAddr(clusterName, brokerName, i));
         }
 
-        return new BrokerData(clusterName, brokerName, brokerAddrMap);
+        return new BrokerData(clusterName, brokerName, brokerAddrMap, "");
     }
 
     protected void registerBrokerWithTopicConfig(RouteInfoManager routeInfoManager, BrokerData brokerData,
@@ -148,6 +148,7 @@ public class RouteInfoManagerTestBase {
                 brokerAddr,
                 brokerName,
                 brokerId,
+                "",
                 haServerAddr,
                 topicConfigSerializeWrapper,
                 filterServerAddr,

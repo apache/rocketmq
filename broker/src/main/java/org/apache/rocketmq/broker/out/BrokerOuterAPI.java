@@ -120,7 +120,8 @@ public class BrokerOuterAPI {
         final List<String> filterServerList,
         final boolean oneway,
         final int timeoutMills,
-        final boolean compressed) {
+        final boolean compressed,
+        final String zoneName) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
@@ -133,6 +134,7 @@ public class BrokerOuterAPI {
             requestHeader.setClusterName(clusterName);
             requestHeader.setHaServerAddr(haServerAddr);
             requestHeader.setCompressed(compressed);
+            requestHeader.setZoneName(zoneName);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
             requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);

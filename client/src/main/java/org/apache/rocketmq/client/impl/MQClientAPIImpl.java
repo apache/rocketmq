@@ -43,6 +43,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.client.route.hook.AddZoneRPCHook;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
@@ -149,7 +150,6 @@ import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerR
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.route.NearbyRoute;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -194,6 +194,7 @@ public class MQClientAPIImpl {
         this.clientRemotingProcessor = clientRemotingProcessor;
 
         this.remotingClient.registerRPCHook(rpcHook);
+        this.remotingClient.registerRPCHook(AddZoneRPCHook.INSTANCE);
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, this.clientRemotingProcessor, null);
@@ -2285,36 +2286,5 @@ public class MQClientAPIImpl {
                 log.error("Failed to resume half message check logic. Remark={}", response.getRemark());
                 return false;
         }
-    }
-    
-    public void updateNearbyRouteConfig(final NearbyRoute nearbyRoute, long timeoutMillis)
-            throws UnsupportedEncodingException, MQBrokerException, InterruptedException, RemotingTimeoutException,
-            RemotingSendRequestException, RemotingConnectException, MQClientException {
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_NAMESRV_NEARBYROUTE_CONFIG, null);
-        request.setBody(JSON.toJSONBytes(nearbyRoute));
-
-        RemotingCommand errResponse = null;
-        for (String namesrvAddr : this.remotingClient.getNameServerAddressList()) {
-            RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
-            assert response != null;
-            switch (response.getCode()) {
-                case ResponseCode.SUCCESS: {
-                    break;
-                }
-                default:
-                    errResponse = response;
-            }
-        }
-
-        if (errResponse != null) {
-            throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
-        }
-    }
-
-    public NearbyRoute getNearbyRouteConfig(final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESRV_NEARBYROUTE_CONFIG, null);
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        return JSON.parseObject(response.getBody(), NearbyRoute.class);
     }
 }

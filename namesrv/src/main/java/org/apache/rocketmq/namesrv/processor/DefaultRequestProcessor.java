@@ -55,16 +55,12 @@ import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerReques
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.route.NearbyRoute;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.namesrv.route.NearbyRouteManager;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-import com.alibaba.fastjson.JSON;
 
 public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
@@ -133,10 +129,6 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
-            case RequestCode.UPDATE_NAMESRV_NEARBYROUTE_CONFIG:
-                return this.updateNearbyRouteConfig(ctx, request);
-            case RequestCode.GET_NAMESRV_NEARBYROUTE_CONFIG:
-                return this.getNearbyRouteConfig(ctx, request);
             default:
                 break;
         }
@@ -241,6 +233,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             requestHeader.getBrokerAddr(),
             requestHeader.getBrokerName(),
             requestHeader.getBrokerId(),
+            requestHeader.getZoneName(),
             requestHeader.getHaServerAddr(),
             registerBrokerBody.getTopicConfigSerializeWrapper(),
             registerBrokerBody.getFilterServerList(),
@@ -321,6 +314,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             requestHeader.getBrokerAddr(),
             requestHeader.getBrokerName(),
             requestHeader.getBrokerId(),
+            requestHeader.getZoneName(),
             requestHeader.getHaServerAddr(),
             topicConfigWrapper,
             null,
@@ -601,32 +595,4 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand updateNearbyRouteConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        log.info("updateNearbyRouteConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        byte[] body = request.getBody();
-        if (body != null) {
-            try {
-                NearbyRouteManager.INSTANCE.updateNearbyRoute(JSON.parseObject(body, NearbyRoute.class));
-            } catch (Exception e) {
-                log.error("updateNearbyRouteConfig json to NearbyRouteConfig error: ", e);
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("json to NearbyRouteConfig fail " + e);
-                return response;
-            }
-        }
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-
-    private RemotingCommand getNearbyRouteConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setBody(JSON.toJSONBytes(NearbyRouteManager.INSTANCE.getNearbyRoute()));
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-    
 }

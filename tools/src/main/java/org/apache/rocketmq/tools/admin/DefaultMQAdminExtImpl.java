@@ -77,7 +77,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.route.NearbyRoute;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -1145,17 +1144,5 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MessageClientExt msgClient = (MessageClientExt) msg;
             return this.mqClientInstance.getMQClientAPIImpl().resumeCheckHalfMessage(RemotingUtil.socketAddress2String(msg.getStoreHost()), msgClient.getOffsetMsgId(), timeoutMillis);
         }
-    }
-    
-    @Override
-    public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
-            throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
-            RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().updateNearbyRouteConfig(nearbyRoute, timeoutMillis);
-    }
-
-    @Override
-    public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
-        return this.mqClientInstance.getMQClientAPIImpl().getNearbyRouteConfig(timeoutMillis);
     }
 }
