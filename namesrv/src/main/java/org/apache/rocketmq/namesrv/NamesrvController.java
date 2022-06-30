@@ -116,7 +116,8 @@ public class NamesrvController {
                 this.controller = new DLedgerController(controllerConfig, this.routeInfoManager::isBrokerAlive,
                     controllerNettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
                 this.routeInfoManager.setController(this.controller);
-            } catch (final CloneNotSupportedException ignored) {
+            } catch (final CloneNotSupportedException e) {
+                LOGGER.warn("", e);
             }
         }
         this.configuration = new Configuration(
