@@ -466,6 +466,13 @@ public interface MessageStore {
      */
     ConsumeQueueInterface getConsumeQueue(String topic, int queueId);
 
+    /**
+     * Get consume queue of the topic/queue. If consume queue not exist, will create one then return it.
+     * @param topic Topic.
+     * @param queueId Queue ID.
+     * @return Consume queue.
+     */
+    ConsumeQueueInterface findConsumeQueue(String topic, int queueId);
 
     /**
      * Get BrokerStatsManager of the messageStore.
