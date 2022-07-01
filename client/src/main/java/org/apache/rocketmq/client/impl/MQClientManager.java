@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.producer.ProduceAccumulator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
@@ -31,6 +32,8 @@ public class MQClientManager {
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
         new ConcurrentHashMap<String, MQClientInstance>();
+    private ConcurrentMap<String/* clientId */, ProduceAccumulator> accumulatorTable =
+        new ConcurrentHashMap<String, ProduceAccumulator>();
 
     private MQClientManager() {
 
@@ -38,6 +41,23 @@ public class MQClientManager {
 
     public static MQClientManager getInstance() {
         return instance;
+    }
+
+    public ProduceAccumulator getOrCreateProduceAccumulator(final ClientConfig clientConfig) {
+        String clientId = clientConfig.buildMQClientId();
+        ProduceAccumulator accumulator = this.accumulatorTable.get(clientId);
+        if (null == accumulator) {
+            accumulator = new ProduceAccumulator(clientId);
+            ProduceAccumulator prev = this.accumulatorTable.putIfAbsent(clientId, accumulator);
+            if (prev != null) {
+                accumulator = prev;
+                log.warn("Returned Previous ProduceAccumulator for clientId:[{}]", clientId);
+            } else {
+                log.info("Created new ProduceAccumulator for clientId:[{}]", clientId);
+            }
+        }
+
+        return accumulator;
     }
 
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig) {
