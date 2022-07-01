@@ -91,7 +91,7 @@ public final class RandomUtil {
         return res;
     }
 
-    public static int getIntegerBetween(int n, int m)// m��ֵ����Ϊ���أ�
+    public static int getIntegerBetween(int n, int m)
     {
         if (m == n) {
             return n;
