@@ -140,7 +140,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
 
     protected MappedFile searchFileByOffsetOrRight(long msgOffset) {
         MappedFile targetBcq = null;
-        boolean searchBcqByCacheEnable = this.defaultMessageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
+        boolean searchBcqByCacheEnable = this.messageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
         if (searchBcqByCacheEnable) {
             // it's not the last BCQ file, so search it through cache.
             targetBcq = this.searchOffsetFromCacheOrRight(msgOffset);
