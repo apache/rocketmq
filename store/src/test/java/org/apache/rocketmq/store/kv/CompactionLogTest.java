@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageExtEncoder;
@@ -100,23 +101,6 @@ public class CompactionLogTest {
         }
     }
 
-
-    @Before
-    public void setUp() throws IOException {
-        File file = tmpFolder.newFolder("compaction");
-        logPath = Paths.get(file.getAbsolutePath(), "compactionLog").toString();
-        cqPath = Paths.get(file.getAbsolutePath(), "compactionCq").toString();
-
-        storeConfig = mock(MessageStoreConfig.class);
-        doReturn(compactionFileSize).when(storeConfig).getCompactionMappedFileSize();
-        doReturn(compactionCqFileSize).when(storeConfig).getCompactionCqMappedFileSize();
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        doReturn(storeConfig).when(defaultMessageStore).getMessageStoreConfig();
-        positionMgr = mock(CompactionPositionMgr.class);
-
-        clog = new CompactionLog(defaultMessageStore, topic, queueId, offsetMemorySize, positionMgr, logPath, cqPath);
-    }
-
     static int queueOffset = 0;
     static int keyCount = 10;
     public static ByteBuffer buildMessage() {
@@ -183,7 +167,7 @@ public class CompactionLogTest {
     }
 
     @Test
-    public void testCompaction() throws DigestException, NoSuchAlgorithmException {
+    public void testCompaction() throws DigestException, NoSuchAlgorithmException, IllegalAccessException {
         Iterator<SelectMappedBufferResult> iterator = mock(Iterator.class);
         SelectMappedBufferResult smb = mock(SelectMappedBufferResult.class);
         when(iterator.hasNext()).thenAnswer((Answer<Boolean>)invocationOnMock -> queueOffset < 1024);
@@ -194,7 +178,12 @@ public class CompactionLogTest {
         List<MappedFile> mappedFileList = Lists.newArrayList(mf);
         doReturn(iterator).when(mf).iterator(0);
 
+        MessageStore messageStore = mock(DefaultMessageStore.class);
+        CommitLog commitLog = mock(CommitLog.class);
+        when(messageStore.getCommitLog()).thenReturn(commitLog);
+        when(commitLog.getCommitLogSize()).thenReturn(1024*1024);
         CompactionLog clog = mock(CompactionLog.class);
+        FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
         doCallRealMethod().when(clog).getOffsetMap(any());
 
         queueOffset = 0;
