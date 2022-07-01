@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -35,6 +36,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SparseConsumeQueueTest {
     @Rule
@@ -51,6 +53,9 @@ public class SparseConsumeQueueTest {
     public void setUp() throws IOException {
         path = tempFolder.newFolder("scq").getAbsolutePath();
         defaultMessageStore = mock(DefaultMessageStore.class);
+        CommitLog commitLog = mock(CommitLog.class);
+        when(defaultMessageStore.getCommitLog()).thenReturn(commitLog);
+        when(commitLog.getCommitLogSize()).thenReturn(10*1024*1024);
         MessageStoreConfig config = mock(MessageStoreConfig.class);
         doReturn(config).when(defaultMessageStore).getMessageStoreConfig();
         doReturn(true).when(config).isSearchBcqByCacheEnable();

@@ -101,6 +101,20 @@ public class CompactionLogTest {
         }
     }
 
+    @Before
+    public void setUp() throws IOException {
+        File file = tmpFolder.newFolder("compaction");
+        logPath = Paths.get(file.getAbsolutePath(), "compactionLog").toString();
+        cqPath = Paths.get(file.getAbsolutePath(), "compactionCq").toString();
+
+        storeConfig = mock(MessageStoreConfig.class);
+        doReturn(compactionFileSize).when(storeConfig).getCompactionMappedFileSize();
+        doReturn(compactionCqFileSize).when(storeConfig).getCompactionCqMappedFileSize();
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        doReturn(storeConfig).when(defaultMessageStore).getMessageStoreConfig();
+        positionMgr = mock(CompactionPositionMgr.class);
+    }
+
     static int queueOffset = 0;
     static int keyCount = 10;
     public static ByteBuffer buildMessage() {
