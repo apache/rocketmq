@@ -492,26 +492,36 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, RemotingException, InterruptedException {
         final long beginStartTime = System.currentTimeMillis();
         ExecutorService executor = this.getAsyncSenderExecutor();
-        try {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    long costTime = System.currentTimeMillis() - beginStartTime;
-                    if (timeout > costTime) {
-                        try {
-                            sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - costTime);
-                        } catch (Exception e) {
-                            sendCallback.onException(e);
-                        }
-                    } else {
-                        sendCallback.onException(
-                            new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                long costTime = System.currentTimeMillis() - beginStartTime;
+                if (timeout > costTime) {
+                    try {
+                        sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - costTime);
+                    } catch (Exception e) {
+                        sendCallback.onException(e);
                     }
+                } else {
+                    sendCallback.onException(
+                            new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
                 }
+            }
 
-            });
+        };
+        try {
+            executor.submit(runnable);
         } catch (RejectedExecutionException e) {
-            throw new MQClientException("executor rejected ", e);
+            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
+                long costTime = System.currentTimeMillis() - beginStartTime;
+                if (!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)) {
+                    sendCallback.onException(
+                            new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
+                }
+            } else {
+                // custom asyncSenderExecutor not support asySendBlockMode
+                throw new MQClientException("executor rejected ", e);
+            }
         }
 
     }
@@ -1047,37 +1057,45 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, RemotingException, InterruptedException {
         final long beginStartTime = System.currentTimeMillis();
         ExecutorService executor = this.getAsyncSenderExecutor();
-        try {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        makeSureStateOK();
-                        Validators.checkMessage(msg, defaultMQProducer);
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    makeSureStateOK();
+                    Validators.checkMessage(msg, defaultMQProducer);
 
-                        if (!msg.getTopic().equals(mq.getTopic())) {
-                            throw new MQClientException("message's topic not equal mq's topic", null);
-                        }
-                        long costTime = System.currentTimeMillis() - beginStartTime;
-                        if (timeout > costTime) {
-                            try {
-                                sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null,
-                                    timeout - costTime);
-                            } catch (MQBrokerException e) {
-                                throw new MQClientException("unknown exception", e);
-                            }
-                        } else {
-                            sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
-                        }
-                    } catch (Exception e) {
-                        sendCallback.onException(e);
+                    if (!msg.getTopic().equals(mq.getTopic())) {
+                        throw new MQClientException("message's topic not equal mq's topic", null);
                     }
-
+                    long costTime = System.currentTimeMillis() - beginStartTime;
+                    if (timeout > costTime) {
+                        try {
+                            sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null,
+                                    timeout - costTime);
+                        } catch (MQBrokerException e) {
+                            throw new MQClientException("unknown exception", e);
+                        }
+                    } else {
+                        sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                    }
+                } catch (Exception e) {
+                    sendCallback.onException(e);
                 }
 
-            });
+            }
+        };
+        try {
+            executor.submit(runnable);
         } catch (RejectedExecutionException e) {
-            throw new MQClientException("executor rejected ", e);
+            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
+                long costTime = System.currentTimeMillis() - beginStartTime;
+                if (!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)) {
+                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                }
+            } else {
+                // custom asyncSenderExecutor not support asySendBlockMode
+                throw new MQClientException("executor rejected ", e);
+            }
         }
 
     }
@@ -1178,30 +1196,39 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, RemotingException, InterruptedException {
         final long beginStartTime = System.currentTimeMillis();
         ExecutorService executor = this.getAsyncSenderExecutor();
-        try {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    long costTime = System.currentTimeMillis() - beginStartTime;
-                    if (timeout > costTime) {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                long costTime = System.currentTimeMillis() - beginStartTime;
+                if (timeout > costTime) {
+                    try {
                         try {
-                            try {
-                                sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
+                            sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
                                     timeout - costTime);
-                            } catch (MQBrokerException e) {
-                                throw new MQClientException("unknown exception", e);
-                            }
-                        } catch (Exception e) {
-                            sendCallback.onException(e);
+                        } catch (MQBrokerException e) {
+                            throw new MQClientException("unknown exception", e);
                         }
-                    } else {
-                        sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                    } catch (Exception e) {
+                        sendCallback.onException(e);
                     }
+                } else {
+                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
                 }
+            }
 
-            });
+        };
+        try {
+            executor.submit(runnable);
         } catch (RejectedExecutionException e) {
-            throw new MQClientException("executor rejected ", e);
+            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
+                long costTime = System.currentTimeMillis() - beginStartTime;
+                if(!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)){
+                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                }
+            }else {
+                // custom asyncSenderExecutor not support asySendBlockMode
+                throw new MQClientException("executor rejected ", e);
+            }
         }
     }
 

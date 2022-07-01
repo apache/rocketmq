@@ -42,6 +42,7 @@ public class ClientConfig {
     protected String namespace;
     private boolean namespaceInitialized = false;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
+    private boolean asySendBlockMode = true;
 
     /**
      * Pulling topic information interval from the named server
@@ -338,6 +339,12 @@ public class ClientConfig {
 
     public void setEnableStreamRequestType(boolean enableStreamRequestType) {
         this.enableStreamRequestType = enableStreamRequestType;
+    }
+
+    public boolean isAsySendBlockMode() { return  asySendBlockMode; }
+
+    public void setAsySendBlockMode(boolean asySendBlockMode) {
+        this.asySendBlockMode = asySendBlockMode;
     }
 
     @Override
