@@ -529,7 +529,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
-            log.error("CheckMessageAndReturnSizeOld", e);
+
         }
 
         return new DispatchRequest(-1, false /* success */);

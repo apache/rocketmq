@@ -40,10 +40,13 @@ messageQueueList.forEach(mq -> {
     }
 });
 
+Map<String, byte[]> kvStore = Maps.newHashMap();
 while (true) {
     List<MessageExt> msgList = consumer.poll(1000);
     if (msgList != null) {
-        msgList.forEach(msg -> System.out.println(msg.toString()));
+        msgList.forEach(msg -> kvStore.put(msg.getKeys(), msg.getBody()));
     }
 }
+
+//use the kvStore
 ```

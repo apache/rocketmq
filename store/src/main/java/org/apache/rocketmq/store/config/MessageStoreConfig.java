@@ -44,11 +44,13 @@ public class MessageStoreConfig {
     // CompactionLog consumeQueue file size, default is 10M
     private int compactionCqMappedFileSize = 10 * 1024 * 1024;
 
-    private int compactionScheduleInternal = 15 * 60 * 60;
+    private int compactionScheduleInternal = 15 * 60 * 1000;
 
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
     private int compactionThreadNum = 0;
+
+    private boolean enableCompaction = true;
 
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -376,6 +378,14 @@ public class MessageStoreConfig {
 
     public void setCompactionThreadNum(int compactionThreadNum) {
         this.compactionThreadNum = compactionThreadNum;
+    }
+
+    public boolean isEnableCompaction() {
+        return enableCompaction;
+    }
+
+    public void setEnableCompaction(boolean enableCompaction) {
+        this.enableCompaction = enableCompaction;
     }
 
     public int getMappedFileSizeCommitLog() {

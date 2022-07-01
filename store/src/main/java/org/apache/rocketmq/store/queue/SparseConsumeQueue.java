@@ -23,6 +23,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -50,33 +51,62 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
 
     @Override
     public void recover() {
-        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
-        if (lastMappedFile == null) {
-            return;
-        }
-        ByteBuffer byteBuffer = lastMappedFile.sliceByteBuffer();
-        int mappedFileOffset = 0;
-        for (int i = 0; i < mappedFileSize; i += CQ_STORE_UNIT_SIZE) {
-            byteBuffer.position(i);
-            long offset = byteBuffer.getLong();
-            int size = byteBuffer.getInt();
-            byteBuffer.getLong();   //tagscode
-            byteBuffer.getLong();   //timestamp
-            long msgBaseOffset = byteBuffer.getLong();
-            short batchSize = byteBuffer.getShort();
-            if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
-                mappedFileOffset += CQ_STORE_UNIT_SIZE;
-            } else {
-                log.info("Recover current batch consume queue file over, file:{} offset:{} size:{} msgBaseOffset:{} batchSize:{} mappedFileOffset:{}",
-                    lastMappedFile.getFileName(), offset, size, msgBaseOffset, batchSize, mappedFileOffset);
-                break;
+        final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        if (!mappedFiles.isEmpty()) {
+            int index = mappedFiles.size() - 3;
+            if (index < 0) {
+                index = 0;
             }
-        }
 
-        lastMappedFile.setWrotePosition(mappedFileOffset);
-        lastMappedFile.setFlushedPosition(mappedFileOffset);
-        lastMappedFile.setCommittedPosition(mappedFileOffset);
-        reviseMaxAndMinOffsetInQueue();
+            MappedFile mappedFile = mappedFiles.get(index);
+            ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+            int mappedFileOffset = 0;
+            long processOffset = mappedFile.getFileFromOffset();
+            while (true) {
+                for (int i = 0; i < mappedFileSize; i += CQ_STORE_UNIT_SIZE) {
+                    byteBuffer.position(i);
+                    long offset = byteBuffer.getLong();
+                    int size = byteBuffer.getInt();
+                    byteBuffer.getLong();   //tagscode
+                    byteBuffer.getLong();   //timestamp
+                    long msgBaseOffset = byteBuffer.getLong();
+                    short batchSize = byteBuffer.getShort();
+                    if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
+                        mappedFileOffset += CQ_STORE_UNIT_SIZE;
+                        this.maxMsgPhyOffsetInCommitLog = offset;
+                    } else {
+                        log.info("Recover current batch consume queue file over, " + "file:{} offset:{} size:{} msgBaseOffset:{} batchSize:{} mappedFileOffset:{}",
+                            mappedFile.getFileName(), offset, size, msgBaseOffset, batchSize, mappedFileOffset);
+
+                        if (mappedFileOffset != mappedFileSize) {
+                            mappedFile.setWrotePosition(mappedFileOffset);
+                            mappedFile.setFlushedPosition(mappedFileOffset);
+                            mappedFile.setCommittedPosition(mappedFileOffset);
+                        }
+
+                        break;
+                    }
+                }
+
+                index++;
+                if (index >= mappedFiles.size()) {
+                    log.info("Recover last batch consume queue file over, last mapped file:{} ", mappedFile.getFileName());
+                    break;
+                } else {
+                    mappedFile = mappedFiles.get(index);
+                    byteBuffer = mappedFile.sliceByteBuffer();
+                    processOffset = mappedFile.getFileFromOffset();
+                    mappedFileOffset = 0;
+                    log.info("Recover next batch consume queue file: " + mappedFile.getFileName());
+                }
+            }
+
+            processOffset += mappedFileOffset;
+            mappedFileQueue.setFlushedWhere(processOffset);
+            mappedFileQueue.setCommittedWhere(processOffset);
+            mappedFileQueue.truncateDirtyFiles(processOffset);
+            reviseMaxAndMinOffsetInQueue();
+        }
     }
 
     public ReferredIterator<CqUnit> iterateFromOrNext(long startOffset) {
@@ -140,7 +170,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
 
     protected MappedFile searchFileByOffsetOrRight(long msgOffset) {
         MappedFile targetBcq = null;
-        boolean searchBcqByCacheEnable = this.defaultMessageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
+        boolean searchBcqByCacheEnable = this.messageStore.getMessageStoreConfig().isSearchBcqByCacheEnable();
         if (searchBcqByCacheEnable) {
             // it's not the last BCQ file, so search it through cache.
             targetBcq = this.searchOffsetFromCacheOrRight(msgOffset);
@@ -272,6 +302,39 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
         String fileName = UtilAll.offset2FileName(physicalOffset);
         return mappedFileQueue.getMappedFiles().stream()
             .anyMatch(mf -> Objects.equals(mf.getFile().getName(), fileName));
+    }
+
+    public long getMaxPhyOffsetInLog() {
+        MappedFile lastMappedFile = mappedFileQueue.getLastMappedFile();
+        Long maxOffsetInLog = getMax(lastMappedFile, b -> b.getLong(0) + b.getInt(8));
+        if (maxOffsetInLog != null) {
+            return maxOffsetInLog;
+        } else {
+            return -1;
+        }
+    }
+
+    private <T> T getMax(MappedFile mappedFile, Function<ByteBuffer, T> function) {
+        if (mappedFile == null || mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
+            return null;
+        }
+
+        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+        for (int i = mappedFile.getReadPosition() - CQ_STORE_UNIT_SIZE; i >= 0; i -= CQ_STORE_UNIT_SIZE) {
+            byteBuffer.position(i);
+            long offset = byteBuffer.getLong();
+            int size = byteBuffer.getInt();
+            long tagsCode = byteBuffer.getLong();   //tagscode
+            long timestamp = byteBuffer.getLong();  //timestamp
+            long msgBaseOffset = byteBuffer.getLong();
+            short batchSize = byteBuffer.getShort();
+            if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
+                byteBuffer.position(i);     //reset position
+                return function.apply(byteBuffer);
+            }
+        }
+
+        return null;
     }
 
     @Override

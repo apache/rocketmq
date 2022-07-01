@@ -17,6 +17,8 @@
 package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -55,117 +57,212 @@ import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static org.apache.rocketmq.store.CommitLog.BLANK_MAGIC_CODE;
+import static org.apache.rocketmq.common.message.MessageDecoder.BLANK_MAGIC_CODE;
 
 public class CompactionLog {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
     private static final int MAX_PULL_MSG_SIZE = 128 * 1024 * 1024;
-    public static final String SUB_FOLDER = "compacting";
+    public static final String COMPACTING_SUB_FOLDER = "compacting";
+    public static final String REPLICATING_SUB_FOLDER = "replicating";
 
     private final int compactionLogMappedFileSize;
     private final int compactionCqMappedFileSize;
     private final String compactionLogFilePath;
     private final String compactionCqFilePath;
     private final MessageStore defaultMessageStore;
+    private final CompactionStore compactionStore;
     private final MessageStoreConfig messageStoreConfig;
-
     private final CompactionAppendMsgCallback endMsgCallback;
-
     private final String topic;
     private final int queueId;
     private final int offsetMapMemorySize;
-
     private final PutMessageLock putMessageLock;
     private final PutMessageLock readMessageLock;
-    private MappedFileQueue currentMappedFileQueue;
-    private MappedFileQueue newMappedFileQueue;
-    private SparseConsumeQueue currentBcq;
-    private SparseConsumeQueue compactionBcq;
+    private TopicPartitionLog current;
+    private TopicPartitionLog compacting;
+    private TopicPartitionLog replicating;
     private CompactionPositionMgr positionMgr;
-    private AtomicBoolean compacting = new AtomicBoolean(false);
+    private AtomicReference<State> state;
 
-    public CompactionLog(final MessageStore messageStore, final String topic, final int queueId,
-        final int offsetMapMemorySize, CompactionPositionMgr positionMgr, String compactionLogStoreRootPath,
-        String compactionCqStoreRootPath)
+    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
         throws IOException {
         this.topic = topic;
         this.queueId = queueId;
-        this.offsetMapMemorySize = offsetMapMemorySize;
         this.defaultMessageStore = messageStore;
+        this.compactionStore = compactionStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
-        this.compactionLogMappedFileSize = messageStoreConfig.getCompactionMappedFileSize();
+        this.offsetMapMemorySize = compactionStore.getOffsetMapSize();
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
-        this.compactionLogFilePath = Paths.get(compactionLogStoreRootPath, topic, String.valueOf(queueId)).toString();
-        this.compactionCqFilePath = compactionCqStoreRootPath;        // batch consume queue already separated
+        this.compactionLogMappedFileSize = getCompactionLogSize(compactionCqMappedFileSize,
+            messageStoreConfig.getCompactionMappedFileSize());
+        this.compactionLogFilePath = Paths.get(compactionStore.getCompactionLogPath(),
+            topic, String.valueOf(queueId)).toString();
+        this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
+        this.positionMgr = compactionStore.getPositionMgr();
 
-        this.currentMappedFileQueue = new MappedFileQueue(compactionLogFilePath, compactionLogMappedFileSize,
-            defaultMessageStore.getAllocateMappedFileService());
         this.putMessageLock =
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() :
                 new PutMessageSpinLock();
         this.readMessageLock =
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() :
                 new PutMessageSpinLock();
-        this.positionMgr = positionMgr;
         this.endMsgCallback = new CompactionAppendEndMsgCallback();
-        this.load();
-        log.info("CompactionLog init completed.");
+        this.state = new AtomicReference<>(State.INITIALIZING);
+        // TODO: join the isr ?
+        log.info("CompactionLog {}:{} init completed.", topic, queueId);
     }
 
-    private void load() throws IOException, RuntimeException {
-        if (!this.currentMappedFileQueue.load()) {
-            throw new IOException("load compactionLog exception");
+    private int getCompactionLogSize(int cqSize, int origLogSize) {
+        int n = origLogSize / cqSize;
+        if (n < 5) {
+            return cqSize * 5;
         }
-        loadCq();
-        recover();
-        sanityCheck();
-    }
-
-    private void loadCq() {
-        SparseConsumeQueue bcq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
-            compactionCqMappedFileSize, defaultMessageStore);
-        bcq.load();
-        bcq.recover();
-        currentBcq = bcq;
-    }
-
-    private void recover() {
-        long maxCqPhysicOffset = currentBcq.getMaxPhysicOffset();
-        if (maxCqPhysicOffset > 0) {
-            log.info("max cq physical offset is {}", maxCqPhysicOffset);
-            this.currentMappedFileQueue.setFlushedWhere(maxCqPhysicOffset);
-            this.currentMappedFileQueue.setCommittedWhere(maxCqPhysicOffset);
-            this.currentMappedFileQueue.truncateDirtyFiles(maxCqPhysicOffset);
+        int m = origLogSize % cqSize;
+        if (m > 0 && m < (cqSize >> 1)) {
+            return n * cqSize;
+        } else {
+            return (n + 1) * cqSize;
         }
     }
 
-    void sanityCheck() throws RuntimeException {
-        List<MappedFile> mappedFileList = currentMappedFileQueue.getMappedFiles();
-        for (MappedFile file : mappedFileList) {
-            if (!currentBcq.containsOffsetFile(Long.parseLong(file.getFile().getName()))) {
-                throw new RuntimeException("log file mismatch with consumeQueue file " + file.getFileName());
+    public void load(boolean exitOk) throws IOException, RuntimeException {
+        initLogAndCq(exitOk);
+        if (defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
+            && getLog().isMappedFilesEmpty()) {
+            log.info("{}:{} load compactionLog from remote master", topic, queueId);
+            loadFromRemoteAsync();
+        } else {
+            state.compareAndSet(State.INITIALIZING, State.NORMAL);
+        }
+    }
+
+    private void initLogAndCq(boolean exitOk) throws IOException, RuntimeException {
+        current = new TopicPartitionLog(this);
+        current.init(exitOk);
+    }
+
+
+    private boolean putMessageFromRemote(byte[] bytes) {
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        // split bytebuffer to avoid encode message again
+        while (byteBuffer.hasRemaining()) {
+            int mark = byteBuffer.position();
+            ByteBuffer bb = byteBuffer.slice();
+            int size = bb.getInt();
+            if (size < 0 || size > byteBuffer.capacity()) {
+                break;
+            } else {
+                bb.limit(size);
+                bb.rewind();
+            }
+
+            MessageExt messageExt = MessageDecoder.decode(bb, false, false);
+            long messageOffset = messageExt.getQueueOffset();
+            long minOffsetInQueue = getCQ().getMinOffsetInQueue();
+            if (getLog().isMappedFilesEmpty() || messageOffset < minOffsetInQueue) {
+                asyncPutMessage(bb, messageExt, replicating);
+            } else {
+                log.info("{}:{} message offset {} >= minOffsetInQueue {}, stop pull...",
+                    topic, queueId, messageOffset, minOffsetInQueue);
+                return false;
+            }
+
+            byteBuffer.position(mark + size);
+        }
+
+        return true;
+
+    }
+
+    private void pullMessageFromMaster() throws Exception {
+
+        if (StringUtils.isBlank(compactionStore.getMasterAddr())) {
+            compactionStore.getCompactionSchedule().schedule(() -> {
+                try {
+                    pullMessageFromMaster();
+                } catch (Exception e) {
+                    log.error("pullMessageFromMaster exception: ", e);
+                }
+            }, 5, TimeUnit.SECONDS);
+            return;
+        }
+
+        replicating = new TopicPartitionLog(this, REPLICATING_SUB_FOLDER);
+        try (MessageFetcher messageFetcher = new MessageFetcher()) {
+            messageFetcher.pullMessageFromMaster(topic, queueId, getCQ().getMinOffsetInQueue(),
+                compactionStore.getMasterAddr(), (currOffset, response) -> {
+                    if (currOffset < 0) {
+                        log.info("{}:{} current offset {}, stop pull...", topic, queueId, currOffset);
+                        return false;
+                    }
+                    return putMessageFromRemote(response.getBody());
+//                    positionMgr.setOffset(topic, queueId, currOffset);
+                });
+        }
+
+        // merge files
+        if (getLog().isMappedFilesEmpty()) {
+            replaceFiles(getLog().getMappedFiles(), current, replicating);
+        } else if (replicating.getLog().isMappedFilesEmpty()) {
+            log.info("replicating message is empty");   //break
+        } else {
+            List<MappedFile> newFiles = Lists.newArrayList();
+            List<MappedFile> toCompactFiles = Lists.newArrayList(replicating.getLog().getMappedFiles());
+            putMessageLock.lock();
+            try {
+                // combine current and replicating to mappedFileList
+                newFiles = Lists.newArrayList(getLog().getMappedFiles());
+                toCompactFiles.addAll(newFiles);  //all from current
+                current.roll(toCompactFiles.size() * compactionLogMappedFileSize);
+            } catch (Throwable e) {
+                log.error("roll log and cq exception: ", e);
+            } finally {
+                putMessageLock.unlock();
+            }
+
+            try {
+                // doCompaction with current and replicating
+                compactAndReplace(new ProcessFileList(toCompactFiles, newFiles));
+            } catch (Throwable e) {
+                log.error("do merge replicating and current exception: ", e);
             }
         }
 
-        List<MappedFile> cqMappedFileList = currentBcq.getMappedFileQueue().getMappedFiles();
-        for (MappedFile file: cqMappedFileList) {
-            if (mappedFileList.stream().noneMatch(m -> Objects.equals(m.getFile().getName(), file.getFile().getName()))) {
-                throw new RuntimeException("consumeQueue file mismatch with log file " + file.getFileName());
+        // cleanReplicatingResource, force clean cq
+        replicating.clean(false, true);
+
+//        positionMgr.setOffset(topic, queueId, currentPullOffset);
+        state.compareAndSet(State.INITIALIZING, State.NORMAL);
+    }
+    private void loadFromRemoteAsync() {
+        compactionStore.getCompactionSchedule().submit(() -> {
+            try {
+                pullMessageFromMaster();
+            } catch (Exception e) {
+                log.error("fetch message from master exception: ", e);
             }
-        }
+        });
+
+        // update (currentStatus) = LOADING
+
+        // request => get (start, end)
+        // pull message => current message offset > end
+        // done
+        // positionMgr.persist();
+
+        // update (currentStatus) = RUNNING
     }
 
     private long nextOffsetCorrection(long oldOffset, long newOffset) {
@@ -218,66 +315,49 @@ public class CompactionLog {
         return false;
     }
 
-    private boolean shouldRoll(MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq, final int msgSize) {
-        return mappedFileQueue.shouldRoll(msgSize) || bcq.shouldRoll();
-    }
-
-    private boolean isEmptyOrCurrentFileFull(MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) {
-        return mappedFileQueue.isEmptyOrCurrentFileFull() || bcq.getMappedFileQueue().isEmptyOrCurrentFileFull();
-    }
-
-    private void rollLogAndCq(MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) throws IOException {
-        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
-        if (mappedFile == null) {
-            throw new IOException("create new file error");
-        }
-        long baseOffset = mappedFile.getFileFromOffset();
-        MappedFile cqFile = bcq.createFile(baseOffset);
-        if (cqFile == null) {
-            mappedFile.destroy(1000);
-            mappedFileQueue.getMappedFiles().remove(mappedFile);
-            throw new IOException("create new consumeQueue file error");
-        }
-    }
-
     public long rollNextFile(final long offset) {
         return offset + compactionLogMappedFileSize - offset % compactionLogMappedFileSize;
     }
 
-    public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
-        final OffsetMap offsetMap, final MappedFileQueue mappedFileQueue, final SparseConsumeQueue bcq)
-        throws DigestException {
+    boolean shouldRetainMsg(final MessageExt msgExt, final OffsetMap map) throws DigestException {
+        if (msgExt.getQueueOffset() > map.getLastOffset()) {
+            return true;
+        }
+
         String key = msgExt.getKeys();
-        if (msgExt.getQueueOffset() < offsetMap.get(key)) {
-            return;   //compact
-        } else if (msgExt.getQueueOffset() == offsetMap.get(key)) {
-            if (msgExt.getBody() != null && msgExt.getBody().length > 0) {
-                //filter null value
-                asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
-            }
+        if (StringUtils.isNotBlank(key)) {
+            boolean keyNotExistOrOffsetBigger = msgExt.getQueueOffset() >= map.get(key);
+            boolean hasBody = ArrayUtils.isNotEmpty(msgExt.getBody());
+            return keyNotExistOrOffsetBigger && hasBody;
         } else {
-            // will not happen
-            log.error("{} {} buffer queueOffset({}) > offsetMap({})",
-                msgExt.getTopic(), msgExt.getQueueId(), msgExt.getQueueOffset(), offsetMap.get(key));
-            return;
+            log.error("message has no keys");
+            return false;
+        }
+    }
+
+    public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
+        final OffsetMap offsetMap, final TopicPartitionLog tpLog)
+        throws DigestException {
+        if (shouldRetainMsg(msgExt, offsetMap)) {
+            asyncPutMessage(selectMappedBufferResult.getByteBuffer(), msgExt, tpLog);
         }
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult) {
-        return asyncPutMessage(selectMappedBufferResult, currentMappedFileQueue, currentBcq);
+        return asyncPutMessage(selectMappedBufferResult, current);
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult,
-        MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) {
+        final TopicPartitionLog tpLog) {
         MessageExt msgExt = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer(), false, false);
-        return asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
+        return asyncPutMessage(selectMappedBufferResult.getByteBuffer(), msgExt, tpLog);
     }
 
-    public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult,
-        final MessageExt msgExt, MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) {
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
+        final MessageExt msgExt, final TopicPartitionLog tpLog) {
 
         // fix duplicate
-        if (bcq.getMaxOffsetInQueue() >= msgExt.getQueueOffset()) {
+        if (tpLog.getCQ().getMaxOffsetInQueue() - 1 >= msgExt.getQueueOffset()) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
@@ -291,32 +371,32 @@ public class CompactionLog {
         try {
             long beginTime = System.nanoTime();
 
-            if (isEmptyOrCurrentFileFull(mappedFileQueue, bcq)) {
+            if (tpLog.isEmptyOrCurrentFileFull()) {
                 try {
-                    rollLogAndCq(mappedFileQueue, bcq);
+                    tpLog.roll();
                 } catch (IOException e) {
                     log.error("create mapped file or consumerQueue exception: ", e);
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
             }
 
-            MappedFile mappedFile = mappedFileQueue.getLastMappedFile();
+            MappedFile mappedFile = tpLog.getLog().getLastMappedFile();
 
-            CompactionAppendMsgCallback callback = new CompactionAppendMessageCallback(msgExt, bcq);
-            AppendMessageResult result = mappedFile.appendMessage(selectMappedBufferResult.getByteBuffer(), callback);
+            CompactionAppendMsgCallback callback = new CompactionAppendMessageCallback(msgExt, tpLog.getCQ());
+            AppendMessageResult result = mappedFile.appendMessage(msgBuffer, callback);
 
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
                 case END_OF_FILE:
                     try {
-                        rollLogAndCq(mappedFileQueue, bcq);
+                        tpLog.roll();
                     } catch (IOException e) {
                         log.error("create mapped file2 error, topic: {}, clientAddr: {}", msgExt.getTopic(), msgExt.getBornHostString());
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                     }
-                    mappedFile = mappedFileQueue.getLastMappedFile();
-                    result = mappedFile.appendMessage(selectMappedBufferResult.getByteBuffer(), callback);
+                    mappedFile = tpLog.getLog().getLastMappedFile();
+                    result = mappedFile.appendMessage(msgBuffer, callback);
                     break;
                 default:
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
@@ -330,12 +410,19 @@ public class CompactionLog {
 
     private SelectMappedBufferResult getMessage(final long offset, final int size) {
 
-        MappedFile mappedFile = this.currentMappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+        MappedFile mappedFile = this.getLog().findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
             int pos = (int) (offset % compactionLogMappedFileSize);
             return mappedFile.selectMappedBuffer(pos, size);
         }
         return null;
+    }
+
+    private boolean validateCqUnit(CqUnit cqUnit) {
+        return cqUnit.getPos() >= 0
+            && cqUnit.getSize() > 0
+            && cqUnit.getQueueOffset() >= 0
+            && cqUnit.getBatchNum() > 0;
     }
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
@@ -351,9 +438,9 @@ public class CompactionLog {
 
             GetMessageResult getResult = new GetMessageResult();
 
-            final long maxOffsetPy = currentMappedFileQueue.getMaxOffset();
+            final long maxOffsetPy = getLog().getMaxOffset();
 
-            SparseConsumeQueue consumeQueue = currentBcq;
+            SparseConsumeQueue consumeQueue = getCQ();
             if (consumeQueue != null) {
                 minOffset = consumeQueue.getMinOffsetInQueue();
                 maxOffset = consumeQueue.getMaxOffsetInQueue();
@@ -400,13 +487,11 @@ public class CompactionLog {
                             long nextPhyFileStartOffset = Long.MIN_VALUE;
                             while (bufferConsumeQueue.hasNext() && nextBeginOffset < maxOffset) {
                                 CqUnit cqUnit = bufferConsumeQueue.next();
-                                long offsetPy = cqUnit.getPos();
-                                int sizePy = cqUnit.getSize();
-
-                                if (offsetPy < 0) {
-                                    // indicate that the mapped file ended
+                                if (!validateCqUnit(cqUnit)) {
                                     break;
                                 }
+                                long offsetPy = cqUnit.getPos();
+                                int sizePy = cqUnit.getSize();
 
                                 boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
@@ -469,46 +554,60 @@ public class CompactionLog {
         }
     }
 
-    List<MappedFile> getCompactionFile() {
-        List<MappedFile> mappedFileList = Lists.newArrayList(currentMappedFileQueue.getMappedFiles());
+    ProcessFileList getCompactionFile() {
+        List<MappedFile> mappedFileList = Lists.newArrayList(getLog().getMappedFiles());
         if (mappedFileList.size() < 2) {
             return null;
         }
 
-        mappedFileList.remove(mappedFileList.size() - 1);   //exclude the writing file
-        mappedFileList.sort(Comparator.comparing(MappedFile::getFileFromOffset));
-        MappedFile mappedFileLast = mappedFileList.get(mappedFileList.size() - 1);
-        long maxQueueOffset = currentBcq.getMaxMsgOffsetFromFile(mappedFileLast.getFile().getName());
-        if (maxQueueOffset <= positionMgr.getOffset(topic, queueId)) {
-            // no new file need to compaction
+        List<MappedFile> toCompactFiles = mappedFileList.subList(0, mappedFileList.size() - 1);
+
+        //exclude the last writing file
+        List<MappedFile> newFiles = Lists.newArrayList();
+        for (int i = 0; i < mappedFileList.size() - 1; i++) {
+            MappedFile mf = mappedFileList.get(i);
+            long maxQueueOffsetInFile = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
+            if (maxQueueOffsetInFile > positionMgr.getOffset(topic, queueId)) {
+                newFiles.add(mf);
+            }
+        }
+
+        if (newFiles.isEmpty()) {
             return null;
         }
 
-        return mappedFileList;
+        return new ProcessFileList(toCompactFiles, newFiles);
+    }
+
+    void compactAndReplace(ProcessFileList compactFiles) throws Throwable {
+        if (compactFiles == null || compactFiles.isEmpty()) {
+            return;
+        }
+
+        long startTime = System.nanoTime();
+        OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles);
+        compaction(compactFiles.toCompactFiles, offsetMap);
+        replaceFiles(compactFiles.toCompactFiles, current, compacting);
+        positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
+        positionMgr.persist();
+        compacting.clean(false, false);
+        log.info("this compaction elapsed {} milliseconds",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+
     }
 
     void doCompaction() {
-        if (!compacting.compareAndSet(false, true)) {
-            log.warn("compaction is running, skip this time.");
+        if (!state.compareAndSet(State.NORMAL, State.COMPACTING)) {
+            log.warn("compactionLog state is {}, skip this time", state.get());
             return;
         }
 
         try {
-            List<MappedFile> mappedFileList = getCompactionFile();
-            if (mappedFileList != null)
-            {
-                long startTime = System.nanoTime();
-                OffsetMap offsetMap = getOffsetMap(mappedFileList);
-                compaction(mappedFileList, offsetMap);
-                replaceFiles(mappedFileList, currentMappedFileQueue, newMappedFileQueue, offsetMap);
-                positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
-                log.info("this compaction elapsed {} milliseconds",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
-            }
+            compactAndReplace(getCompactionFile());
         } catch (Throwable e) {
             log.error("do compaction exception: ", e);
         }
-        compacting.set(false);
+        state.compareAndSet(State.COMPACTING, State.NORMAL);
     }
 
     protected OffsetMap getOffsetMap(List<MappedFile> mappedFileList) throws NoSuchAlgorithmException, DigestException {
@@ -524,7 +623,9 @@ public class CompactionLog {
                     MessageExt msg = MessageDecoder.decode(smb.getByteBuffer(), true, false);
                     if (msg != null) {
                         ////get key & offset and put to offsetMap
-                        offsetMap.put(msg.getKeys(), msg.getQueueOffset());
+                        if (msg.getQueueOffset() > positionMgr.getOffset(topic, queueId)) {
+                            offsetMap.put(msg.getKeys(), msg.getQueueOffset());
+                        }
                     } else {
                         // msg is null indicate that file is end
                         break;
@@ -550,10 +651,7 @@ public class CompactionLog {
     }
 
     protected void compaction(List<MappedFile> mappedFileList, OffsetMap offsetMap) throws DigestException {
-        newMappedFileQueue = new MappedFileQueue(compactionLogFilePath + File.separator + SUB_FOLDER,
-            compactionLogMappedFileSize, null);
-        compactionBcq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
-            compactionCqMappedFileSize, defaultMessageStore, SUB_FOLDER);
+        compacting = new TopicPartitionLog(this, COMPACTING_SUB_FOLDER);
 
         for (MappedFile mappedFile : mappedFileList) {
             Iterator<SelectMappedBufferResult> iterator = mappedFile.iterator(0);
@@ -566,7 +664,7 @@ public class CompactionLog {
                         // file end
                         break;
                     } else {
-                        checkAndPutMessage(smb, msgExt, offsetMap, newMappedFileQueue, compactionBcq);
+                        checkAndPutMessage(smb, msgExt, offsetMap, compacting);
                     }
                 } finally {
                     if (smb != null) {
@@ -575,20 +673,28 @@ public class CompactionLog {
                 }
             }
         }
-        putEndMessage(newMappedFileQueue);
+        putEndMessage(compacting.getLog());
     }
 
-    private void replaceFiles(List<MappedFile> mappedFileList, MappedFileQueue current,
-        MappedFileQueue compacted, OffsetMap offsetMap) {
+    protected void replaceFiles(List<MappedFile> mappedFileList, TopicPartitionLog current,
+        TopicPartitionLog newLog) {
+
+        MappedFileQueue dest = current.getLog();
+        MappedFileQueue src = newLog.getLog();
 
         long beginTime = System.nanoTime();
-        List<String> fileNameToReplace = mappedFileList.stream()
-            .map(m -> m.getFile().getName())
+//        List<String> fileNameToReplace = mappedFileList.stream()
+//            .map(m -> m.getFile().getName())
+//            .collect(Collectors.toList());
+
+        List<String> fileNameToReplace = dest.getMappedFiles().stream()
+            .filter(mappedFileList::contains)
+            .map(mf -> mf.getFile().getName())
             .collect(Collectors.toList());
 
         mappedFileList.forEach(MappedFile::renameToDelete);
 
-        compacted.getMappedFiles().forEach(mappedFile -> {
+        src.getMappedFiles().forEach(mappedFile -> {
             try {
                 mappedFile.moveToParent();
             } catch (IOException e) {
@@ -596,27 +702,28 @@ public class CompactionLog {
             }
         });
 
-        current.getMappedFiles().stream()
+        dest.getMappedFiles().stream()
             .filter(m -> !mappedFileList.contains(m))
-            .forEach(m -> compacted.getMappedFiles().add(m));
+            .forEach(m -> src.getMappedFiles().add(m));
 
         readMessageLock.lock();
         try {
             mappedFileList.forEach(mappedFile -> mappedFile.destroy(1000));
 
-            current.getMappedFiles().clear();
-            current.getMappedFiles().addAll(compacted.getMappedFiles());
+            dest.getMappedFiles().clear();
+            dest.getMappedFiles().addAll(src.getMappedFiles());
+            src.getMappedFiles().clear();
 
-            replaceCqFiles(currentBcq, compactionBcq, fileNameToReplace);
+            replaceCqFiles(getCQ(), newLog.getCQ(), fileNameToReplace);
 
-            log.info("replace file elapsed {} millisecs",
+            log.info("replace file elapsed {} milliseconds",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
         } finally {
             readMessageLock.unlock();
         }
     }
 
-    private void replaceCqFiles(SparseConsumeQueue currentBcq, SparseConsumeQueue compactionBcq,
+    protected void replaceCqFiles(SparseConsumeQueue currentBcq, SparseConsumeQueue compactionBcq,
         List<String> fileNameToReplace) {
         long beginTime = System.nanoTime();
 
@@ -642,21 +749,27 @@ public class CompactionLog {
 
         currentMq.getMappedFiles().clear();
         currentMq.getMappedFiles().addAll(compactMq.getMappedFiles());
+        compactMq.getMappedFiles().clear();
+
         currentBcq.refresh();
         log.info("replace consume queue file elapsed {} millsecs.",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
     }
 
-    public SparseConsumeQueue getCurrentBcq() {
-        return currentBcq;
+    public MappedFileQueue getLog() {
+        return current.mappedFileQueue;
     }
 
-    public SparseConsumeQueue getCompactionBcq() {
-        return compactionBcq;
+    public SparseConsumeQueue getCQ() {
+        return current.consumeQueue;
     }
 
-    public void flushCq(int flushLeastPages) {
-        currentBcq.flush(flushLeastPages);
+//    public SparseConsumeQueue getCompactionScq() {
+//        return compactionScq;
+//    }
+
+    public void flushCQ(int flushLeastPages) {
+        getCQ().flush(flushLeastPages);
     }
 
     static class CompactionAppendEndMsgCallback implements CompactionAppendMsgCallback {
@@ -817,6 +930,170 @@ public class CompactionLog {
                 ((buf[offset + 1] & 0xFF) << 16) |
                 ((buf[offset + 2] & 0xFF) << 8) |
                 ((buf[offset + 3] & 0xFF));
+        }
+    }
+
+    static class TopicPartitionLog {
+        MappedFileQueue mappedFileQueue;
+        SparseConsumeQueue consumeQueue;
+
+        public TopicPartitionLog(CompactionLog compactionLog) {
+            this(compactionLog, null);
+        }
+        public TopicPartitionLog(CompactionLog compactionLog, String subFolder) {
+            if (StringUtils.isBlank(subFolder)) {
+                mappedFileQueue = new MappedFileQueue(compactionLog.compactionLogFilePath,
+                    compactionLog.compactionLogMappedFileSize, null);
+                consumeQueue = new SparseConsumeQueue(compactionLog.topic, compactionLog.queueId,
+                    compactionLog.compactionCqFilePath, compactionLog.compactionCqMappedFileSize,
+                    compactionLog.defaultMessageStore);
+            } else {
+                mappedFileQueue = new MappedFileQueue(compactionLog.compactionLogFilePath + File.separator + subFolder,
+                    compactionLog.compactionLogMappedFileSize, null);
+                consumeQueue = new SparseConsumeQueue(compactionLog.topic, compactionLog.queueId,
+                    compactionLog.compactionCqFilePath, compactionLog.compactionCqMappedFileSize,
+                    compactionLog.defaultMessageStore, subFolder);
+            }
+        }
+
+        public void shutdown() {
+            mappedFileQueue.shutdown(1000 * 30);
+            consumeQueue.getMappedFileQueue().shutdown(1000 * 30);
+        }
+
+        public void init(boolean exitOk) throws IOException, RuntimeException {
+            if (!mappedFileQueue.load()) {
+                shutdown();
+                throw new IOException("load log exception");
+            }
+
+            if (!consumeQueue.load()) {
+                shutdown();
+                throw new IOException("load consume queue exception");
+            }
+
+            try {
+                consumeQueue.recover();
+                recover();
+                sanityCheck();
+            } catch (Exception e) {
+                shutdown();
+                throw e;
+            }
+        }
+
+        private void recover() {
+            long maxCqPhysicOffset = consumeQueue.getMaxPhyOffsetInLog();
+            log.info("{}:{} max physical offset in compaction log is {}",
+                consumeQueue.getTopic(), consumeQueue.getQueueId(), maxCqPhysicOffset);
+            if (maxCqPhysicOffset > 0) {
+                this.mappedFileQueue.setFlushedWhere(maxCqPhysicOffset);
+                this.mappedFileQueue.setCommittedWhere(maxCqPhysicOffset);
+                this.mappedFileQueue.truncateDirtyFiles(maxCqPhysicOffset);
+            }
+        }
+
+        void sanityCheck() throws RuntimeException {
+            List<MappedFile> mappedFileList = mappedFileQueue.getMappedFiles();
+            for (MappedFile file : mappedFileList) {
+                if (!consumeQueue.containsOffsetFile(Long.parseLong(file.getFile().getName()))) {
+                    throw new RuntimeException("log file mismatch with consumeQueue file " + file.getFileName());
+                }
+            }
+
+            List<MappedFile> cqMappedFileList = consumeQueue.getMappedFileQueue().getMappedFiles();
+            for (MappedFile file: cqMappedFileList) {
+                if (mappedFileList.stream().noneMatch(m -> Objects.equals(m.getFile().getName(), file.getFile().getName()))) {
+                    throw new RuntimeException("consumeQueue file mismatch with log file " + file.getFileName());
+                }
+            }
+        }
+
+        public synchronized void roll() throws IOException {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            if (mappedFile == null) {
+                throw new IOException("create new file error");
+            }
+            long baseOffset = mappedFile.getFileFromOffset();
+            MappedFile cqFile = consumeQueue.createFile(baseOffset);
+            if (cqFile == null) {
+                mappedFile.destroy(1000);
+                mappedFileQueue.getMappedFiles().remove(mappedFile);
+                throw new IOException("create new consumeQueue file error");
+            }
+        }
+
+        public synchronized void roll(int baseOffset) throws IOException {
+
+            MappedFile mappedFile = mappedFileQueue.tryCreateMappedFile(baseOffset);
+            if (mappedFile == null) {
+                throw new IOException("create new file error");
+            }
+
+            MappedFile cqFile = consumeQueue.createFile(baseOffset);
+            if (cqFile == null) {
+                mappedFile.destroy(1000);
+                mappedFileQueue.getMappedFiles().remove(mappedFile);
+                throw new IOException("create new consumeQueue file error");
+            }
+        }
+
+        public boolean isEmptyOrCurrentFileFull() {
+            return mappedFileQueue.isEmptyOrCurrentFileFull() ||
+                consumeQueue.getMappedFileQueue().isEmptyOrCurrentFileFull();
+        }
+
+        public void clean(MappedFileQueue mappedFileQueue) throws IOException {
+            for (MappedFile mf : mappedFileQueue.getMappedFiles()) {
+                if (mf.getFile().exists()) {
+                    log.error("directory {} with {} not empty.", mappedFileQueue.getStorePath(), mf.getFileName());
+                    throw new IOException("directory " + mappedFileQueue.getStorePath() + " not empty.");
+                }
+            }
+
+            mappedFileQueue.destroy();
+        }
+
+        public void clean(boolean forceCleanLog, boolean forceCleanCq) throws IOException {
+            //clean and delete sub_folder
+            if (forceCleanLog) {
+                mappedFileQueue.destroy();
+            } else {
+                clean(mappedFileQueue);
+            }
+
+            if (forceCleanCq) {
+                consumeQueue.getMappedFileQueue().destroy();
+            } else {
+                clean(consumeQueue.getMappedFileQueue());
+            }
+        }
+
+        public MappedFileQueue getLog() {
+            return mappedFileQueue;
+        }
+
+        public SparseConsumeQueue getCQ() {
+            return consumeQueue;
+        }
+    }
+
+    static enum State {
+        NORMAL,
+        INITIALIZING,
+        COMPACTING,
+    }
+
+    static class ProcessFileList {
+        List<MappedFile> newFiles;
+        List<MappedFile> toCompactFiles;
+        public ProcessFileList(List<MappedFile> toCompactFiles, List<MappedFile> newFiles) {
+            this.toCompactFiles = toCompactFiles;
+            this.newFiles = newFiles;
+        }
+
+        boolean isEmpty() {
+            return CollectionUtils.isEmpty(newFiles) || CollectionUtils.isEmpty(toCompactFiles);
         }
     }
 
