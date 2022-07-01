@@ -20,7 +20,7 @@ code |int | Request  code. answering business processing is different according 
 language | LanguageCode | Language implemented by the requester | Language implemented by the responder
 version | int | Version of Request Equation | Version of Response Equation
 opaque | int |Equivalent to requestId, the different request identification codes on the same connection correspond to those in the response message| The response returns directly without modification
-flag | int | Sign, used to distinguish between ordinary RPC or oneway RPC | Sign, used to distinguish between ordinary RPC or oneway RPC
+flag | int | Sign, used to distinguish between ordinary RPC or oneway RPC, the other to distinguish between request and response | Sign, used to distinguish between ordinary RPC or oneway RPC, the other to distinguish between request and response
 remark | String | Transfer custom text information | Transfer custom text information 
 extFields | HashMap<String, String> | Request custom extension information| Response custom extension information
 ![](https://github.com/apache/rocketmq/raw/develop/docs/cn/image/rocketmq_design_4.png)

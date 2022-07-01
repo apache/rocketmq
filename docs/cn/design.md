@@ -52,15 +52,15 @@ rocketmq-remoting 模块是 RocketMQ消息队列中负责网络通信的模块�
 #### 2.2 协议设计与编解码
 在Client和Server之间完成一次消息发送时，需要对发送的消息进行一个协议约定，因此就有必要自定义RocketMQ的消息协议。同时，为了高效地在网络中传输消息和对收到的消息读取，就需要对消息进行编解码。在RocketMQ中，RemotingCommand这个类在消息传输过程中对所有数据内容的封装，不但包含了所有的数据结构，还包含了编码解码操作。
 
-Header字段 | 类型 | Request说明 | Response说明
---- | --- | --- | --- |
-code |int | 请求操作码，应答方根据不同的请求码进行不同的业务处理 | 应答响应码。0表示成功，非0则表示各种错误
-language | LanguageCode | 请求方实现的语言 | 应答方实现的语言
-version | int | 请求方程序的版本 | 应答方程序的版本
-opaque | int |相当于requestId，在同一个连接上的不同请求标识码，与响应消息中的相对应 | 应答不做修改直接返回
-flag | int | 区分是普通RPC还是onewayRPC的标志 | 区分是普通RPC还是onewayRPC的标志
-remark | String | 传输自定义文本信息 | 传输自定义文本信息
-extFields | HashMap<String, String> | 请求自定义扩展信息 | 响应自定义扩展信息
+Header字段 | 类型 | Request说明                                 | Response说明
+--- | --- |-------------------------------------------| --- |
+code |int | 请求操作码，应答方根据不同的请求码进行不同的业务处理                | 应答响应码。0表示成功，非0则表示各种错误
+language | LanguageCode | 请求方实现的语言                                  | 应答方实现的语言
+version | int | 请求方程序的版本                                  | 应答方程序的版本
+opaque | int | 相当于requestId，在同一个连接上的不同请求标识码，与响应消息中的相对应   | 应答不做修改直接返回
+flag | int | 区分是普通RPC还是onewayRPC的标志,另一层含义是区分是请求还是响应的标志 | 区分是普通RPC还是onewayRPC的标志,另一层含义是区分是请求还是响应的标志
+remark | String | 传输自定义文本信息                                 | 传输自定义文本信息
+extFields | HashMap<String, String> | 请求自定义扩展信息                                 | 响应自定义扩展信息
 
 ![](image/rocketmq_design_4.png)
 
