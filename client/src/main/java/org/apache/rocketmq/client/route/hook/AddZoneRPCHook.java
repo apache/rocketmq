@@ -67,7 +67,7 @@ public class AddZoneRPCHook implements RPCHook {
 
     public boolean isZoneMode() {
         return zoneMode;
-	}
+    }
 
     public void setZoneMode(boolean zoneMode) {
         this.zoneMode = zoneMode;

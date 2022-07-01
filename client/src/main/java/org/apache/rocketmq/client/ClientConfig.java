@@ -342,11 +342,11 @@ public class ClientConfig {
     }
 
     public void setZoneName(String zoneName) {
-    	AddZoneRPCHook.INSTANCE.setZoneName(zoneName);
+        AddZoneRPCHook.INSTANCE.setZoneName(zoneName);
     }
 
     public String getZoneName() {
-    	return AddZoneRPCHook.INSTANCE.getZoneName();
+        return AddZoneRPCHook.INSTANCE.getZoneName();
     }
     
     public void setZoneMode(boolean zoneMode) {

@@ -49,7 +49,7 @@ public class ZoneRouteRPCHook implements RPCHook {
             return;
         }
         boolean zoneMode = Boolean.valueOf(request.getExtFields().get(MixAll.ZONE_MODE));
-        if (zoneMode == false) {
+        if (!zoneMode) {
             return;
         }
         String zoneName = request.getExtFields().get(MixAll.ZONE_NAME);
