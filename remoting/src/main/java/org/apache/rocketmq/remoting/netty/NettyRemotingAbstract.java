@@ -182,14 +182,6 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    public void doAfterRpcFailure(String addr, RemotingCommand request, Boolean remoteTimeout) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
-                rpcHook.doAfterRpcFailure(addr, request, remoteTimeout);
-            }
-        }
-    }
-
     /**
      * Process incoming request command issued by remote peer.
      *
@@ -495,10 +487,6 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
-            if (this instanceof NettyRemotingClient) {
-                NettyRemotingClient nettyRemotingClient = (NettyRemotingClient) this;
-                nettyRemotingClient.doAfterRpcFailure(RemotingHelper.parseChannelRemoteAddr(channel), request, false);
-            }
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             } else {
