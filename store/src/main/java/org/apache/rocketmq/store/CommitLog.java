@@ -799,8 +799,8 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(msg);
-        int needAckNums = 1;
 
         if (needHandleHA) {
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
@@ -811,7 +811,7 @@ public class CommitLog implements Swappable {
                     // -1 means all ack in SyncStateSet
                     needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
                 }
-            } else {
+            } else if (this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                     this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
                 needAckNums = calcNeedAckNums(inSyncReplicas);
@@ -956,7 +956,7 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        int needAckNums = 1;
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(messageExtBatch);
 
         if (needHandleHA) {
@@ -968,7 +968,7 @@ public class CommitLog implements Swappable {
                     // -1 means all ack in SyncStateSet
                     needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
                 }
-            } else {
+            } else if (this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                     this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
                 needAckNums = calcNeedAckNums(inSyncReplicas);
