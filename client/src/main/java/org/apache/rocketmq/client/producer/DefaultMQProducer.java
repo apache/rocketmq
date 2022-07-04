@@ -134,6 +134,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private TraceDispatcher traceDispatcher = null;
 
     /**
+     * Indicate whether to block message when asynchronous sending traffic is too heavy.
+     */
+    private boolean asySendBlockMode = true;
+
+    /**
      * Default constructor.
      */
     public DefaultMQProducer() {
@@ -1108,5 +1113,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public Set<Integer> getRetryResponseCodes() {
         return retryResponseCodes;
+    }
+
+    public boolean isAsySendBlockMode() {
+        return  asySendBlockMode;
+    }
+
+    public void setAsySendBlockMode(boolean asySendBlockMode) {
+        this.asySendBlockMode = asySendBlockMode;
     }
 }
