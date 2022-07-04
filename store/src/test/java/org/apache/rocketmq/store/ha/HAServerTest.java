@@ -114,7 +114,7 @@ public class HAServerTest {
     }
 
     @Test
-    public void inSyncSlaveNums() throws IOException {
+    public void inSyncReplicasNums() throws IOException {
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -140,13 +140,13 @@ public class HAServerTest {
         await().atMost(Duration.ofMinutes(1)).until(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                return HAServerTest.this.haService.inSyncSlaveNums(haSlaveFallbehindMax) == 4;
+                return HAServerTest.this.haService.inSyncReplicasNums(haSlaveFallbehindMax) == 5;
             }
         });
 
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(123L + haSlaveFallbehindMax)).isEqualTo(2);
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(124L + haSlaveFallbehindMax)).isEqualTo(1);
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(125L + haSlaveFallbehindMax)).isEqualTo(0);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(123L + haSlaveFallbehindMax)).isEqualTo(3);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(124L + haSlaveFallbehindMax)).isEqualTo(2);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(125L + haSlaveFallbehindMax)).isEqualTo(1);
     }
 
     @Test

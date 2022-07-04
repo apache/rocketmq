@@ -110,7 +110,7 @@ public class SlaveBrokerIT extends ContainerIntegrationTestBase {
             .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().getConnectionCount().get() == 2);
 
         await().atMost(100, TimeUnit.SECONDS)
-            .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().inSyncSlaveNums(0) == 2);
+            .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().inSyncReplicasNums(0) == 3);
 
         Thread.sleep(1000 * 101);
     }

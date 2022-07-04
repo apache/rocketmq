@@ -236,12 +236,14 @@ public class MessageStoreConfig {
      * Each message must be written successfully to at least in-sync replicas.
      * The master broker is considered one of the in-sync replicas, and it's included in the count of total.
      * If a master broker is ASYNC_MASTER, inSyncReplicas will be ignored.
+     * If enableControllerMode is true and ackAckInSyncStateSet is true, inSyncReplicas will be ignored.
      */
     @ImportantField
     private int inSyncReplicas = 1;
 
     /**
      * Will be worked in auto multiple replicas mode, to provide minimum in-sync replicas.
+     * It is still valid in controller mode.
      */
     @ImportantField
     private int minInSyncReplicas = 1;
@@ -300,7 +302,7 @@ public class MessageStoreConfig {
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
     /**
-     * Whether sync from lastFile when a new broker replicas join the master.
+     * Whether sync from lastFile when a new broker replicas(no data) join the master.
      */
     private boolean syncFromLastFile = false;
 

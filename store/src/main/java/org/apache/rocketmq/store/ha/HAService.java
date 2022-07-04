@@ -76,12 +76,13 @@ public interface HAService {
     void updateHaMasterAddress(String newAddr);
 
     /**
-     * Returns the number of slaves those commit log are not far behind the master.
+     * Returns the number of replicas those commit log are not far behind the master. It includes master itself.
+     * Returns syncStateSet size if HAService instanceof AutoSwitchService
      *
      * @return the number of slaves
      * @see MessageStoreConfig#getHaMaxGapNotInSync()
      */
-    int inSyncSlaveNums(long masterPutWhere);
+    int inSyncReplicasNums(long masterPutWhere);
 
     /**
      * Get connection count

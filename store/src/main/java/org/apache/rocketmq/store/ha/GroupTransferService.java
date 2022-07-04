@@ -96,6 +96,7 @@ public class GroupTransferService extends ServiceThread {
                                 transferOK = true;
                                 break;
                             }
+
                             // Include master
                             int ackNums = 1;
                             for (HAConnection conn : haService.getConnectionList()) {

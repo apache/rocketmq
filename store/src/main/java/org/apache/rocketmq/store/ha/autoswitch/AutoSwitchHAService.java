@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -251,6 +252,46 @@ public class AutoSwitchHAService extends DefaultHAService {
         if (this.syncStateSet.contains(slaveAddress)) {
             this.confirmOffset = computeConfirmOffset();
         }
+    }
+
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        return syncStateSet.size();
+    }
+
+    @Override public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
+        HARuntimeInfo info = new HARuntimeInfo();
+
+        if (BrokerRole.SLAVE.equals(this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole())) {
+            info.setMaster(false);
+
+            info.getHaClientRuntimeInfo().setMasterAddr(this.haClient.getHaMasterAddress());
+            info.getHaClientRuntimeInfo().setMaxOffset(this.getDefaultMessageStore().getMaxPhyOffset());
+            info.getHaClientRuntimeInfo().setLastReadTimestamp(this.haClient.getLastReadTimestamp());
+            info.getHaClientRuntimeInfo().setLastWriteTimestamp(this.haClient.getLastWriteTimestamp());
+            info.getHaClientRuntimeInfo().setTransferredByteInSecond(this.haClient.getTransferredByteInSecond());
+            info.getHaClientRuntimeInfo().setMasterFlushOffset(this.defaultMessageStore.getMasterFlushedOffset());
+        } else {
+            info.setMaster(true);
+
+            info.setMasterCommitLogMaxOffset(masterPutWhere);
+
+            for (HAConnection conn : this.connectionList) {
+                HARuntimeInfo.HAConnectionRuntimeInfo cInfo = new HARuntimeInfo.HAConnectionRuntimeInfo();
+
+                long slaveAckOffset = conn.getSlaveAckOffset();
+                cInfo.setSlaveAckOffset(slaveAckOffset);
+                cInfo.setDiff(masterPutWhere - slaveAckOffset);
+                cInfo.setAddr(conn.getClientAddress().substring(1));
+                cInfo.setTransferredByteInSecond(conn.getTransferredByteInSecond());
+                cInfo.setTransferFromWhere(conn.getTransferFromWhere());
+
+                cInfo.setInSync(syncStateSet.contains(((AutoSwitchHAConnection) conn).getSlaveAddress()));
+
+                info.getHaConnectionInfo().add(cInfo);
+            }
+            info.setInSyncSlaveNums(syncStateSet.size() - 1);
+        }
+        return info;
     }
 
     public void updateConfirmOffset(long confirmOffset) {

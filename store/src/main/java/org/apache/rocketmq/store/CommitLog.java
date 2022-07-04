@@ -803,12 +803,17 @@ public class CommitLog implements Swappable {
         int needAckNums = 1;
 
         if (needHandleHA) {
-            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-                // -1 means all ack in SyncStateSet
-                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+                }
+                if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                    // -1 means all ack in SyncStateSet
+                    needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+                }
             } else {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                    this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
                 needAckNums = calcNeedAckNums(inSyncReplicas);
                 if (needAckNums > inSyncReplicas) {
                     // Tell the producer, don't have enough slaves to handle the send request
@@ -955,12 +960,17 @@ public class CommitLog implements Swappable {
         boolean needHandleHA = needHandleHA(messageExtBatch);
 
         if (needHandleHA) {
-            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-                // -1 means all ack in SyncStateSet
-                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+                }
+                if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                    // -1 means all ack in SyncStateSet
+                    needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+                }
             } else {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                    this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
                 needAckNums = calcNeedAckNums(inSyncReplicas);
                 if (needAckNums > inSyncReplicas) {
                     // Tell the producer, don't have enough slaves to handle the send request
@@ -1117,17 +1127,6 @@ public class CommitLog implements Swappable {
         HAService haService = this.defaultMessageStore.getHaService();
 
         long nextOffset = result.getWroteOffset() + result.getWroteBytes();
-        // NOTE: Plus the master replicas
-//        int inSyncReplicas = haService.inSyncSlaveNums(nextOffset) + 1;
-
-//        if (needAckNums > inSyncReplicas) {
-//            /*
-//             * Tell the producer, don't have enough slaves to handle the send request.
-//             * NOTE: this may cause msg duplicate
-//             */
-//            putMessageResult.setPutMessageStatus(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//            return CompletableFuture.completedFuture(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//        }
 
         // Wait enough acks from different slaves
         GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums);

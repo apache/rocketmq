@@ -178,8 +178,8 @@ public class DefaultHAService implements HAService {
         return push2SlaveMaxOffset;
     }
 
-    public int inSyncSlaveNums(final long masterPutWhere) {
-        int inSyncNums = 0;
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        int inSyncNums = 1;
         for (HAConnection conn : this.connectionList) {
             if (this.isInSyncSlave(masterPutWhere, conn)) {
                 inSyncNums++;
