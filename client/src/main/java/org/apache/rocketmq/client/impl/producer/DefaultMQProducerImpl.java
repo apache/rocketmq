@@ -509,21 +509,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
         };
-        try {
-            executor.submit(runnable);
-        } catch (RejectedExecutionException e) {
-            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)) {
-                    sendCallback.onException(
-                            new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
-                }
-            } else {
-                // custom asyncSenderExecutor not support asySendBlockMode
+
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+            runnable.run();
+        } else {
+            try {
+                executor.submit(runnable);
+            } catch (RejectedExecutionException e) {
                 throw new MQClientException("executor rejected ", e);
             }
         }
-
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
@@ -1084,16 +1079,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             }
         };
-        try {
-            executor.submit(runnable);
-        } catch (RejectedExecutionException e) {
-            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)) {
-                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
-                }
-            } else {
-                // custom asyncSenderExecutor not support asySendBlockMode
+
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+            runnable.run();
+        } else {
+            try {
+                executor.submit(runnable);
+            } catch (RejectedExecutionException e) {
                 throw new MQClientException("executor rejected ", e);
             }
         }
@@ -1215,18 +1207,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
                 }
             }
-
         };
-        try {
-            executor.submit(runnable);
-        } catch (RejectedExecutionException e) {
-            if (this.defaultMQProducer.isAsySendBlockMode() && this.asyncSenderExecutor == null) {
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (!asyncSenderThreadPoolQueue.offer(runnable, timeout - costTime, TimeUnit.MILLISECONDS)) {
-                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
-                }
-            } else {
-                // custom asyncSenderExecutor not support asySendBlockMode
+
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+            runnable.run();
+        } else {
+            try {
+                executor.submit(runnable);
+            } catch (RejectedExecutionException e) {
                 throw new MQClientException("executor rejected ", e);
             }
         }

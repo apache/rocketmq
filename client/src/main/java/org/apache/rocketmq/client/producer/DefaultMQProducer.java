@@ -136,7 +136,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Indicate whether to block message when asynchronous sending traffic is too heavy.
      */
-    private boolean asySendBlockMode = true;
+    private boolean enableBackpressureForAsyncMode = true;
 
     /**
      * Default constructor.
@@ -1115,11 +1115,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return retryResponseCodes;
     }
 
-    public boolean isAsySendBlockMode() {
-        return  asySendBlockMode;
+    public boolean isEnableBackpressureForAsyncMode() {
+        return  enableBackpressureForAsyncMode;
     }
 
-    public void setAsySendBlockMode(boolean asySendBlockMode) {
-        this.asySendBlockMode = asySendBlockMode;
+    public void setEnableBackpressureForAsyncMode(boolean enableBackpressureForAsyncMode) {
+        this.enableBackpressureForAsyncMode = enableBackpressureForAsyncMode;
     }
 }
