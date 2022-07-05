@@ -141,15 +141,11 @@ public class CommitLog implements Swappable {
     public void start() {
         this.flushManager.start();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
-        this.flushManager.start();
-        log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.setDaemon(true);
         flushDiskWatcher.start();
     }
 
     public void shutdown() {
-        this.flushManager.shutdown();
-        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         this.flushManager.shutdown();
         log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.shutdown(true);
@@ -803,9 +799,9 @@ public class CommitLog implements Swappable {
         }
 
         boolean needHandleHA = needHandleHA(msg);
-        int needAckNums = 1;
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
 
-        if (needHandleHA) {
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                 this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
             needAckNums = calcNeedAckNums(inSyncReplicas);
@@ -949,10 +945,10 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        int needAckNums = 1;
         boolean needHandleHA = needHandleHA(messageExtBatch);
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
 
-        if (needHandleHA) {
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                 this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
             needAckNums = calcNeedAckNums(inSyncReplicas);
