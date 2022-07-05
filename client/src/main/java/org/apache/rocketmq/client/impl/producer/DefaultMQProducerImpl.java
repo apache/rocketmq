@@ -34,6 +34,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -118,6 +121,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
     private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
     private final Compressor compressor = CompressorFactory.getCompressor(compressType);
+    private final Lock lockUpdatePublishInfo = new ReentrantLock();
+    private final static long LOCK_TIMEOUT_MILLIS = 3000;
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
@@ -671,8 +676,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
-            this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            try {
+                if(lockUpdatePublishInfo.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)){
+                    if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+                        this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
+                        this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                    }
+                }else {
+                    log.warn("updateTopicRouteInfoFromNameServer tryLock timeout {}ms. [{}]", LOCK_TIMEOUT_MILLIS, this.mQClientFactory.getClientId());
+                }
+            } catch (InterruptedException e) {
+                log.warn("updateTopicRouteInfoFromNameServer Exception", e);
+            }
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
