@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -74,12 +75,12 @@ public class AckMessageActivity extends AbstractMessingActivity {
                 AckMessageResponse.Builder responseBuilder = AckMessageResponse.newBuilder()
                     .addAllEntries(entryList);
                 if (responseCodes.size() > 1) {
-                    responseBuilder.setStatus(ResponseBuilder.buildStatus(Code.MULTIPLE_RESULTS, Code.MULTIPLE_RESULTS.name()));
+                    responseBuilder.setStatus(ResponseBuilder.getInstance().buildStatus(Code.MULTIPLE_RESULTS, Code.MULTIPLE_RESULTS.name()));
                 } else if (responseCodes.size() == 1) {
                     Code code = responseCodes.stream().findAny().get();
-                    responseBuilder.setStatus(ResponseBuilder.buildStatus(code, code.name()));
+                    responseBuilder.setStatus(ResponseBuilder.getInstance().buildStatus(code, code.name()));
                 } else {
-                    responseBuilder.setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message result is empty"));
+                    responseBuilder.setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message result is empty"));
                 }
                 future.complete(responseBuilder.build());
             });
@@ -94,19 +95,20 @@ public class AckMessageActivity extends AbstractMessingActivity {
         CompletableFuture<AckMessageResultEntry> future = new CompletableFuture<>();
 
         try {
-            ReceiptHandle receiptHandle = ReceiptHandle.decode(ackMessageEntry.getReceiptHandle());
+            String handleString = ackMessageEntry.getReceiptHandle();
 
             String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+            MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
+            if (messageReceiptHandle != null) {
+                handleString = messageReceiptHandle.getReceiptHandle();
+            }
             CompletableFuture<AckResult> ackResultFuture = this.messagingProcessor.ackMessage(
                 ctx,
-                receiptHandle,
+                ReceiptHandle.decode(handleString),
                 ackMessageEntry.getMessageId(),
                 group,
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
             ackResultFuture.thenAccept(result -> {
-                if (AckStatus.OK.equals(result.getStatus())) {
-                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
-                }
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
             }).exceptionally(t -> {
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, t));
@@ -120,7 +122,7 @@ public class AckMessageActivity extends AbstractMessingActivity {
 
     protected AckMessageResultEntry convertToAckMessageResultEntry(ProxyContext ctx, AckMessageEntry ackMessageEntry, Throwable throwable) {
         return AckMessageResultEntry.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(throwable))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(throwable))
             .setMessageId(ackMessageEntry.getMessageId())
             .setReceiptHandle(ackMessageEntry.getReceiptHandle())
             .build();
@@ -132,13 +134,13 @@ public class AckMessageActivity extends AbstractMessingActivity {
             return AckMessageResultEntry.newBuilder()
                 .setMessageId(ackMessageEntry.getMessageId())
                 .setReceiptHandle(ackMessageEntry.getReceiptHandle())
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build();
         }
         return AckMessageResultEntry.newBuilder()
             .setMessageId(ackMessageEntry.getMessageId())
             .setReceiptHandle(ackMessageEntry.getReceiptHandle())
-            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack failed: status is abnormal"))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "ack failed: status is abnormal"))
             .build();
     }
 }

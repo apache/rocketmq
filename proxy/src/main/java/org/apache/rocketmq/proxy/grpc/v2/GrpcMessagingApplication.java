@@ -140,11 +140,11 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     protected Status flowLimitStatus() {
-        return ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "flow limit");
+        return ResponseBuilder.getInstance().buildStatus(Code.TOO_MANY_REQUESTS, "flow limit");
     }
 
     protected Status convertExceptionToStatus(Throwable t) {
-        return ResponseBuilder.buildStatus(t);
+        return ResponseBuilder.getInstance().buildStatus(t);
     }
 
     protected <V, T> void addExecutor(ExecutorService executor, ProxyContext context, V request, Runnable runnable,

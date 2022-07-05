@@ -59,7 +59,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
     protected ForwardMessageToDeadLetterQueueResponse convertToForwardMessageToDeadLetterQueueResponse(ProxyContext ctx,
         RemotingCommand result) {
         return ForwardMessageToDeadLetterQueueResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(result.getCode(), result.getRemark()))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(result.getCode(), result.getRemark()))
             .build();
     }
 }

@@ -89,7 +89,7 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         Mockito.when(grpcMessingActivity.queryRoute(Mockito.any(ProxyContext.class), Mockito.eq(request)))
             .thenReturn(future);
         QueryRouteResponse response = QueryRouteResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .addMessageQueues(MessageQueue.getDefaultInstance())
             .build();
         grpcMessagingApplication.queryRoute(request, queryRouteResponseStreamObserver);

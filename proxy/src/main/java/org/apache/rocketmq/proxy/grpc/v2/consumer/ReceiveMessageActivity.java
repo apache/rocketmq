@@ -22,6 +22,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.time.Duration;
@@ -72,23 +73,22 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             }
             long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
             if (pollTime <= 0) {
-                pollTime = timeRemaining;
-            }
-            if (pollTime <= 0) {
                 writer.writeAndComplete(ctx, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
                 return;
             }
 
+            validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
+            String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
+                Preconditions.checkNotNull(this.messagingProcessor.findConsumerChannel(ctx, group, ctx.getClientID()),
+                    "cannot find channel in consumerManager");
                 actualInvisibleTime = proxyConfig.getRenewSliceTimeMillis();
             }
 
-            validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
-
-            String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
             FilterExpression filterExpression = request.getFilterExpression();
             SubscriptionData subscriptionData;
             try {
