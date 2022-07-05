@@ -33,7 +33,7 @@ public class GrpcConverterTest {
         messageExt.setQueueId(queueId);
         messageExt.setTopic(topic);
 
-        MessageQueue messageQueue = GrpcConverter.buildMessageQueue(messageExt, brokerName);
+        MessageQueue messageQueue = GrpcConverter.getInstance().buildMessageQueue(messageExt, brokerName);
         assertThat(messageQueue.getTopic().getName()).isEqualTo(topic);
         assertThat(messageQueue.getBroker().getName()).isEqualTo(brokerName);
         assertThat(messageQueue.getId()).isEqualTo(queueId);

@@ -47,8 +47,8 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
                 ctx,
                 receiptHandle,
                 request.getMessageId(),
-                GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic())
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()),
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic())
             ).thenApply(result -> convertToForwardMessageToDeadLetterQueueResponse(ctx, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

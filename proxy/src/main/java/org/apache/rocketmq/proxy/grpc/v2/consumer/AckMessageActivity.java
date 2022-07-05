@@ -97,7 +97,7 @@ public class AckMessageActivity extends AbstractMessingActivity {
         try {
             String handleString = ackMessageEntry.getReceiptHandle();
 
-            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
             MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
             if (messageReceiptHandle != null) {
                 handleString = messageReceiptHandle.getReceiptHandle();
@@ -107,7 +107,7 @@ public class AckMessageActivity extends AbstractMessingActivity {
                 ReceiptHandle.decode(handleString),
                 ackMessageEntry.getMessageId(),
                 group,
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
             ackResultFuture.thenAccept(result -> {
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
             }).exceptionally(t -> {

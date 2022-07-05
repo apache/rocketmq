@@ -78,7 +78,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             future = this.messagingProcessor.sendMessage(
                 ctx,
                 new SendMessageQueueSelector(request),
-                GrpcConverter.wrapResourceWithNamespace(topic),
+                GrpcConverter.getInstance().wrapResourceWithNamespace(topic),
                 buildSysFlag(message),
                 buildMessage(ctx, request.getMessagesList(), topic)
             ).thenApply(result -> convertToSendMessageResponse(ctx, request, result));
@@ -90,7 +90,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
 
     protected List<Message> buildMessage(ProxyContext context, List<apache.rocketmq.v2.Message> protoMessageList,
         Resource topic) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
         List<Message> messageExtList = new ArrayList<>();
         for (apache.rocketmq.v2.Message protoMessage : protoMessageList) {
             if (!protoMessage.getTopic().equals(topic)) {
@@ -103,7 +103,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
     }
 
     protected Message buildMessage(ProxyContext context, apache.rocketmq.v2.Message protoMessage, String producerGroup) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(protoMessage.getTopic());
+        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(protoMessage.getTopic());
 
         validateMessageBodySize(protoMessage.getBody());
         Message messageExt = new Message();

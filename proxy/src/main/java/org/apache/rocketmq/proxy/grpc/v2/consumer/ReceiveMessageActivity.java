@@ -78,8 +78,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
-            String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+            String topic = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
 
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -93,7 +93,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             SubscriptionData subscriptionData;
             try {
                 subscriptionData = FilterAPI.build(topic, filterExpression.getExpression(),
-                    GrpcConverter.buildExpressionType(filterExpression.getType()));
+                    GrpcConverter.getInstance().buildExpressionType(filterExpression.getType()));
             } catch (Exception e) {
                 writer.writeAndComplete(ctx, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
                 return;

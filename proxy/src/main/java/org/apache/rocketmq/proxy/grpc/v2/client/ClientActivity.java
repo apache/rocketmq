@@ -105,7 +105,7 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
                         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         // use topic name as producer group
@@ -117,7 +117,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
-                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
                     GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
                     ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
@@ -161,7 +161,7 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
                         // user topic name as producer group
                         GrpcClientChannel channel = this.grpcChannelManager.removeChannel(topicName, clientId);
                         if (channel != null) {
@@ -173,7 +173,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
                     validateConsumerGroup(request.getGroup());
-                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(consumerGroup, clientId);
                     if (channel != null) {
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -268,14 +268,14 @@ public class ClientActivity extends AbstractMessingActivity {
         if (settings.hasPublishing()) {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
                 validateTopic(topic);
-                String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
                 GrpcClientChannel producerChannel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                 producerChannel.setClientObserver(responseObserver);
             }
         }
         if (settings.hasSubscription()) {
             validateConsumerGroup(settings.getSubscription().getGroup());
-            String groupName = GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup());
+            String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
             GrpcClientChannel consumerChannel = this.grpcChannelManager.createChannel(ctx, groupName, clientId);
             consumerChannel.setClientObserver(responseObserver);
         }
@@ -357,7 +357,7 @@ public class ClientActivity extends AbstractMessingActivity {
     protected Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
         Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
         for (SubscriptionEntry sub : subscriptionEntryList) {
-            String topicName = GrpcConverter.wrapResourceWithNamespace(sub.getTopic());
+            String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(sub.getTopic());
             FilterExpression filterExpression = sub.getExpression();
             subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
         }
@@ -366,7 +366,7 @@ public class ClientActivity extends AbstractMessingActivity {
 
     protected SubscriptionData buildSubscriptionData(String topicName, FilterExpression filterExpression) {
         String expression = filterExpression.getExpression();
-        String expressionType = GrpcConverter.buildExpressionType(filterExpression.getType());
+        String expressionType = GrpcConverter.getInstance().buildExpressionType(filterExpression.getType());
         try {
             return FilterAPI.build(topicName, expression, expressionType);
         } catch (Exception e) {
