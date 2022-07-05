@@ -386,7 +386,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void createPlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig,
         final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         CreateAccessConfigRequestHeader requestHeader = new CreateAccessConfigRequestHeader();
         requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
         requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
@@ -414,7 +414,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public void deleteAccessConfig(final String addr, final String accessKey, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         DeleteAccessConfigRequestHeader requestHeader = new DeleteAccessConfigRequestHeader();
         requestHeader.setAccessKey(accessKey);
 
@@ -435,7 +435,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
 
         UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
         requestHeader.setGlobalWhiteAddrs(globalWhiteAddrs);
@@ -490,7 +490,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public AclConfig getBrokerClusterConfig(final String addr,
-        final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG, null);
 
@@ -605,12 +605,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         if (this.remotingClient instanceof NettyRemotingClient) {
             NettyRemotingClient remotingClient = (NettyRemotingClient) this.remotingClient;
             RemotingCommand response = responseFuture.getResponseCommand();
-            if (response == null) {
-                remotingClient.doAfterRpcFailure(RemotingHelper.parseChannelRemoteAddr(responseFuture.getChannel()), responseFuture.getRequestCommand(),
-                    responseFuture.isTimeout());
-            } else {
-                remotingClient.doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(responseFuture.getChannel()), responseFuture.getRequestCommand(), response);
-            }
+            remotingClient.doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(responseFuture.getChannel()), responseFuture.getRequestCommand(), response);
         }
     }
 
@@ -1292,7 +1287,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
                 return responseHeader.getOffset();
             }
-            case ResponseCode.PULL_NOT_FOUND: {
+            case ResponseCode.QUERY_NOT_FOUND: {
                 throw new OffsetNotFoundException(response.getCode(), response.getRemark(), addr);
             }
             default:

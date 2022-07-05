@@ -116,6 +116,25 @@ public class BaseConf {
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
     }
 
+    public boolean awaitDispatchMs(long timeMs) throws Exception {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start <= timeMs) {
+            boolean allOk = true;
+            for (BrokerController brokerController: brokerControllerList) {
+                if (brokerController.getMessageStore().dispatchBehindBytes() != 0) {
+                    allOk = false;
+                    break;
+                }
+            }
+            if (allOk) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
+    }
+
+
     public static String initTopic() {
         String topic = MQRandomUtils.getRandomTopic();
         return initTopicWithName(topic);

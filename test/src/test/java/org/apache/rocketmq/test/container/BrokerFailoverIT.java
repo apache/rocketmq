@@ -68,11 +68,6 @@ public class BrokerFailoverIT extends ContainerIntegrationTestBase {
                 RemotingCommand response) {
 
             }
-
-            @Override
-            public void doAfterRpcFailure(String remoteAddr, RemotingCommand request, Boolean remoteTimeout) {
-
-            }
         });
 
         InnerSalveBrokerController finalTargetSlave = targetSlave;
