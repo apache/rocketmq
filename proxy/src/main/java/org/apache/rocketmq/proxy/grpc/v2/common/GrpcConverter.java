@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -204,9 +203,9 @@ public class GrpcConverter {
         }
 
         // receipt_handle && invisible_period
-        ReceiptHandle receiptHandle = ReceiptHandle.create(messageExt);
-        if (receiptHandle != null) {
-            systemPropertiesBuilder.setReceiptHandle(receiptHandle.encode());
+        String handle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+        if (handle != null) {
+            systemPropertiesBuilder.setReceiptHandle(handle);
         }
 
         // partition_id

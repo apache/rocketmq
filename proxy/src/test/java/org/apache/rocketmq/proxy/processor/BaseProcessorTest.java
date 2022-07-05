@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.UUID;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -102,5 +103,13 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
             ExtraInfoUtil.buildExtraInfo(RANDOM.nextInt(Integer.MAX_VALUE), System.currentTimeMillis(), invisibleTime,
                 RANDOM.nextInt(Integer.MAX_VALUE), topic, "mockBroker", RANDOM.nextInt(Integer.MAX_VALUE), RANDOM.nextInt(Integer.MAX_VALUE)));
         return messageExt;
+    }
+
+    protected static ReceiptHandle create(MessageExt messageExt) {
+        String ckInfo = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+        if (ckInfo == null) {
+            return null;
+        }
+        return ReceiptHandle.decode(ckInfo + MessageConst.KEY_SEPARATOR + messageExt.getCommitLogOffset());
     }
 }

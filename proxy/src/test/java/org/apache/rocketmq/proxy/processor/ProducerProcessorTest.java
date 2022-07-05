@@ -27,7 +27,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -187,7 +186,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), "", 16, 3000);
         RemotingCommand remotingCommand = this.producerProcessor.forwardMessageToDeadLetterQueue(
             createContext(),
-            ReceiptHandle.create(messageExt),
+            create(messageExt),
             messageExt.getMsgId(),
             CONSUMER_GROUP,
             TOPIC,
