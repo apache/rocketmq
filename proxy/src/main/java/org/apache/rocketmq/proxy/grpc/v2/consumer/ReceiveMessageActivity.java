@@ -84,8 +84,6 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                Preconditions.checkNotNull(this.messagingProcessor.findConsumerChannel(ctx, group, ctx.getClientID()),
-                    "cannot find channel in consumerManager");
                 actualInvisibleTime = proxyConfig.getRenewSliceTimeMillis();
             }
 

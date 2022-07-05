@@ -106,11 +106,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
                         String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
-                        GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
-                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-                        // use topic name as producer group
-                        this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
-                        this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
+                        this.registerProducer(ctx, topicName);
                     }
                     break;
                 }
@@ -118,18 +114,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
-                    GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
-                    ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-
-                    this.messagingProcessor.registerConsumer(
-                        ctx,
-                        consumerGroup,
-                        clientChannelInfo,
-                        this.buildConsumeType(clientSettings.getClientType()),
-                        MessageModel.CLUSTERING,
-                        ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
-                        this.buildSubscriptionDataSet(clientSettings.getSubscription().getSubscriptionsList())
-                    );
+                    this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList());
                     break;
                 }
                 default: {
@@ -269,14 +254,14 @@ public class ClientActivity extends AbstractMessingActivity {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
                 validateTopic(topic);
                 String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
-                GrpcClientChannel producerChannel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
+                GrpcClientChannel producerChannel = registerProducer(ctx, topicName);
                 producerChannel.setClientObserver(responseObserver);
             }
         }
         if (settings.hasSubscription()) {
             validateConsumerGroup(settings.getSubscription().getGroup());
             String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
-            GrpcClientChannel consumerChannel = this.grpcChannelManager.createChannel(ctx, groupName, clientId);
+            GrpcClientChannel consumerChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList());
             consumerChannel.setClientObserver(responseObserver);
         }
 
@@ -286,6 +271,37 @@ public class ClientActivity extends AbstractMessingActivity {
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
             .build();
+    }
+
+    protected GrpcClientChannel registerProducer(ProxyContext ctx, String topicName) {
+        String clientId = ctx.getClientID();
+        LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+
+        GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
+        // use topic name as producer group
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+        this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
+        this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
+        return channel;
+    }
+
+    protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType, List<SubscriptionEntry> subscriptionEntryList) {
+        String clientId = ctx.getClientID();
+        LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+
+        GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+
+        this.messagingProcessor.registerConsumer(
+            ctx,
+            consumerGroup,
+            clientChannelInfo,
+            this.buildConsumeType(clientType),
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            this.buildSubscriptionDataSet(subscriptionEntryList)
+        );
+        return channel;
     }
 
     protected void reportThreadStackTrace(ProxyContext ctx, Status status, ThreadStackTrace request) {
