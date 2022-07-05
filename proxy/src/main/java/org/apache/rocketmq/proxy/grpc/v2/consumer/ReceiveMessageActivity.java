@@ -22,7 +22,6 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
-import com.google.common.base.Preconditions;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.time.Duration;
