@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -111,14 +112,14 @@ public class ReceiveMessageResponseStreamWriter {
     protected void processThrowableWhenWriteMessage(Throwable throwable,
         ProxyContext ctx, ReceiveMessageRequest request, MessageExt messageExt) {
 
-        ReceiptHandle handle = ReceiptHandle.create(messageExt);
+        String handle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
         if (handle == null) {
             return;
         }
 
         this.messagingProcessor.changeInvisibleTime(
             ctx,
-            handle,
+            ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
             GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
             GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic()),

@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
 
 public class ReceiptHandle {
     private static final String SEPARATOR = MessageConst.KEY_SEPARATOR;
@@ -43,14 +42,6 @@ public class ReceiptHandle {
         return startOffset + SEPARATOR + retrieveTime + SEPARATOR + invisibleTime + SEPARATOR + reviveQueueId
             + SEPARATOR + topicType + SEPARATOR + brokerName + SEPARATOR + queueId + SEPARATOR + offset + SEPARATOR
             + commitLogOffset;
-    }
-
-    public static ReceiptHandle create(MessageExt messageExt) {
-        String ckInfo = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-        if (ckInfo == null) {
-            return null;
-        }
-        return decode(ckInfo + SEPARATOR + messageExt.getCommitLogOffset());
     }
 
     public boolean isExpired() {

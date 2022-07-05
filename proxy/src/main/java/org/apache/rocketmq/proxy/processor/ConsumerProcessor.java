@@ -26,12 +26,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
@@ -119,13 +122,21 @@ public class ConsumerProcessor extends AbstractProcessor {
                         List<MessageExt> messageExtList = new ArrayList<>();
                         for (MessageExt messageExt : popResult.getMsgFoundList()) {
                             try {
+                                String handleString = createHandle(messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getCommitLogOffset());
+                                if (handleString == null) {
+                                    log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msg:{}", requestHeader, messageExt);
+                                    messageExtList.add(messageExt);
+                                    continue;
+                                }
+                                MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_POP_CK, handleString);
+
                                 PopMessageResultFilter.FilterResult filterResult =
                                     popMessageResultFilter.filterMessage(ctx, consumerGroup, subscriptionData, messageExt);
                                 switch (filterResult) {
                                     case NO_MATCH:
                                         this.messagingProcessor.ackMessage(
                                             ctx,
-                                            ReceiptHandle.create(messageExt),
+                                            ReceiptHandle.decode(handleString),
                                             messageExt.getMsgId(),
                                             consumerGroup,
                                             topic,
@@ -134,7 +145,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                                     case TO_DLQ:
                                         this.messagingProcessor.forwardMessageToDeadLetterQueue(
                                             ctx,
-                                            ReceiptHandle.create(messageExt),
+                                            ReceiptHandle.decode(handleString),
                                             messageExt.getMsgId(),
                                             consumerGroup,
                                             topic,
@@ -204,17 +215,36 @@ public class ConsumerProcessor extends AbstractProcessor {
             changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
             changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
             changeInvisibleTimeRequestHeader.setInvisibleTime(invisibleTime);
+            long commitLogOffset = handle.getCommitLogOffset();
 
             future = this.serviceManager.getMessageService().changeInvisibleTime(
                 ctx,
                 handle,
                 messageId,
                 changeInvisibleTimeRequestHeader,
-                timeoutMillis);
+                timeoutMillis)
+                .thenApplyAsync(ackResult -> {
+                    if (StringUtils.isNotBlank(ackResult.getExtraInfo())) {
+                        AckResult result = new AckResult();
+                        result.setStatus(ackResult.getStatus());
+                        result.setPopTime(result.getPopTime());
+                        result.setExtraInfo(createHandle(ackResult.getExtraInfo(), commitLogOffset));
+                        return result;
+                    } else {
+                        return ackResult;
+                    }
+                }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    protected String createHandle(String handleString, long commitLogOffset) {
+        if (handleString == null) {
+            return null;
+        }
+        return handleString + MessageConst.KEY_SEPARATOR + commitLogOffset;
     }
 
     public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, MessageQueue messageQueue, String consumerGroup,

@@ -135,7 +135,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testAckMessage() throws Throwable {
-        ReceiptHandle handle = ReceiptHandle.create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
+        ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
         assertNotNull(handle);
 
         ArgumentCaptor<AckMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(AckMessageRequestHeader.class);
@@ -155,7 +155,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testChangeInvisibleTime() throws Throwable {
-        ReceiptHandle handle = ReceiptHandle.create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
+        ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
         assertNotNull(handle);
 
         ArgumentCaptor<ChangeInvisibleTimeRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
