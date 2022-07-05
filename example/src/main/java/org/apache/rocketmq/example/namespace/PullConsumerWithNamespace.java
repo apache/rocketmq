@@ -25,14 +25,20 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class PullConsumerWithNamespace {
-    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
+
+    public static final String NAMESPACE = "InstanceTest";
+    public static final String CONSUMER_GROUP = "cidTest";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "NAMESPACE_TOPIC";
+
+    private static final Map<MessageQueue, Long> OFFSET_TABLE = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
-        DefaultMQPullConsumer pullConsumer = new DefaultMQPullConsumer("InstanceTest", "cidTest");
-        pullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        DefaultMQPullConsumer pullConsumer = new DefaultMQPullConsumer(NAMESPACE, CONSUMER_GROUP);
+        pullConsumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         pullConsumer.start();
 
-        Set<MessageQueue> mqs = pullConsumer.fetchSubscribeMessageQueues("topicTest");
+        Set<MessageQueue> mqs = pullConsumer.fetchSubscribeMessageQueues(TOPIC);
         for (MessageQueue mq : mqs) {
             System.out.printf("Consume from the topic: %s, queue: %s%n", mq.getTopic(), mq);
             SINGLE_MQ:
@@ -66,7 +72,7 @@ public class PullConsumerWithNamespace {
     }
 
     private static long getMessageQueueOffset(MessageQueue mq) {
-        Long offset = OFFSE_TABLE.get(mq);
+        Long offset = OFFSET_TABLE.get(mq);
         if (offset != null) {
             return offset;
         }
@@ -78,11 +84,11 @@ public class PullConsumerWithNamespace {
         if (null == pullResult || pullResult.getMsgFoundList().isEmpty()) {
             return;
         }
-        pullResult.getMsgFoundList().stream().forEach(
-            (msg) -> System.out.printf("Topic is:%s, msgId is:%s%n" , msg.getTopic(), msg.getMsgId()));
+        pullResult.getMsgFoundList().forEach(
+            msg -> System.out.printf("Topic is:%s, msgId is:%s%n", msg.getTopic(), msg.getMsgId()));
     }
 
     private static void putMessageQueueOffset(MessageQueue mq, long offset) {
-        OFFSE_TABLE.put(mq, offset);
+        OFFSET_TABLE.put(mq, offset);
     }
 }
