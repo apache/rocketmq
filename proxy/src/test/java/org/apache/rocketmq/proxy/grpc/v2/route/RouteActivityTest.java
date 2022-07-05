@@ -124,7 +124,7 @@ public class RouteActivityTest extends BaseActivityTest {
                     .build()
             ).get();
         } catch (Throwable t) {
-            assertEquals(Code.TOPIC_NOT_FOUND, ResponseBuilder.buildStatus(t).getCode());
+            assertEquals(Code.TOPIC_NOT_FOUND, ResponseBuilder.getInstance().buildStatus(t).getCode());
             return;
         }
         fail();

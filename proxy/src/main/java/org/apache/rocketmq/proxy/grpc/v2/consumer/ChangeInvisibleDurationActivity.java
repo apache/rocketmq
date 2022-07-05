@@ -76,12 +76,12 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
         ChangeInvisibleDurationRequest request, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return ChangeInvisibleDurationResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .setReceiptHandle(ackResult.getExtraInfo())
                 .build();
         }
         return ChangeInvisibleDurationResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "changeInvisibleDuration failed: status is abnormal"))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "changeInvisibleDuration failed: status is abnormal"))
             .build();
     }
 }

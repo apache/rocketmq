@@ -278,7 +278,7 @@ public class ClientActivityTest extends BaseActivityTest {
                 .setThreadStackTrace(jstack)
                 .setNonce(nonce)
                 .build())
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .build());
         verify(runningInfoFutureMock, times(1)).complete(runningInfoArgumentCaptor.capture());
         ProxyRelayResult<ConsumerRunningInfo> result = runningInfoArgumentCaptor.getValue();
@@ -309,7 +309,7 @@ public class ClientActivityTest extends BaseActivityTest {
             .setVerifyMessageResult(VerifyMessageResult.newBuilder()
                 .setNonce(nonce)
                 .build())
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .build());
         verify(resultFutureMock, times(1)).complete(resultArgumentCaptor.capture());
         ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();

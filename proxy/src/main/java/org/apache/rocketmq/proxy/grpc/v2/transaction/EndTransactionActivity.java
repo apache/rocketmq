@@ -68,7 +68,7 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                 transactionStatus,
                 request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK))
                 .thenApply(r -> EndTransactionResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                     .build());
         } catch (Throwable t) {
             future.completeExceptionally(t);

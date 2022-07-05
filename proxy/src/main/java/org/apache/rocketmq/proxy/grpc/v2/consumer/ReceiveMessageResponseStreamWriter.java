@@ -61,11 +61,11 @@ public class ReceiveMessageResponseStreamWriter {
                 case FOUND:
                     if (messageFoundList.isEmpty()) {
                         streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.MESSAGE_NOT_FOUND, "no match message"))
+                            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MESSAGE_NOT_FOUND, "no match message"))
                             .build());
                     } else {
                         streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                             .build());
                         Iterator<MessageExt> messageIterator = messageFoundList.iterator();
                         while (messageIterator.hasNext()) {
@@ -86,20 +86,20 @@ public class ReceiveMessageResponseStreamWriter {
                     break;
                 case POLLING_FULL:
                     streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
                         .build());
                     break;
                 case NO_NEW_MSG:
                 case POLLING_NOT_FOUND:
                 default:
                     streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.MESSAGE_NOT_FOUND, "no new message"))
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MESSAGE_NOT_FOUND, "no new message"))
                         .build());
                     break;
             }
         } catch (Throwable t) {
             writeResponseWithErrorIgnore(
-                ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(t)).build());
+                ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(t)).build());
         } finally {
             onComplete();
         }
@@ -129,13 +129,13 @@ public class ReceiveMessageResponseStreamWriter {
 
     public void writeAndComplete(ProxyContext ctx, Code code, String message) {
         writeResponseWithErrorIgnore(
-            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(code, message)).build());
+            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(code, message)).build());
         onComplete();
     }
 
     public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, Throwable throwable) {
         writeResponseWithErrorIgnore(
-            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(throwable)).build());
+            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(throwable)).build());
         onComplete();
     }
 

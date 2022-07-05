@@ -92,7 +92,6 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -107,7 +106,6 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.test.util.RandomUtils;
 import org.junit.Rule;
 
-import static org.apache.rocketmq.common.TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE;
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -652,19 +650,19 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void assertQueryRoute(QueryRouteResponse response, int messageQueueSize) {
-        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getMessageQueuesList().size()).isEqualTo(messageQueueSize);
         assertThat(response.getMessageQueues(0).getBroker().getEndpoints().getAddresses(0).getPort()).isEqualTo(ConfigurationManager.getProxyConfig().getGrpcServerPort());
     }
 
     public void assertQueryAssignment(QueryAssignmentResponse response, int assignmentCount) {
-        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getAssignmentsCount()).isEqualTo(assignmentCount);
         assertThat(response.getAssignments(0).getMessageQueue().getBroker().getEndpoints().getAddresses(0).getPort()).isEqualTo(ConfigurationManager.getProxyConfig().getGrpcServerPort());
     }
 
     public void assertSendMessage(SendMessageResponse response, String messageId) {
-        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getEntries(0).getMessageId()).isEqualTo(messageId);
     }
 

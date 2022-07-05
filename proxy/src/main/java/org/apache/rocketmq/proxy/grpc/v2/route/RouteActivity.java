@@ -81,7 +81,7 @@ public class RouteActivity extends AbstractMessingActivity {
             }
 
             QueryRouteResponse response = QueryRouteResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .addAllMessageQueues(messageQueueList)
                 .build();
             future.complete(response);
@@ -129,12 +129,12 @@ public class RouteActivity extends AbstractMessingActivity {
             QueryAssignmentResponse response;
             if (assignments.isEmpty()) {
                 response = QueryAssignmentResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.FORBIDDEN, "no readable queue"))
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.FORBIDDEN, "no readable queue"))
                     .build();
             } else {
                 response = QueryAssignmentResponse.newBuilder()
                     .addAllAssignments(assignments)
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                     .build();
             }
             future.complete(response);

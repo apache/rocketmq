@@ -36,7 +36,10 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 public class ResponseBuilder {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    public static final Map<Integer, Code> RESPONSE_CODE_MAPPING = new ConcurrentHashMap<>();
+    protected static final Map<Integer, Code> RESPONSE_CODE_MAPPING = new ConcurrentHashMap<>();
+
+    protected static final Object INSTANCE_CREATE_LOCK = new Object();
+    protected static volatile ResponseBuilder instance;
 
     static {
         RESPONSE_CODE_MAPPING.put(ResponseCode.SUCCESS, Code.OK);
@@ -46,7 +49,18 @@ public class ResponseBuilder {
         RESPONSE_CODE_MAPPING.put(ClientErrorCode.ACCESS_BROKER_TIMEOUT, Code.PROXY_TIMEOUT);
     }
 
-    public static Status buildStatus(Throwable t) {
+    public static ResponseBuilder getInstance() {
+        if (instance == null) {
+            synchronized (INSTANCE_CREATE_LOCK) {
+                if (instance == null) {
+                    instance = new ResponseBuilder();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public Status buildStatus(Throwable t) {
         t = ExceptionUtils.getRealException(t);
 
         if (t instanceof ProxyException) {
@@ -54,35 +68,35 @@ public class ResponseBuilder {
         }
         if (t instanceof GrpcProxyException) {
             GrpcProxyException grpcProxyException = (GrpcProxyException) t;
-            return ResponseBuilder.buildStatus(grpcProxyException.getCode(), grpcProxyException.getMessage());
+            return buildStatus(grpcProxyException.getCode(), grpcProxyException.getMessage());
         }
         if (TopicRouteHelper.isTopicNotExistError(t)) {
-            return ResponseBuilder.buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage());
+            return buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage());
         }
         if (t instanceof MQBrokerException) {
             MQBrokerException mqBrokerException = (MQBrokerException) t;
-            return ResponseBuilder.buildStatus(buildCode(mqBrokerException.getResponseCode()), mqBrokerException.getErrorMessage());
+            return buildStatus(buildCode(mqBrokerException.getResponseCode()), mqBrokerException.getErrorMessage());
         }
         if (t instanceof MQClientException) {
             MQClientException mqClientException = (MQClientException) t;
-            return ResponseBuilder.buildStatus(buildCode(mqClientException.getResponseCode()), mqClientException.getErrorMessage());
+            return buildStatus(buildCode(mqClientException.getResponseCode()), mqClientException.getErrorMessage());
         }
         if (t instanceof RemotingTimeoutException) {
-            return ResponseBuilder.buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
+            return buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
         }
 
         log.error("internal server error", t);
-        return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, ExceptionUtils.getErrorDetailMessage(t));
+        return buildStatus(Code.INTERNAL_SERVER_ERROR, ExceptionUtils.getErrorDetailMessage(t));
     }
 
-    public static Status buildStatus(Code code, String message) {
+    public Status buildStatus(Code code, String message) {
         return Status.newBuilder()
             .setCode(code)
             .setMessage(message)
             .build();
     }
 
-    public static Status buildStatus(int remotingResponseCode, String remark) {
+    public Status buildStatus(int remotingResponseCode, String remark) {
         String message = remark;
         if (message == null) {
             message = String.valueOf(remotingResponseCode);
@@ -93,7 +107,7 @@ public class ResponseBuilder {
             .build();
     }
 
-    public static Code buildCode(int remotingResponseCode) {
+    public Code buildCode(int remotingResponseCode) {
         return RESPONSE_CODE_MAPPING.getOrDefault(remotingResponseCode, Code.INTERNAL_SERVER_ERROR);
     }
 }

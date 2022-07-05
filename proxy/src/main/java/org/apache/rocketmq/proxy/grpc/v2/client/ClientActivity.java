@@ -98,7 +98,7 @@ public class ClientActivity extends AbstractMessingActivity {
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
             if (clientSettings == null) {
                 future.complete(HeartbeatResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
                     .build());
                 return future;
             }
@@ -134,13 +134,13 @@ public class ClientActivity extends AbstractMessingActivity {
                 }
                 default: {
                     future.complete(HeartbeatResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
                         .build());
                     return future;
                 }
             }
             future.complete(HeartbeatResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
             return future;
         } catch (Throwable t) {
@@ -182,12 +182,12 @@ public class ClientActivity extends AbstractMessingActivity {
                     break;
                 default:
                     future.complete(NotifyClientTerminationResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
                         .build());
                     return future;
             }
             future.complete(NotifyClientTerminationResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -233,7 +233,7 @@ public class ClientActivity extends AbstractMessingActivity {
     }
 
     protected TelemetryCommand convertToTelemetryCommand(Throwable t) {
-        return TelemetryCommand.newBuilder().setStatus(ResponseBuilder.buildStatus(t)).build();
+        return TelemetryCommand.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(t)).build();
     }
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request,
@@ -283,7 +283,7 @@ public class ClientActivity extends AbstractMessingActivity {
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
         settings = grpcClientSettingsManager.getClientSettings(ctx);
         return TelemetryCommand.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
             .build();
     }
