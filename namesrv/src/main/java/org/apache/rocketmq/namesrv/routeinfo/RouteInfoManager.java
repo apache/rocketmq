@@ -28,42 +28,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.controller.Controller;
-import org.apache.rocketmq.controller.impl.DLedgerController;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -87,7 +79,6 @@ public class RouteInfoManager {
 
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
-    private Controller controller;
 
     public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
         this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
@@ -604,28 +595,6 @@ public class RouteInfoManager {
                     } else {
                         reducedBroker.add(brokerName);
                     }
-
-                    // Check whether we need to elect a new master
-                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isEnableControllerInNamesrv() && this.controller != null) {
-                        if (unRegisterRequest.getBrokerId() == MixAll.MASTER_ID) {
-                            if (this.controller.isLeaderState()) {
-                                final CompletableFuture<RemotingCommand> future = this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
-                                try {
-                                    final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
-                                    final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
-                                    if (responseHeader != null) {
-                                        log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, responseHeader);
-                                        if (controller instanceof DLedgerController && ((DLedgerController) controller).getControllerConfig().isNotifyBrokerRoleChanged()) {
-                                            notifyBrokerMasterChanged(responseHeader, clusterName);
-                                        }
-                                    }
-                                } catch (Exception ignored) {
-                                }
-                            } else {
-                                log.info("Broker {}'s master shutdown");
-                            }
-                        }
-                    }
                 }
 
                 cleanTopicByUnRegisterRequests(removedBroker, reducedBroker);
@@ -931,45 +900,6 @@ public class RouteInfoManager {
         }
     }
 
-    /**
-     * Notify master and all slaves for a broker that the master role changed.
-     */
-    private void notifyBrokerMasterChanged(final ElectMasterResponseHeader electMasterResult,
-        final String clusterName) {
-        final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
-        if (memberGroup != null) {
-            // First, inform the master
-            final String master = electMasterResult.getNewMasterAddress();
-            if (StringUtils.isNoneEmpty(master) && isBrokerAlive(clusterName, master)) {
-                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, electMasterResult);
-            }
-
-            // Then, inform all slaves
-            final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
-            for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
-                if (!broker.getValue().equals(master) && isBrokerAlive(clusterName, broker.getValue())) {
-                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), electMasterResult);
-                }
-            }
-
-        }
-    }
-
-    private void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
-        final ElectMasterResponseHeader responseHeader) {
-        if (StringUtils.isNoneEmpty(brokerAddr)) {
-            log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
-            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
-                responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
-            final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
-            try {
-                this.namesrvController.getRemotingClient().invokeOneway(brokerAddr, request, 3000);
-            } catch (final Exception e) {
-                log.error("Failed to notify broker {} with id {} that role changed", brokerAddr, brokerId, e);
-            }
-        }
-    }
-
     private List<String> chooseBrokerAddrsToNotify(Map<Long, String> brokerAddrMap, String offlineBrokerAddr) {
         if (offlineBrokerAddr != null || brokerAddrMap.size() == 1) {
             // notify the reset brokers.
@@ -1174,27 +1104,6 @@ public class RouteInfoManager {
         }
 
         return topicList;
-    }
-
-    /**
-     * @return true if the broker{brokerAddress} is alive
-     */
-    public boolean isBrokerAlive(final String clusterName, final String brokerAddress) {
-        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddress));
-        if (info != null) {
-            long last = info.getLastUpdateTimestamp();
-            long timeoutMillis = info.getHeartbeatTimeoutMillis();
-            return (last + timeoutMillis) >= System.currentTimeMillis();
-        }
-        return false;
-    }
-
-    public void setController(Controller controller) {
-        this.controller = controller;
-    }
-
-    public Controller getController() {
-        return controller;
     }
 }
 

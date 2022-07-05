@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
+import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -46,6 +47,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     private final int defaultFileSize = 1024 * 1024;
     private ControllerConfig controllerConfig;
     private NamesrvController namesrvController;
+    private ControllerManager controllerManager;
     private String namesrvAddress;
     private String controllerAddress;
     private BrokerController brokerController1;
@@ -63,9 +65,14 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         serverConfig.setListenPort(namesrvPort);
 
         this.controllerConfig = buildControllerConfig("n0", peers);
-        this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
+        this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig());
         assertTrue(namesrvController.initialize());
         namesrvController.start();
+
+        this.controllerManager = new ControllerManager(controllerConfig, new NettyServerConfig(), new NettyClientConfig());
+        assertTrue(controllerManager.initialize());
+        controllerManager.start();
+
         this.namesrvAddress = "127.0.0.1:" + namesrvPort + ";";
         this.controllerAddress = "127.0.0.1:" + controllerPort + ";";
 

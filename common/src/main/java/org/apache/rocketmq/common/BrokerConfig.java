@@ -300,11 +300,6 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableControllerMode = false;
 
-    /**
-     * Whether the controller is deployed independently
-     */
-    private boolean controllerDeployedStandAlone = false;
-
     private String controllerAddr = "";
 
     private long syncBrokerMetadataPeriod = 5 * 1000;
@@ -1295,14 +1290,6 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableControllerMode(boolean enableControllerMode) {
         this.enableControllerMode = enableControllerMode;
-    }
-
-    public boolean isControllerDeployedStandAlone() {
-        return controllerDeployedStandAlone;
-    }
-
-    public void setControllerDeployedStandAlone(boolean controllerDeployedStandAlone) {
-        this.controllerDeployedStandAlone = controllerDeployedStandAlone;
     }
 
     public String getControllerAddr() {

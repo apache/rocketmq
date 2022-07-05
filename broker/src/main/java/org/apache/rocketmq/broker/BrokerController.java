@@ -1597,10 +1597,6 @@ public class BrokerController {
             BrokerController.LOG.info("BrokerController#doResterBrokerAll: broker has shutdown, no need to register any more.");
             return;
         }
-        Long heartbeatTimeoutMillis = (this.brokerConfig.isEnableSlaveActingMaster() ||
-            (this.brokerConfig.isEnableControllerMode() && !this.brokerConfig.isControllerDeployedStandAlone())) ?
-            this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null;
-
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -1613,15 +1609,14 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
-            heartbeatTimeoutMillis,
+            this.brokerConfig.isEnableSlaveActingMaster() ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
             this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
     }
 
     protected void sendHeartbeat() {
-        boolean shouldSendHeartbeatToController = this.brokerConfig.isEnableControllerMode() && this.brokerConfig.isControllerDeployedStandAlone();
-        if (shouldSendHeartbeatToController) {
+        if (this.brokerConfig.isEnableControllerMode()) {
             final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
             for (String controllerAddress : controllerAddresses) {
                 if (StringUtils.isNotEmpty(controllerAddress)) {
@@ -1638,8 +1633,7 @@ public class BrokerController {
             }
         }
 
-        boolean shouldSendHeartbeatToNameSrv = this.brokerConfig.isEnableSlaveActingMaster() || !shouldSendHeartbeatToController;
-        if (shouldSendHeartbeatToNameSrv) {
+        if (this.brokerConfig.isEnableSlaveActingMaster()) {
             if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
                 this.brokerOuterAPI.sendHeartbeatViaDataVersion(
                     this.brokerConfig.getBrokerClusterName(),
