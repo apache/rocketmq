@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
 public class BrokerData implements Comparable<BrokerData> {
@@ -96,12 +98,7 @@ public class BrokerData implements Comparable<BrokerData> {
                 return false;
         } else if (!brokerAddrs.equals(other.brokerAddrs))
             return false;
-        if (brokerName == null) {
-            if (other.brokerName != null)
-                return false;
-        } else if (!brokerName.equals(other.brokerName))
-            return false;
-        return true;
+        return StringUtils.equals(brokerName, other.brokerName);
     }
 
     @Override
