@@ -64,7 +64,7 @@ public class RouteActivity extends AbstractMessingActivity {
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
                 addressList,
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
@@ -102,7 +102,7 @@ public class RouteActivity extends AbstractMessingActivity {
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
                 addressList,
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
 
             List<Assignment> assignments = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());

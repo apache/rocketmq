@@ -28,13 +28,27 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public class ResponseWriter {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public static <T> void write(StreamObserver<T> observer, final T response) {
+    protected static final Object INSTANCE_CREATE_LOCK = new Object();
+    protected static volatile ResponseWriter instance;
+
+    public static ResponseWriter getInstance() {
+        if (instance == null) {
+            synchronized (INSTANCE_CREATE_LOCK) {
+                if (instance == null) {
+                    instance = new ResponseWriter();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public <T> void write(StreamObserver<T> observer, final T response) {
         if (writeResponse(observer, response)) {
             observer.onCompleted();
         }
     }
 
-    public static <T> boolean writeResponse(StreamObserver<T> observer, final T response) {
+    public <T> boolean writeResponse(StreamObserver<T> observer, final T response) {
         if (null == response) {
             return false;
         }
@@ -55,7 +69,7 @@ public class ResponseWriter {
         return true;
     }
 
-    public static <T> boolean isCancelled(StreamObserver<T> observer) {
+    public <T> boolean isCancelled(StreamObserver<T> observer) {
         if (observer instanceof ServerCallStreamObserver) {
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             return serverCallStreamObserver.isCancelled();

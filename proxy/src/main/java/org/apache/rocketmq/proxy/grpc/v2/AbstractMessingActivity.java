@@ -61,7 +61,7 @@ public abstract class AbstractMessingActivity {
     }
 
     protected void validateTopic(Resource topic) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
         if (StringUtils.isBlank(topicName)) {
             throw new GrpcProxyException(Code.ILLEGAL_TOPIC, "topic name cannot be empty");
         }
@@ -82,7 +82,7 @@ public abstract class AbstractMessingActivity {
     }
 
     protected void validateConsumerGroup(Resource consumerGroup) {
-        String consumerGroupName = GrpcConverter.wrapResourceWithNamespace(consumerGroup);
+        String consumerGroupName = GrpcConverter.getInstance().wrapResourceWithNamespace(consumerGroup);
         if (StringUtils.isBlank(consumerGroupName)) {
             throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "consumer group cannot be empty");
         }

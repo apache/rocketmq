@@ -52,13 +52,13 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
             
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
 
-            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
             return this.messagingProcessor.changeInvisibleTime(
                 ctx,
                 receiptHandle,
                 request.getMessageId(),
                 group,
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic()),
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()),
                 Durations.toMillis(request.getInvisibleDuration())
             ).thenApply(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {

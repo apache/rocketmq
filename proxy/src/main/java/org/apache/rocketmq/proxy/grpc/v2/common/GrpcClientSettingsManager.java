@@ -79,7 +79,7 @@ public class GrpcClientSettingsManager {
         }
         if (settings.hasSubscription()) {
             settings = mergeSubscriptionData(ctx, settings,
-                GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+                GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
         }
         return settings;
     }
@@ -154,6 +154,6 @@ public class GrpcClientSettingsManager {
             return null;
         }
         return mergeSubscriptionData(ctx, settings,
-            GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+            GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
     }
 }

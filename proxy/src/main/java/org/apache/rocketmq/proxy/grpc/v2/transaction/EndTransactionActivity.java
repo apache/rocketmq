@@ -64,7 +64,7 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                 ctx,
                 request.getTransactionId(),
                 request.getMessageId(),
-                GrpcConverter.wrapResourceWithNamespace(request.getTopic()),
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()),
                 transactionStatus,
                 request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK))
                 .thenApply(r -> EndTransactionResponse.newBuilder()

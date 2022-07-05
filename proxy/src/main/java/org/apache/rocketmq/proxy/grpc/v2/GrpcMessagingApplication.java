@@ -155,12 +155,12 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     protected <V, T> void writeResponse(ProxyContext context, V request, T response, StreamObserver<T> responseObserver,
         Throwable t, Function<Status, T> errorResponseCreator) {
         if (t != null) {
-            ResponseWriter.write(
+            ResponseWriter.getInstance().write(
                 responseObserver,
                 errorResponseCreator.apply(convertExceptionToStatus(t))
             );
         } else {
-            ResponseWriter.write(responseObserver, response);
+            ResponseWriter.getInstance().write(responseObserver, response);
         }
     }
 

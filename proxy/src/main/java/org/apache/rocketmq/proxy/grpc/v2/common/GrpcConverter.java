@@ -49,11 +49,25 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class GrpcConverter {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public static String wrapResourceWithNamespace(Resource resource) {
+    protected static final Object INSTANCE_CREATE_LOCK = new Object();
+    protected static volatile GrpcConverter instance;
+
+    public static GrpcConverter getInstance() {
+        if (instance == null) {
+            synchronized (INSTANCE_CREATE_LOCK) {
+                if (instance == null) {
+                    instance = new GrpcConverter();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public String wrapResourceWithNamespace(Resource resource) {
         return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
     }
 
-    public static MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
+    public MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
         Broker broker = Broker.getDefaultInstance();
         if (!StringUtils.isEmpty(brokerName)) {
             broker = Broker.newBuilder()
@@ -71,7 +85,7 @@ public class GrpcConverter {
             .build();
     }
 
-    public static String buildExpressionType(FilterType filterType) {
+    public String buildExpressionType(FilterType filterType) {
         switch (filterType) {
             case SQL:
                 return ExpressionType.SQL92;
@@ -81,7 +95,7 @@ public class GrpcConverter {
         }
     }
 
-    public static Message buildMessage(MessageExt messageExt) {
+    public Message buildMessage(MessageExt messageExt) {
         Map<String, String> userProperties = buildUserAttributes(messageExt);
         SystemProperties systemProperties = buildSystemProperties(messageExt);
         Resource topic = buildResource(messageExt.getTopic());
@@ -94,7 +108,7 @@ public class GrpcConverter {
             .build();
     }
 
-    protected static Map<String, String> buildUserAttributes(MessageExt messageExt) {
+    protected Map<String, String> buildUserAttributes(MessageExt messageExt) {
         Map<String, String> userAttributes = new HashMap<>();
         Map<String, String> properties = messageExt.getProperties();
 
@@ -107,7 +121,7 @@ public class GrpcConverter {
         return userAttributes;
     }
 
-    protected static SystemProperties buildSystemProperties(MessageExt messageExt) {
+    protected SystemProperties buildSystemProperties(MessageExt messageExt) {
         SystemProperties.Builder systemPropertiesBuilder = SystemProperties.newBuilder();
 
         // tag
@@ -226,7 +240,7 @@ public class GrpcConverter {
         return systemPropertiesBuilder.build();
     }
 
-    public static Resource buildResource(String resourceNameWithNamespace) {
+    public Resource buildResource(String resourceNameWithNamespace) {
         return Resource.newBuilder()
             .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
             .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))

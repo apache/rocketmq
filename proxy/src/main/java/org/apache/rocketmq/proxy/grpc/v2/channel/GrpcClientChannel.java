@@ -133,8 +133,8 @@ public class GrpcClientChannel extends ProxyChannel {
             this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
                 .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                     .setTransactionId(transactionData.getTransactionId())
-                    .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
-                    .setMessageQueue(GrpcConverter.buildMessageQueue(messageExt, transactionData.getBrokerName()))
+                    .setOrphanedTransactionalMessage(GrpcConverter.getInstance().buildMessage(messageExt))
+                    .setMessageQueue(GrpcConverter.getInstance().buildMessageQueue(messageExt, transactionData.getBrokerName()))
                     .build())
                 .build());
             responseFuture.complete(null);
@@ -168,7 +168,7 @@ public class GrpcClientChannel extends ProxyChannel {
         this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
             .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
                 .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))
-                .setMessage(GrpcConverter.buildMessage(messageExt))
+                .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
                 .build())
             .build());
         return CompletableFuture.completedFuture(null);

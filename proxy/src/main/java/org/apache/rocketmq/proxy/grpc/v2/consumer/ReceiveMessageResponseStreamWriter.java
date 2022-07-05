@@ -106,7 +106,7 @@ public class ReceiveMessageResponseStreamWriter {
     }
 
     protected Message convertToMessage(MessageExt messageExt) {
-        return GrpcConverter.buildMessage(messageExt);
+        return GrpcConverter.getInstance().buildMessage(messageExt);
     }
 
     protected void processThrowableWhenWriteMessage(Throwable throwable,
@@ -121,8 +121,8 @@ public class ReceiveMessageResponseStreamWriter {
             ctx,
             ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
-            GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
-            GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic()),
+            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()),
+            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic()),
             NACK_INVISIBLE_TIME
         );
     }
@@ -141,7 +141,7 @@ public class ReceiveMessageResponseStreamWriter {
 
     protected void writeResponseWithErrorIgnore(ReceiveMessageResponse response) {
         try {
-            ResponseWriter.writeResponse(streamObserver, response);
+            ResponseWriter.getInstance().writeResponse(streamObserver, response);
         } catch (Exception e) {
             log.error("err when write receive message response", e);
         }
