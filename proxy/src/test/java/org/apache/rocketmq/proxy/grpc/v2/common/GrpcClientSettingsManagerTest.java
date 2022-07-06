@@ -70,7 +70,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         subscriptionGroupConfig.getGroupRetryPolicy().setCustomizedRetryPolicy(new CustomizedRetryPolicy(new long[] {1000}));
         settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertEquals(RetryPolicy.newBuilder()
-            .setMaxAttempts(3)
+            .setMaxAttempts(4)
             .setCustomizedBackoff(CustomizedBackoff.newBuilder()
                 .addNext(Durations.fromSeconds(1))
                 .build())
@@ -81,7 +81,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         subscriptionGroupConfig.getGroupRetryPolicy().setExponentialRetryPolicy(new ExponentialRetryPolicy(1000, 2000, 3));
         settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertEquals(RetryPolicy.newBuilder()
-            .setMaxAttempts(10)
+            .setMaxAttempts(11)
             .setExponentialBackoff(ExponentialBackoff.newBuilder()
                 .setMax(Durations.fromSeconds(2))
                 .setInitial(Durations.fromSeconds(1))
