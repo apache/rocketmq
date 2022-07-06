@@ -64,6 +64,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-tools</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

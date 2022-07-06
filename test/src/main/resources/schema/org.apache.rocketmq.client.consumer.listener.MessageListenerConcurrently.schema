@@ -1,0 +1,1 @@
+Method consumeMessage(java.util.List,org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext) : public throws (org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus)

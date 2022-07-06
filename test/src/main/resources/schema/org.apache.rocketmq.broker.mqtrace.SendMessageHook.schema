@@ -1,0 +1,3 @@
+Method hookName() : public throws (java.lang.String)
+Method sendMessageAfter(org.apache.rocketmq.broker.mqtrace.SendMessageContext) : public throws (void)
+Method sendMessageBefore(org.apache.rocketmq.broker.mqtrace.SendMessageContext) : public throws (void)

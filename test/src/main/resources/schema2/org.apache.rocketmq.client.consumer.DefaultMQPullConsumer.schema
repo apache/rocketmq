@@ -1,0 +1,111 @@
+Field SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY : public java.lang.String com.rocketmq.sendMessageWithVIPChannel
+Field accessChannel : protected org.apache.rocketmq.client.AccessChannel LOCAL
+Field allocateMessageQueueStrategy : private org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely@11028347
+Field brokerSuspendMaxTimeMillis : private long 20000
+Field clientCallbackExecutorThreads : null
+Field clientIP : null
+Field consumerGroup : private java.lang.String DEFAULT_CONSUMER
+Field consumerPullTimeoutMillis : private long 10000
+Field consumerTimeoutMillisWhenSuspend : private long 30000
+Field defaultMQPullConsumerImpl : protected org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl@707f7052
+Field enableStreamRequestType : protected boolean true
+Field heartbeatBrokerInterval : private int 30000
+Field instanceName : private java.lang.String DEFAULT
+Field language : private org.apache.rocketmq.remoting.protocol.LanguageCode JAVA
+Field maxReconsumeTimes : private int 16
+Field messageModel : private org.apache.rocketmq.common.protocol.heartbeat.MessageModel CLUSTERING
+Field messageQueueListener : private org.apache.rocketmq.client.consumer.MessageQueueListener null
+Field mqClientApiTimeout : private int 3000
+Field namespace : protected java.lang.String null
+Field namespaceInitialized : private boolean false
+Field namesrvAddr : null
+Field offsetStore : private org.apache.rocketmq.client.consumer.store.OffsetStore null
+Field persistConsumerOffsetInterval : private int 5000
+Field pollNameServerInterval : private int 30000
+Field pullTimeDelayMillsWhenException : private long 1000
+Field registerTopics : private java.util.Set []
+Field unitMode : private boolean false
+Field unitName : private java.lang.String null
+Field useTLS : private boolean false
+Field vipChannelEnabled : private boolean false
+Method buildMQClientId : public java.lang.String () throws ()
+Method changeInstanceNameToPID : public void () throws ()
+Method cloneClientConfig : public org.apache.rocketmq.client.ClientConfig () throws ()
+Method createTopic : public void (int,java.lang.String,java.lang.String) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method earliestMsgStoreTime : public long (org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method fetchConsumeOffset : public long (boolean,org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method fetchMessageQueuesInBalance : public java.util.Set (java.lang.String) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method fetchSubscribeMessageQueues : public java.util.Set (java.lang.String) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method getAccessChannel : public org.apache.rocketmq.client.AccessChannel () throws ()
+Method getAllocateMessageQueueStrategy : public org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy () throws ()
+Method getBrokerSuspendMaxTimeMillis : public long () throws ()
+Method getClientCallbackExecutorThreads : public int () throws ()
+Method getClientIP : public java.lang.String () throws ()
+Method getConsumerGroup : public java.lang.String () throws ()
+Method getConsumerPullTimeoutMillis : public long () throws ()
+Method getConsumerTimeoutMillisWhenSuspend : public long () throws ()
+Method getDefaultMQPullConsumerImpl : public org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl () throws ()
+Method getHeartbeatBrokerInterval : public int () throws ()
+Method getInstanceName : public java.lang.String () throws ()
+Method getLanguage : public org.apache.rocketmq.remoting.protocol.LanguageCode () throws ()
+Method getMaxReconsumeTimes : public int () throws ()
+Method getMessageModel : public org.apache.rocketmq.common.protocol.heartbeat.MessageModel () throws ()
+Method getMessageQueueListener : public org.apache.rocketmq.client.consumer.MessageQueueListener () throws ()
+Method getMqClientApiTimeout : public int () throws ()
+Method getNamespace : public java.lang.String () throws ()
+Method getNamesrvAddr : public java.lang.String () throws ()
+Method getOffsetStore : public org.apache.rocketmq.client.consumer.store.OffsetStore () throws ()
+Method getPersistConsumerOffsetInterval : public int () throws ()
+Method getPollNameServerInterval : public int () throws ()
+Method getPullTimeDelayMillsWhenException : public long () throws ()
+Method getRegisterTopics : public java.util.Set () throws ()
+Method getUnitName : public java.lang.String () throws ()
+Method isEnableStreamRequestType : public boolean () throws ()
+Method isUnitMode : public boolean () throws ()
+Method isUseTLS : public boolean () throws ()
+Method isVipChannelEnabled : public boolean () throws ()
+Method maxOffset : public long (org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method minOffset : public long (org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method pull : public org.apache.rocketmq.client.consumer.PullResult (int,long,long,org.apache.rocketmq.client.consumer.MessageSelector,org.apache.rocketmq.common.message.MessageQueue) throws (java.lang.InterruptedException,org.apache.rocketmq.client.exception.MQBrokerException,org.apache.rocketmq.client.exception.MQClientException,org.apache.rocketmq.remoting.exception.RemotingException)
+Method pullBlockIfNotFound : public org.apache.rocketmq.client.consumer.PullResult (int,java.lang.String,long,org.apache.rocketmq.common.message.MessageQueue) throws (java.lang.InterruptedException,org.apache.rocketmq.client.exception.MQBrokerException,org.apache.rocketmq.client.exception.MQClientException,org.apache.rocketmq.remoting.exception.RemotingException)
+Method queryMessage : public org.apache.rocketmq.client.QueryResult (int,java.lang.String,java.lang.String,long,long) throws (java.lang.InterruptedException,org.apache.rocketmq.client.exception.MQClientException)
+Method queueWithNamespace : public org.apache.rocketmq.common.message.MessageQueue (org.apache.rocketmq.common.message.MessageQueue) throws ()
+Method queuesWithNamespace : public java.util.Collection (java.util.Collection) throws ()
+Method registerMessageQueueListener : public void (java.lang.String,org.apache.rocketmq.client.consumer.MessageQueueListener) throws ()
+Method resetClientConfig : public void (org.apache.rocketmq.client.ClientConfig) throws ()
+Method searchOffset : public long (long,org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method sendMessageBack : public void (int,org.apache.rocketmq.common.message.MessageExt) throws (java.lang.InterruptedException,org.apache.rocketmq.client.exception.MQBrokerException,org.apache.rocketmq.client.exception.MQClientException,org.apache.rocketmq.remoting.exception.RemotingException)
+Method setAccessChannel : public void (org.apache.rocketmq.client.AccessChannel) throws ()
+Method setAllocateMessageQueueStrategy : public void (org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy) throws ()
+Method setBrokerSuspendMaxTimeMillis : public void (long) throws ()
+Method setClientCallbackExecutorThreads : public void (int) throws ()
+Method setClientIP : public void (java.lang.String) throws ()
+Method setConsumerGroup : public void (java.lang.String) throws ()
+Method setConsumerPullTimeoutMillis : public void (long) throws ()
+Method setConsumerTimeoutMillisWhenSuspend : public void (long) throws ()
+Method setEnableStreamRequestType : public void (boolean) throws ()
+Method setHeartbeatBrokerInterval : public void (int) throws ()
+Method setInstanceName : public void (java.lang.String) throws ()
+Method setLanguage : public void (org.apache.rocketmq.remoting.protocol.LanguageCode) throws ()
+Method setMaxReconsumeTimes : public void (int) throws ()
+Method setMessageModel : public void (org.apache.rocketmq.common.protocol.heartbeat.MessageModel) throws ()
+Method setMessageQueueListener : public void (org.apache.rocketmq.client.consumer.MessageQueueListener) throws ()
+Method setMqClientApiTimeout : public void (int) throws ()
+Method setNamespace : public void (java.lang.String) throws ()
+Method setNamesrvAddr : public void (java.lang.String) throws ()
+Method setOffsetStore : public void (org.apache.rocketmq.client.consumer.store.OffsetStore) throws ()
+Method setPersistConsumerOffsetInterval : public void (int) throws ()
+Method setPollNameServerInterval : public void (int) throws ()
+Method setPullTimeDelayMillsWhenException : public void (long) throws ()
+Method setRegisterTopics : public void (java.util.Set) throws ()
+Method setUnitMode : public void (boolean) throws ()
+Method setUnitName : public void (java.lang.String) throws ()
+Method setUseTLS : public void (boolean) throws ()
+Method setVipChannelEnabled : public void (boolean) throws ()
+Method shutdown : public void () throws ()
+Method start : public void () throws (org.apache.rocketmq.client.exception.MQClientException)
+Method toString : public java.lang.String () throws ()
+Method updateConsumeOffset : public void (long,org.apache.rocketmq.common.message.MessageQueue) throws (org.apache.rocketmq.client.exception.MQClientException)
+Method viewMessage : public org.apache.rocketmq.common.message.MessageExt (java.lang.String,java.lang.String) throws (java.lang.InterruptedException,org.apache.rocketmq.client.exception.MQBrokerException,org.apache.rocketmq.client.exception.MQClientException,org.apache.rocketmq.remoting.exception.RemotingException)
+Method withNamespace : public java.lang.String (java.lang.String) throws ()
+Method withoutNamespace : public java.util.Set (java.util.Set) throws ()

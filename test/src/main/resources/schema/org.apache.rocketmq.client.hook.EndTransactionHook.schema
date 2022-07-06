@@ -1,0 +1,2 @@
+Method endTransaction(org.apache.rocketmq.client.hook.EndTransactionContext) : public throws (void)
+Method hookName() : public throws (java.lang.String)

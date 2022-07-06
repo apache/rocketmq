@@ -1,0 +1,2 @@
+Method onException(java.lang.Throwable) : public throws (void)
+Method onSuccess(org.apache.rocketmq.client.producer.SendResult) : public throws (void)
