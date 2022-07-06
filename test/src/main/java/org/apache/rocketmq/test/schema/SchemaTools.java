@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
+import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -86,12 +87,14 @@ public class SchemaTools {
             apiClassList.add(ConsumeStatus.class);
             apiClassList.add(SendResult.class);
             apiClassList.add(SendStatus.class);
-            //listener
+            //listener or context
             apiClassList.add(MessageListener.class);
             apiClassList.add(MessageListenerConcurrently.class);
             apiClassList.add(MessageListenerOrderly.class);
             apiClassList.add(ConsumeConcurrentlyContext.class);
             apiClassList.add(ConsumeOrderlyContext.class);
+            apiClassList.add(ConsumeMessageContext.class);
+            apiClassList.add(SendMessageContext.class);
             //hook
             apiClassList.add(RPCHook.class);
             apiClassList.add(SendMessageHook.class);
