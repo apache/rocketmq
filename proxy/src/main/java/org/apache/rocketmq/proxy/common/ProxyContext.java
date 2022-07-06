@@ -85,6 +85,15 @@ public class ProxyContext {
         return this.getVal(ContextVariable.LANGUAGE);
     }
 
+    public ProxyContext setClientVersion(String clientVersion) {
+        this.withVal(ContextVariable.CLIENT_VERSION, clientVersion);
+        return this;
+    }
+
+    public String getClientVersion() {
+        return this.getVal(ContextVariable.CLIENT_VERSION);
+    }
+
     public ProxyContext setRemainingMs(Long remainingMs) {
         this.withVal(ContextVariable.REMAINING_MS, remainingMs);
         return this;
