@@ -98,7 +98,7 @@ public class GrpcClientSettingsManager {
 
         resultSettingsBuilder.getSubscriptionBuilder().setFifo(config.isConsumeMessageOrderly());
 
-        resultSettingsBuilder.getBackoffPolicyBuilder().setMaxAttempts(config.getRetryMaxTimes());
+        resultSettingsBuilder.getBackoffPolicyBuilder().setMaxAttempts(config.getRetryMaxTimes() + 1);
 
         GroupRetryPolicy groupRetryPolicy = config.getGroupRetryPolicy();
         if (groupRetryPolicy.getType().equals(GroupRetryPolicyType.EXPONENTIAL)) {
