@@ -30,6 +30,7 @@ import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
@@ -72,6 +73,9 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testQueryRoute() {
+        int clientVersionCode = MQVersion.Version.valueOf("V3__0_SNAPSHOT").ordinal();
+        System.out.println(clientVersionCode);
+
         Metadata metadata = new Metadata();
         metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
         metadata.put(InterceptorConstants.LANGUAGE, JAVA);

@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -279,7 +280,7 @@ public class ClientActivity extends AbstractMessingActivity {
 
         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
         // use topic name as producer group
-        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
         this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
         this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
         return channel;
@@ -290,7 +291,7 @@ public class ClientActivity extends AbstractMessingActivity {
         LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 
         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
-        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
 
         this.messagingProcessor.registerConsumer(
             ctx,
@@ -302,6 +303,19 @@ public class ClientActivity extends AbstractMessingActivity {
             this.buildSubscriptionDataSet(subscriptionEntryList)
         );
         return channel;
+    }
+
+    private int parseClientVersion(String clientVersionStr) {
+        int clientVersion = MQVersion.CURRENT_VERSION;
+        if (!StringUtils.isEmpty(clientVersionStr)) {
+            try {
+                String tmp = StringUtils.upperCase(clientVersionStr);
+                clientVersion = MQVersion.Version.valueOf(tmp).ordinal();
+            } catch (Exception e) {
+                log.warn("client version from client not recognized: %s", clientVersionStr);
+            }
+        }
+        return clientVersion;
     }
 
     protected void reportThreadStackTrace(ProxyContext ctx, Status status, ThreadStackTrace request) {
