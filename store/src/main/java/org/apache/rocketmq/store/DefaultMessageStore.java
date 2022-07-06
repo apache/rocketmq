@@ -990,33 +990,17 @@ public class DefaultMessageStore implements MessageStore {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
-
-                    boolean match = true;
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-//                    if (topic.equals(msg.getTopic())) {
-//                        for (String k : keyArray) {
-//                            if (k.equals(key)) {
-//                                match = true;
-//                                break;
-//                            }
-//                        }
-//                    }
-
-                    if (match) {
-                        SelectMappedBufferResult result = this.commitLog.getData(offset, false);
-                        if (result != null) {
-                            int size = result.getByteBuffer().getInt(0);
-                            result.getByteBuffer().limit(size);
-                            result.setSize(size);
-                            queryMessageResult.addMessage(result);
-                        }
-                    } else {
-                        log.warn("queryMessage hash duplicate, {} {}", topic, key);
+                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
+                    if (result != null) {
+                        int size = result.getByteBuffer().getInt(0);
+                        result.getByteBuffer().limit(size);
+                        result.setSize(size);
+                        queryMessageResult.addMessage(result);
                     }
                 } catch (Exception e) {
                     log.error("queryMessage exception", e);
@@ -1387,12 +1371,8 @@ public class DefaultMessageStore implements MessageStore {
     private void checkSelf() {
         this.commitLog.checkSelf();
 
-        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
-            Iterator<Entry<Integer, ConsumeQueue>> itNext = next.getValue().entrySet().iterator();
-            while (itNext.hasNext()) {
-                Entry<Integer, ConsumeQueue> cq = itNext.next();
+        for (Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next : this.consumeQueueTable.entrySet()) {
+            for (Entry<Integer, ConsumeQueue> cq : next.getValue().entrySet()) {
                 cq.getValue().checkSelf();
             }
         }
