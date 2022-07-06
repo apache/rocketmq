@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -409,6 +410,7 @@ public class ProduceAccumulator {
             messageBatch.setWaitStoreMsgOK(this.aggregateKey.waitStoreMsgOK);
             messageBatch.setKeys(this.keys);
             messageBatch.setTags(this.aggregateKey.tag);
+            MessageClientIDSetter.setUniqID(messageBatch);
             messageBatch.setBody(MessageDecoder.encodeMessages(this.messages));
             return messageBatch;
         }
