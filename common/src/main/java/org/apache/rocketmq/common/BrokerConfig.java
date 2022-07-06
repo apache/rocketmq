@@ -195,8 +195,6 @@ public class BrokerConfig {
      * Whether to distinguish log paths when multiple brokers are deployed on the same machine
      */
     private boolean isolateLogEnable = false;
-    @ImportantField
-    private String zoneName;
 
     public static String localHostName() {
         try {
@@ -846,13 +844,5 @@ public class BrokerConfig {
 
     public void setIsolateLogEnable(boolean isolateLogEnable) {
         this.isolateLogEnable = isolateLogEnable;
-    }
-
-    public String getZoneName() {
-        return zoneName;
-    }
-
-    public void setZoneName(String zoneName) {
-        this.zoneName = zoneName;
     }
 }

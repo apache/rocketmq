@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.route.hook.AddZoneRPCHook;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -332,7 +331,7 @@ public class ClientConfig {
     public void setMqClientApiTimeout(int mqClientApiTimeout) {
         this.mqClientApiTimeout = mqClientApiTimeout;
     }
-    
+
     public boolean isEnableStreamRequestType() {
         return enableStreamRequestType;
     }
@@ -341,22 +340,6 @@ public class ClientConfig {
         this.enableStreamRequestType = enableStreamRequestType;
     }
 
-    public void setZoneName(String zoneName) {
-        AddZoneRPCHook.INSTANCE.setZoneName(zoneName);
-    }
-
-    public String getZoneName() {
-        return AddZoneRPCHook.INSTANCE.getZoneName();
-    }
-    
-    public void setZoneMode(boolean zoneMode) {
-        AddZoneRPCHook.INSTANCE.setZoneMode(zoneMode);
-    }
-    
-    public boolean isZoneMode() {
-        return AddZoneRPCHook.INSTANCE.isZoneMode();
-    }
-    
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName

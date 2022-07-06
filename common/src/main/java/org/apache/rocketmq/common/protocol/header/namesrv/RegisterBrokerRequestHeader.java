@@ -40,8 +40,6 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     private Integer bodyCrc32 = 0;
 
-    private String zoneName;    
-
     public void checkFields() throws RemotingCommandException {
     }
 
@@ -99,13 +97,5 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     public void setBodyCrc32(Integer bodyCrc32) {
         this.bodyCrc32 = bodyCrc32;
-    }
-
-    public String getZoneName() {
-        return zoneName;
-    }
-
-    public void setZoneName(String zoneName) {
-        this.zoneName = zoneName;
     }
 }
