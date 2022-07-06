@@ -510,7 +510,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         };
 
-        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()) {
             runnable.run();
         } else {
             try {
@@ -1080,7 +1080,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         };
 
-        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()) {
             runnable.run();
         } else {
             try {
@@ -1209,7 +1209,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         };
 
-        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()  && this.asyncSenderExecutor == null) {
+        if (this.defaultMQProducer.isEnableBackpressureForAsyncMode()) {
             runnable.run();
         } else {
             try {
