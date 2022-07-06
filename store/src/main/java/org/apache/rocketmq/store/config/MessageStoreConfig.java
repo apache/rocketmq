@@ -47,7 +47,6 @@ public class MessageStoreConfig {
     private int timerPrecisionMs = 1000;
 
     private int timerRollWindowSlot = 3600 * 24 * 2;
-    private int timerRollWindowSec = 3600 * 24 * 2;
     private int timerFlushIntervalMs = 1000;
     private int timerGetMessageThreadNum = 3;
     private int timerPutMessageThreadNum = 3;
@@ -75,8 +74,6 @@ public class MessageStoreConfig {
     private boolean timerSkipUnknownError = false;
     private boolean timerWarmEnable = false;
     private boolean timerStopDequeue = false;
-
-    private int timerCongestNumEachSec = Integer.MAX_VALUE;
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
     private int timerMetricSmallThreshold = 1000000;
@@ -956,10 +953,9 @@ public class MessageStoreConfig {
     public int getTimerCongestNumEachSlot() {
         return timerCongestNumEachSlot;
     }
-    public void setTimerCongestNumEachSec(int timerCongestNumEachSec) {
-        this.timerCongestNumEachSec = timerCongestNumEachSec;
+    public void setTimerCongestNumEachSlot(int timerCongestNumEachSlot) {
         // In order to get this value from messageStoreConfig properties file created before v4.4.1.
-        this.timerCongestNumEachSlot = timerCongestNumEachSec;
+        this.timerCongestNumEachSlot = timerCongestNumEachSlot;
     }
     public int getTimerFlushIntervalMs() {
         return timerFlushIntervalMs;
@@ -968,9 +964,8 @@ public class MessageStoreConfig {
     public void setTimerFlushIntervalMs(final int timerFlushIntervalMs) {
         this.timerFlushIntervalMs = timerFlushIntervalMs;
     }
-    public void setTimerRollWindowSec(final int timerRollWindowSec) {
-        this.timerRollWindowSec = timerRollWindowSec;
-        this.timerRollWindowSlot = timerRollWindowSec;
+    public void setTimerRollWindowSlot(final int timerRollWindowSlot) {
+        this.timerRollWindowSlot = timerRollWindowSlot;
     }
     public int getTimerProgressLogIntervalMs() {
         return timerProgressLogIntervalMs;

@@ -170,7 +170,7 @@ public class TimerMessageStoreTest {
     public void testTimerFlowControl() throws Exception {
         String topic = "TimerTest_testTimerFlowControl";
 
-        storeConfig.setTimerCongestNumEachSec(100);
+        storeConfig.setTimerCongestNumEachSlot(100);
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
         timerMessageStore.start();
@@ -410,7 +410,7 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testRollMessage() throws Exception {
-        storeConfig.setTimerRollWindowSec(2);
+        storeConfig.setTimerRollWindowSlot(2);
         String topic = "TimerTest_testRollMessage";
 
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
@@ -427,7 +427,7 @@ public class TimerMessageStoreTest {
         MessageExt msgExt = MessageDecoder.decode(msgBuff);
         assertNotNull(msgExt);
         assertEquals(1, Integer.valueOf(msgExt.getProperty(MessageConst.PROPERTY_TIMER_ROLL_TIMES)).intValue());
-        storeConfig.setTimerRollWindowSec(Integer.MAX_VALUE);
+        storeConfig.setTimerRollWindowSlot(Integer.MAX_VALUE);
     }
 
     // TimerMessageStore doesn't deal with delayLevel messages anymore.

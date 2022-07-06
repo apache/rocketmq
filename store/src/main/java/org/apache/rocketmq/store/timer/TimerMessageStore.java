@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.timer;
 
 import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -590,8 +591,7 @@ public class TimerMessageStore {
                     int sizePy = bufferCQ.getByteBuffer().getInt();
                     bufferCQ.getByteBuffer().getLong(); //tags code
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
-                    if (null == msgExt) {
-                    } else {
+                    if (msgExt != null) {
                         lastEnqueueButExpiredTime = System.currentTimeMillis();
                         lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
@@ -1215,7 +1215,7 @@ public class TimerMessageStore {
                                 break;
                         }
                     }
-                    if (null == trs || trs.isEmpty()) {
+                    if (CollectionUtils.isEmpty(trs)) {
                         commitQueueOffset = tmpCommitQueueOffset;
                         maybeMoveWriteTime();
                         continue;
@@ -1388,7 +1388,6 @@ public class TimerMessageStore {
                         TimerRequest tr = trs.get(i);
                         boolean doRes = false;
                         try {
-                            long start = System.currentTimeMillis();
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {

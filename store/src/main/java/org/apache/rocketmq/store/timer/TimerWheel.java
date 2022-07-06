@@ -64,7 +64,7 @@ public class TimerWheel {
                 throw new RuntimeException(String.format("Timer wheel length:%d != expected:%s",
                     randomAccessFile.length(), wheelLength));
             }
-            randomAccessFile.setLength(this.slotsTotal * 2 * Slot.SIZE);
+            randomAccessFile.setLength(wheelLength);
             fileChannel = randomAccessFile.getChannel();
             mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
             assert wheelLength == mappedByteBuffer.remaining();
