@@ -172,6 +172,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
             .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
             .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
+            .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
             .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.RPC_NAME));
         if (ctx.getDeadline() != null) {
             context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
