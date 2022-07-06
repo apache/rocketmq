@@ -1,0 +1,16 @@
+Field beginTimestamp : private java.lang.Long null
+Field endTimestamp : private java.lang.Long null
+Field key : private java.lang.String null
+Field maxNum : private java.lang.Integer null
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getBeginTimestamp() : public throws (java.lang.Long)
+Method getEndTimestamp() : public throws (java.lang.Long)
+Method getKey() : public throws (java.lang.String)
+Method getMaxNum() : public throws (java.lang.Integer)
+Method getTopic() : public throws (java.lang.String)
+Method setBeginTimestamp(java.lang.Long) : public throws (void)
+Method setEndTimestamp(java.lang.Long) : public throws (void)
+Method setKey(java.lang.String) : public throws (void)
+Method setMaxNum(java.lang.Integer) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)

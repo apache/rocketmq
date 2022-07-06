@@ -1,0 +1,4 @@
+Field plainAccessConfigs : private java.util.List null
+Method checkFields() : public throws (void)
+Method getPlainAccessConfigs() : public throws (java.util.List)
+Method setPlainAccessConfigs(java.util.List) : public throws (void)

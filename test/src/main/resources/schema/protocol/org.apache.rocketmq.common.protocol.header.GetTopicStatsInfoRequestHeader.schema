@@ -1,0 +1,4 @@
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getTopic() : public throws (java.lang.String)
+Method setTopic(java.lang.String) : public throws (void)

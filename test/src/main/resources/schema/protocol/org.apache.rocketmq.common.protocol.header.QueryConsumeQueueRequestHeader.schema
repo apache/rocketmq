@@ -1,0 +1,16 @@
+Field consumerGroup : private java.lang.String null
+Field count : private int 0
+Field index : private long 0
+Field queueId : private int 0
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getConsumerGroup() : public throws (java.lang.String)
+Method getCount() : public throws (int)
+Method getIndex() : public throws (long)
+Method getQueueId() : public throws (int)
+Method getTopic() : public throws (java.lang.String)
+Method setConsumerGroup(java.lang.String) : public throws (void)
+Method setCount(int) : public throws (void)
+Method setIndex(long) : public throws (void)
+Method setQueueId(int) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)

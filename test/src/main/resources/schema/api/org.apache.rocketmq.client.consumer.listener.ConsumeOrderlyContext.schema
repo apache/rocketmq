@@ -1,0 +1,8 @@
+Field autoCommit : private boolean true
+Field messageQueue : private org.apache.rocketmq.common.message.MessageQueue null
+Field suspendCurrentQueueTimeMillis : private long -1
+Method getMessageQueue() : public throws (org.apache.rocketmq.common.message.MessageQueue)
+Method getSuspendCurrentQueueTimeMillis() : public throws (long)
+Method isAutoCommit() : public throws (boolean)
+Method setAutoCommit(boolean) : public throws (void)
+Method setSuspendCurrentQueueTimeMillis(long) : public throws (void)

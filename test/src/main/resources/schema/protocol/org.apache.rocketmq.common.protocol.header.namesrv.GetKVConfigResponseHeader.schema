@@ -1,0 +1,4 @@
+Field value : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getValue() : public throws (java.lang.String)
+Method setValue(java.lang.String) : public throws (void)

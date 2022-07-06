@@ -1,0 +1,7 @@
+Field brokerId : private long 0
+Field brokerName : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getBrokerId() : public throws (long)
+Method getBrokerName() : public throws (java.lang.String)
+Method setBrokerId(long) : public throws (void)
+Method setBrokerName(java.lang.String) : public throws (void)

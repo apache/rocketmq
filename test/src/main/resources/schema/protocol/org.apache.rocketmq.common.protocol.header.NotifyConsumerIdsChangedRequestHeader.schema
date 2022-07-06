@@ -1,0 +1,4 @@
+Field consumerGroup : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getConsumerGroup() : public throws (java.lang.String)
+Method setConsumerGroup(java.lang.String) : public throws (void)

@@ -1,0 +1,13 @@
+Field destGroup : private java.lang.String null
+Field offline : private boolean false
+Field srcGroup : private java.lang.String null
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getDestGroup() : public throws (java.lang.String)
+Method getSrcGroup() : public throws (java.lang.String)
+Method getTopic() : public throws (java.lang.String)
+Method isOffline() : public throws (boolean)
+Method setDestGroup(java.lang.String) : public throws (void)
+Method setOffline(boolean) : public throws (void)
+Method setSrcGroup(java.lang.String) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)

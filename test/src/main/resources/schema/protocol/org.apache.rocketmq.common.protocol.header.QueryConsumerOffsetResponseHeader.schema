@@ -1,0 +1,4 @@
+Field offset : private java.lang.Long null
+Method checkFields() : public throws (void)
+Method getOffset() : public throws (java.lang.Long)
+Method setOffset(java.lang.Long) : public throws (void)

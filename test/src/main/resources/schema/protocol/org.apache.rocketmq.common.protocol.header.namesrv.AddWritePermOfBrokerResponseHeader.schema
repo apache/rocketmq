@@ -1,0 +1,4 @@
+Field addTopicCount : private java.lang.Integer null
+Method checkFields() : public throws (void)
+Method getAddTopicCount() : public throws (java.lang.Integer)
+Method setAddTopicCount(java.lang.Integer) : public throws (void)

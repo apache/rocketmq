@@ -1,0 +1,7 @@
+Field aclFileFullPath : private java.lang.String null
+Field globalWhiteAddrs : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getAclFileFullPath() : public throws (java.lang.String)
+Method getGlobalWhiteAddrs() : public throws (java.lang.String)
+Method setAclFileFullPath(java.lang.String) : public throws (void)
+Method setGlobalWhiteAddrs(java.lang.String) : public throws (void)

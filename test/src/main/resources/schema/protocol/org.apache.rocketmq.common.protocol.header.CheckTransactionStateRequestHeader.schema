@@ -1,0 +1,16 @@
+Field commitLogOffset : private java.lang.Long null
+Field msgId : private java.lang.String null
+Field offsetMsgId : private java.lang.String null
+Field tranStateTableOffset : private java.lang.Long null
+Field transactionId : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getCommitLogOffset() : public throws (java.lang.Long)
+Method getMsgId() : public throws (java.lang.String)
+Method getOffsetMsgId() : public throws (java.lang.String)
+Method getTranStateTableOffset() : public throws (java.lang.Long)
+Method getTransactionId() : public throws (java.lang.String)
+Method setCommitLogOffset(java.lang.Long) : public throws (void)
+Method setMsgId(java.lang.String) : public throws (void)
+Method setOffsetMsgId(java.lang.String) : public throws (void)
+Method setTranStateTableOffset(java.lang.Long) : public throws (void)
+Method setTransactionId(java.lang.String) : public throws (void)

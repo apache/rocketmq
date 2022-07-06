@@ -1,0 +1,4 @@
+Field filterServerAddr : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getFilterServerAddr() : public throws (java.lang.String)
+Method setFilterServerAddr(java.lang.String) : public throws (void)

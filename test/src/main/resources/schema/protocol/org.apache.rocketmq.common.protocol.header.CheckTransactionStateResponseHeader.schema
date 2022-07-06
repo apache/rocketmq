@@ -1,0 +1,13 @@
+Field commitLogOffset : private java.lang.Long null
+Field commitOrRollback : private java.lang.Integer null
+Field producerGroup : private java.lang.String null
+Field tranStateTableOffset : private java.lang.Long null
+Method checkFields() : public throws (void)
+Method getCommitLogOffset() : public throws (java.lang.Long)
+Method getCommitOrRollback() : public throws (java.lang.Integer)
+Method getProducerGroup() : public throws (java.lang.String)
+Method getTranStateTableOffset() : public throws (java.lang.Long)
+Method setCommitLogOffset(java.lang.Long) : public throws (void)
+Method setCommitOrRollback(java.lang.Integer) : public throws (void)
+Method setProducerGroup(java.lang.String) : public throws (void)
+Method setTranStateTableOffset(java.lang.Long) : public throws (void)

@@ -1,0 +1,7 @@
+Field statsKey : private java.lang.String null
+Field statsName : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getStatsKey() : public throws (java.lang.String)
+Method getStatsName() : public throws (java.lang.String)
+Method setStatsKey(java.lang.String) : public throws (void)
+Method setStatsName(java.lang.String) : public throws (void)

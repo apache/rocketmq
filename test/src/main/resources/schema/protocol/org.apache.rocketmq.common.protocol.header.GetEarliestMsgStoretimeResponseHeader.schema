@@ -1,0 +1,4 @@
+Field timestamp : private java.lang.Long null
+Method checkFields() : public throws (void)
+Method getTimestamp() : public throws (java.lang.Long)
+Method setTimestamp(java.lang.Long) : public throws (void)

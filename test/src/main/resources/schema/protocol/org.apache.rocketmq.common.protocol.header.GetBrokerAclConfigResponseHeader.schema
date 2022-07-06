@@ -1,0 +1,16 @@
+Field allAclFileVersion : private java.lang.String null
+Field brokerAddr : private java.lang.String null
+Field brokerName : private java.lang.String null
+Field clusterName : private java.lang.String null
+Field version : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getAllAclFileVersion() : public throws (java.lang.String)
+Method getBrokerAddr() : public throws (java.lang.String)
+Method getBrokerName() : public throws (java.lang.String)
+Method getClusterName() : public throws (java.lang.String)
+Method getVersion() : public throws (java.lang.String)
+Method setAllAclFileVersion(java.lang.String) : public throws (void)
+Method setBrokerAddr(java.lang.String) : public throws (void)
+Method setBrokerName(java.lang.String) : public throws (void)
+Method setClusterName(java.lang.String) : public throws (void)
+Method setVersion(java.lang.String) : public throws (void)

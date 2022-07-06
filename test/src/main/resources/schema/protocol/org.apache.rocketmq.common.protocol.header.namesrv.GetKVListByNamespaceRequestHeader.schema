@@ -1,0 +1,4 @@
+Field namespace : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getNamespace() : public throws (java.lang.String)
+Method setNamespace(java.lang.String) : public throws (void)
