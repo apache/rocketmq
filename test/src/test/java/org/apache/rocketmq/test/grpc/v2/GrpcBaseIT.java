@@ -391,7 +391,7 @@ public class GrpcBaseIT extends BaseConf {
         int maxDeliveryAttempts = 2;
 
         SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
-        groupConfig.setRetryMaxTimes(maxDeliveryAttempts);
+        groupConfig.setRetryMaxTimes(maxDeliveryAttempts - 1);
         brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
         brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
         brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
