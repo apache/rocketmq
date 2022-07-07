@@ -311,7 +311,6 @@ public class GrpcBaseIT extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
-        int maxDeliveryAttempts = 16;
         int bodySize = 4 * 1024;
 
         // init consumer offset
