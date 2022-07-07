@@ -109,6 +109,10 @@ public class SchemaTools {
             return map;
         }
         for (Field field: fields) {
+            if (field.getName().startsWith("$")) {
+                //inner fields
+                continue;
+            }
             String key = String.format("Field %s", field.getName());
             boolean ignore = false;
             for (Class<?> tmpClass: ignoredFields.keySet()) {
