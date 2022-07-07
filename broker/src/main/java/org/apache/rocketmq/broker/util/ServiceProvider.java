@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.utils;
+package org.apache.rocketmq.broker.util;
 
 import java.nio.charset.StandardCharsets;
-
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -30,8 +28,8 @@ import java.util.List;
 
 public class ServiceProvider {
 
-    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
-
+    private final static Logger LOG = LoggerFactory
+        .getLogger(ServiceProvider.class);
     /**
      * A reference to the classloader that loaded this class. It's more efficient to compute it once and cache it here.
      */

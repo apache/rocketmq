@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,13 +26,12 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
+import org.apache.rocketmq.namesrv.route.ZoneRouteRPCHook;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
@@ -145,13 +143,7 @@ public class NamesrvController {
     }
 
     private void initialRpcHooks() {
-        List<RPCHook> rpcHooks = ServiceProvider.load(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
-        if (rpcHooks == null || rpcHooks.isEmpty()) {
-            return;
-        }
-        for (RPCHook rpcHook: rpcHooks) {
-            this.remotingServer.registerRPCHook(rpcHook);
-        }
+        this.remotingServer.registerRPCHook(new ZoneRouteRPCHook());
     }
     
     public void start() throws Exception {
