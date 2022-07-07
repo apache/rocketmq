@@ -118,7 +118,7 @@ public class ProxyConfig {
     private int transactionHeartbeatBatchNum = 100;
     private long transactionDataExpireScanPeriodMillis = Duration.ofSeconds(10).toMillis();
     private long transactionDataMaxWaitClearMillis = Duration.ofSeconds(30).toMillis();
-    private long defaultTransactionCheckImmunityTimeInSecond = 60;
+    private long defaultTransactionCheckImmunityTimeInSecond = 30;
 
     private long longPollingReserveTimeInMillis = 100;
 
