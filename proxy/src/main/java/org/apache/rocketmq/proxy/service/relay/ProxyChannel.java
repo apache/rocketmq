@@ -28,6 +28,7 @@ import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -79,6 +80,9 @@ public abstract class ProxyChannel extends SimpleChannel {
                     .setRemoteAddress(remoteAddress)
                     .setLocalAddress(localAddress);
                 RemotingCommand command = (RemotingCommand) msg;
+                if (command.getExtFields() == null) {
+                    command.setExtFields(new HashMap<>());
+                }
                 switch (command.getCode()) {
                     case RequestCode.CHECK_TRANSACTION_STATE: {
                         CheckTransactionStateRequestHeader header = (CheckTransactionStateRequestHeader) command.readCustomHeader();

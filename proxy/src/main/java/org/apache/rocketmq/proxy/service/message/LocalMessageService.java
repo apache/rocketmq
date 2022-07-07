@@ -112,12 +112,12 @@ public class LocalMessageService implements MessageService {
             RemotingCommand response = brokerController.getSendMessageProcessor().processRequest(simpleChannelHandlerContext, request);
             if (response != null) {
                 invocationContext.handle(response);
+                channel.eraseInvocationContext(request.getOpaque());
             }
         } catch (Exception e) {
             future.completeExceptionally(e);
-            log.error("Failed to process sendMessage command", e);
-        } finally {
             channel.eraseInvocationContext(request.getOpaque());
+            log.error("Failed to process sendMessage command", e);
         }
         return future.thenApply(r -> {
             SendResult sendResult = new SendResult();
@@ -192,6 +192,7 @@ public class LocalMessageService implements MessageService {
     @Override
     public CompletableFuture<PopResult> popMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
+        requestHeader.setBornTime(System.currentTimeMillis());
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createInvocationChannel(ctx);
@@ -202,12 +203,12 @@ public class LocalMessageService implements MessageService {
             RemotingCommand response = brokerController.getPopMessageProcessor().processRequest(simpleChannelHandlerContext, request);
             if (response != null) {
                 invocationContext.handle(response);
+                channel.eraseInvocationContext(request.getOpaque());
             }
         } catch (Exception e) {
             future.completeExceptionally(e);
-            log.error("Failed to process popMessage command", e);
-        } finally {
             channel.eraseInvocationContext(request.getOpaque());
+            log.error("Failed to process popMessage command", e);
         }
         return future.thenApply(r -> {
             PopStatus popStatus;
@@ -216,7 +217,12 @@ public class LocalMessageService implements MessageService {
                 case ResponseCode.SUCCESS:
                     popStatus = PopStatus.FOUND;
                     ByteBuffer byteBuffer = ByteBuffer.wrap(r.getBody());
-                    messageExtList = MessageDecoder.decodes(byteBuffer);
+                    messageExtList = MessageDecoder.decodesBatch(
+                        byteBuffer,
+                        true,
+                        false,
+                        true
+                    );
                     break;
                 case ResponseCode.POLLING_FULL:
                     popStatus = PopStatus.POLLING_FULL;
