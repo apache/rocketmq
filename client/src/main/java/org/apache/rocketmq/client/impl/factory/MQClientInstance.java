@@ -356,7 +356,7 @@ public class MQClientInstance {
         }
 
         for (String topic : topicList) {
-            this.updateTopicRouteInfoFromNameServer(topic);
+            this.updateTopicRouteInfoFromNameServer(topic, true);
         }
     }
 
@@ -506,8 +506,12 @@ public class MQClientInstance {
         }
     }
 
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isEmpty2FetchFromNameServer) {
+        return updateTopicRouteInfoFromNameServer(topic, false, isEmpty2FetchFromNameServer,null);
+    }
+
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
-        return updateTopicRouteInfoFromNameServer(topic, false, null);
+        return updateTopicRouteInfoFromNameServer(topic, false, true,null);
     }
 
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
@@ -603,11 +607,14 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, boolean isEmpty2FetchFromNameServer,
         DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    if(!isEmpty2FetchFromNameServer && this.topicRouteTable != null){
+                        return false;
+                    }
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
