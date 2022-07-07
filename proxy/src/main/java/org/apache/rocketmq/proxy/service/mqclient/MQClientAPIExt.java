@@ -65,6 +65,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHea
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -166,7 +167,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         request.setBody(msg.getBody());
 
         CompletableFuture<SendResult> future = new CompletableFuture<>();
@@ -196,7 +198,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeader);
+        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeaderV2);
 
         CompletableFuture<SendResult> future = new CompletableFuture<>();
         try {

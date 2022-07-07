@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -137,8 +138,8 @@ public class ProducerProcessor extends AbstractProcessor {
 
         requestHeader.setProducerGroup(producerGroup);
         requestHeader.setTopic(message.getTopic());
-        requestHeader.setDefaultTopic("");
-        requestHeader.setDefaultTopicQueueNums(0);
+        requestHeader.setDefaultTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC);
+        requestHeader.setDefaultTopicQueueNums(4);
         requestHeader.setQueueId(queueId);
         requestHeader.setSysFlag(sysFlag);
         requestHeader.setBornTimestamp(System.currentTimeMillis());
