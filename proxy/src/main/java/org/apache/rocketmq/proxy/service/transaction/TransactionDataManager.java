@@ -51,6 +51,9 @@ public class TransactionDataManager implements StartAndShutdown {
                 dataSet = new ConcurrentSkipListSet<>();
             }
             dataSet.add(transactionData);
+            if (dataSet.size() > ConfigurationManager.getProxyConfig().getTransactionDataMaxNum()) {
+                dataSet.pollFirst();
+            }
             return dataSet;
         });
     }
