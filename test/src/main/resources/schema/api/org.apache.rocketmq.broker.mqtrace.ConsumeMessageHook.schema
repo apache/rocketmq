@@ -1,3 +1,0 @@
-Method consumeMessageAfter(org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext) : public throws (void)
-Method consumeMessageBefore(org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext) : public throws (void)
-Method hookName() : public throws (java.lang.String)

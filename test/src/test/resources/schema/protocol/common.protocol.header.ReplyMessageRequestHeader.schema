@@ -1,0 +1,61 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field bornHost : private java.lang.String null
+Field bornTimestamp : private java.lang.Long null
+Field defaultTopic : private java.lang.String null
+Field defaultTopicQueueNums : private java.lang.Integer null
+Field flag : private java.lang.Integer null
+Field producerGroup : private java.lang.String null
+Field properties : private java.lang.String null
+Field queueId : private java.lang.Integer null
+Field reconsumeTimes : private java.lang.Integer null
+Field storeHost : private java.lang.String null
+Field storeTimestamp : private long 0
+Field sysFlag : private java.lang.Integer null
+Field topic : private java.lang.String null
+Field unitMode : private boolean false
+Method checkFields() : public throws (void)
+Method getBornHost() : public throws (java.lang.String)
+Method getBornTimestamp() : public throws (java.lang.Long)
+Method getDefaultTopic() : public throws (java.lang.String)
+Method getDefaultTopicQueueNums() : public throws (java.lang.Integer)
+Method getFlag() : public throws (java.lang.Integer)
+Method getProducerGroup() : public throws (java.lang.String)
+Method getProperties() : public throws (java.lang.String)
+Method getQueueId() : public throws (java.lang.Integer)
+Method getReconsumeTimes() : public throws (java.lang.Integer)
+Method getStoreHost() : public throws (java.lang.String)
+Method getStoreTimestamp() : public throws (long)
+Method getSysFlag() : public throws (java.lang.Integer)
+Method getTopic() : public throws (java.lang.String)
+Method isUnitMode() : public throws (boolean)
+Method setBornHost(java.lang.String) : public throws (void)
+Method setBornTimestamp(java.lang.Long) : public throws (void)
+Method setDefaultTopic(java.lang.String) : public throws (void)
+Method setDefaultTopicQueueNums(java.lang.Integer) : public throws (void)
+Method setFlag(java.lang.Integer) : public throws (void)
+Method setProducerGroup(java.lang.String) : public throws (void)
+Method setProperties(java.lang.String) : public throws (void)
+Method setQueueId(java.lang.Integer) : public throws (void)
+Method setReconsumeTimes(java.lang.Integer) : public throws (void)
+Method setStoreHost(java.lang.String) : public throws (void)
+Method setStoreTimestamp(long) : public throws (void)
+Method setSysFlag(java.lang.Integer) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)
+Method setUnitMode(boolean) : public throws (void)

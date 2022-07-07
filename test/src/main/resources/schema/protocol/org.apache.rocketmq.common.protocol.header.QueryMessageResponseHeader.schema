@@ -1,7 +1,0 @@
-Field indexLastUpdatePhyoffset : private java.lang.Long null
-Field indexLastUpdateTimestamp : private java.lang.Long null
-Method checkFields() : public throws (void)
-Method getIndexLastUpdatePhyoffset() : public throws (java.lang.Long)
-Method getIndexLastUpdateTimestamp() : public throws (java.lang.Long)
-Method setIndexLastUpdatePhyoffset(java.lang.Long) : public throws (void)
-Method setIndexLastUpdateTimestamp(java.lang.Long) : public throws (void)

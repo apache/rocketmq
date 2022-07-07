@@ -1,4 +1,0 @@
-Field isOrder : private boolean false
-Method checkFields() : public throws (void)
-Method isOrder() : public throws (boolean)
-Method setIsOrder(boolean) : public throws (void)

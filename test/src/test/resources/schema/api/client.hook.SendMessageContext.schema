@@ -1,0 +1,57 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field bornHost : private java.lang.String null
+Field brokerAddr : private java.lang.String null
+Field communicationMode : private org.apache.rocketmq.client.impl.CommunicationMode null
+Field exception : private java.lang.Exception null
+Field message : private org.apache.rocketmq.common.message.Message null
+Field mq : private org.apache.rocketmq.common.message.MessageQueue null
+Field mqTraceContext : private java.lang.Object null
+Field msgType : private org.apache.rocketmq.common.message.MessageType Normal_Msg
+Field namespace : private java.lang.String null
+Field producer : private org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl null
+Field producerGroup : private java.lang.String null
+Field props : private java.util.Map null
+Field sendResult : private org.apache.rocketmq.client.producer.SendResult null
+Method getBornHost() : public throws (java.lang.String)
+Method getBrokerAddr() : public throws (java.lang.String)
+Method getCommunicationMode() : public throws (org.apache.rocketmq.client.impl.CommunicationMode)
+Method getException() : public throws (java.lang.Exception)
+Method getMessage() : public throws (org.apache.rocketmq.common.message.Message)
+Method getMq() : public throws (org.apache.rocketmq.common.message.MessageQueue)
+Method getMqTraceContext() : public throws (java.lang.Object)
+Method getMsgType() : public throws (org.apache.rocketmq.common.message.MessageType)
+Method getNamespace() : public throws (java.lang.String)
+Method getProducer() : public throws (org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl)
+Method getProducerGroup() : public throws (java.lang.String)
+Method getProps() : public throws (java.util.Map)
+Method getSendResult() : public throws (org.apache.rocketmq.client.producer.SendResult)
+Method setBornHost(java.lang.String) : public throws (void)
+Method setBrokerAddr(java.lang.String) : public throws (void)
+Method setCommunicationMode(org.apache.rocketmq.client.impl.CommunicationMode) : public throws (void)
+Method setException(java.lang.Exception) : public throws (void)
+Method setMessage(org.apache.rocketmq.common.message.Message) : public throws (void)
+Method setMq(org.apache.rocketmq.common.message.MessageQueue) : public throws (void)
+Method setMqTraceContext(java.lang.Object) : public throws (void)
+Method setMsgType(org.apache.rocketmq.common.message.MessageType) : public throws (void)
+Method setNamespace(java.lang.String) : public throws (void)
+Method setProducer(org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl) : public throws (void)
+Method setProducerGroup(java.lang.String) : public throws (void)
+Method setProps(java.util.Map) : public throws (void)
+Method setSendResult(org.apache.rocketmq.client.producer.SendResult) : public throws (void)

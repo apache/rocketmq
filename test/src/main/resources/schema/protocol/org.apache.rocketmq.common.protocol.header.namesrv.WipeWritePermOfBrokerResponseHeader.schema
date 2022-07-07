@@ -1,4 +1,0 @@
-Field wipeTopicCount : private java.lang.Integer null
-Method checkFields() : public throws (void)
-Method getWipeTopicCount() : public throws (java.lang.Integer)
-Method setWipeTopicCount(java.lang.Integer) : public throws (void)

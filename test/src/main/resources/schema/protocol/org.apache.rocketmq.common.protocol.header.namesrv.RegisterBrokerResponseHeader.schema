@@ -1,7 +1,0 @@
-Field haServerAddr : private java.lang.String null
-Field masterAddr : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getHaServerAddr() : public throws (java.lang.String)
-Method getMasterAddr() : public throws (java.lang.String)
-Method setHaServerAddr(java.lang.String) : public throws (void)
-Method setMasterAddr(java.lang.String) : public throws (void)

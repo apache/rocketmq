@@ -1,5 +1,0 @@
-Field msgId : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getMsgId() : public throws (java.lang.String)
-Method setMsgId(java.lang.String) : public throws (void)
-Method toString() : public throws (java.lang.String)

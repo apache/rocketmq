@@ -1,8 +1,0 @@
-Field ackIndex : private int 2147483647
-Field delayLevelWhenNextConsume : private int 0
-Field messageQueue : private org.apache.rocketmq.common.message.MessageQueue null
-Method getAckIndex() : public throws (int)
-Method getDelayLevelWhenNextConsume() : public throws (int)
-Method getMessageQueue() : public throws (org.apache.rocketmq.common.message.MessageQueue)
-Method setAckIndex(int) : public throws (void)
-Method setDelayLevelWhenNextConsume(int) : public throws (void)

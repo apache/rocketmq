@@ -1,7 +1,0 @@
-Field groupName : private java.lang.String null
-Field removeOffset : private boolean false
-Method checkFields() : public throws (void)
-Method getGroupName() : public throws (java.lang.String)
-Method isRemoveOffset() : public throws (boolean)
-Method setGroupName(java.lang.String) : public throws (void)
-Method setRemoveOffset(boolean) : public throws (void)

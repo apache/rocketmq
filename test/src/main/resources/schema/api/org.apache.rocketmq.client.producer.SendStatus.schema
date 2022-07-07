@@ -1,4 +1,0 @@
-Field FLUSH_DISK_TIMEOUT : public int 1
-Field FLUSH_SLAVE_TIMEOUT : public int 2
-Field SEND_OK : public int 0
-Field SLAVE_NOT_AVAILABLE : public int 3

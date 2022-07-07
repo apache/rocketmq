@@ -1,7 +1,0 @@
-Field acceptStandardJsonOnly : private java.lang.Boolean null
-Field topic : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getAcceptStandardJsonOnly() : public throws (java.lang.Boolean)
-Method getTopic() : public throws (java.lang.String)
-Method setAcceptStandardJsonOnly(java.lang.Boolean) : public throws (void)
-Method setTopic(java.lang.String) : public throws (void)

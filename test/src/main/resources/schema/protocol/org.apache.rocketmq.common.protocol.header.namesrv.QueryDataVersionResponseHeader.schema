@@ -1,5 +1,0 @@
-Field changed : private java.lang.Boolean null
-Method checkFields() : public throws (void)
-Method getChanged() : public throws (java.lang.Boolean)
-Method setChanged(java.lang.Boolean) : public throws (void)
-Method toString() : public throws (java.lang.String)

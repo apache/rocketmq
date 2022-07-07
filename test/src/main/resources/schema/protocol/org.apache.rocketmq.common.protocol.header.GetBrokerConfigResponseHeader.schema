@@ -1,4 +1,0 @@
-Field version : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getVersion() : public throws (java.lang.String)
-Method setVersion(java.lang.String) : public throws (void)

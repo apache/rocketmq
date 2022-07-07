@@ -1,4 +1,0 @@
-Field cluster : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getCluster() : public throws (java.lang.String)
-Method setCluster(java.lang.String) : public throws (void)

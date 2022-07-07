@@ -1,4 +1,0 @@
-Field accessKey : private java.lang.String null
-Method checkFields() : public throws (void)
-Method getAccessKey() : public throws (java.lang.String)
-Method setAccessKey(java.lang.String) : public throws (void)

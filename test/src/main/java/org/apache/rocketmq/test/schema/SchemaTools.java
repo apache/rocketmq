@@ -1,8 +1,10 @@
 package org.apache.rocketmq.test.schema;
 
-import com.google.common.collect.Sets;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -11,106 +13,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
-import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
-import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
-import org.apache.rocketmq.client.consumer.listener.MessageListener;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.hook.ConsumeMessageContext;
-import org.apache.rocketmq.client.hook.EndTransactionHook;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.MessageQueueSelector;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.reflections.Reflections;
+
+import static org.apache.rocketmq.test.schema.SchemaDefiner.fieldClassNames;
+import static org.apache.rocketmq.test.schema.SchemaDefiner.ignoredFields;
 
 public class SchemaTools {
-    public static final String BASE_SCHEMA_PATH = "test/src/main/resources/schema";
-    public static final Map<Class<?>, Set<String>> ignoredFields = new HashMap<>();
-    //Use name as the key instead of X.class directly. X.class is not equal to field.getType().
-    public static final Set<String> fieldClassNames = new HashSet<>();
-    public static final List<Class<?>> apiClassList = new ArrayList<>();
-    public static final List<Class<?>> protocolClassList = new ArrayList<>();
-
-
-    public static void doLoad() {
-        {
-            ignoredFields.put(ClientConfig.class, Sets.newHashSet("namesrvAddr", "clientIP", "clientCallbackExecutorThreads"));
-            ignoredFields.put(DefaultLitePullConsumer.class, Sets.newHashSet("consumeTimestamp"));
-            ignoredFields.put(DefaultMQPushConsumer.class, Sets.newHashSet("consumeTimestamp"));
-            fieldClassNames.add(String.class.getName());
-            fieldClassNames.add(Long.class.getName());
-            fieldClassNames.add(Integer.class.getName());
-            fieldClassNames.add(Short.class.getName());
-            fieldClassNames.add(Byte.class.getName());
-            fieldClassNames.add(Double.class.getName());
-            fieldClassNames.add(Float.class.getName());
-            fieldClassNames.add(Boolean.class.getName());
-        }
-        {
-            //basic
-            apiClassList.add(DefaultMQPushConsumer.class);
-            apiClassList.add(DefaultMQProducer.class);
-            apiClassList.add(DefaultMQPullConsumer.class);
-            apiClassList.add(DefaultLitePullConsumer.class);
-            apiClassList.add(DefaultMQAdminExt.class);
-
-            //argument
-            apiClassList.add(Message.class);
-            apiClassList.add(MessageQueue.class);
-            apiClassList.add(SendCallback.class);
-            apiClassList.add(MessageQueueSelector.class);
-            //result
-            apiClassList.add(MessageExt.class);
-            apiClassList.add(ConsumeStatus.class);
-            apiClassList.add(SendResult.class);
-            apiClassList.add(SendStatus.class);
-            //listener or context
-            apiClassList.add(MessageListener.class);
-            apiClassList.add(MessageListenerConcurrently.class);
-            apiClassList.add(MessageListenerOrderly.class);
-            apiClassList.add(ConsumeConcurrentlyContext.class);
-            apiClassList.add(ConsumeOrderlyContext.class);
-            apiClassList.add(ConsumeMessageContext.class);
-            apiClassList.add(SendMessageContext.class);
-            //hook
-            apiClassList.add(RPCHook.class);
-            apiClassList.add(SendMessageHook.class);
-            apiClassList.add(ConsumeMessageHook.class);
-            apiClassList.add(EndTransactionHook.class);
-
-        }
-        {
-            protocolClassList.add(RequestCode.class);
-            Reflections reflections = new Reflections("org.apache.rocketmq");
-            for (Class<?> protocolClass: reflections.getSubTypesOf(CommandCustomHeader.class)) {
-                protocolClassList.add(protocolClass);
-            }
-        }
-
-    }
+    public static final String PATH_API = "api";
+    public static final String PATH_PROTOCOL = "protocol";
 
     public static String isPublicOrPrivate(int modifiers) {
         if (Modifier.isPublic(modifiers)) {
@@ -133,7 +46,7 @@ public class SchemaTools {
             && !Modifier.isAbstract(apiClass.getModifiers())
             && !apiClass.isEnum()) {
             Constructor<?> constructor = null;
-            for (Constructor<?> tmp: apiClass.getConstructors()) {
+            for (Constructor<?> tmp : apiClass.getConstructors()) {
                 if (constructor == null) {
                     constructor = tmp;
                 }
@@ -144,13 +57,29 @@ public class SchemaTools {
             assert constructor != null;
             constructor.setAccessible(true);
             final String msg = constructor.getName();
-            obj = constructor.newInstance(Arrays.stream(constructor.getParameterTypes()).map(x -> {
-                try {
-                    return x.newInstance();
-                } catch (Exception e) {
-                    throw new RuntimeException(msg, e);
-                }
-            }).toArray());
+            try {
+                obj = constructor.newInstance(Arrays.stream(constructor.getParameterTypes()).map(x -> {
+                    try {
+                        if (x.isEnum()) {
+                            return x.getEnumConstants()[0];
+                        } if(x == boolean.class) {
+                            return false;
+                        } else if(x == char.class) {
+                            return "";
+                        } else if (x.isPrimitive()) {
+                            return 0;
+                        } else {
+                            return x.newInstance();
+                        }
+                    } catch (InstantiationException instantiationException) {
+                        return x.cast(null);
+                    } catch (Exception e) {
+                        throw new RuntimeException(msg + " " + x.getName(), e);
+                    }
+                }).toArray());
+            } catch (Exception e) {
+                throw new RuntimeException(msg, e);
+            }
         }
         TreeMap<String, String> map = new TreeMap<>();
         if (apiClass.isEnum()) {
@@ -237,23 +166,65 @@ public class SchemaTools {
     }
 
 
-    public static void doGen(List<Class<?>> classList, String label) throws Exception {
+    public static Map<String, TreeMap<String, String>> generate(List<Class<?>> classList) throws Exception {
+        Map<String, TreeMap<String, String>> schemaMap = new HashMap<>();
         for (Class<?> apiClass : classList) {
-            TreeMap<String, String> map = buildSchemaOfFields(apiClass);
+            TreeMap<String, String> map = new TreeMap<>();
+            map.putAll(buildSchemaOfFields(apiClass));
             map.putAll(buildSchemaOfMethods(apiClass));
-            File file = new File(String.format("%s/%s/%s.schema", BASE_SCHEMA_PATH, label, apiClass.getName()));
+            schemaMap.put(apiClass.getName().replace("org.apache.rocketmq.", ""), map);
+        }
+        return schemaMap;
+    }
+
+    public static void write(Map<String, TreeMap<String, String>> schemaMap, String base, String label) throws Exception {
+        for (Map.Entry<String, TreeMap<String, String>> entry : schemaMap.entrySet()) {
+            TreeMap<String, String> map = entry.getValue();
+            File file = new File(String.format("%s/%s/%s.schema", base, label, entry.getKey()));
             FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write("");
-            for (Map.Entry<String, String> entry: map.entrySet()) {
-                fileWriter.append(String.format("%s : %s\n", entry.getKey(), entry.getValue()));
+            fileWriter.write("/*\n" +
+                " * Licensed to the Apache Software Foundation (ASF) under one or more\n" +
+                " * contributor license agreements.  See the NOTICE file distributed with\n" +
+                " * this work for additional information regarding copyright ownership.\n" +
+                " * The ASF licenses this file to You under the Apache License, Version 2.0\n" +
+                " * (the \"License\"); you may not use this file except in compliance with\n" +
+                " * the License.  You may obtain a copy of the License at\n" +
+                " *\n" +
+                " *     http://www.apache.org/licenses/LICENSE-2.0\n" +
+                " *\n" +
+                " * Unless required by applicable law or agreed to in writing, software\n" +
+                " * distributed under the License is distributed on an \"AS IS\" BASIS,\n" +
+                " * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n" +
+                " * See the License for the specific language governing permissions and\n" +
+                " * limitations under the License.\n" +
+                " */\n\n\n");
+            for (Map.Entry<String, String> kv: map.entrySet()) {
+                fileWriter.append(String.format("%s : %s\n", kv.getKey(), kv.getValue()));
             }
             fileWriter.close();
         }
     }
 
-    public static void doGen() throws Exception {
-        doLoad();
-        doGen(apiClassList, "api");
-        doGen(protocolClassList, "protocol");
+    public static Map<String, TreeMap<String, String>> load(String base, String label) throws Exception {
+        File dir = new File(String.format("%s/%s", base, label));
+        Map<String, TreeMap<String, String>> schemaMap = new TreeMap<>();
+        for (File file: dir.listFiles()) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            String line = null;
+            TreeMap<String, String> kvs = new TreeMap<>();
+            while ((line = br.readLine()) != null) {
+                if (line.contains("*")) {
+                    continue;
+                }
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+                String[] items = line.split(":");
+                kvs.put(items[0].trim(), items[1].trim());
+            }
+            br.close();
+            schemaMap.put(file.getName().replace(".schema", ""), kvs);
+        }
+        return schemaMap;
     }
 }
