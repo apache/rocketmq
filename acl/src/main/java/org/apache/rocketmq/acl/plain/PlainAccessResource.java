@@ -35,8 +35,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
-import org.apache.rocketmq.acl.common.AuthorizationHeader;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
+import org.apache.rocketmq.acl.common.AuthorizationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MixAll;
@@ -196,9 +196,7 @@ public class PlainAccessResource implements AccessResource {
             if (HeartbeatRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 HeartbeatRequest request = (HeartbeatRequest) messageV3;
                 if (request.hasGroup()) {
-                    Resource group = request.getGroup();
-                    String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                    accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                    accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
                 }
             } else if (SendMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 SendMessageRequest request = (SendMessageRequest) messageV3;
@@ -211,42 +209,32 @@ public class PlainAccessResource implements AccessResource {
                         throw new AclException("SendMessageRequest, messages' topic is not consistent", ResponseCode.MESSAGE_ILLEGAL);
                     }
                 }
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.PUB);
+                accessResource.addResourceAndPerm(topic, Permission.PUB);
             } else if (ReceiveMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ReceiveMessageRequest request = (ReceiveMessageRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getMessageQueue().getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addResourceAndPerm(request.getMessageQueue().getTopic(), Permission.SUB);
             } else if (AckMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 AckMessageRequest request = (AckMessageRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             } else if (ForwardMessageToDeadLetterQueueRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ForwardMessageToDeadLetterQueueRequest request = (ForwardMessageToDeadLetterQueueRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             } else if (EndTransactionRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 EndTransactionRequest request = (EndTransactionRequest) messageV3;
-                Resource topic = request.getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.PUB);
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.PUB);
             }
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
         }
         return accessResource;
+    }
+
+    private void addResourceAndPerm(Resource resource, byte permission) {
+        String resourceName = NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
+        addResourceAndPerm(resourceName, permission);
     }
 
     public static PlainAccessResource build(PlainAccessConfig plainAccessConfig, RemoteAddressStrategy remoteAddressStrategy) {
