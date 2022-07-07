@@ -53,9 +53,6 @@ public class SchemaTest {
         Map<String, Map<String, String>> changesByFile = new HashMap<>();
         schemaFromFile.forEach( (file, oldSchema) -> {
             Map<String, String> newSchema = schemaFromCode.get(file);
-            if (newSchema == null) {
-                return;
-            }
             Map<String, String> schemaChanges = new TreeMap<>();
             oldSchema.forEach( (k, v) -> {
                 if (!newSchema.containsKey(k)) {
@@ -71,7 +68,7 @@ public class SchemaTest {
                 }
             });
             if (!schemaChanges.isEmpty()) {
-                schemaFromFile.put(file, schemaChanges);
+                changesByFile.put(file, schemaChanges);
             }
         });
 
