@@ -395,6 +395,8 @@ public class StaticTopicIT extends BaseConf {
     }
 
 
+
+
     @Test
     public void testRemappingAndClear() throws Exception {
         String topic = "static" + MQRandomUtils.getRandomTopic();
