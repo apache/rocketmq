@@ -17,6 +17,8 @@
 package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -55,7 +57,7 @@ import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -244,22 +246,27 @@ public class CompactionLog {
         return offset + compactionLogMappedFileSize - offset % compactionLogMappedFileSize;
     }
 
+    boolean shouldRetainMsg(final MessageExt msgExt, final OffsetMap map) throws DigestException {
+        if (msgExt.getQueueOffset() > map.getLastOffset()) {
+            return true;
+        }
+
+        String key = msgExt.getKeys();
+        if (StringUtils.isNotBlank(key)) {
+            boolean keyNotExistOrOffsetBigger = msgExt.getQueueOffset() >= map.get(key);
+            boolean hasBody = ArrayUtils.isNotEmpty(msgExt.getBody());
+            return keyNotExistOrOffsetBigger && hasBody;
+        } else {
+            log.error("message has no keys");
+            return false;
+        }
+    }
+
     public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
         final OffsetMap offsetMap, final MappedFileQueue mappedFileQueue, final SparseConsumeQueue bcq)
         throws DigestException {
-        String key = msgExt.getKeys();
-        if (msgExt.getQueueOffset() < offsetMap.get(key)) {
-            return;   //compact
-        } else if (msgExt.getQueueOffset() == offsetMap.get(key)) {
-            if (msgExt.getBody() != null && msgExt.getBody().length > 0) {
-                //filter null value
-                asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
-            }
-        } else {
-            // will not happen
-            log.error("{} {} buffer queueOffset({}) > offsetMap({})",
-                msgExt.getTopic(), msgExt.getQueueId(), msgExt.getQueueOffset(), offsetMap.get(key));
-            return;
+        if (shouldRetainMsg(msgExt, offsetMap)) {
+            asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
         }
     }
 
@@ -472,19 +479,24 @@ public class CompactionLog {
     List<MappedFile> getCompactionFile() {
         List<MappedFile> mappedFileList = Lists.newArrayList(currentMappedFileQueue.getMappedFiles());
         if (mappedFileList.size() < 2) {
-            return null;
+            return Collections.emptyList();
         }
 
-        mappedFileList.remove(mappedFileList.size() - 1);   //exclude the writing file
-        mappedFileList.sort(Comparator.comparing(MappedFile::getFileFromOffset));
-        MappedFile mappedFileLast = mappedFileList.get(mappedFileList.size() - 1);
-        long maxQueueOffset = currentBcq.getMaxMsgOffsetFromFile(mappedFileLast.getFile().getName());
-        if (maxQueueOffset <= positionMgr.getOffset(topic, queueId)) {
-            // no new file need to compaction
-            return null;
+        //exclude the last writing file
+        for (int i = mappedFileList.size() - 2; i >= 0; i--) {
+            MappedFile mf = mappedFileList.get(i);
+            long maxQueueOffset = currentBcq.getMaxMsgOffsetFromFile(mf.getFile().getName());
+            if (maxQueueOffset <= positionMgr.getOffset(topic, queueId)) {
+                if (i < mappedFileList.size() - 2) {
+                    // next to end
+                    return mappedFileList.subList(i + 1, mappedFileList.size() - 2);
+                } else {
+                    return Collections.emptyList();
+                }
+            }
         }
 
-        return mappedFileList;
+        return Collections.emptyList();
     }
 
     void doCompaction() {
@@ -495,8 +507,7 @@ public class CompactionLog {
 
         try {
             List<MappedFile> mappedFileList = getCompactionFile();
-            if (mappedFileList != null)
-            {
+            if (CollectionUtils.isNotEmpty(mappedFileList)) {
                 long startTime = System.nanoTime();
                 OffsetMap offsetMap = getOffsetMap(mappedFileList);
                 compaction(mappedFileList, offsetMap);

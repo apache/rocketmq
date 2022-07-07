@@ -61,7 +61,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
@@ -208,6 +207,7 @@ public class CompactionLogTest {
         doNothing().when(clog).putEndMessage(any(MappedFileQueue.class));
         doCallRealMethod().when(clog).checkAndPutMessage(any(SelectMappedBufferResult.class), any(MessageExt.class), any(
             CompactionLog.OffsetMap.class), any(MappedFileQueue.class), any(SparseConsumeQueue.class));
+        doCallRealMethod().when(clog).shouldRetainMsg(any(MessageExt.class), any(CompactionLog.OffsetMap.class));
         List<MessageExt> compactResult = Lists.newArrayList();
         when(clog.asyncPutMessage(any(SelectMappedBufferResult.class), any(MessageExt.class),
             any(MappedFileQueue.class), any(SparseConsumeQueue.class)))

@@ -32,6 +32,7 @@ public class OffsetMapTest {
         offsetMap.put("abcde", 9);
         assertEquals(offsetMap.get("abcde"), 9);
         assertEquals(offsetMap.get("cde"), 4);
+        assertEquals(offsetMap.get("not_exist"), -1);
         assertEquals(offsetMap.getLastOffset(), 9);
     }
 
