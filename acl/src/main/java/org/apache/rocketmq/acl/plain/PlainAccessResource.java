@@ -24,9 +24,13 @@ import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.SubscriptionEntry;
+import apache.rocketmq.v2.TelemetryCommand;
 import com.google.protobuf.GeneratedMessageV3;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -225,6 +229,23 @@ public class PlainAccessResource implements AccessResource {
             } else if (EndTransactionRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 EndTransactionRequest request = (EndTransactionRequest) messageV3;
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.PUB);
+            } else if (TelemetryCommand.getDescriptor().getFullName().equals(rpcFullName)) {
+                TelemetryCommand command = (TelemetryCommand) messageV3;
+                if (command.getCommandCase() == TelemetryCommand.CommandCase.SETTINGS) {
+                    if (command.getSettings().hasPublishing()) {
+                        List<Resource> topicList = command.getSettings().getPublishing().getTopicsList();
+                        for (Resource topic : topicList) {
+                            accessResource.addResourceAndPerm(topic, Permission.PUB);
+                        }
+                    }
+                    if (command.getSettings().hasSubscription()) {
+                        Subscription subscription = command.getSettings().getSubscription();
+                        accessResource.addResourceAndPerm(subscription.getGroup(), Permission.SUB);
+                        for (SubscriptionEntry entry : subscription.getSubscriptionsList()) {
+                            accessResource.addResourceAndPerm(entry.getTopic(), Permission.SUB);
+                        }
+                    }
+                }
             }
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
