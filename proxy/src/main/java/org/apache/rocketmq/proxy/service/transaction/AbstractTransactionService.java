@@ -17,10 +17,8 @@
 
 package org.apache.rocketmq.proxy.service.transaction;
 
-import java.time.Duration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
@@ -42,11 +40,11 @@ public abstract class AbstractTransactionService implements TransactionService, 
         if (StringUtils.isBlank(brokerName)) {
             return null;
         }
-        long checkImmunityTime = parseCheckImmunityTime(message);
         TransactionData transactionData = new TransactionData(
             brokerName,
             tranStateTableOffset, commitLogOffset, transactionId,
-            System.currentTimeMillis(), checkImmunityTime);
+            System.currentTimeMillis(),
+            ConfigurationManager.getProxyConfig().getTransactionDataExpireMillis());
 
         this.transactionDataManager.addTransactionData(
             producerGroup,
@@ -77,18 +75,6 @@ public abstract class AbstractTransactionService implements TransactionService, 
     @Override
     public void onSendCheckTransactionStateFailed(ProxyContext context, String producerGroup, TransactionData transactionData) {
         this.transactionDataManager.removeTransactionData(producerGroup, transactionData.getTransactionId(), transactionData);
-    }
-
-    protected long parseCheckImmunityTime(Message message) {
-        long checkImmunityTime = ConfigurationManager.getProxyConfig().getDefaultTransactionCheckImmunityTimeInSecond();
-        String checkImmunityTimeStr = message.getProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
-        if (StringUtils.isNotBlank(checkImmunityTimeStr)) {
-            try {
-                checkImmunityTime = Long.parseLong(checkImmunityTimeStr);
-            } catch (Exception ignored) {
-            }
-        }
-        return Duration.ofSeconds(checkImmunityTime).toMillis();
     }
 
     protected abstract String getBrokerNameByAddr(String brokerAddr);

@@ -26,7 +26,6 @@ import apache.rocketmq.v2.SendResultEntry;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
@@ -226,15 +225,10 @@ public class SendMessageActivity extends AbstractMessingActivity {
         if (messageType.equals(MessageType.TRANSACTION)) {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
-            Duration transactionResolveDelay;
-            if (!message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
-                transactionResolveDelay = Durations.fromSeconds(ConfigurationManager.getProxyConfig().getDefaultTransactionCheckImmunityTimeInSecond());
-            } else {
-                transactionResolveDelay = message.getSystemProperties().getOrphanedTransactionRecoveryDuration();
+            if (message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
+                MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,
+                    String.valueOf(Durations.toSeconds(message.getSystemProperties().getOrphanedTransactionRecoveryDuration())));
             }
-
-            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,
-                String.valueOf(Durations.toSeconds(transactionResolveDelay)));
         }
 
         // set delay level or deliver timestamp

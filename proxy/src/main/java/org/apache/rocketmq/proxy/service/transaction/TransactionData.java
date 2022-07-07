@@ -27,16 +27,16 @@ public class TransactionData implements Comparable<TransactionData> {
     private final long commitLogOffset;
     private final String transactionId;
     private final long checkTimestamp;
-    private final long checkImmunityTime;
+    private final long expireMs;
 
     public TransactionData(String brokerName, long tranStateTableOffset, long commitLogOffset, String transactionId,
-        long checkTimestamp, long checkImmunityTime) {
+        long checkTimestamp, long expireMs) {
         this.brokerName = brokerName;
         this.tranStateTableOffset = tranStateTableOffset;
         this.commitLogOffset = commitLogOffset;
         this.transactionId = transactionId;
         this.checkTimestamp = checkTimestamp;
-        this.checkImmunityTime = checkImmunityTime;
+        this.expireMs = expireMs;
     }
 
     public String getBrokerName() {
@@ -59,12 +59,12 @@ public class TransactionData implements Comparable<TransactionData> {
         return checkTimestamp;
     }
 
-    public long getCheckImmunityTime() {
-        return checkImmunityTime;
+    public long getExpireMs() {
+        return expireMs;
     }
 
     public long getExpireTime() {
-        return checkTimestamp + checkImmunityTime;
+        return checkTimestamp + expireMs;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class TransactionData implements Comparable<TransactionData> {
             .add("commitLogOffset", commitLogOffset)
             .add("transactionId", transactionId)
             .add("checkTimestamp", checkTimestamp)
-            .add("checkImmunityTime", checkImmunityTime)
+            .add("expireMs", expireMs)
             .toString();
     }
 }

@@ -118,7 +118,8 @@ public class ProxyConfig {
     private int transactionHeartbeatBatchNum = 100;
     private long transactionDataExpireScanPeriodMillis = Duration.ofSeconds(10).toMillis();
     private long transactionDataMaxWaitClearMillis = Duration.ofSeconds(30).toMillis();
-    private long defaultTransactionCheckImmunityTimeInSecond = 30;
+    private long transactionDataExpireMillis = Duration.ofSeconds(30).toMillis();
+    private int transactionDataMaxNum = 15;
 
     private long longPollingReserveTimeInMillis = 100;
 
@@ -601,12 +602,20 @@ public class ProxyConfig {
         this.transactionDataMaxWaitClearMillis = transactionDataMaxWaitClearMillis;
     }
 
-    public long getDefaultTransactionCheckImmunityTimeInSecond() {
-        return defaultTransactionCheckImmunityTimeInSecond;
+    public long getTransactionDataExpireMillis() {
+        return transactionDataExpireMillis;
     }
 
-    public void setDefaultTransactionCheckImmunityTimeInSecond(long defaultTransactionCheckImmunityTimeInSecond) {
-        this.defaultTransactionCheckImmunityTimeInSecond = defaultTransactionCheckImmunityTimeInSecond;
+    public void setTransactionDataExpireMillis(long transactionDataExpireMillis) {
+        this.transactionDataExpireMillis = transactionDataExpireMillis;
+    }
+
+    public int getTransactionDataMaxNum() {
+        return transactionDataMaxNum;
+    }
+
+    public void setTransactionDataMaxNum(int transactionDataMaxNum) {
+        this.transactionDataMaxNum = transactionDataMaxNum;
     }
 
     public long getLongPollingReserveTimeInMillis() {
