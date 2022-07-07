@@ -3,7 +3,6 @@ package org.apache.rocketmq.test.schema;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.Assert;
 import org.junit.Test;
 
