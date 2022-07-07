@@ -17,8 +17,12 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import apache.rocketmq.v2.Address;
+import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.CustomizedBackoff;
+import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.ExponentialBackoff;
+import apache.rocketmq.v2.Metric;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
@@ -37,6 +41,9 @@ import org.apache.rocketmq.common.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.MetricCollectorMode;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class GrpcClientSettingsManager {
@@ -81,7 +88,7 @@ public class GrpcClientSettingsManager {
             settings = mergeSubscriptionData(ctx, settings,
                 GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
         }
-        return settings;
+        return mergeMetric(settings);
     }
 
     private Settings mergeSubscriptionData(ProxyContext ctx, Settings settings, String consumerGroup) {
@@ -91,6 +98,35 @@ public class GrpcClientSettingsManager {
         }
 
         return mergeSubscriptionData(settings, config);
+    }
+
+    private Settings mergeMetric(Settings settings) {
+        // Construct metric according to the proxy config
+        final ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        final MetricCollectorMode metricCollectorMode =
+            MetricCollectorMode.getEnumByOrdinal(proxyConfig.getMetricCollectorMode());
+        final String metricCollectorAddress = proxyConfig.getMetricCollectorAddress();
+        final Metric.Builder metricBuilder = Metric.newBuilder();
+        switch (metricCollectorMode) {
+            case ON:
+                final String[] split = metricCollectorAddress.split(":");
+                final String host = split[0];
+                final int port = Integer.parseInt(split[1]);
+                Address address = Address.newBuilder().setHost(host).setPort(port).build();
+                final Endpoints endpoints = Endpoints.newBuilder().setScheme(AddressScheme.IPv4)
+                    .addAddresses(address).build();
+                metricBuilder.setOn(true).setEndpoints(endpoints);
+                break;
+            case PROXY:
+                metricBuilder.setOn(true).setEndpoints(settings.getAccessPoint());
+                break;
+            case OFF:
+            default:
+                metricBuilder.setOn(false);
+                break;
+        }
+        Metric metric = metricBuilder.build();
+        return settings.toBuilder().setMetric(metric).build();
     }
 
     protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig config) {
