@@ -476,10 +476,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 int low = 0;
                 int high = result.getSize() - ConsumeQueue.CQ_STORE_UNIT_SIZE;
                 while (true) {
-                    int mid = (low + high + ConsumeQueue.CQ_STORE_UNIT_SIZE - 1) / 2 / ConsumeQueue.CQ_STORE_UNIT_SIZE * ConsumeQueue.CQ_STORE_UNIT_SIZE;
-                    if (mid >= high) {
+                    if (high - low <= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                         break;
                     }
+                    int mid = (low + high) / 2 / ConsumeQueue.CQ_STORE_UNIT_SIZE * ConsumeQueue.CQ_STORE_UNIT_SIZE;
                     buffer.position(mid);
                     commitLogOffset = buffer.getLong();
                     if (commitLogOffset > minCommitLogOffset) {
