@@ -19,6 +19,10 @@ package org.apache.rocketmq.tools.command;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -93,9 +97,6 @@ import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
@@ -258,7 +259,12 @@ public class MQAdminStartup {
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+
+        //avoid the exception
+        if (rocketmqHome != null
+            && Files.exists(Paths.get(rocketmqHome + "/conf/logback_tools.xml"))) {
+            configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+        }
     }
 
     private static void printHelp() {

@@ -421,6 +421,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         for (String currentTopic : topics) {
             TopicRouteData currentRoute = this.examineTopicRouteInfo(currentTopic);
+            if (currentRoute.getTopicQueueMappingByBroker() == null
+                || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
+                //normal topic
+                for (Map.Entry<MessageQueue, OffsetWrapper> entry: result.getOffsetTable().entrySet()) {
+                    if (entry.getKey().getTopic().equals(currentTopic)) {
+                        staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
             Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(currentTopic, currentRoute, defaultMQAdminExt);
             ConsumeStats consumeStats = MQAdminUtils.convertPhysicalConsumeStats(brokerConfigMap, result);
             staticResult.getOffsetTable().putAll(consumeStats.getOffsetTable());
