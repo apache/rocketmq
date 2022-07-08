@@ -50,6 +50,8 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.client.log.ClientLogger.CLIENT_LOG_USESLF4J;
+
 public class BrokerContainerStartup {
     private static final String BROKER_CONTAINER_CONFIG_OPTION = "c";
     private static final String BROKER_CONFIG_OPTION = "b";
@@ -64,6 +66,7 @@ public class BrokerContainerStartup {
     public static JoranConfigurator configurator = new JoranConfigurator();
 
     public static void main(String[] args) {
+        System.setProperty(CLIENT_LOG_USESLF4J, "true");
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
         createAndStartBrokers(brokerContainer);
     }

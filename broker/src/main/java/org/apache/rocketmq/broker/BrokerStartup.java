@@ -46,6 +46,7 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.rocketmq.client.log.ClientLogger.CLIENT_LOG_USESLF4J;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class BrokerStartup {
@@ -56,6 +57,7 @@ public class BrokerStartup {
     public static SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
 
     public static void main(String[] args) {
+        System.setProperty(CLIENT_LOG_USESLF4J, "true");
         start(createBrokerController(args));
     }
 
