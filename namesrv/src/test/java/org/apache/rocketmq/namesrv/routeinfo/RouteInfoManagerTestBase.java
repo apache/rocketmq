@@ -149,6 +149,7 @@ public class RouteInfoManagerTestBase {
                 brokerName,
                 brokerId,
                 haServerAddr,
+                null,
                 topicConfigSerializeWrapper,
                 filterServerAddr,
                 channel);

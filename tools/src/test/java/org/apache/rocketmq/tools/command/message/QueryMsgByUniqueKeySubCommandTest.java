@@ -89,7 +89,6 @@ public class QueryMsgByUniqueKeySubCommandTest {
         field.setAccessible(true);
         field.set(mqClientInstance, mQAdminImpl);
 
-
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
@@ -97,7 +96,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
         result.setConsumeResult(CMResult.CR_SUCCESS);
         result.setRemark("customRemark_122333444");
-        when(mQClientAPIImpl.consumeMessageDirectly(anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(result);
+        when(mQClientAPIImpl.consumeMessageDirectly(anyString(), anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(result);
 
         MessageExt retMsgExt = new MessageExt();
         retMsgExt.setMsgId("0A3A54F7BF7D18B4AAC28A3FA2CF0000");
@@ -135,9 +134,8 @@ public class QueryMsgByUniqueKeySubCommandTest {
         groupList.setGroupList(groupSets);
         when(mQClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
 
-
         ConsumeStats consumeStats = new ConsumeStats();
-        consumeStats.setConsumeTps(100*10000);
+        consumeStats.setConsumeTps(100 * 10000);
         HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
         MessageQueue messageQueue = new MessageQueue();
         messageQueue.setBrokerName("messageQueue BrokerName testing");
@@ -149,7 +147,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         offsetWrapper.setLastTimestamp(System.currentTimeMillis());
         offsetTable.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(offsetTable);
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String)isNull(), anyLong())).thenReturn(consumeStats);
+        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String) isNull(), anyLong())).thenReturn(consumeStats);
 
         ClusterInfo clusterInfo = new ClusterInfo();
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
@@ -185,7 +183,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[]{"-t myTopicTest", "-i msgId"};
+        String[] args = new String[] {"-t myTopicTest", "-i msgId"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
 
@@ -208,11 +206,9 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[]{"-t myTopicTest", "-i 7F000001000004D20000000000000066"};
+        String[] args = new String[] {"-t myTopicTest", "-i 7F000001000004D20000000000000066"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
-
-
 
     }
 
@@ -221,7 +217,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        String[] args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
 
@@ -241,7 +237,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
 
-        args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
         commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
 

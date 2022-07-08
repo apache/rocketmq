@@ -25,8 +25,6 @@ import org.junit.Test;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
 
-
-
     @Test
     public void testFallBehindCQ() throws Exception {
         String base =  createBaseDir();

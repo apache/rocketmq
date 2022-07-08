@@ -23,14 +23,18 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -244,7 +248,7 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
 
             assertThat(method).isNotNull();
@@ -287,8 +291,8 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-            Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class, boolean.class);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
 
             assertThat(method).isNotNull();
 
@@ -301,11 +305,11 @@ public class ConsumeQueueTest {
 
             assertThat(cq).isNotNull();
 
-            Object dispatchResult = method.invoke(cq,  dispatchRequest, true);
+            Object dispatchResult = method.invoke(cq,  dispatchRequest);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(lmqCq1).isNotNull();
 
@@ -335,11 +339,11 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(cq).isNotNull();
 
@@ -385,46 +389,40 @@ public class ConsumeQueueTest {
                 assertThat(Boolean.FALSE).isTrue();
             }
 
-            ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = master.getConsumeQueueTable().get(topic).get(queueId);
 
             assertThat(cq).isNotNull();
 
-            long index = 0;
+            ReferredIterator<CqUnit> bufferResult = cq.iterateFrom(0);
 
-            while (index < cq.getMaxOffsetInQueue()) {
-                SelectMappedBufferResult bufferResult = cq.getIndexBuffer(index);
+            assertThat(bufferResult).isNotNull();
 
-                assertThat(bufferResult).isNotNull();
+            Assert.assertTrue(bufferResult.hasNext());
 
-                ByteBuffer buffer = bufferResult.getByteBuffer();
+            try {
+                while (bufferResult.hasNext()) {
+                    CqUnit cqUnit = bufferResult.next();
+                    Assert.assertNotNull(cqUnit);
+                    long phyOffset = cqUnit.getPos();
+                    int size = cqUnit.getSize();
+                    long tagsCode = cqUnit.getTagsCode();
 
-                assertThat(buffer).isNotNull();
-                try {
-                    ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                    for (int i = 0; i < bufferResult.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                        long phyOffset = buffer.getLong();
-                        int size = buffer.getInt();
-                        long tagsCode = buffer.getLong();
+                    assertThat(phyOffset).isGreaterThanOrEqualTo(0);
+                    assertThat(size).isGreaterThan(0);
+                    assertThat(tagsCode).isGreaterThan(0);
 
-                        assertThat(phyOffset).isGreaterThanOrEqualTo(0);
-                        assertThat(size).isGreaterThan(0);
-                        assertThat(tagsCode).isLessThan(0);
-
-                        boolean ret = cq.getExt(tagsCode, cqExtUnit);
-
-                        assertThat(ret).isTrue();
-                        assertThat(cqExtUnit).isNotNull();
-                        assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
-                        assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
-                        assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
-                    }
-
-                } finally {
-                    bufferResult.release();
+                    ConsumeQueueExt.CqExtUnit cqExtUnit = cqUnit.getCqExtUnit();
+                    assertThat(cqExtUnit).isNotNull();
+                    assertThat(tagsCode).isEqualTo(cqExtUnit.getTagsCode());
+                    assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
+                    assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
+                    assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
                 }
 
-                index += cqFileSize / ConsumeQueue.CQ_STORE_UNIT_SIZE;
+            } finally {
+                bufferResult.release();
             }
+
         } finally {
             master.shutdown();
             master.destroy();

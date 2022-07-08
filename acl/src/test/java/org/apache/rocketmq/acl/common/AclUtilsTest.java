@@ -311,4 +311,25 @@ public class AclUtilsTest {
         Assert.assertNull(incompleteContRPCHook);
     }
 
+    @Test
+    public void testCopyAndMoveFile() {
+        String path = "src/test/resources/conf/plain_acl.yml";
+        String backupPath = "src/test/resources/conf/plain_acl.yml_backup";
+        Map<String, Object> aclYamlData = AclUtils.getYamlDataObject(path, Map.class);
+
+        AclUtils.copyFile(path, backupPath);
+        Assert.assertEquals(aclYamlData, AclUtils.getYamlDataObject(backupPath, Map.class));
+
+        Map<String, Object> aclYamlMap = new HashMap<String, Object>();
+        List<String> globalWhiteRemoteAddrs = new ArrayList<String>();
+        globalWhiteRemoteAddrs.add("10.10.103.*");
+        globalWhiteRemoteAddrs.add("192.168.0.*");
+        aclYamlMap.put("globalWhiteRemoteAddrs", globalWhiteRemoteAddrs);
+        AclUtils.writeDataObject(path, aclYamlMap);
+        Assert.assertNotEquals(aclYamlData, AclUtils.getYamlDataObject(path, Map.class));
+
+        AclUtils.moveFile(backupPath, path);
+        Assert.assertEquals(aclYamlData, AclUtils.getYamlDataObject(path, Map.class));
+    }
+
 }

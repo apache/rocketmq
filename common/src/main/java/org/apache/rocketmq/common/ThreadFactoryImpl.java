@@ -34,6 +34,19 @@ public class ThreadFactoryImpl implements ThreadFactory {
         this.daemon = daemon;
     }
 
+    public ThreadFactoryImpl(final String threadNamePrefix, BrokerIdentity brokerIdentity) {
+        this(threadNamePrefix, false, brokerIdentity);
+    }
+
+    public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon, BrokerIdentity brokerIdentity) {
+        this.daemon = daemon;
+        if (brokerIdentity != null && brokerIdentity.isInBrokerContainer()) {
+            this.threadNamePrefix = brokerIdentity.getLoggerIdentifier() + threadNamePrefix;
+        } else {
+            this.threadNamePrefix = threadNamePrefix;
+        }
+    }
+
     @Override
     public Thread newThread(Runnable r) {
         Thread thread = new Thread(r, threadNamePrefix + this.threadIndex.incrementAndGet());

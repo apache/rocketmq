@@ -19,23 +19,28 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
+
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MultiDispatchTest {
 
-    private CommitLog commitLog;
-    private MultiDispatch multiDispatch;
+    private ConsumeQueue consumeQueue;
+
+    private DefaultMessageStore messageStore;
 
     @Before
     public void init() throws Exception {
@@ -50,10 +55,11 @@ public class MultiDispatchTest {
 
         messageStoreConfig.setEnableLmq(true);
         messageStoreConfig.setEnableMultiDispatch(true);
+        BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
-        DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
-        this.commitLog = new CommitLog(messageStore);
-        this.multiDispatch = new MultiDispatch(messageStore, commitLog);
+        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig);
+        consumeQueue = new ConsumeQueue("xxx", 0,
+            getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
     }
 
     @After
@@ -65,33 +71,34 @@ public class MultiDispatchTest {
     public void queueKey() {
         MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
         when(messageExtBrokerInner.getQueueId()).thenReturn(2);
-        String ret = multiDispatch.queueKey("%LMQ%lmq123", messageExtBrokerInner);
+        String ret = consumeQueue.queueKey("%LMQ%lmq123", messageExtBrokerInner);
         assertEquals(ret, "%LMQ%lmq123-0");
     }
 
     @Test
     public void wrapMultiDispatch() {
-        MessageExtBrokerInner message = new MessageExtBrokerInner();
-        message.setTopic("test");
-        message.setBody("aaa".getBytes(StandardCharsets.UTF_8));
-        message.setBornHost(new InetSocketAddress("127.0.0.1", 54270));
-        message.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
-        message.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
-
-        multiDispatch.wrapMultiDispatch(message);
-        assertTrue(commitLog.getLmqTopicQueueTable().size() == 2);
-        assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%123-0") == 0L);
-        assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%456-0") == 0L);
+        MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
+        messageStore.assignOffset( messageExtBrokerInner, (short) 1);
+        assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");
     }
 
-    @Test
-    public void updateMultiQueueOffset() {
-        MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
-        when(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)).thenReturn("%LMQ%123,%LMQ%456");
-        when(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)).thenReturn("0,1");
-        multiDispatch.updateMultiQueueOffset(messageExtBrokerInner);
-        assertTrue(commitLog.getLmqTopicQueueTable().size() == 2);
-        assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%123-0") == 1L);
-        assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%456-0") == 2L);
+    private MessageExtBrokerInner buildMessageMultiQueue() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("test");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody("aaa".getBytes(Charset.forName("UTF-8")));
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(0);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(new InetSocketAddress("127.0.0.1", 54270));
+        msg.setBornHost(new InetSocketAddress("127.0.0.1", 10911));
+        for (int i = 0; i < 1; i++) {
+            msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+        }
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+        return msg;
     }
 }

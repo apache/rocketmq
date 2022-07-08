@@ -34,9 +34,15 @@
 ### 5. 运维管理
 - [集群部署(Operation)](operation.md)：介绍单Master模式、多Master模式、多Master多slave模式等RocketMQ集群各种形式的部署方法以及运维工具mqadmin的使用方式。
 
+### 6. RocketMQ 5.0 新特性
+- [POP消费](https://github.com/apache/rocketmq/wiki/%5BRIP-19%5D-Server-side-rebalance,--lightweight-consumer-client-support)
+- [StaticTopic](RocketMQ_Static_Topic_Logic_Queue_设计.md)
+- [BatchConsumeQueue](https://github.com/apache/rocketmq/wiki/RIP-26-Improve-Batch-Message-Processing-Throughput)
+- [BrokerContainer](BrokerContainer.md)
+- [SlaveActingMaster模式](SlaveActingMasterMode.md)
+- [Quorum Write和自动降级](QuorumACK.md)
 
-
-### 6. API Reference（待补充）
+### 7. API Reference（待补充）
 
 - [DefaultMQProducer API Reference](client/java/API_Reference_DefaultMQProducer.md)
 

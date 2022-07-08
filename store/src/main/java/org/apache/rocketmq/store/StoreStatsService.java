@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -80,6 +81,13 @@ public class StoreStatsService extends ServiceThread {
 
     private ReentrantLock samplingLock = new ReentrantLock();
     private long lastPrintTimestamp = System.currentTimeMillis();
+
+    private BrokerIdentity brokerIdentity;
+
+    public StoreStatsService(BrokerIdentity brokerIdentity) {
+        this();
+        this.brokerIdentity = brokerIdentity;
+    }
 
     public StoreStatsService() {
         PUT_MESSAGE_ENTIRE_TIME_BUCKETS.put(1,20);  //0-20
@@ -537,6 +545,9 @@ public class StoreStatsService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (this.brokerIdentity != null && this.brokerIdentity.isInBrokerContainer()) {
+            return brokerIdentity.getLoggerIdentifier() + StoreStatsService.class.getSimpleName();
+        }
         return StoreStatsService.class.getSimpleName();
     }
 

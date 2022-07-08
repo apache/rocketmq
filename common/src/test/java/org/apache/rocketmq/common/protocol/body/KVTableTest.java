@@ -18,7 +18,6 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.HashMap;
