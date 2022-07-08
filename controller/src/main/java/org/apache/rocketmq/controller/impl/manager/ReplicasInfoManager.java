@@ -168,7 +168,7 @@ public class ReplicasInfoManager {
 
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
-                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) ->
+                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, candidate ->
                     !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
@@ -177,7 +177,7 @@ public class ReplicasInfoManager {
 
             // Try elect a master in lagging replicas if enableElectUncleanMaster = true
             if (controllerConfig.isEnableElectUncleanMaster()) {
-                boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), (candidate) ->
+                boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), candidate ->
                     !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
@@ -227,14 +227,15 @@ public class ReplicasInfoManager {
             final BrokerMemberGroup group = new BrokerMemberGroup(brokerInfo.getClusterName(), brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
             final HashMap<Long, String> memberGroup = new HashMap<>();
-            brokerIdTable.forEach((addr, id)->memberGroup.put(id, addr));
+            brokerIdTable.forEach((addr, id) -> memberGroup.put(id, addr));
             group.setBrokerAddrs(memberGroup);
             return group;
         }
         return null;
     }
 
-    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request) {
+    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
+        final RegisterBrokerToControllerRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
         final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());

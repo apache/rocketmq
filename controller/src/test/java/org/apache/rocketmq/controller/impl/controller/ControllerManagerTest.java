@@ -127,7 +127,7 @@ public class ControllerManagerTest {
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
+                return (RegisterBrokerToControllerResponseHeader) response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
@@ -175,7 +175,7 @@ public class ControllerManagerTest {
         final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader("broker1");
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_REPLICA_INFO, requestHeader);
         final RemotingCommand response = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
-        final GetReplicaInfoResponseHeader responseHeader = response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
+        final GetReplicaInfoResponseHeader responseHeader = (GetReplicaInfoResponseHeader) response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
         assertEquals(responseHeader.getMasterAddress(), "127.0.0.1:8001");
 
         executor.shutdown();

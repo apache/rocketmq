@@ -34,8 +34,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
- * Cache for epochFile.
- * Mapping (Epoch -> StartOffset)
+ * Cache for epochFile. Mapping (Epoch -> StartOffset)
  */
 public class EpochFileCache {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -249,7 +248,7 @@ public class EpochFileCache {
      * Remove epochEntries with epoch >= truncateEpoch.
      */
     public void truncateSuffixByEpoch(final int truncateEpoch) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getEpoch() >= truncateEpoch;
+        Predicate<EpochEntry> predict = entry -> entry.getEpoch() >= truncateEpoch;
         doTruncateSuffix(predict);
     }
 
@@ -257,7 +256,7 @@ public class EpochFileCache {
      * Remove epochEntries with startOffset >= truncateOffset.
      */
     public void truncateSuffixByOffset(final long truncateOffset) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getStartOffset() >= truncateOffset;
+        Predicate<EpochEntry> predict = entry -> entry.getStartOffset() >= truncateOffset;
         doTruncateSuffix(predict);
     }
 
@@ -279,7 +278,7 @@ public class EpochFileCache {
      * Remove epochEntries with endOffset <= truncateOffset.
      */
     public void truncatePrefixByOffset(final long truncateOffset) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getEndOffset() <= truncateOffset;
+        Predicate<EpochEntry> predict = entry -> entry.getEndOffset() <= truncateOffset;
         this.writeLock.lock();
         try {
             this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));

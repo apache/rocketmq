@@ -1006,7 +1006,7 @@ public class BrokerOuterAPI {
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         if (response.getCode() == SUCCESS) {
-            return response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
+            return (GetMetaDataResponseHeader) response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
@@ -1050,7 +1050,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
+                return (RegisterBrokerToControllerResponseHeader) response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
@@ -1070,7 +1070,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                final GetReplicaInfoResponseHeader header = response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
+                final GetReplicaInfoResponseHeader header = (GetReplicaInfoResponseHeader) response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
                 assert response.getBody() != null;
                 final SyncStateSet stateSet = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
                 return new Pair<>(header, stateSet);

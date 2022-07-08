@@ -2889,7 +2889,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         if (response.getCode() == SUCCESS) {
-            return response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
+            return (GetMetaDataResponseHeader) response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
