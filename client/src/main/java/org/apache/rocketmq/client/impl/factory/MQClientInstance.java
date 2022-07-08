@@ -506,8 +506,8 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isEmpty2FetchFromNameServer) {
-        return updateTopicRouteInfoFromNameServer(topic, false, isEmpty2FetchFromNameServer,null);
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean force2FetchFromNameServer) {
+        return updateTopicRouteInfoFromNameServer(topic, false, force2FetchFromNameServer,null);
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
@@ -607,12 +607,12 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, boolean isEmpty2FetchFromNameServer,
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, boolean force2FetchFromNameServer,
         DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    if(!isEmpty2FetchFromNameServer && this.topicRouteTable.get(topic) != null){
+                    if(!force2FetchFromNameServer && this.topicRouteTable.get(topic) != null){
                         return false;
                     }
                     TopicRouteData topicRouteData;
