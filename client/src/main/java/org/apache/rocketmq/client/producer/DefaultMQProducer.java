@@ -136,7 +136,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Indicate whether to block message when asynchronous sending traffic is too heavy.
      */
-    private boolean enableBackpressureForAsyncMode = true;
+    private boolean enableBackpressureForAsyncMode = false;
 
     /**
      * Default constructor.
