@@ -21,10 +21,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,6 +50,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class UtilAll {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger STORE_LOG = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
 
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
@@ -196,6 +202,19 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    public static long getTotalSpace(final String path) {
+        if (null == path || path.isEmpty())
+            return -1;
+        try {
+            File file = new File(path);
+            if (!file.exists())
+                return -1;
+            return  file.getTotalSpace();
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     public static boolean isPathExists(final String path) {
         File file = new File(path);
         return file.exists();
@@ -203,7 +222,7 @@ public class UtilAll {
 
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty()) {
-            log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
+            STORE_LOG.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
             return -1;
         }
 
@@ -212,10 +231,9 @@ public class UtilAll {
             File file = new File(path);
 
             if (!file.exists()) {
-                log.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
+                STORE_LOG.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
                 return -1;
             }
-
 
             long totalSpace = file.getTotalSpace();
 
@@ -231,11 +249,30 @@ public class UtilAll {
                 return result / 100.0;
             }
         } catch (Exception e) {
-            log.error("Error when measuring disk space usage, got exception: :", e);
+            STORE_LOG.error("Error when measuring disk space usage, got exception: :", e);
             return -1;
         }
 
         return -1;
+    }
+
+    public static long getDiskPartitionTotalSpace(final String path) {
+        if (null == path || path.isEmpty()) {
+            return -1;
+        }
+
+        try {
+            File file = new File(path);
+
+
+            if (!file.exists()) {
+                return -1;
+            }
+
+            return file.getTotalSpace() -  file.getFreeSpace() + file.getUsableSpace();
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public static int crc32(byte[] array) {
@@ -613,5 +650,89 @@ public class UtilAll {
 
         String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
+    }
+
+    public static void deleteEmptyDirectory(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        if (!file.isDirectory()) {
+            return;
+        }
+        File[] files = file.listFiles();
+        if (files == null || files.length <= 0) {
+            file.delete();
+            STORE_LOG.info("delete empty direct, {}", file.getPath());
+        }
+    }
+
+    public static void cleanBuffer(final ByteBuffer buffer) {
+        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) {
+            return;
+        }
+        invoke(invoke(viewed(buffer), "cleaner"), "clean");
+    }
+
+    public static Object invoke(final Object target, final String methodName, final Class<?>... args) {
+        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                try {
+                    Method method = method(target, methodName, args);
+                    method.setAccessible(true);
+                    return method.invoke(target);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+    }
+
+    public static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
+        try {
+            return target.getClass().getMethod(methodName, args);
+        } catch (NoSuchMethodException e) {
+            return target.getClass().getDeclaredMethod(methodName, args);
+        }
+    }
+
+    private static ByteBuffer viewed(ByteBuffer buffer) {
+        String methodName = "viewedBuffer";
+
+        Method[] methods = buffer.getClass().getMethods();
+        for (Method method : methods) {
+            if (method.getName().equals("attachment")) {
+                methodName = "attachment";
+                break;
+            }
+        }
+
+        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
+        if (viewedBuffer == null) {
+            return buffer;
+        } else {
+            return viewed(viewedBuffer);
+        }
+    }
+
+    public static void ensureDirOK(final String dirName) {
+        if (dirName != null) {
+            if (dirName.contains(MixAll.MULTI_PATH_SPLITTER)) {
+                String[] dirs = dirName.trim().split(MixAll.MULTI_PATH_SPLITTER);
+                for (String dir : dirs) {
+                    createDirIfNotExist(dir);
+                }
+            } else {
+                createDirIfNotExist(dirName);
+            }
+        }
+    }
+
+    private static void  createDirIfNotExist(String dirName) {
+        File f = new File(dirName);
+        if (!f.exists()) {
+            boolean result = f.mkdirs();
+            STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+        }
     }
 }

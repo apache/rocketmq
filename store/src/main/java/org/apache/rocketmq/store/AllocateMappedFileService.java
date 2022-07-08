@@ -30,6 +30,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
 /**
  * Create MappedFile in advance
@@ -97,7 +99,9 @@ public class AllocateMappedFileService extends ServiceThread {
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
             if (result != null) {
+                messageStore.getPerfCounter().startTick("WAIT_MAPFILE_TIME_MS");
                 boolean waitOK = result.getCountDownLatch().await(waitTimeOut, TimeUnit.MILLISECONDS);
+                messageStore.getPerfCounter().endTick("WAIT_MAPFILE_TIME_MS");
                 if (!waitOK) {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                     return null;
@@ -117,6 +121,9 @@ public class AllocateMappedFileService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (messageStore != null && messageStore.getBrokerConfig().isInBrokerContainer()) {
+            return messageStore.getBrokerIdentity().getLoggerIdentifier() + AllocateMappedFileService.class.getSimpleName();
+        }
         return AllocateMappedFileService.class.getSimpleName();
     }
 
@@ -170,10 +177,10 @@ public class AllocateMappedFileService extends ServiceThread {
                         mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                     } catch (RuntimeException e) {
                         log.warn("Use default implementation.");
-                        mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                     }
                 } else {
-                    mappedFile = new MappedFile(req.getFilePath(), req.getFileSize());
+                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize());
                 }
 
                 long elapsedTime = UtilAll.computeElapsedTimeMilliseconds(beginTime);

@@ -44,4 +44,13 @@ public class TopicOffset {
     public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
     }
+
+    @Override
+    public String toString() {
+        return "TopicOffset{" +
+                "minOffset=" + minOffset +
+                ", maxOffset=" + maxOffset +
+                ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+                '}';
+    }
 }

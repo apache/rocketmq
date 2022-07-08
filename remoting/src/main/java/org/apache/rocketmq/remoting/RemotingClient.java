@@ -17,12 +17,14 @@
 package org.apache.rocketmq.remoting;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RemotingClient extends RemotingService {
@@ -30,6 +32,8 @@ public interface RemotingClient extends RemotingService {
     void updateNameServerAddressList(final List<String> addrs);
 
     List<String> getNameServerAddressList();
+
+    List<String> getAvailableNameSrvList();
 
     RemotingCommand invokeSync(final String addr, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
@@ -48,7 +52,12 @@ public interface RemotingClient extends RemotingService {
 
     void setCallbackExecutor(final ExecutorService callbackExecutor);
 
-    ExecutorService getCallbackExecutor();
-
     boolean isChannelWritable(final String addr);
+
+    void closeChannels();
+
+    void closeChannels(final List<String> addrList);
+
+    ConcurrentMap<Integer, ResponseFuture> getResponseTable();
+
 }

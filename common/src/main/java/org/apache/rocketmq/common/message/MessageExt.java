@@ -249,6 +249,61 @@ public class MessageExt extends Message {
         this.preparedTransactionOffset = preparedTransactionOffset;
     }
 
+    /**
+     *
+     * achieves topicSysFlag value from transient properties
+     *
+     * @return
+     */
+    public Integer getTopicSysFlag() {
+        String topicSysFlagString = getProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG);
+        if (topicSysFlagString != null && topicSysFlagString.length() > 0) {
+            return Integer.valueOf(topicSysFlagString);
+        }
+        return null;
+    }
+
+    /**
+     * set topicSysFlag to transient properties, or clear it
+     *
+     * @param topicSysFlag
+     */
+    public void setTopicSysFlag(Integer topicSysFlag) {
+        if (topicSysFlag == null) {
+            clearProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG);
+        } else {
+            putProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG, String.valueOf(topicSysFlag));
+        }
+    }
+
+    /**
+     *
+     * achieves groupSysFlag value from transient properties
+     *
+     * @return
+     */
+    public Integer getGroupSysFlag() {
+        String groupSysFlagString = getProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG);
+        if (groupSysFlagString != null && groupSysFlagString.length() > 0) {
+            return Integer.valueOf(groupSysFlagString);
+        }
+        return null;
+    }
+
+    /**
+     *
+     * set groupSysFlag to transient properties, or clear it
+     *
+     * @param groupSysFlag
+     */
+    public void setGroupSysFlag(Integer groupSysFlag) {
+        if (groupSysFlag == null) {
+            clearProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG);
+        } else {
+            putProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG, String.valueOf(groupSysFlag));
+        }
+    }
+
     @Override
     public String toString() {
         return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset

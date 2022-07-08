@@ -25,6 +25,7 @@ public class CheckClientRequestBody extends RemotingSerializable {
     private String clientId;
     private String group;
     private SubscriptionData subscriptionData;
+    private String namespace;
 
     public String getClientId() {
         return clientId;
@@ -48,5 +49,13 @@ public class CheckClientRequestBody extends RemotingSerializable {
 
     public void setSubscriptionData(SubscriptionData subscriptionData) {
         this.subscriptionData = subscriptionData;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 }

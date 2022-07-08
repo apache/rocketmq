@@ -23,6 +23,7 @@ package org.apache.rocketmq.common.protocol.header;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class CreateTopicRequestHeader implements CommandCustomHeader {
@@ -41,6 +42,10 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     private Integer topicSysFlag;
     @CFNotNull
     private Boolean order = false;
+    private String attributes;
+
+    @CFNullable
+    private Boolean force = false;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -117,5 +122,21 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
 
     public void setOrder(Boolean order) {
         this.order = order;
+    }
+
+    public Boolean getForce() {
+        return force;
+    }
+
+    public void setForce(Boolean force) {
+        this.force = force;
+    }
+
+    public String getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(String attributes) {
+        this.attributes = attributes;
     }
 }

@@ -38,10 +38,16 @@ public class NettyClientConfig {
     private boolean clientPooledByteBufAllocatorEnable = false;
     private boolean clientCloseSocketIfTimeout = NettySystemConfig.clientCloseSocketIfTimeout;
 
+    private boolean preferredDirectByteBuffer = false;
+    private boolean defaultEventExecutorGroupEnable = true;
+
     private boolean useTLS;
 
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
     private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
+
+    private boolean disableCallbackExecutor = false;
+    private boolean disableNettyWorkerGroup = false;
 
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
@@ -153,5 +159,37 @@ public class NettyClientConfig {
 
     public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
         this.writeBufferHighWaterMark = writeBufferHighWaterMark;
+    }
+
+    public boolean isPreferredDirectByteBuffer() {
+        return preferredDirectByteBuffer;
+    }
+
+    public void setPreferredDirectByteBuffer(final boolean preferredDirectByteBuffer) {
+        this.preferredDirectByteBuffer = preferredDirectByteBuffer;
+    }
+
+    public boolean isDefaultEventExecutorGroupEnable() {
+        return defaultEventExecutorGroupEnable;
+    }
+
+    public void setDefaultEventExecutorGroupEnable(final boolean defaultEventExecutorGroupEnable) {
+        this.defaultEventExecutorGroupEnable = defaultEventExecutorGroupEnable;
+    }
+
+    public boolean isDisableCallbackExecutor() {
+        return disableCallbackExecutor;
+    }
+
+    public void setDisableCallbackExecutor(boolean disableCallbackExecutor) {
+        this.disableCallbackExecutor = disableCallbackExecutor;
+    }
+
+    public boolean isDisableNettyWorkerGroup() {
+        return disableNettyWorkerGroup;
+    }
+
+    public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
+        this.disableNettyWorkerGroup = disableNettyWorkerGroup;
     }
 }

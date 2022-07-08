@@ -20,13 +20,29 @@ package org.apache.rocketmq.test.client.producer.batch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
+
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.hook.SendMessageContext;
+import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.TopicAttributes;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
+import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.apache.rocketmq.test.util.RandomUtils;
 import org.junit.After;
@@ -52,6 +68,9 @@ public class BatchSendIT extends BaseConf {
 
     @Test
     public void testBatchSend_ViewMessage() throws Exception {
+        Assert.assertTrue(brokerController1.getMessageStore() instanceof DefaultMessageStore);
+        Assert.assertTrue(brokerController2.getMessageStore() instanceof DefaultMessageStore);
+
         List<Message> messageList = new ArrayList<>();
         int batchNum = 100;
         for (int i = 0; i < batchNum; i++) {
@@ -59,6 +78,8 @@ public class BatchSendIT extends BaseConf {
         }
 
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        removeBatchUniqueId(producer);
+
         SendResult sendResult = producer.send(messageList);
         Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 
@@ -78,6 +99,122 @@ public class BatchSendIT extends BaseConf {
     }
 
     @Test
+    public void testBatchSend_SysInnerBatch() throws Exception {
+        waitBrokerRegistered(nsAddr, clusterName, brokerNum);
+
+        String batchTopic = UUID.randomUUID().toString();
+        IntegrationTestBase.initTopic(batchTopic, nsAddr, clusterName, CQType.BatchCQ);
+
+        Assert.assertEquals(CQType.BatchCQ.toString(), brokerController1.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getAttributes().get(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName()));
+        Assert.assertEquals(CQType.BatchCQ.toString(), brokerController2.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getAttributes().get(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName()));
+        Assert.assertEquals(CQType.BatchCQ.toString(), brokerController3.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getAttributes().get(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName()));
+        Assert.assertEquals(8, brokerController1.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController2.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController3.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(-1, brokerController1.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(-1, brokerController2.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(-1, brokerController3.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController1.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController2.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController3.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        MessageQueue messageQueue = producer.fetchPublishMessageQueues(batchTopic).iterator().next();
+
+        int batchCount = 10;
+        int batchNum = 10;
+        for (int i = 0; i < batchCount; i++) {
+            List<Message> messageList = new ArrayList<>();
+            for (int j = 0; j < batchNum; j++) {
+                messageList.add(new Message(batchTopic, RandomUtils.getStringByUUID().getBytes()));
+            }
+            SendResult sendResult = producer.send(messageList, messageQueue);
+            Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+            Assert.assertEquals(messageQueue.getQueueId(), sendResult.getMessageQueue().getQueueId());
+            Assert.assertEquals(i * batchNum, sendResult.getQueueOffset());
+            Assert.assertEquals(1, sendResult.getMsgId().split(",").length);
+        }
+        Thread.sleep(300);
+        {
+            DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(nsAddr, "group");
+            System.out.println(defaultMQPullConsumer.maxOffset(messageQueue));
+
+            PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", 5, batchCount * batchNum);
+            Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
+            Assert.assertEquals(0, pullResult.getMinOffset());
+            Assert.assertEquals(batchCount * batchNum, pullResult.getMaxOffset());
+            Assert.assertEquals(batchCount * batchNum, pullResult.getMsgFoundList().size());
+            MessageExt first = pullResult.getMsgFoundList().get(0);
+            for (int i = 0; i < pullResult.getMsgFoundList().size(); i++) {
+                MessageExt messageExt = pullResult.getMsgFoundList().get(i);
+                if (i % batchNum == 0) {
+                    first = messageExt;
+                }
+                Assert.assertEquals(i, messageExt.getQueueOffset());
+                Assert.assertEquals(batchTopic, messageExt.getTopic());
+                Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
+                Assert.assertEquals(first.getBornHostString(), messageExt.getBornHostString());
+                Assert.assertEquals(first.getBornHostNameString(), messageExt.getBornHostNameString());
+                Assert.assertEquals(first.getBornTimestamp(), messageExt.getBornTimestamp());
+                Assert.assertEquals(first.getStoreTimestamp(), messageExt.getStoreTimestamp());
+            }
+        }
+    }
+
+    @Test
+    public void testBatchSend_SysOuterBatch() throws Exception {
+        Assert.assertTrue(brokerController1.getMessageStore() instanceof DefaultMessageStore);
+        Assert.assertTrue(brokerController2.getMessageStore() instanceof DefaultMessageStore);
+        Assert.assertTrue(brokerController3.getMessageStore() instanceof DefaultMessageStore);
+
+        String batchTopic = UUID.randomUUID().toString();
+        IntegrationTestBase.initTopic(batchTopic, nsAddr, clusterName, CQType.SimpleCQ);
+        Assert.assertEquals(8, brokerController1.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController2.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController3.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(0, brokerController1.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController2.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController3.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController1.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController2.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController3.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        MessageQueue messageQueue = producer.fetchPublishMessageQueues(batchTopic).iterator().next();
+
+        int batchCount = 10;
+        int batchNum = 10;
+        for (int i = 0; i < batchCount; i++) {
+            List<Message> messageList = new ArrayList<>();
+            for (int j = 0; j < batchNum; j++) {
+                messageList.add(new Message(batchTopic, RandomUtils.getStringByUUID().getBytes()));
+            }
+            SendResult sendResult = producer.send(messageList, messageQueue);
+            Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+            Assert.assertEquals(messageQueue.getQueueId(), sendResult.getMessageQueue().getQueueId());
+            Assert.assertEquals(i * batchNum, sendResult.getQueueOffset());
+            Assert.assertEquals(10, sendResult.getMsgId().split(",").length);
+        }
+        Thread.sleep(300);
+        {
+            DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(nsAddr, "group");
+
+            long startOffset = 5;
+            PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", startOffset, batchCount * batchNum);
+            Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
+            Assert.assertEquals(0, pullResult.getMinOffset());
+            Assert.assertEquals(batchCount * batchNum, pullResult.getMaxOffset());
+            Assert.assertEquals(batchCount * batchNum - startOffset, pullResult.getMsgFoundList().size());
+            for (int i = 0; i < pullResult.getMsgFoundList().size(); i++) {
+                MessageExt messageExt = pullResult.getMsgFoundList().get(i);
+                Assert.assertEquals(i + startOffset, messageExt.getQueueOffset());
+                Assert.assertEquals(batchTopic, messageExt.getTopic());
+                Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
+            }
+        }
+    }
+
+    @Test
     public void testBatchSend_CheckProperties() throws Exception {
         List<Message> messageList = new ArrayList<>();
         Message message = new Message();
@@ -91,6 +228,8 @@ public class BatchSendIT extends BaseConf {
         messageList.add(message);
 
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        removeBatchUniqueId(producer);
+
         SendResult sendResult = producer.send(messageList);
         Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 
@@ -124,6 +263,28 @@ public class BatchSendIT extends BaseConf {
 
         Assert.assertEquals(message.getFlag(), messageByOffset.getFlag());
         Assert.assertEquals(message.getFlag(), messageByMsgId.getFlag());
+    }
+
+    // simulate legacy batch message send.
+    private void removeBatchUniqueId(DefaultMQProducer producer) {
+        producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageHook() {
+            @Override
+            public String hookName() {
+                return null;
+            }
+
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
+                MessageBatch messageBatch = (MessageBatch) context.getMessage();
+                if (messageBatch.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) != null) {
+                    messageBatch.getProperties().remove(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                }
+            }
+
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
+            }
+        });
     }
 
 }

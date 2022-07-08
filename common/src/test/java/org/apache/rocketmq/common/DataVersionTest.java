@@ -67,4 +67,11 @@ public class DataVersionTest {
         other.setTimestamp(dataVersion.getTimestamp());
         Assert.assertTrue(dataVersion.equals(other));
     }
+
+    @Test
+    public void testEncode() {
+        DataVersion dataVersion = new DataVersion();
+        Assert.assertTrue(dataVersion.encode().length > 0);
+        Assert.assertNotNull(dataVersion.toJson());
+    }
 }

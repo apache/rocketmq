@@ -40,7 +40,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -116,7 +116,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         }
 
         response.setCode(-1);
-        super.msgCheck(ctx, requestHeader, response);
+        super.msgCheck(ctx, requestHeader, request, response);
         if (response.getCode() != -1) {
             return response;
         }
@@ -254,7 +254,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
                 break;
 
             // Failed
-            case CREATE_MAPEDFILE_FAILED:
+            case CREATE_MAPPED_FILE_FAILED:
                 log.warn("create mapped file failed, server is busy or broken.");
                 break;
             case MESSAGE_ILLEGAL:
@@ -271,7 +271,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
                     "service not available now. It may be caused by one of the following reasons: " +
                         "the broker's disk is full, messages are put to the slave, message store has been shut down, etc.");
                 break;
-            case OS_PAGECACHE_BUSY:
+            case OS_PAGE_CACHE_BUSY:
                 log.warn("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
             case UNKNOWN_ERROR:
@@ -283,6 +283,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         }
 
         String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+        int commercialSizePerMsg = brokerController.getBrokerConfig().getCommercialSizePerMsg();
         if (putOk) {
             this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
             this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
@@ -300,7 +301,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
 
                 int commercialBaseCount = brokerController.getBrokerConfig().getCommercialBaseCount();
                 int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
-                int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT) * commercialBaseCount;
+                int incValue = (int) Math.ceil(wroteSize / commercialSizePerMsg) * commercialBaseCount;
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                 sendMessageContext.setCommercialSendTimes(incValue);
@@ -310,7 +311,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         } else {
             if (hasSendMessageHook()) {
                 int wroteSize = request.getBody().length;
-                int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
+                int incValue = (int) Math.ceil(wroteSize / commercialSizePerMsg);
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                 sendMessageContext.setCommercialSendTimes(incValue);

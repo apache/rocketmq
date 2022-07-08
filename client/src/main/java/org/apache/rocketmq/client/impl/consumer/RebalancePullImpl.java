@@ -81,6 +81,30 @@ public class RebalancePullImpl extends RebalanceImpl {
     }
 
     @Override
-    public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+    public int getConsumeInitMode() {
+        throw new UnsupportedOperationException("no initMode for Pull");
     }
+
+    @Override
+    public void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay) {
+    }
+
+    @Override
+    public void dispatchPopPullRequest(final List<PopRequest> pullRequestList, final long delay) {
+    }
+
+    @Override
+    public ProcessQueue createProcessQueue() {
+        return new ProcessQueue();
+    }
+
+    @Override
+    public PopProcessQueue createPopProcessQueue() {
+        return null;
+    }
+
+    public ProcessQueue createProcessQueue(String topicName) {
+        return createProcessQueue();
+    }
+
 }

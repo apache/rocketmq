@@ -20,10 +20,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.util.List;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MappedFile;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -32,15 +34,16 @@ public class IndexFile {
     private static int invalidIndex = 0;
     private final int hashSlotNum;
     private final int indexNum;
+    private final int fileTotalSize;
     private final MappedFile mappedFile;
     private final MappedByteBuffer mappedByteBuffer;
     private final IndexHeader indexHeader;
 
     public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,
         final long endPhyOffset, final long endTimestamp) throws IOException {
-        int fileTotalSize =
+        this.fileTotalSize =
             IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
-        this.mappedFile = new MappedFile(fileName, fileTotalSize);
+        this.mappedFile = new DefaultMappedFile(fileName, fileTotalSize);
         this.mappedByteBuffer = this.mappedFile.getMappedByteBuffer();
         this.hashSlotNum = hashSlotNum;
         this.indexNum = indexNum;
@@ -63,8 +66,17 @@ public class IndexFile {
         return this.mappedFile.getFileName();
     }
 
+    public int getFileSize() {
+        return this.fileTotalSize;
+    }
+
     public void load() {
         this.indexHeader.load();
+    }
+
+    public void shutdown() {
+        this.flush();
+        UtilAll.cleanBuffer(this.mappedByteBuffer);
     }
 
     public void flush() {
@@ -148,8 +160,9 @@ public class IndexFile {
     public int indexKeyHashMethod(final String key) {
         int keyHash = key.hashCode();
         int keyHashPositive = Math.abs(keyHash);
-        if (keyHashPositive < 0)
+        if (keyHashPositive < 0) {
             keyHashPositive = 0;
+        }
         return keyHashPositive;
     }
 
