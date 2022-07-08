@@ -80,7 +80,7 @@ public class QueryMsgTraceByIdSubCommandTest {
         List<BrokerData> dataList = new ArrayList<>();
         HashMap<Long, String> brokerAddress = new HashMap<>();
         brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
-        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress, "");
+        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
         brokerData.setBrokerName("mockBrokerName");
         dataList.add(brokerData);
         topicRouteData.setBrokerDatas(dataList);

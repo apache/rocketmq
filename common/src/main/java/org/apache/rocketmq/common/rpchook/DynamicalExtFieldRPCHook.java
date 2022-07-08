@@ -27,7 +27,7 @@ public class DynamicalExtFieldRPCHook implements RPCHook {
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
         String zoneName = System.getProperty(MixAll.ROCKETMQ_ZONE_PROPERTY, System.getenv(MixAll.ROCKETMQ_ZONE_ENV));
         if (StringUtils.isNotBlank(zoneName)) {
-            request.addExtField(MixAll.ZONE_NAME, System.getProperty(MixAll.ROCKETMQ_ZONE_PROPERTY, System.getenv(MixAll.ROCKETMQ_ZONE_ENV)));
+            request.addExtField(MixAll.ZONE_NAME, zoneName);
         }
         String zoneMode = System.getProperty(MixAll.ROCKETMQ_ZONE_MODE_PROPERTY, System.getenv(MixAll.ROCKETMQ_ZONE_MODE_ENV));
         if (StringUtils.isNotBlank(zoneMode)) {

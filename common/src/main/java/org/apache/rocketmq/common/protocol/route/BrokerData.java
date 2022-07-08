@@ -36,6 +36,12 @@ public class BrokerData implements Comparable<BrokerData> {
 
     }
 
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+        this.brokerAddrs = brokerAddrs;
+    }
+
     public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, String zoneName) {
         this.cluster = cluster;
         this.brokerName = brokerName;
