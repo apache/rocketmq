@@ -253,7 +253,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     /**
-     * Content of data from offset to offset + length will be wrote to file.
+     * Content of data from offset to offset + length will be written to file.
      *
      * @param offset The offset of the subarray to be used.
      * @param length The length of the subarray to be used.
@@ -368,7 +368,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     protected boolean isAbleToCommit(final int commitLeastPages) {
-        int flush = this.committedPosition.get();
+        int commit = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
         if (this.isFull()) {
@@ -376,10 +376,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
         }
 
         if (commitLeastPages > 0) {
-            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
+            return ((write / OS_PAGE_SIZE) - (commit / OS_PAGE_SIZE)) >= commitLeastPages;
         }
 
-        return write > flush;
+        return write > commit;
     }
 
     @Override

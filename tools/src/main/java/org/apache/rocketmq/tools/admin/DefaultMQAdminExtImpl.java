@@ -58,6 +58,9 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -67,7 +70,6 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -95,7 +97,6 @@ import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.subscription.GroupForbidden;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -262,7 +263,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override public void updateGlobalWhiteAddrConfig(String addr,
         String globalWhiteAddrs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, timeoutMillis);
+        this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, null, timeoutMillis);
+    }
+
+    @Override public void updateGlobalWhiteAddrConfig(String addr,
+        String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, aclFileFullPath, timeoutMillis);
     }
 
     @Override public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
@@ -418,6 +424,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         for (String currentTopic : topics) {
             TopicRouteData currentRoute = this.examineTopicRouteInfo(currentTopic);
+            if (currentRoute.getTopicQueueMappingByBroker() == null
+                || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
+                //normal topic
+                for (Map.Entry<MessageQueue, OffsetWrapper> entry: result.getOffsetTable().entrySet()) {
+                    if (entry.getKey().getTopic().equals(currentTopic)) {
+                        staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
             Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(currentTopic, currentRoute, defaultMQAdminExt);
             ConsumeStats consumeStats = MQAdminUtils.convertPhysicalConsumeStats(brokerConfigMap, result);
             staticResult.getOffsetTable().putAll(consumeStats.getOffsetTable());
@@ -582,7 +597,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
-    @Override public List<String> getNameServerAddressList() {
+    @Override
+    public ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().getAllProducerInfo(brokerAddr, timeoutMillis);
+    }
+
+    @Override
+    public List<String> getNameServerAddressList() {
         return this.mqClientInstance.getMQClientAPIImpl().getNameServerAddressList();
     }
 
@@ -1085,6 +1106,42 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = mqClientInstance.getMQClientAPIImpl().cleanExpiredConsumeQueue(addr, timeoutMillis);
         log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
+        return result;
+    }
+
+    @Override
+    public boolean deleteExpiredCommitLog(String cluster) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = false;
+        try {
+            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            if (null == cluster || "".equals(cluster)) {
+                for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
+                    result = deleteExpiredCommitLogByCluster(clusterInfo, targetCluster);
+                }
+            } else {
+                result = deleteExpiredCommitLogByCluster(clusterInfo, cluster);
+            }
+        } catch (MQBrokerException e) {
+            log.error("deleteExpiredCommitLog error.", e);
+        }
+
+        return result;
+    }
+
+    public boolean deleteExpiredCommitLogByCluster(ClusterInfo clusterInfo, String cluster) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = false;
+        String[] addrs = clusterInfo.retrieveAllAddrByCluster(cluster);
+        for (String addr : addrs) {
+            result = deleteExpiredCommitLogByAddr(addr);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean deleteExpiredCommitLogByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = mqClientInstance.getMQClientAPIImpl().deleteExpiredCommitLog(addr, timeoutMillis);
+        log.warn("Delete expired CommitLog on target " + addr + " broker " + result);
         return result;
     }
 

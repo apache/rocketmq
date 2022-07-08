@@ -152,7 +152,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         log.info("recover next consume queue file, " + mappedFile.getFileName());
                     }
                 } else {
-                    log.info("recover current consume queue queue over " + mappedFile.getFileName() + " "
+                    log.info("recover current consume queue over " + mappedFile.getFileName() + " "
                         + (processOffset + mappedFileOffset));
                     break;
                 }
@@ -388,29 +388,30 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         long minExtAddr = 1;
         if (mappedFile != null) {
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(0);
-            if (result != null) {
-                try {
-                    for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                        long offsetPy = result.getByteBuffer().getLong();
-                        result.getByteBuffer().getInt();
-                        long tagsCode = result.getByteBuffer().getLong();
+            if (result == null) {
+                return;
+            }
+            try {
+                for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                    long offsetPy = result.getByteBuffer().getLong();
+                    result.getByteBuffer().getInt();
+                    long tagsCode = result.getByteBuffer().getLong();
 
-                        if (offsetPy >= phyMinOffset) {
-                            this.minLogicOffset = mappedFile.getFileFromOffset() + i;
-                            log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
-                                this.getMinOffsetInQueue(), this.topic, this.queueId);
-                            // This maybe not take effect, when not every consume queue has extend file.
-                            if (isExtAddr(tagsCode)) {
-                                minExtAddr = tagsCode;
-                            }
-                            break;
+                    if (offsetPy >= phyMinOffset) {
+                        this.minLogicOffset = mappedFile.getFileFromOffset() + i;
+                        log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
+                            this.getMinOffsetInQueue(), this.topic, this.queueId);
+                        // This maybe not take effect, when not every consume queue has extend file.
+                        if (isExtAddr(tagsCode)) {
+                            minExtAddr = tagsCode;
                         }
+                        break;
                     }
-                } catch (Exception e) {
-                    log.error("Exception thrown when correctMinOffset", e);
-                } finally {
-                    result.release();
                 }
+            } catch (Exception e) {
+                log.error("Exception thrown when correctMinOffset", e);
+            } finally {
+                result.release();
             }
         }
 
@@ -660,8 +661,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         if (offset >= this.getMinLogicOffset()) {
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
-                SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
-                return result;
+                return mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
             }
         }
         return null;

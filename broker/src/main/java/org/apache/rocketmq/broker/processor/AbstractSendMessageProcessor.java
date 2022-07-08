@@ -512,7 +512,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
-                topicConfig.toString(),
+                topicConfig,
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
             LOGGER.warn(errorInfo);
@@ -582,7 +582,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         switch (request.getCode()) {
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
-                requestHeaderV2 = decodeSendMessageHeaderV2(request);
+                requestHeaderV2 =
+                        (SendMessageRequestHeaderV2) request
+                                .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
                     requestHeader =

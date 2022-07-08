@@ -49,7 +49,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -209,8 +208,8 @@ public class StaticTopicIT extends BaseConf {
 
     private void consumeMessagesAndCheck(RMQNormalProducer producer, RMQNormalConsumer consumer, String topic, int queueNum, int msgEachQueue, int startGen, int genNum) {
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 30000);
-        /*System.out.println("produce:" + producer.getAllMsgBody().size());
-        System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());*/
+//        System.out.println("produce:" + producer.getAllMsgBody().size());
+//        System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());
 
         Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
@@ -393,6 +392,8 @@ public class StaticTopicIT extends BaseConf {
         consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
         consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 1, brokers.size());
     }
+
+
 
 
     @Test

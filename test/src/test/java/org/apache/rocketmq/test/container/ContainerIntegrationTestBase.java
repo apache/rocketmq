@@ -286,7 +286,7 @@ public class ContainerIntegrationTestBase {
             @Override
             public RemotingCommand processRequest(final ChannelHandlerContext ctx,
                 final RemotingCommand request) throws Exception {
-                final RegisterBrokerRequestHeader requestHeader = request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
+                final RegisterBrokerRequestHeader requestHeader = (RegisterBrokerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
                 final BrokerConfigLite liteConfig = new BrokerConfigLite(requestHeader.getClusterName(),
                     requestHeader.getBrokerName(),
                     requestHeader.getBrokerAddr(),

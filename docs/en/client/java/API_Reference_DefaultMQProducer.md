@@ -54,7 +54,7 @@ public class Producer {
 |int|retryTimesWhenSendFailed|Maximum number of internal attempts to send a message in synchronous mode|
 |int|retryTimesWhenSendAsyncFailed|Maximum number of internal attempts to send a message in asynchronous mode|
 |boolean|retryAnotherBrokerWhenNotStoreOK|Whether to retry another broker if an internal send fails|
-|int|maxMessageSize| Maximum length of message                                    |
+|int|maxMessageSize| Maximum length of message body                                   |
 |TraceDispatcher|traceDispatcher| Message trackers. Use rcpHook to track messages              |
 
 ### construction method 

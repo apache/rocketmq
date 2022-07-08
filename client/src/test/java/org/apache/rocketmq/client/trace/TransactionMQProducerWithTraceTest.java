@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -61,18 +60,10 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -137,11 +128,11 @@ public class TransactionMQProducerWithTraceTest {
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
-        producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
+        producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         Field fieldHooks = DefaultMQProducerImpl.class.getDeclaredField("endTransactionHookList");
         fieldHooks.setAccessible(true);
-        List<EndTransactionHook>hooks = new ArrayList<EndTransactionHook>();
+        List<EndTransactionHook> hooks = new ArrayList<EndTransactionHook>();
         hooks.add(endTransactionHook);
         fieldHooks.set(producer.getDefaultMQProducerImpl(), hooks);
 
@@ -155,7 +146,7 @@ public class TransactionMQProducerWithTraceTest {
 
     @Test
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
+        traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicReference<EndTransactionContext> context = new AtomicReference<EndTransactionContext>();
         doAnswer(new Answer() {

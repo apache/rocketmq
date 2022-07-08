@@ -29,7 +29,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public final class BeanUtils {
-    final static InternalLogger log = ClientLogger.getLog();
+    static InternalLogger log = ClientLogger.getLog();
 
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
@@ -87,7 +87,7 @@ public final class BeanUtils {
     public static <T> T populate(final Properties properties, final Class<T> clazz) {
         T obj = null;
         try {
-            obj = clazz.newInstance();
+            obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
             log.warn("Error occurs !", e);
@@ -98,7 +98,7 @@ public final class BeanUtils {
     public static <T> T populate(final KeyValue properties, final Class<T> clazz) {
         T obj = null;
         try {
-            obj = clazz.newInstance();
+            obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
             log.warn("Error occurs !", e);

@@ -18,7 +18,7 @@ consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 ```text
 -Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  
 ```
-- Specified ```Name Server``` address in the envionment variables
+- Specified ```Name Server``` address in the environment variables
 
 ```text
 export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876   
@@ -63,7 +63,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | compressMsgBodyOverHowmuch       | 4096             | The message Body begins to compress beyond the size(the Consumer gets the message automatically unzipped.), unit of byte|
 | retryAnotherBrokerWhenNotStoreOK | FALSE            | If send message and return sendResult but sendStatus!=SEND_OK, Whether to resend |
 | retryTimesWhenSendFailed         | 2                | If send message failed, maximum number of retries, this parameter only works for synchronous send mode|
-| maxMessageSize                   | 4MB              | Client limit message size, over it may error. Server also limit so need to work with server |
+| maxMessageSize                   | 4MB              | Client limit message body size, over it may error. Server also limit so need to work with server |
 | transactionCheckListener         |                  | The transaction message looks back to the listener, if you want send transaction message, you must setup this
 | checkThreadPoolMinSize           | 1                | Minimum of thread in thread pool when Broker look back Producer transaction status                     |
 | checkThreadPoolMaxSize           | 1                | Maximum of thread in thread pool when Broker look back Producer transaction status                     |

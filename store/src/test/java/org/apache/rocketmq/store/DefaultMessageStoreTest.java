@@ -46,7 +46,6 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -732,7 +731,7 @@ public class DefaultMessageStoreTest {
         try {
             PutMessageResult result = this.messageStore.putMessages(msgExtBatch);
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains("message size exceeded");
+            assertThat(e.getMessage()).contains("message body size exceeded");
         }
     }
 
@@ -792,6 +791,66 @@ public class DefaultMessageStoreTest {
         }
 
         assertThat(msgList.size()).isEqualTo(10);
+    }
+
+    @Test
+    public void testPutLongMessage() throws Exception{
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
+
+        //body size, topic size, properties size exactly equal to max size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setTopic(new String(new byte[127]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE]));
+        PutMessageResult encodeResult1 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult1 == null);
+
+        //body size exactly more than max message body size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 1]);
+        PutMessageResult encodeResult2 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult2.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        //body size exactly equal to max message size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 64 * 1024]);
+        PutMessageResult encodeResult3 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult3.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        //message properties length more than properties maxSize
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE+1]));
+        PutMessageResult encodeResult4 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult4.getPutMessageStatus() == PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
+
+        //message length more than buffer length capacity
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setTopic(new String(new byte[Short.MAX_VALUE]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE]));
+        PutMessageResult encodeResult5 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult5.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+    }
+
+    @Test
+    public void testDynamicMaxMessageSize(){
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        int originMaxMessageSize = messageStoreConfig.getMaxMessageSize();
+
+        messageExtBrokerInner.setBody(new byte[originMaxMessageSize + 10]);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        int newMaxMessageSize = originMaxMessageSize + 10;
+        messageStoreConfig.setMaxMessageSize(newMaxMessageSize);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK);
+
+        messageStoreConfig.setMaxMessageSize(10);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        messageStoreConfig.setMaxMessageSize(originMaxMessageSize);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

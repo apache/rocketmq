@@ -258,7 +258,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         // Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         boolean sendTransactionPrepareMessage = false;
-        if (traFlag != null && Boolean.parseBoolean(traFlag)
+        if (Boolean.parseBoolean(traFlag)
             && !(msgInner.getReconsumeTimes() > 0 && msgInner.getDelayTimeLevel() > 0)) { //For client under version 4.6.1
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
@@ -348,8 +348,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case MESSAGE_ILLEGAL:
             case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                response.setRemark(String.format("the message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
+                    this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);

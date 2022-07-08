@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
 public class BrokerData implements Comparable<BrokerData> {
@@ -67,8 +69,8 @@ public class BrokerData implements Comparable<BrokerData> {
     }
 
     /**
-     * Selects a (preferably master) broker address from the registered list.
-     * If the master's address cannot be found, a slave broker address is selected in a random manner.
+     * Selects a (preferably master) broker address from the registered list. If the master's address cannot be found, a
+     * slave broker address is selected in a random manner.
      *
      * @return Broker address.
      */
@@ -135,11 +137,7 @@ public class BrokerData implements Comparable<BrokerData> {
         } else if (!brokerAddrs.equals(other.brokerAddrs)) {
             return false;
         }
-        if (brokerName == null) {
-            return other.brokerName == null;
-        } else {
-            return brokerName.equals(other.brokerName);
-        }
+        return StringUtils.equals(brokerName, other.brokerName);
     }
 
     @Override

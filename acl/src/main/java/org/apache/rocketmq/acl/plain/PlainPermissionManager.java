@@ -58,9 +58,9 @@ public class PlainPermissionManager {
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private String defaultAclDir = fileHome + File.separator + "conf" + File.separator + "acl";
+    private String defaultAclDir;
 
-    private String defaultAclFile = fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
+    private String defaultAclFile;
 
     private Map<String/** fileFullPath **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
 
@@ -82,6 +82,8 @@ public class PlainPermissionManager {
     private List<String> fileList = new ArrayList<>();
 
     public PlainPermissionManager() {
+        this.defaultAclDir = MixAll.dealFilePath(fileHome + File.separator + "conf" + File.separator + "acl");
+        this.defaultAclFile = MixAll.dealFilePath(fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml"));
         load();
         watch();
     }
@@ -120,21 +122,21 @@ public class PlainPermissionManager {
         Map<String, DataVersion> dataVersionMap = new HashMap<>();
 
         assureAclConfigFilesExist();
-        
+
         fileList = getAllAclFiles(defaultAclDir);
         if (new File(defaultAclFile).exists() && !fileList.contains(defaultAclFile)) {
             fileList.add(defaultAclFile);
         }
 
         for (int i = 0; i < fileList.size(); i++) {
-            final String currentFile = fileList.get(i);
+            final String currentFile = MixAll.dealFilePath(fileList.get(i));
             JSONObject plainAclConfData = AclUtils.getYamlDataObject(currentFile,
                 JSONObject.class);
             if (plainAclConfData == null || plainAclConfData.isEmpty()) {
                 log.warn("No data in file {}", currentFile);
                 continue;
             }
-            log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+            log.info("Broker plain acl conf data is : {}", plainAclConfData.toString());
 
             List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategyList = new ArrayList<>();
             JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
@@ -206,6 +208,7 @@ public class PlainPermissionManager {
     }
 
     public void load(String aclFilePath) {
+        aclFilePath = MixAll.dealFilePath(aclFilePath);
         Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
         List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
@@ -215,7 +218,7 @@ public class PlainPermissionManager {
             log.warn("No data in {}, skip it", aclFilePath);
             return;
         }
-        log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+        log.info("Broker plain acl conf data is : {}", plainAclConfData.toString());
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
@@ -351,7 +354,7 @@ public class PlainPermissionManager {
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
             return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
         } else {
-            String fileName = defaultAclFile;
+            String fileName = MixAll.dealFilePath(defaultAclFile);
             //Create acl access config elements on the default acl file
             if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).size() == 0) {
                 try {
@@ -471,6 +474,10 @@ public class PlainPermissionManager {
     }
 
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String fileName) {
+        if (fileName == null || fileName.equals("")) {
+            fileName = this.defaultAclFile;
+        }
+
         if (globalWhiteAddrsList == null) {
             log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
             return false;
@@ -479,6 +486,16 @@ public class PlainPermissionManager {
         File file = new File(fileName);
         if (!file.exists() || file.isDirectory()) {
             log.error("Parameter value " + fileName + " is not exist or is a directory, please check your parameter");
+            return false;
+        }
+
+        if (!fileName.startsWith(fileHome)) {
+            log.error("Parameter value " + fileName + " is not in the directory rocketmq.home.dir " + fileHome);
+            return false;
+        }
+
+        if (!fileName.endsWith(".yml") && fileName.endsWith(".yaml")) {
+            log.error("Parameter value " + fileName + " is not a ACL configuration file");
             return false;
         }
 

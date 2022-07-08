@@ -81,12 +81,12 @@ public class RouteInfoManager {
     private final NamesrvConfig namesrvConfig;
 
     public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
-        this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
-        this.brokerAddrTable = new ConcurrentHashMap<String, BrokerData>(128);
-        this.clusterAddrTable = new ConcurrentHashMap<String, Set<String>>(32);
-        this.brokerLiveTable = new ConcurrentHashMap<BrokerAddrInfo, BrokerLiveInfo>(256);
-        this.filterServerTable = new ConcurrentHashMap<BrokerAddrInfo, List<String>>(256);
-        this.topicQueueMappingInfoTable = new ConcurrentHashMap<String, Map<String, TopicQueueMappingInfo>>(1024);
+        this.topicQueueTable = new ConcurrentHashMap<>(1024);
+        this.brokerAddrTable = new ConcurrentHashMap<>(128);
+        this.clusterAddrTable = new ConcurrentHashMap<>(32);
+        this.brokerLiveTable = new ConcurrentHashMap<>(256);
+        this.filterServerTable = new ConcurrentHashMap<>(256);
+        this.topicQueueMappingInfoTable = new ConcurrentHashMap<>(1024);
         this.unRegisterService = new BatchUnRegisterService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
         this.namesrvController = namesrvController;
@@ -168,17 +168,17 @@ public class RouteInfoManager {
                 if (brokerNames != null
                     && !brokerNames.isEmpty()) {
                     Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
-                    for (String brokerName : brokerNames) {
-                        final QueueData removedQD = queueDataMap.remove(brokerName);
-                        if (removedQD != null) {
-                            log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic,
-                                removedQD);
+                    if (queueDataMap != null) {
+                        for (String brokerName : brokerNames) {
+                            final QueueData removedQD = queueDataMap.remove(brokerName);
+                            if (removedQD != null) {
+                                log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic,
+                                    removedQD);
+                            }
                         }
-
                         if (queueDataMap.isEmpty()) {
-                            log.info("deleteTopic, remove the topic all queue {} {}", brokerName, topic);
+                            log.info("deleteTopic, remove the topic all queue {} {}", clusterName, topic);
                             this.topicQueueTable.remove(topic);
-                            break;
                         }
                     }
                 }
@@ -662,11 +662,11 @@ public class RouteInfoManager {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
-        Set<String> brokerNameSet = new HashSet<String>();
-        List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
+        Set<String> brokerNameSet = new HashSet<>();
+        List<BrokerData> brokerDataList = new LinkedList<>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
+        HashMap<String, List<String>> filterServerMap = new HashMap<>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {

@@ -20,12 +20,17 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import java.util.HashMap;
+
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
-public class PullMessageResponseHeader implements CommandCustomHeader {
+import io.netty.buffer.ByteBuf;
+
+public class PullMessageResponseHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private Long suggestWhichBrokerId;
     @CFNotNull
@@ -45,6 +50,62 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "suggestWhichBrokerId", suggestWhichBrokerId);
+        writeIfNotNull(out, "nextBeginOffset", nextBeginOffset);
+        writeIfNotNull(out, "minOffset", minOffset);
+        writeIfNotNull(out, "maxOffset", maxOffset);
+        writeIfNotNull(out, "offsetDelta", offsetDelta);
+        writeIfNotNull(out, "topicSysFlag", topicSysFlag);
+        writeIfNotNull(out, "groupSysFlag", groupSysFlag);
+        writeIfNotNull(out, "forbiddenType", forbiddenType);
+    }
+
+    @Override
+    public void decode(HashMap<String, String> fields) throws RemotingCommandException {
+        String str = getAndCheckNotNull(fields, "suggestWhichBrokerId");
+        if (str != null) {
+            this.suggestWhichBrokerId = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "nextBeginOffset");
+        if (str != null) {
+            this.nextBeginOffset = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "minOffset");
+        if (str != null) {
+            this.minOffset = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "maxOffset");
+        if (str != null) {
+            this.maxOffset = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "offsetDelta");
+        if (str != null) {
+            this.offsetDelta = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "topicSysFlag");
+        if (str != null) {
+            this.topicSysFlag = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "groupSysFlag");
+        if (str != null) {
+            this.groupSysFlag = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "forbiddenType");
+        if (str != null) {
+            this.forbiddenType = Integer.parseInt(str);
+        }
+
     }
 
     public Long getNextBeginOffset() {
@@ -94,14 +155,11 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
     public void setGroupSysFlag(Integer groupSysFlag) {
         this.groupSysFlag = groupSysFlag;
     }
-    /**
-     * @return the forbiddenType
-     */
+
     public Integer getForbiddenType() {
         return forbiddenType;
     }
-    /**
-     */
+
     public void setForbiddenType(Integer forbiddenType) {
         this.forbiddenType = forbiddenType;
     }

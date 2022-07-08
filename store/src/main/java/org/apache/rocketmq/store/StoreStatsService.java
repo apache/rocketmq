@@ -45,7 +45,7 @@ public class StoreStatsService extends ServiceThread {
     };
 
     //The rule to define buckets
-    private static final Map<Integer, Integer> PUT_MESSAGE_ENTIRE_TIME_BUCKETS = new TreeMap<>();
+    private static final Map<Integer/*interval step size*/, Integer/*times*/> PUT_MESSAGE_ENTIRE_TIME_BUCKETS = new TreeMap<>();
     //buckets
     private TreeMap<Long/*bucket*/, LongAdder/*times*/> buckets = new TreeMap<>();
     private Map<Long/*bucket*/, LongAdder/*times*/> lastBuckets = new TreeMap<>();
@@ -98,11 +98,11 @@ public class StoreStatsService extends ServiceThread {
         PUT_MESSAGE_ENTIRE_TIME_BUCKETS.put(100,5);  //500-1000
         PUT_MESSAGE_ENTIRE_TIME_BUCKETS.put(1000,9);  //1s-10s
 
-        this.initPutMessageTimeBuckets();
-        this.initPutMessageDistributeTime();
+        this.resetPutMessageTimeBuckets();
+        this.resetPutMessageDistributeTime();
     }
 
-    public void initPutMessageTimeBuckets() {
+    private void resetPutMessageTimeBuckets() {
         TreeMap<Long, LongAdder> nextBuckets = new TreeMap<>();
         AtomicLong index = new AtomicLong(0);
         PUT_MESSAGE_ENTIRE_TIME_BUCKETS.forEach((interval, times) -> {
@@ -150,7 +150,7 @@ public class StoreStatsService extends ServiceThread {
         return result;
     }
 
-    private LongAdder[] initPutMessageDistributeTime() {
+    private LongAdder[] resetPutMessageDistributeTime() {
         LongAdder[] next = new LongAdder[13];
         for (int i = 0; i < next.length; i++) {
             next[i] = new LongAdder();
@@ -593,7 +593,7 @@ public class StoreStatsService extends ServiceThread {
                 this.getGetTransferedTps(printTPSInterval)
             );
 
-            final LongAdder[] times = this.initPutMessageDistributeTime();
+            final LongAdder[] times = this.resetPutMessageDistributeTime();
             if (null == times)
                 return;
 
@@ -605,7 +605,7 @@ public class StoreStatsService extends ServiceThread {
                 sb.append(String.format("%s:%d", PUT_MESSAGE_ENTIRE_TIME_MAX_DESC[i], value));
                 sb.append(" ");
             }
-            this.initPutMessageTimeBuckets();
+            this.resetPutMessageTimeBuckets();
             this.findPutMessageEntireTimePX(0.99);
             this.findPutMessageEntireTimePX(0.999);
             log.info("[PAGECACHERT] TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());

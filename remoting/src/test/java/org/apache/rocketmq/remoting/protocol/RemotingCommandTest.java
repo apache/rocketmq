@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.alibaba.fastjson.JSON;
-import java.util.HashSet;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -37,7 +35,13 @@ public class RemotingCommandTest {
     public void testMarkProtocolType_JSONProtocolType() {
         int source = 261;
         SerializeType type = SerializeType.JSON;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
+
+        byte[] result = new byte[4];
+        int x = RemotingCommand.markProtocolType(source, type);
+        result[0] = (byte) (x >> 24);
+        result[1] = (byte) (x >> 16);
+        result[2] = (byte) (x >> 8);
+        result[3] = (byte) x;
         assertThat(result).isEqualTo(new byte[] {0, 0, 1, 5});
     }
 
@@ -45,7 +49,12 @@ public class RemotingCommandTest {
     public void testMarkProtocolType_ROCKETMQProtocolType() {
         int source = 16777215;
         SerializeType type = SerializeType.ROCKETMQ;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
+        byte[] result = new byte[4];
+        int x = RemotingCommand.markProtocolType(source, type);
+        result[0] = (byte) (x >> 24);
+        result[1] = (byte) (x >> 16);
+        result[2] = (byte) (x >> 8);
+        result[3] = (byte) x;
         assertThat(result).isEqualTo(new byte[] {1, -1, -1, -1});
     }
 

@@ -16,7 +16,7 @@
   limitations under the License.
   -->
 
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/tools_default.log</file>

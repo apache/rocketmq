@@ -73,4 +73,4 @@ The verification of the required permissions of the user requires attention to t
  (2) For a resource, if there is explicit configuration permission, the configured permission is used; if there is no explicit configuration permission, the default permission is adopted;
 
 ## 5. Hot loading modified Access control
-The default implementation of RocketrMQ's permission control store is based on the yml configuration file. Users can dynamically modify the properties defined by the permission control without restarting the Broker service node.
+The default implementation of RocketMQ's permission control store is based on the yml configuration file. Users can dynamically modify the properties defined by the permission control without restarting the Broker service node.

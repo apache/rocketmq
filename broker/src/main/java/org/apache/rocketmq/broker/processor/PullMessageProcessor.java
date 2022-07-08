@@ -95,8 +95,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s", topic, globalId, mappingDetail.getBname()));
             }
-            Long globalOffset = requestHeader.getQueueOffset();
 
+            Long globalOffset = requestHeader.getQueueOffset();
             LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
             mappingContext.setCurrentItem(mappingItem);
 

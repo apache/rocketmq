@@ -39,15 +39,15 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class ReplyMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
+public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     public ReplyMessageProcessor(final BrokerController brokerController) {
@@ -157,8 +157,10 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         final SendMessageRequestHeader requestHeader,
         final Message msg) {
         ReplyMessageRequestHeader replyMessageRequestHeader = new ReplyMessageRequestHeader();
-        replyMessageRequestHeader.setBornHost(ctx.channel().remoteAddress().toString());
-        replyMessageRequestHeader.setStoreHost(this.getStoreHost().toString());
+        InetSocketAddress bornAddress = (InetSocketAddress)(ctx.channel().remoteAddress());
+        replyMessageRequestHeader.setBornHost(bornAddress.getAddress().getHostAddress() + ":" + bornAddress.getPort());
+        InetSocketAddress storeAddress = (InetSocketAddress)(this.getStoreHost());
+        replyMessageRequestHeader.setStoreHost(storeAddress.getAddress().getHostAddress() + ":" + storeAddress.getPort());
         replyMessageRequestHeader.setStoreTimestamp(System.currentTimeMillis());
         replyMessageRequestHeader.setProducerGroup(requestHeader.getProducerGroup());
         replyMessageRequestHeader.setTopic(requestHeader.getTopic());
@@ -257,11 +259,12 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 break;
             case MESSAGE_ILLEGAL:
                 log.warn(
-                    "the message is illegal, maybe msg properties length limit 32k.");
+                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit {}B.",
+                    this.brokerController.getMessageStoreConfig().getMaxMessageSize());
                 break;
             case PROPERTIES_SIZE_EXCEEDED:
                 log.warn(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k.");
+                    "the message is illegal, maybe msg properties length limit 32KB.");
                 break;
             case SERVICE_NOT_AVAILABLE:
                 log.warn(

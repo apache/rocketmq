@@ -516,7 +516,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         TopicList systemTopicList = this.namesrvController.getRouteInfoManager().getSystemTopicList();
@@ -529,7 +529,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
@@ -549,7 +549,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
@@ -568,8 +568,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)
-        throws RemotingCommandException {
+    private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();

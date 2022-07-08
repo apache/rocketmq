@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import com.google.common.hash.Hashing;
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -388,7 +389,7 @@ public class DefaultMessageStore implements MessageStore {
             LOGGER.warn("[TooSmallCqOffset] maxPhysicalPosInLogicQueue={} clMinOffset={}", maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset());
         }
         LOGGER.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
-                maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
+            maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
         this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
 
         /**
@@ -1052,7 +1053,10 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime() {
-        final long minPhyOffset = this.getMinPhyOffset();
+        long minPhyOffset = this.getMinPhyOffset();
+        if (this.getCommitLog() instanceof DLedgerCommitLog) {
+            minPhyOffset += DLedgerEntry.BODY_OFFSET;
+        }
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
@@ -1142,33 +1146,17 @@ public class DefaultMessageStore implements MessageStore {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
-
-                    boolean match = true;
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-//                    if (topic.equals(msg.getTopic())) {
-//                        for (String k : keyArray) {
-//                            if (k.equals(key)) {
-//                                match = true;
-//                                break;
-//                            }
-//                        }
-//                    }
-
-                    if (match) {
-                        SelectMappedBufferResult result = this.commitLog.getData(offset, false);
-                        if (result != null) {
-                            int size = result.getByteBuffer().getInt(0);
-                            result.getByteBuffer().limit(size);
-                            result.setSize(size);
-                            queryMessageResult.addMessage(result);
-                        }
-                    } else {
-                        LOGGER.warn("queryMessage hash duplicate, topic={}, key={}", topic, key);
+                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
+                    if (result != null) {
+                        int size = result.getByteBuffer().getInt(0);
+                        result.getByteBuffer().limit(size);
+                        result.setSize(size);
+                        queryMessageResult.addMessage(result);
                     }
                 } catch (Exception e) {
                     LOGGER.error("queryMessage exception", e);

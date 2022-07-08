@@ -204,7 +204,6 @@ public class RequestCode {
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
 
-
     public static final int GET_TOPIC_CONFIG = 351;
 
     public static final int GET_SUBSCRIPTIONGROUP_CONFIG = 352;
@@ -218,10 +217,6 @@ public class RequestCode {
 
     public static final int UPDATE_AND_CREATE_STATIC_TOPIC = 513;
 
-    /**
-     * Below request codes are used by broker container,
-     * these request codes are started with '9'.
-     */
     public static final int GET_BROKER_MEMBER_GROUP = 901;
 
     public static final int ADD_BROKER = 902;
@@ -237,6 +232,10 @@ public class RequestCode {
     public static final int GET_BROKER_HA_STATUS = 907;
 
     public static final int RESET_MASTER_FLUSH_OFFSET = 908;
+
+    public static final int GET_ALL_PRODUCER_INFO = 328;
+
+    public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     /**
      * Controller code
