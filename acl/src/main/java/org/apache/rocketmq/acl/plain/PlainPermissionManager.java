@@ -136,7 +136,7 @@ public class PlainPermissionManager {
                 log.warn("No data in file {}", currentFile);
                 continue;
             }
-            log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+            log.info("Broker plain acl conf data is : {}", plainAclConfData.toString());
 
             List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategyList = new ArrayList<>();
             JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
@@ -218,7 +218,7 @@ public class PlainPermissionManager {
             log.warn("No data in {}, skip it", aclFilePath);
             return;
         }
-        log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+        log.info("Broker plain acl conf data is : {}", plainAclConfData.toString());
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
