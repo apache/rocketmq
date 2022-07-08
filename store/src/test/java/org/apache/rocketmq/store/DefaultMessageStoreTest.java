@@ -696,6 +696,28 @@ public class DefaultMessageStoreTest {
         assertTrue(encodeResult5.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
     }
 
+    @Test
+    public void testDynamicMaxMessageSize(){
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        int originMaxMessageSize = messageStoreConfig.getMaxMessageSize();
+
+        messageExtBrokerInner.setBody(new byte[originMaxMessageSize + 10]);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        int newMaxMessageSize = originMaxMessageSize + 10;
+        messageStoreConfig.setMaxMessageSize(newMaxMessageSize);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK);
+
+        messageStoreConfig.setMaxMessageSize(10);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        messageStoreConfig.setMaxMessageSize(originMaxMessageSize);
+    }
+
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
