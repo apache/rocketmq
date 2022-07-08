@@ -50,9 +50,8 @@ before_script:
 script:
   - mvn verify -DskipTests
   - travis_retry mvn -B clean apache-rat:check
-  - travis_retry mvn -B clean test jacoco:report coveralls:report
-  - travis_retry mvn -B clean test -pl test -Pit-test
-  - travis_retry mvn -B clean install -DskipTests
+  - travis_retry mvn -B install jacoco:report coveralls:report
+  - travis_retry mvn -B clean install -pl test -Pit-test
 
 after_success:
   - mvn sonar:sonar -Psonar-apache
