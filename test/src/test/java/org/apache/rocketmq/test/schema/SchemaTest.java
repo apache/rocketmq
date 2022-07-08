@@ -40,7 +40,6 @@ public class SchemaTest {
 
     @Test
     public void checkSchema() throws Exception {
-        //generate();
         SchemaDefiner.doLoad();
         Map<String, Map<String, String>> schemaFromFile = new HashMap<>();
         {
