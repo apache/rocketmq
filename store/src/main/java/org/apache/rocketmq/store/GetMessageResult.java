@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class GetMessageResult {
@@ -40,6 +41,10 @@ public class GetMessageResult {
     private int msgCount4Commercial = 0;
     private int commercialSizePerMsg = 4 * 1024;
 
+    public static final GetMessageResult NO_MATCH_LOGIC_QUEUE =
+        new GetMessageResult(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE, 0, 0, 0, Collections.emptyList(),
+            Collections.emptyList(), Collections.emptyList());
+
     public GetMessageResult() {
         messageMapedList = new ArrayList<>(100);
         messageBufferList = new ArrayList<>(100);
@@ -50,6 +55,17 @@ public class GetMessageResult {
         messageMapedList = new ArrayList<>(resultSize);
         messageBufferList = new ArrayList<>(resultSize);
         messageQueueOffset = new ArrayList<>(resultSize);
+    }
+
+    private GetMessageResult(GetMessageStatus status, long nextBeginOffset, long minOffset, long maxOffset,
+        List<SelectMappedBufferResult> messageMapedList, List<ByteBuffer> messageBufferList, List<Long> messageQueueOffset) {
+        this.status = status;
+        this.nextBeginOffset = nextBeginOffset;
+        this.minOffset = minOffset;
+        this.maxOffset = maxOffset;
+        this.messageMapedList = messageMapedList;
+        this.messageBufferList = messageBufferList;
+        this.messageQueueOffset = messageQueueOffset;
     }
 
     public GetMessageStatus getStatus() {
