@@ -356,7 +356,7 @@ public class MQClientInstance {
         }
 
         for (String topic : topicList) {
-            this.updateTopicRouteInfoFromNameServer(topic, true);
+            this.updateTopicRouteInfoFromNameServer(topic);
         }
     }
 
