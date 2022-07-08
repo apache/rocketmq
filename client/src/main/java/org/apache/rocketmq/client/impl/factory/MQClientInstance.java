@@ -507,11 +507,11 @@ public class MQClientInstance {
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean force2FetchFromNameServer) {
-        return updateTopicRouteInfoFromNameServer(topic, false, force2FetchFromNameServer,null);
+        return updateTopicRouteInfoFromNameServer(topic, false, force2FetchFromNameServer, null);
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
-        return updateTopicRouteInfoFromNameServer(topic, false, true,null);
+        return updateTopicRouteInfoFromNameServer(topic, false, true, null);
     }
 
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
