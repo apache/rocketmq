@@ -612,7 +612,7 @@ public class MQClientInstance {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    if(!force2FetchFromNameServer && this.topicRouteTable.get(topic) != null){
+                    if (!force2FetchFromNameServer && this.topicRouteTable.get(topic) != null) {
                         return false;
                     }
                     TopicRouteData topicRouteData;
