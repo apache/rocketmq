@@ -94,8 +94,6 @@ public class Producer {
                 /*
                  * if you want to get the send result in a asynchronize way, you can use this send method
                  * {@code
-                 * // suggest to on enableBackpressureForAsyncMode in heavy traffic, default is false
-                 *  producer.setEnableBackpressureForAsyncMode(true);
                  *  producer.send(msg, new SendCallback() {
                  *  @Override
                  *  public void onSuccess(SendResult sendResult) {
