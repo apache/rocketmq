@@ -344,7 +344,7 @@ public class PlainPermissionManager {
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
             } else {
                 for (Map.Entry<String, PlainAccessResource> entry : accountMap.entrySet()) {
-                    if (entry.getValue().equals(plainAccessConfig.getAccessKey())) {
+                    if (entry.getValue().getAccessKey().equals(plainAccessConfig.getAccessKey())) {
                         PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
                         accountMap.put(entry.getKey(), plainAccessResource);
                         break;
