@@ -59,7 +59,6 @@ public class GrpcClientSettingsManager {
                 .build())
             .build())
         .setPublishing(Publishing.newBuilder()
-            .setCompressBodyThreshold(4 * 1024)
             .setMaxBodySize(4 * 1024 * 1024)
             .build())
         .build();
