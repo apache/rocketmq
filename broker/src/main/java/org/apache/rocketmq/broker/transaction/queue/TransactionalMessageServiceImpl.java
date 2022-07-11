@@ -431,7 +431,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         if (opQueue == null) {
             opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), messageQueue.getBrokerName(),
                 messageQueue.getQueueId());
-            opQueueMap.put(messageQueue, opQueue);
+            opQueueMap.putIfAbsent(messageQueue, opQueue);
         }
         return opQueue;
 
