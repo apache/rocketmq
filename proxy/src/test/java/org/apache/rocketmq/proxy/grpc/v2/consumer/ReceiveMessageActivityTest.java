@@ -25,6 +25,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
@@ -86,6 +87,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             ReceiveMessageRequest.newBuilder()
                 .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
                 .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
                 .setFilterExpression(FilterExpression.newBuilder()
                     .setType(FilterType.SQL)
                     .setExpression("")
@@ -96,6 +98,51 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
 
         assertEquals(Code.ILLEGAL_FILTER_EXPRESSION, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
+
+    @Test
+    public void testReceiveMessageIllegalInvisibleTimeTooSmall() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(false)
+                .setInvisibleDuration(Durations.fromSeconds(0))
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.ILLEGAL_INVISIBLE_TIME, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessageIllegalInvisibleTimeTooLarge() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(false)
+                .setInvisibleDuration(Durations.fromDays(7))
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.ILLEGAL_INVISIBLE_TIME, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
 
     @Test
     public void testReceiveMessage() {
@@ -125,6 +172,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             ReceiveMessageRequest.newBuilder()
                 .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
                 .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
                 .setFilterExpression(FilterExpression.newBuilder()
                     .setType(FilterType.TAG)
                     .setExpression("*")

@@ -63,7 +63,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
 
         Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
-        assertEquals(settings.getBackoffPolicy(), GrpcClientSettingsManager.DEFAULT_CONSUMER_SETTINGS.getBackoffPolicy());
+        assertEquals(settings.getBackoffPolicy(), this.grpcClientSettingsManager.createDefaultConsumerSettingsBuilder().build().getBackoffPolicy());
 
         subscriptionGroupConfig.setRetryMaxTimes(3);
         subscriptionGroupConfig.getGroupRetryPolicy().setType(GroupRetryPolicyType.CUSTOMIZED);

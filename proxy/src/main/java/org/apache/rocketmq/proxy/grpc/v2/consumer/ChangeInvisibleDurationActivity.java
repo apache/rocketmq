@@ -49,7 +49,8 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
 
         try {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
-            
+            validateInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
+
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
 
             String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());

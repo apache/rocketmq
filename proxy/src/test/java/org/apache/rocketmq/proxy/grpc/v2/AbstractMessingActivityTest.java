@@ -63,8 +63,8 @@ public class AbstractMessingActivityTest extends InitConfigAndLoggerTest {
         assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().build()));
         assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName(MixAll.CID_SYS_RMQ_TRANS).build()));
         assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName("@").build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(256)).build()));
-        messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(255)).build());
+        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(65)).build()));
+        messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(64)).build());
     }
 
     private static String createString(int len) {

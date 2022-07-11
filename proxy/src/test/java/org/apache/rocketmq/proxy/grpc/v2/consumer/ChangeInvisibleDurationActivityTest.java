@@ -23,10 +23,12 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Resource;
 import com.google.protobuf.util.Durations;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -98,5 +100,43 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
 
         assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
         assertEquals(TimeUnit.SECONDS.toMillis(3), invisibleTimeArgumentCaptor.getValue().longValue());
+    }
+
+    @Test
+    public void testChangeInvisibleDurationInvisibleTimeTooSmall() throws Throwable {
+        try {
+            this.changeInvisibleDurationActivity.changeInvisibleDuration(
+                createContext(),
+                ChangeInvisibleDurationRequest.newBuilder()
+                    .setInvisibleDuration(Durations.fromSeconds(-1))
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                    .setMessageId("msgId")
+                    .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000))
+                    .build()
+            ).get();
+        } catch (ExecutionException executionException) {
+            GrpcProxyException exception = (GrpcProxyException) executionException.getCause();
+            assertEquals(Code.ILLEGAL_INVISIBLE_TIME, exception.getCode());
+        }
+    }
+
+    @Test
+    public void testChangeInvisibleDurationInvisibleTimeTooLarge() throws Throwable {
+        try {
+            this.changeInvisibleDurationActivity.changeInvisibleDuration(
+                createContext(),
+                ChangeInvisibleDurationRequest.newBuilder()
+                    .setInvisibleDuration(Durations.fromDays(7))
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                    .setMessageId("msgId")
+                    .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000))
+                    .build()
+            ).get();
+        } catch (ExecutionException executionException) {
+            GrpcProxyException exception = (GrpcProxyException) executionException.getCause();
+            assertEquals(Code.ILLEGAL_INVISIBLE_TIME, exception.getCode());
+        }
     }
 }
