@@ -41,6 +41,7 @@ import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -392,6 +393,18 @@ public class CommitLog {
                         if (delayLevel > 0) {
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
                                 storeTimestamp);
+                            //
+                            String delayTimestampStr = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIMESTAMP);
+                            if (delayTimestampStr != null) {
+                                try {
+                                    long delayTimestamp = Long.parseLong(delayTimestampStr);
+                                    tagsCode = Math.min(delayTimestamp, tagsCode);
+                                } catch (Exception e) {
+                                    // can't enter
+                                    log.warn(e.getMessage(), e);
+                                }
+                            }
+
                         }
                     }
                 }
@@ -629,6 +642,14 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            //
+            Date delayDate = msg.getDelayDate();
+            if (delayDate != null) {
+                long nowTime = this.defaultMessageStore.now();
+                int delayLevel = defaultMessageStore.getScheduleMessageService().delayMillis2DelayLevel(delayDate.getTime() - nowTime);
+                msg.setDelayTimeLevel(delayLevel);
+            }
+
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {

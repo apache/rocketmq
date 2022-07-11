@@ -19,8 +19,10 @@ package org.apache.rocketmq.common.message;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
@@ -202,6 +204,60 @@ public class Message implements Serializable {
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }
+
+    /**
+     * Set DelaySecond
+     *
+     * @param second
+     */
+    public void setDelaySecond(long second) {
+        if (second <= 0) {
+            this.setDelayTime(-1);
+        } else {
+            long delayTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(second);
+            this.setDelayTime(delayTime);
+        }
+    }
+
+    /**
+     * Get DelayDate
+     *
+     * @return
+     */
+    public Date getDelayDate() {
+        String t = this.getProperty(MessageConst.PROPERTY_DELAY_TIMESTAMP);
+        if (t != null) {
+            return new Date(Long.parseLong(t));
+        }
+        return null;
+    }
+
+
+    /**
+     * Set DelayDate
+     *
+     * @param delayDate
+     */
+    public void setDelayDate(Date delayDate) {
+        if (delayDate == null) {
+            this.setDelayTime(-1);
+        } else {
+            this.setDelayTime(delayDate.getTime());
+        }
+    }
+
+    /**
+     * Set DelayTime
+     *
+     * @param delayTime
+     */
+    private void setDelayTime(long delayTime) {
+        if (delayTime <= 0) {
+            this.clearProperty(MessageConst.PROPERTY_DELAY_TIMESTAMP);
+        } else {
+            this.putProperty(MessageConst.PROPERTY_DELAY_TIMESTAMP, String.valueOf(delayTime));
+        }
     }
 
     @Override

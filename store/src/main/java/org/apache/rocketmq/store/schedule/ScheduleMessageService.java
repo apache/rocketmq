@@ -64,6 +64,12 @@ public class ScheduleMessageService extends ConfigManager {
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
+    // delayMillisTable
+    private final ConcurrentMap<Long /* delay timeMillis */, Integer/* level */> delayMillisTable =
+            new ConcurrentHashMap<Long, Integer>(128);
+    // maxDelayMillis
+    private long maxDelayMillis;
+
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
@@ -90,6 +96,55 @@ public class ScheduleMessageService extends ConfigManager {
 
     public static int delayLevel2QueueId(final int delayLevel) {
         return delayLevel - 1;
+    }
+
+    /**
+     * delayMillis2DelayLevel
+     * @param delayMillis
+     * @return
+     */
+    public int delayMillis2DelayLevel(long delayMillis) {
+        if (delayMillis <= 0) {
+            return -1;
+        }
+        long m = delayMillis % TimeUnit.SECONDS.toMillis(1);
+        if (m > 0) {
+            delayMillis = delayMillis - m + TimeUnit.SECONDS.toMillis(1);
+        }
+        Integer delayLevel = delayMillis2DelayLevel0(delayMillis);
+        if (delayLevel == null) {
+            // can't enter
+            log.error("delayMillis2DelayLevel({}) ret is null", delayMillis);
+            return -1;
+        }
+        return delayLevel;
+    }
+
+    /**
+     * delayMillis2DelayLevel0
+     * @param delayMillis
+     * @return
+     */
+    private Integer delayMillis2DelayLevel0(long delayMillis) {
+        if (delayMillis <= TimeUnit.MINUTES.toMillis(1)) {
+            return delayMillisTable.get(delayMillis);
+        }
+        if (delayMillis <= TimeUnit.HOURS.toMillis(1)) {
+            long m = TimeUnit.MINUTES.toMillis(1);
+            delayMillis = delayMillis / m * m;
+            return delayMillisTable.get(delayMillis);
+        }
+        if (delayMillis <= TimeUnit.DAYS.toMillis(1)) {
+            long m = TimeUnit.HOURS.toMillis(1);
+            delayMillis = delayMillis / m * m;
+            return delayMillisTable.get(delayMillis);
+        }
+        if (delayMillis <= this.maxDelayMillis) {
+            long m = TimeUnit.DAYS.toMillis(1);
+            delayMillis = delayMillis / m * m;
+            return delayMillisTable.get(delayMillis);
+        }
+        return delayMillisTable.get(this.maxDelayMillis);
     }
 
     /**
@@ -298,7 +353,17 @@ public class ScheduleMessageService extends ConfigManager {
                 if (this.enableAsyncDeliver) {
                     this.deliverPendingTable.put(level, new LinkedBlockingQueue<>());
                 }
+
+                //
+                this.delayMillisTable.put(delayTimeMillis, level);
             }
+
+            //
+            fillTimeCell(this.delayMillisTable, TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(60));
+            fillTimeCell(this.delayMillisTable, TimeUnit.HOURS.toMillis(1), TimeUnit.HOURS.toMillis(24));
+            fillTimeCell(this.delayMillisTable, TimeUnit.DAYS.toMillis(1), TimeUnit.DAYS.toMillis(30));
+            this.maxDelayMillis = TimeUnit.DAYS.toMillis(30);
+
         } catch (Exception e) {
             log.error("parseDelayLevel exception", e);
             log.info("levelString String = {}", levelString);
@@ -306,6 +371,26 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         return true;
+    }
+
+    /**
+     * fillTimeCell
+     * @param delayMillisTable
+     * @param step
+     * @param maxValue
+     */
+    private void fillTimeCell(ConcurrentMap<Long, Integer> delayMillisTable, long step, long maxValue) {
+        for (long delayTimeMillis = step; delayTimeMillis <= maxValue; delayTimeMillis += step) {
+            Integer level = this.delayMillisTable.get(delayTimeMillis);
+            if (level == null) {
+                long previousDelayTimeMillis = delayTimeMillis - step;
+                Integer previous = this.delayMillisTable.get(previousDelayTimeMillis);
+                if (previous == null) {
+                    throw new RuntimeException("call fillTimeCell, previous is null");
+                }
+                delayMillisTable.put(delayTimeMillis, previous);
+            }
+        }
     }
 
     private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {

@@ -59,6 +59,8 @@ public class MessageConst {
 
     public static final HashSet<String> STRING_HASH_SET = new HashSet<>(64);
 
+    public static final String PROPERTY_DELAY_TIMESTAMP = "DELAY_TIMESTAMP";
+
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);
         STRING_HASH_SET.add(PROPERTY_MSG_REGION);
@@ -91,5 +93,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CLUSTER);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_TYPE);
         STRING_HASH_SET.add(PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        STRING_HASH_SET.add(PROPERTY_DELAY_TIMESTAMP);
     }
 }

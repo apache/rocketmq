@@ -33,6 +33,7 @@ import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -390,6 +391,14 @@ public class DLedgerCommitLog extends CommitLog {
         //should be consistent with the old version
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            //
+            Date delayDate = msg.getDelayDate();
+            if (delayDate != null) {
+                long nowTime = this.defaultMessageStore.now();
+                int delayLevel = defaultMessageStore.getScheduleMessageService().delayMillis2DelayLevel(delayDate.getTime() - nowTime);
+                msg.setDelayTimeLevel(delayLevel);
+            }
+
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {

@@ -134,7 +134,7 @@ public class MessageStoreConfig {
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     private int syncFlushTimeout = 1000 * 5;
     private int slaveTimeout = 3000;
-    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h 2s 3s 4s 6s 7s 8s 9s 11s 12s 13s 14s 15s 16s 17s 18s 19s 20s 21s 22s 23s 24s 25s 26s 27s 28s 29s 31s 32s 33s 34s 35s 36s 37s 38s 39s 40s 41s 42s 43s 44s 45s 46s 47s 48s 49s 50s 51s 52s 53s 54s 55s 56s 57s 58s 59s 15m 45m 4h 6h 10h 16h 1d 3d 7d 15d 30d";
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
@@ -581,8 +581,9 @@ public class MessageStoreConfig {
         return messageDelayLevel;
     }
 
+    @Deprecated
     public void setMessageDelayLevel(String messageDelayLevel) {
-        this.messageDelayLevel = messageDelayLevel;
+//        this.messageDelayLevel = messageDelayLevel;
     }
 
     public long getFlushDelayOffsetInterval() {
