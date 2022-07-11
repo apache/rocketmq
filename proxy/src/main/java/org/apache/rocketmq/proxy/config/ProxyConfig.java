@@ -60,11 +60,11 @@ public class ProxyConfig {
     /**
      * the regex to check topic name, empty string means not to check
      */
-    private String topicNameCheckRegex = "^[%a-zA-Z0-9_-]{1,127}$";
+    private String topicNameCheckRegex = "^[%|a-zA-Z0-9_-]{1,127}$";
     /**
      * the regex to check consumer group name, empty string means not to check
      */
-    private String consumerGroupNameCheckRegex = "^[%a-zA-Z0-9_-]{1,255}$";
+    private String consumerGroupNameCheckRegex = "^[%a-zA-Z0-9_-]{1,64}$";
     /**
      * max message body size, 0 or negative number means no limit for proxy
      */
@@ -77,6 +77,17 @@ public class ProxyConfig {
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 1024;
+    private long minInvisibleTimeMillsForRecv = Duration.ofSeconds(10).toMillis();
+    private long maxInvisibleTimeMills = Duration.ofHours(12).toMillis();
+    private long maxDelayTimeMills = Duration.ofDays(1).toMillis();
+    private boolean enableTopicMessageTypeCheck = true;
+
+    private int grpcClientProducerMaxAttempts = 3;
+    private long grpcClientProducerBackoffInitialMillis = 10;
+    private long grpcClientProducerBackoffMaxMillis = 1000;
+    private int grpcClientProducerBackoffMultiplier = 2;
+    private long grpcClientConsumerLongPollingTimeoutMillis = Duration.ofSeconds(30).toMillis();
+    private int grpcClientConsumerLongPollingBatchSize = 32;
 
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
@@ -131,8 +142,6 @@ public class ProxyConfig {
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
     private boolean enableACL = false;
-
-    private boolean enableTopicMessageTypeCheck = true;
 
     private int metricCollectorMode = MetricCollectorMode.OFF.getOrdinal();
     // Example address: 127.0.0.1:1234
@@ -328,6 +337,78 @@ public class ProxyConfig {
 
     public void setMaxMessageGroupSize(int maxMessageGroupSize) {
         this.maxMessageGroupSize = maxMessageGroupSize;
+    }
+
+    public long getMinInvisibleTimeMillsForRecv() {
+        return minInvisibleTimeMillsForRecv;
+    }
+
+    public void setMinInvisibleTimeMillsForRecv(long minInvisibleTimeMillsForRecv) {
+        this.minInvisibleTimeMillsForRecv = minInvisibleTimeMillsForRecv;
+    }
+
+    public long getMaxInvisibleTimeMills() {
+        return maxInvisibleTimeMills;
+    }
+
+    public void setMaxInvisibleTimeMills(long maxInvisibleTimeMills) {
+        this.maxInvisibleTimeMills = maxInvisibleTimeMills;
+    }
+
+    public long getMaxDelayTimeMills() {
+        return maxDelayTimeMills;
+    }
+
+    public void setMaxDelayTimeMills(long maxDelayTimeMills) {
+        this.maxDelayTimeMills = maxDelayTimeMills;
+    }
+
+    public int getGrpcClientProducerMaxAttempts() {
+        return grpcClientProducerMaxAttempts;
+    }
+
+    public void setGrpcClientProducerMaxAttempts(int grpcClientProducerMaxAttempts) {
+        this.grpcClientProducerMaxAttempts = grpcClientProducerMaxAttempts;
+    }
+
+    public long getGrpcClientProducerBackoffInitialMillis() {
+        return grpcClientProducerBackoffInitialMillis;
+    }
+
+    public void setGrpcClientProducerBackoffInitialMillis(long grpcClientProducerBackoffInitialMillis) {
+        this.grpcClientProducerBackoffInitialMillis = grpcClientProducerBackoffInitialMillis;
+    }
+
+    public long getGrpcClientProducerBackoffMaxMillis() {
+        return grpcClientProducerBackoffMaxMillis;
+    }
+
+    public void setGrpcClientProducerBackoffMaxMillis(long grpcClientProducerBackoffMaxMillis) {
+        this.grpcClientProducerBackoffMaxMillis = grpcClientProducerBackoffMaxMillis;
+    }
+
+    public int getGrpcClientProducerBackoffMultiplier() {
+        return grpcClientProducerBackoffMultiplier;
+    }
+
+    public void setGrpcClientProducerBackoffMultiplier(int grpcClientProducerBackoffMultiplier) {
+        this.grpcClientProducerBackoffMultiplier = grpcClientProducerBackoffMultiplier;
+    }
+
+    public long getGrpcClientConsumerLongPollingTimeoutMillis() {
+        return grpcClientConsumerLongPollingTimeoutMillis;
+    }
+
+    public void setGrpcClientConsumerLongPollingTimeoutMillis(long grpcClientConsumerLongPollingTimeoutMillis) {
+        this.grpcClientConsumerLongPollingTimeoutMillis = grpcClientConsumerLongPollingTimeoutMillis;
+    }
+
+    public int getGrpcClientConsumerLongPollingBatchSize() {
+        return grpcClientConsumerLongPollingBatchSize;
+    }
+
+    public void setGrpcClientConsumerLongPollingBatchSize(int grpcClientConsumerLongPollingBatchSize) {
+        this.grpcClientConsumerLongPollingBatchSize = grpcClientConsumerLongPollingBatchSize;
     }
 
     public int getChannelExpiredInSeconds() {

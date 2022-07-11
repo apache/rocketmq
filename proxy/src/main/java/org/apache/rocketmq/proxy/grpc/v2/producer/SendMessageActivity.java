@@ -188,6 +188,16 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
     }
 
+    protected void validateDelayTime(long deliveryTimestampMs) {
+        long maxDelay = ConfigurationManager.getProxyConfig().getMaxDelayTimeMills();
+        if (maxDelay <= 0) {
+            return;
+        }
+        if (deliveryTimestampMs - System.currentTimeMillis() > maxDelay) {
+            throw new GrpcProxyException(Code.ILLEGAL_DELIVERY_TIME, "the max delay time of message is too large");
+        }
+    }
+
     protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
         org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
         // set user properties
@@ -234,7 +244,10 @@ public class SendMessageActivity extends AbstractMessingActivity {
         // set delay level or deliver timestamp
         if (message.getSystemProperties().hasDeliveryTimestamp()) {
             Timestamp deliveryTimestamp = message.getSystemProperties().getDeliveryTimestamp();
-            String timestampString = String.valueOf(Timestamps.toMillis(deliveryTimestamp));
+            long deliveryTimestampMs = Timestamps.toMillis(deliveryTimestamp);
+            validateDelayTime(deliveryTimestampMs);
+
+            String timestampString = String.valueOf(deliveryTimestampMs);
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TIMER_DELIVER_MS, timestampString);
         }
 

@@ -147,6 +147,7 @@ public class GrpcBaseIT extends BaseConf {
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
         ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
+        ConfigurationManager.getProxyConfig().setMinInvisibleTimeMillsForRecv(3);
 
         blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
         stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
@@ -607,6 +608,7 @@ public class GrpcBaseIT extends BaseConf {
                 .setId(-1)
                 .build())
             .setBatchSize(1)
+            .setAutoRenew(false)
             .setInvisibleDuration(Duration.newBuilder()
                 .setSeconds(3)
                 .build())

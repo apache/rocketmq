@@ -40,34 +40,12 @@ import org.apache.rocketmq.common.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.common.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.MetricCollectorMode;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class GrpcClientSettingsManager {
-
-    // TODO: read config from topic or subscription configManager
-    protected static final Settings DEFAULT_PRODUCER_SETTINGS = Settings.newBuilder()
-        .setBackoffPolicy(RetryPolicy.newBuilder()
-            .setMaxAttempts(3)
-            .setExponentialBackoff(ExponentialBackoff.newBuilder()
-                .setInitial(Durations.fromSeconds(1))
-                .setMax(Durations.fromSeconds(3))
-                .setMultiplier(2)
-                .build())
-            .build())
-        .setPublishing(Publishing.newBuilder()
-            .setMaxBodySize(4 * 1024 * 1024)
-            .build())
-        .build();
-    protected static final Settings DEFAULT_CONSUMER_SETTINGS = mergeSubscriptionData(Settings.newBuilder()
-        .setSubscription(Subscription.newBuilder()
-            .setReceiveBatchSize(ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST)
-            .setLongPollingTimeout(Durations.fromSeconds(30))
-            .build())
-        .build(), new SubscriptionGroupConfig());
 
     protected static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
@@ -171,11 +149,39 @@ public class GrpcClientSettingsManager {
 
     public void updateClientSettings(String clientId, Settings settings) {
         if (settings.hasPublishing()) {
-            settings = DEFAULT_PRODUCER_SETTINGS.toBuilder().mergeFrom(settings).build();
+            settings = createDefaultProducerSettingsBuilder().mergeFrom(settings).build();
         } else if (settings.hasSubscription()) {
-            settings = DEFAULT_CONSUMER_SETTINGS.toBuilder().mergeFrom(settings).build();
+            settings = createDefaultConsumerSettingsBuilder().mergeFrom(settings).build();
         }
         CLIENT_SETTINGS_MAP.put(clientId, settings);
+    }
+
+    protected Settings.Builder createDefaultProducerSettingsBuilder() {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        return Settings.newBuilder()
+            .setBackoffPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(config.getGrpcClientProducerMaxAttempts())
+                .setExponentialBackoff(ExponentialBackoff.newBuilder()
+                    .setInitial(Durations.fromMillis(config.getGrpcClientProducerBackoffInitialMillis()))
+                    .setMax(Durations.fromMillis(config.getGrpcClientProducerBackoffMaxMillis()))
+                    .setMultiplier(config.getGrpcClientProducerBackoffMultiplier())
+                    .build())
+                .build())
+            .setPublishing(Publishing.newBuilder()
+                .setValidateMessageType(config.isEnableTopicMessageTypeCheck())
+                .setMaxBodySize(config.getMaxMessageSize())
+                .build());
+    }
+
+    protected Settings.Builder createDefaultConsumerSettingsBuilder() {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        return mergeSubscriptionData(Settings.newBuilder()
+            .setSubscription(Subscription.newBuilder()
+                .setReceiveBatchSize(config.getGrpcClientConsumerLongPollingBatchSize())
+                .setLongPollingTimeout(Durations.fromMillis(config.getGrpcClientConsumerLongPollingTimeoutMillis()))
+                .build())
+            .build(), new SubscriptionGroupConfig())
+            .toBuilder();
     }
 
     public void removeClientSettings(String clientId) {

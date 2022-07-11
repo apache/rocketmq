@@ -84,6 +84,9 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
                 actualInvisibleTime = proxyConfig.getRenewSliceTimeMillis();
+            } else {
+                validateInvisibleTime(actualInvisibleTime,
+                    ConfigurationManager.getProxyConfig().getMinInvisibleTimeMillsForRecv());
             }
 
             FilterExpression filterExpression = request.getFilterExpression();
