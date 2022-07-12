@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -132,6 +134,21 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Interface of asynchronous transfer data
      */
     private TraceDispatcher traceDispatcher = null;
+
+    /**
+     * Indicate whether to block message when asynchronous sending traffic is too heavy.
+     */
+    private boolean enableBackpressureForAsyncMode = false;
+
+    /**
+     * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
+     */
+    private Semaphore semaphoreAsyncNum = new Semaphore(50000, true);
+
+    /**
+     * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
+     */
+    private Semaphore semaphoreAsyncSize = new Semaphore(512 * 1024 * 1024, true);
 
     /**
      * Default constructor.
@@ -1109,4 +1126,29 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public Set<Integer> getRetryResponseCodes() {
         return retryResponseCodes;
     }
+
+    public boolean isEnableBackpressureForAsyncMode() {
+        return  enableBackpressureForAsyncMode;
+    }
+
+    public void setEnableBackpressureForAsyncMode(boolean enableBackpressureForAsyncMode) {
+        this.enableBackpressureForAsyncMode = enableBackpressureForAsyncMode;
+    }
+
+    public Semaphore getSemaphoreAsyncNum() {
+        return semaphoreAsyncNum;
+    }
+
+    public void setSemaphoreAsyncNum(int num) {
+        semaphoreAsyncNum = new Semaphore(num, true);
+    }
+
+    public Semaphore getSemaphoreAsyncSize() {
+        return semaphoreAsyncSize;
+    }
+
+    public void setSemaphoreAsyncSize(int num) {
+        semaphoreAsyncSize = new Semaphore(num, true);
+    }
+
 }

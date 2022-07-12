@@ -32,6 +32,8 @@ public class AsyncProducer {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
         producer.start();
+        // suggest to on enableBackpressureForAsyncMode in heavy traffic, default is false
+        producer.setEnableBackpressureForAsyncMode(true);
         producer.setRetryTimesWhenSendAsyncFailed(0);
 
         int messageCount = 100;
