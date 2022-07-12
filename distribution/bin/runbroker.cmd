@@ -36,6 +36,7 @@ set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
 set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
+set "JAVA_OPT=%JAVA_OPT% -Drocketmq.client.logUseSlf4j=true"
 set "JAVA_OPT=%JAVA_OPT% -cp %CLASSPATH%"
 
 "%JAVA%" %JAVA_OPT% %*

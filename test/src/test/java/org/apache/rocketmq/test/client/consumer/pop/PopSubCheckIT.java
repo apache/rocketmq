@@ -33,6 +33,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -58,7 +59,7 @@ public class PopSubCheckIT extends BaseConf {
         super.shutdown();
     }
 
-
+    @Ignore
     @Test
     public void testNormalPopAck() throws Exception {
         String topic = initTopic();
