@@ -161,22 +161,6 @@ public class NettyClientConfig {
         this.writeBufferHighWaterMark = writeBufferHighWaterMark;
     }
 
-    public boolean isPreferredDirectByteBuffer() {
-        return preferredDirectByteBuffer;
-    }
-
-    public void setPreferredDirectByteBuffer(final boolean preferredDirectByteBuffer) {
-        this.preferredDirectByteBuffer = preferredDirectByteBuffer;
-    }
-
-    public boolean isDefaultEventExecutorGroupEnable() {
-        return defaultEventExecutorGroupEnable;
-    }
-
-    public void setDefaultEventExecutorGroupEnable(final boolean defaultEventExecutorGroupEnable) {
-        this.defaultEventExecutorGroupEnable = defaultEventExecutorGroupEnable;
-    }
-
     public boolean isDisableCallbackExecutor() {
         return disableCallbackExecutor;
     }
@@ -185,11 +169,4 @@ public class NettyClientConfig {
         this.disableCallbackExecutor = disableCallbackExecutor;
     }
 
-    public boolean isDisableNettyWorkerGroup() {
-        return disableNettyWorkerGroup;
-    }
-
-    public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
-        this.disableNettyWorkerGroup = disableNettyWorkerGroup;
-    }
 }
