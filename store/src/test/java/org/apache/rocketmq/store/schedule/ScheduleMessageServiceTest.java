@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.store.schedule;
 
+import java.lang.reflect.Field;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -25,6 +27,7 @@ import org.apache.rocketmq.store.*;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -172,6 +175,45 @@ public class ScheduleMessageServiceTest {
         // add mapFile release
         messageResult.release();
 
+    }
+
+    @Test
+    public void delayMillis2DelayLevelTest() {
+        Assert.assertTrue(scheduleMessageService.delayMillis2DelayLevel(0) == -1);
+        delayMillis2DelayLevelTest(TimeUnit.SECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(1));
+        delayMillis2DelayLevelTest(TimeUnit.MINUTES.toMillis(1), TimeUnit.HOURS.toMillis(1));
+        delayMillis2DelayLevelTest(TimeUnit.HOURS.toMillis(1), TimeUnit.DAYS.toMillis(1));
+        delayMillis2DelayLevelTest(TimeUnit.DAYS.toMillis(1), TimeUnit.DAYS.toMillis(31));
+    }
+
+    private void delayMillis2DelayLevelTest(long step, long maxValue) {
+        for (long delayMillis = step; delayMillis <= maxValue; delayMillis += step) {
+            int level = scheduleMessageService.delayMillis2DelayLevel(delayMillis);
+            Assert.assertTrue(level >= 1);
+        }
+    }
+
+    @Test
+    public void parseDelayLevelTest() throws Exception {
+        scheduleMessageService.parseDelayLevel();
+        Field maxDelayMillisField = scheduleMessageService.getClass().getDeclaredField("maxDelayMillis");
+        maxDelayMillisField.setAccessible(true);
+        long maxDelayMillis = maxDelayMillisField.getLong(scheduleMessageService);
+        Assert.assertEquals(maxDelayMillis, TimeUnit.DAYS.toMillis(30));
+
+        Field delayMillisTableField = scheduleMessageService.getClass().getDeclaredField("delayMillisTable");
+        delayMillisTableField.setAccessible(true);
+        ConcurrentMap<Long, Integer> delayMillisTable = (ConcurrentMap<Long, Integer>) delayMillisTableField.get(scheduleMessageService);
+        parseDelayLevelTest(delayMillisTable, TimeUnit.SECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(1));
+        parseDelayLevelTest(delayMillisTable, TimeUnit.MINUTES.toMillis(1), TimeUnit.HOURS.toMillis(1));
+        parseDelayLevelTest(delayMillisTable, TimeUnit.HOURS.toMillis(1), TimeUnit.DAYS.toMillis(1));
+        parseDelayLevelTest(delayMillisTable, TimeUnit.DAYS.toMillis(1), TimeUnit.DAYS.toMillis(30));
+    }
+
+    private void parseDelayLevelTest(ConcurrentMap<Long, Integer> delayMillisTable, long step, long maxValue) {
+        for (long delayMillis = step; delayMillis <= maxValue; delayMillis += step) {
+            Assert.assertTrue(delayMillisTable.containsKey(delayMillis));
+        }
     }
 
     /**
