@@ -514,7 +514,7 @@ public class ScheduleMessageService extends ConfigManager {
 
                     long countdown = deliverTimestamp - now;
                     if (countdown > 0) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.scheduleNextTimerTask(nextOffset, countdown);
                         return;
                     }
 
