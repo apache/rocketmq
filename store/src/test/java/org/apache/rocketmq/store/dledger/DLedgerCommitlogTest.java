@@ -382,5 +382,4 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         followerStore.shutdown();
     }
 
-
 }
