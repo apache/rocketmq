@@ -134,7 +134,6 @@ public class GrpcClientChannel extends ProxyChannel {
                 .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                     .setTransactionId(transactionData.getTransactionId())
                     .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
-//                    .setMessageQueue(GrpcConverter.getInstance().buildMessageQueue(messageExt, transactionData.getBrokerName()))
                     .build())
                 .build());
             responseFuture.complete(null);
