@@ -25,7 +25,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class ThreadFactoryImpl implements ThreadFactory {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private final AtomicLong threadIndex = new AtomicLong(0);
     private final String threadNamePrefix;
     private final boolean daemon;
