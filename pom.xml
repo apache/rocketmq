@@ -560,7 +560,7 @@
             <dependency>
                 <groupId>io.openmessaging.storage</groupId>
                 <artifactId>dledger</artifactId>
-                <version>0.2.6</version>
+                <version>${dleger.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

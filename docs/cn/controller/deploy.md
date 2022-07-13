@@ -49,7 +49,6 @@ Broker启动方法与之前相同，增加以下参数
 
 - enableControllerMode：Broker controller模式的总开关，只有该值为true，controller模式才会打开。默认为false。
 - controllerAddr：controller的地址，多个controller中间用分号隔开。例如`controllerAddr = 127.0.0.1:9877;127.0.0.1:9878;127.0.0.1:9879`
-- controllerDeployedStandAlone：controller是否独立部署，若controller为独立部署，则为true，内嵌Nameserver部署，则为false。默认为false。
 - syncBrokerMetadataPeriod：向controller同步Broker副本信息的时间间隔。默认5000（5s）。
 - checkSyncStateSetPeriod：检查SyncStateSet的时间间隔，检查SyncStateSet可能会shrink SyncState。默认5000（5s）。
 - syncControllerMetadataPeriod：同步controller元数据的时间间隔，主要是获取active controller的地址。默认10000（10s）。
