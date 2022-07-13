@@ -708,17 +708,26 @@ public class LoggingBuilder {
                     throw ex;
                 }
             }
-            Writer fw = createWriter(ostream);
-            if (bufferedIO) {
-                fw = new BufferedWriter(fw, bufferSize);
+            try {
+                Writer fw = createWriter(ostream);
+                if (bufferedIO) {
+                    fw = new BufferedWriter(fw, bufferSize);
+                }
+                this.setQWForFiles(fw);
+                this.fileName = fileName;
+                this.fileAppend = append;
+                this.bufferedIO = bufferedIO;
+                this.bufferSize = bufferSize;
+                writeHeader();
+                SysLogger.debug("setFile ended");
+            } catch (Exception e) {
+                throw e;
+            } finally {
+                if (ostream != null) {
+                    ostream.close();
+                }
             }
-            this.setQWForFiles(fw);
-            this.fileName = fileName;
-            this.fileAppend = append;
-            this.bufferedIO = bufferedIO;
-            this.bufferSize = bufferSize;
-            writeHeader();
-            SysLogger.debug("setFile ended");
+            
         }
 
         protected void setQWForFiles(Writer writer) {
