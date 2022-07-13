@@ -511,7 +511,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         executeAsyncMessageSend(runnable, msg, sendCallback, timeout, beginStartTime);
     }
 
-    public void executeAsyncMessageSend (Runnable runnable, final Message msg, final SendCallback sendCallback,
+    public void executeAsyncMessageSend(Runnable runnable, final Message msg, final SendCallback sendCallback,
                                          final long timeout, final long beginStartTime)
             throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
