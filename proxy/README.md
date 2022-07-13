@@ -4,9 +4,9 @@ rocketmq-proxy
 ## Introduction
 
 `RocketMQ Proxy` is a stateless component that makes full use of the newly introduced `pop` consumption mechanism to
-achieve stateless consumption behavior. `gRPC` protocol is supported now and all the message types including `normal`
-, `fifo`, `transaction` and `delay` are supported via `pop`. `Proxy` will translate incoming traffic into
-customized `Remoting` protocol to access `Broker` or `Namesrv`.
+achieve stateless consumption behavior. `gRPC` protocol is supported by `Proxy` now and all the message types
+including `normal`, `fifo`, `transaction` and `delay` are supported via `pop` consumption mode. `Proxy` will translate
+incoming traffic into customized `Remoting` protocol to access `Broker` and `Namesrv`.
 
 `Proxy` also handles SSL, authorization/authentication and logging/tracing/metrics and is in charge of connection
 management and traffic governance.
@@ -14,23 +14,24 @@ management and traffic governance.
 ### Multi-language support.
 
 `gRPC` combined with `Protocol Buffer` makes it easy to implement clients with both `java` and other programming
-languages. See [rocketmq-clients](https://github.com/apache/rocketmq-clients) for more information.
+languages while the server side doesn't need extra work to support different programming languages.
+See [rocketmq-clients](https://github.com/apache/rocketmq-clients) for more information.
 
 ### Multi-protocol support.
 
-With `Proxy` as a traffic interface, it's convenient to implement multiple protocols upon proxy. `gRPC` protocol is
-implemented first and the customized `Remoting` protocol will be implemented later. HTTP/1.1 will also be taken into
+With `Proxy` served as a traffic interface, it's convenient to implement multiple protocols upon proxy. `gRPC` protocol
+is implemented first and the customized `Remoting` protocol will be implemented later. HTTP/1.1 will also be taken into
 consideration.
 
 ## Architecture
 
-`RocketMQ Proxy` has two deployment modes: `Cluster` mode and `Local` mode. With both modes, `Pop` mode is natively supported
-in `Proxy`.
+`RocketMQ Proxy` has two deployment modes: `Cluster` mode and `Local` mode. With both modes, `Pop` mode is natively
+supported in `Proxy`.
 
 ### `Cluster` mode
 
-While in `Cluster` mode, `Proxy` is an independent cluster that communicates with `Broker` with remote procedure call. In
-this scenario, `Proxy` acts as a stateless computing component while `Broker` is a stateful component with local
+While in `Cluster` mode, `Proxy` is an independent cluster that communicates with `Broker` with remote procedure call.
+In this scenario, `Proxy` acts as a stateless computing component while `Broker` is a stateful component with local
 storage. This form of deployment introduces the architecture of separation of computing and storage for RocketMQ.
 
 Due to the separation of computing and storage, `RocketMQ Proxy` can be scaled out indefinitely in `Cluster` mode to
