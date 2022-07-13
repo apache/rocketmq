@@ -50,16 +50,22 @@ public interface HAService {
 
     /**
      * Change to master state
+     *
      * @param masterEpoch the new masterEpoch
      */
-    boolean changeToMaster(int masterEpoch);
+    default boolean changeToMaster(int masterEpoch) {
+        return false;
+    }
 
     /**
      * Change to slave state
+     *
      * @param newMasterAddr new master addr
      * @param newMasterEpoch new masterEpoch
      */
-    boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId);
+    default boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
+        return false;
+    }
 
     /**
      * Update master address
@@ -76,8 +82,8 @@ public interface HAService {
     void updateHaMasterAddress(String newAddr);
 
     /**
-     * Returns the number of replicas those commit log are not far behind the master. It includes master itself.
-     * Returns syncStateSet size if HAService instanceof AutoSwitchService
+     * Returns the number of replicas those commit log are not far behind the master. It includes master itself. Returns
+     * syncStateSet size if HAService instanceof AutoSwitchService
      *
      * @return the number of slaves
      * @see MessageStoreConfig#getHaMaxGapNotInSync()
@@ -135,8 +141,8 @@ public interface HAService {
     WaitNotifyObject getWaitNotifyObject();
 
     /**
-     * Judge whether the slave keeps up according to the masterPutWhere,
-     * If the offset gap exceeds haSlaveFallBehindMax, then slave is not OK
+     * Judge whether the slave keeps up according to the masterPutWhere, If the offset gap exceeds haSlaveFallBehindMax,
+     * then slave is not OK
      */
     boolean isSlaveOK(long masterPutWhere);
 }

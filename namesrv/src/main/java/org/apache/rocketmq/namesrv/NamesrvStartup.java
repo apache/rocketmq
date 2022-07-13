@@ -67,6 +67,19 @@ public class NamesrvStartup {
         }
     }
 
+    public static NamesrvController main0(String[] args) {
+        try {
+            parseCommandlineAndConfigFile(args);
+            NamesrvController controller = createAndStartNamesrvController();
+            return controller;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        return null;
+    }
+
     public static void parseCommandlineAndConfigFile(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();

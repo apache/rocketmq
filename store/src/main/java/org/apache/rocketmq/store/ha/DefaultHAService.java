@@ -148,14 +148,6 @@ public class DefaultHAService implements HAService {
         this.haConnectionStateNotificationService.shutdown();
     }
 
-    @Override public boolean changeToMaster(int masterEpoch) {
-        return false;
-    }
-
-    @Override public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
-        return false;
-    }
-
     public void destroyConnections() {
         synchronized (this.connectionList) {
             for (HAConnection c : this.connectionList) {
