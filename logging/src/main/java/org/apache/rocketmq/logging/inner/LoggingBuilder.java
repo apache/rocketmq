@@ -621,7 +621,7 @@ public class LoggingBuilder {
             this.setFile(filename, append, false, bufferSize);
         }
 
-        public void setFile(String file) {
+        public synchronized void setFile(String file) {
             fileName = file.trim();
         }
 
@@ -629,7 +629,7 @@ public class LoggingBuilder {
             return fileAppend;
         }
 
-        public String getFile() {
+        public synchronized String getFile() {
             return fileName;
         }
 
