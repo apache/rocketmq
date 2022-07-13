@@ -143,7 +143,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
      */
-    private Semaphore semaphoreAsyncNum = new Semaphore(50000, true);
+    private Semaphore semaphoreAsyncNum = new Semaphore(60000, true);
 
     /**
      * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages

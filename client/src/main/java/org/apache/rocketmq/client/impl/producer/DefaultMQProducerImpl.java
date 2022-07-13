@@ -508,43 +508,45 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         ExecutorService executor = this.getAsyncSenderExecutor();
         Semaphore semaphoreAsyncNum = this.getDefaultMQProducer().getSemaphoreAsyncNum();
         Semaphore semaphoreAsyncSize = this.getDefaultMQProducer().getSemaphoreAsyncSize();
+        boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
         boolean isAsyncNumAquired = false;
         boolean isAsyncSizeAquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
-        if (this.getDefaultMQProducer().isEnableBackpressureForAsyncMode()) {
-            try {
+
+        try {
+            if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 isAsyncNumAquired = semaphoreAsyncNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                if(!isAsyncNumAquired){
+                if (!isAsyncNumAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
-        
                 costTime = System.currentTimeMillis() - beginStartTime;
                 isAsyncSizeAquired = semaphoreAsyncSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
-                if(!isAsyncSizeAquired){
+                if (!isAsyncSizeAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
                 }
-        
-                runnable.run();
-            } finally {
-                if(isAsyncSizeAquired){
-                    semaphoreAsyncSize.release(msgLen);
-                }
-                if(isAsyncNumAquired){
-                    semaphoreAsyncNum.release();
-                }
             }
-        } else {
-            try {
-                executor.submit(runnable);
-            } catch (RejectedExecutionException e) {
+
+            executor.submit(runnable);
+        } catch (RejectedExecutionException e) {
+            if (isEnableBackpressureForAsyncMode) {
+                runnable.run();
+            } else {
                 throw new MQClientException("executor rejected ", e);
             }
+        } finally {
+            if (isAsyncSizeAquired) {
+                semaphoreAsyncSize.release(msgLen);
+            }
+            if (isAsyncNumAquired) {
+                semaphoreAsyncNum.release();
+            }
         }
+
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
