@@ -20,7 +20,12 @@ package org.apache.rocketmq.common;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 public class ThreadFactoryImpl implements ThreadFactory {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final AtomicLong threadIndex = new AtomicLong(0);
     private final String threadNamePrefix;
     private final boolean daemon;
@@ -38,6 +43,12 @@ public class ThreadFactoryImpl implements ThreadFactory {
     public Thread newThread(Runnable r) {
         Thread thread = new Thread(r, threadNamePrefix + this.threadIndex.incrementAndGet());
         thread.setDaemon(daemon);
+        thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                log.error("Uncaught exception in thread '" + t.getName() + "':", e);
+            }
+        });
         return thread;
     }
 }
