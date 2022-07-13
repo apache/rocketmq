@@ -18,6 +18,7 @@
 globalWhiteRemoteAddresses:
 - 10.10.103.*
 - 192.168.0.*
+
 accounts:
 - accessKey: RocketMQ
   secretKey: 12345678
