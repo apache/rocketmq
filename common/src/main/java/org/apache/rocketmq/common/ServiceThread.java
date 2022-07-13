@@ -27,7 +27,7 @@ public abstract class ServiceThread implements Runnable {
 
     private static final long JOIN_TIME = 90 * 1000;
 
-    private Thread thread;
+    protected Thread thread;
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
@@ -76,17 +76,17 @@ public abstract class ServiceThread implements Runnable {
 
             long beginTime = System.currentTimeMillis();
             if (!this.thread.isDaemon()) {
-                this.thread.join(this.getJointime());
+                this.thread.join(this.getJoinTime());
             }
             long elapsedTime = System.currentTimeMillis() - beginTime;
             log.info("join thread " + this.getServiceName() + " elapsed time(ms) " + elapsedTime + " "
-                + this.getJointime());
+                + this.getJoinTime());
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         }
     }
 
-    public long getJointime() {
+    public long getJoinTime() {
         return JOIN_TIME;
     }
 

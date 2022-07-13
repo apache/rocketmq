@@ -17,6 +17,7 @@
 package org.apache.rocketmq.common;
 
 import java.io.IOException;
+import java.util.Map;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -66,6 +67,16 @@ public abstract class ConfigManager {
     }
 
     public abstract void decode(final String jsonString);
+
+    public synchronized <T> void persist(String topicName, T t) {
+        // stub for future
+        this.persist();
+    }
+
+    public synchronized <T> void persist(Map<String, T> m) {
+        // stub for future
+        this.persist();
+    }
 
     public synchronized void persist() {
         String jsonString = this.encode(true);
