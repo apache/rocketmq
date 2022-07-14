@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.subscription;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
 public class SubscriptionGroupConfig {
@@ -25,18 +26,24 @@ public class SubscriptionGroupConfig {
 
     private boolean consumeEnable = true;
     private boolean consumeFromMinEnable = true;
-
     private boolean consumeBroadcastEnable = true;
+    private boolean consumeMessageOrderly = false;
 
     private int retryQueueNums = 1;
 
     private int retryMaxTimes = 16;
+    private GroupRetryPolicy groupRetryPolicy = new GroupRetryPolicy();
 
     private long brokerId = MixAll.MASTER_ID;
 
     private long whichBrokerWhenConsumeSlowly = 1;
 
     private boolean notifyConsumerIdsChangedEnable = true;
+
+    private int groupSysFlag = 0;
+
+    // Only valid for push consumer
+    private int consumeTimeoutMinute = 15;
 
     public String getGroupName() {
         return groupName;
@@ -70,6 +77,14 @@ public class SubscriptionGroupConfig {
         this.consumeBroadcastEnable = consumeBroadcastEnable;
     }
 
+    public boolean isConsumeMessageOrderly() {
+        return consumeMessageOrderly;
+    }
+
+    public void setConsumeMessageOrderly(boolean consumeMessageOrderly) {
+        this.consumeMessageOrderly = consumeMessageOrderly;
+    }
+
     public int getRetryQueueNums() {
         return retryQueueNums;
     }
@@ -84,6 +99,14 @@ public class SubscriptionGroupConfig {
 
     public void setRetryMaxTimes(int retryMaxTimes) {
         this.retryMaxTimes = retryMaxTimes;
+    }
+
+    public GroupRetryPolicy getGroupRetryPolicy() {
+        return groupRetryPolicy;
+    }
+
+    public void setGroupRetryPolicy(GroupRetryPolicy groupRetryPolicy) {
+        this.groupRetryPolicy = groupRetryPolicy;
     }
 
     public long getBrokerId() {
@@ -108,6 +131,22 @@ public class SubscriptionGroupConfig {
 
     public void setNotifyConsumerIdsChangedEnable(final boolean notifyConsumerIdsChangedEnable) {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
+    }
+
+    public int getGroupSysFlag() {
+        return groupSysFlag;
+    }
+
+    public void setGroupSysFlag(int groupSysFlag) {
+        this.groupSysFlag = groupSysFlag;
+    }
+
+    public int getConsumeTimeoutMinute() {
+        return consumeTimeoutMinute;
+    }
+
+    public void setConsumeTimeoutMinute(int consumeTimeoutMinute) {
+        this.consumeTimeoutMinute = consumeTimeoutMinute;
     }
 
     @Override
@@ -136,37 +175,35 @@ public class SubscriptionGroupConfig {
         if (getClass() != obj.getClass())
             return false;
         SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
-        if (brokerId != other.brokerId)
-            return false;
-        if (consumeBroadcastEnable != other.consumeBroadcastEnable)
-            return false;
-        if (consumeEnable != other.consumeEnable)
-            return false;
-        if (consumeFromMinEnable != other.consumeFromMinEnable)
-            return false;
-        if (groupName == null) {
-            if (other.groupName != null)
-                return false;
-        } else if (!groupName.equals(other.groupName))
-            return false;
-        if (retryMaxTimes != other.retryMaxTimes)
-            return false;
-        if (retryQueueNums != other.retryQueueNums)
-            return false;
-        if (whichBrokerWhenConsumeSlowly != other.whichBrokerWhenConsumeSlowly)
-            return false;
-        if (notifyConsumerIdsChangedEnable != other.notifyConsumerIdsChangedEnable)
-            return false;
-        return true;
+        return new EqualsBuilder()
+            .append(groupName, other.groupName)
+            .append(consumeEnable, other.consumeEnable)
+            .append(consumeFromMinEnable, other.consumeFromMinEnable)
+            .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
+            .append(retryQueueNums, other.retryQueueNums)
+            .append(retryMaxTimes, other.retryMaxTimes)
+            .append(brokerId, other.brokerId)
+            .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)
+            .append(notifyConsumerIdsChangedEnable, other.notifyConsumerIdsChangedEnable)
+            .append(groupSysFlag, other.groupSysFlag)
+            .isEquals();
     }
 
     @Override
     public String toString() {
-        return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-            + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
-            + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
-            + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
-            + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
-            + notifyConsumerIdsChangedEnable + "]";
+        return "SubscriptionGroupConfig{" +
+            "groupName='" + groupName + '\'' +
+            ", consumeEnable=" + consumeEnable +
+            ", consumeFromMinEnable=" + consumeFromMinEnable +
+            ", consumeBroadcastEnable=" + consumeBroadcastEnable +
+            ", consumeMessageOrderly=" + consumeMessageOrderly +
+            ", retryQueueNums=" + retryQueueNums +
+            ", retryMaxTimes=" + retryMaxTimes +
+            ", groupRetryPolicy=" + groupRetryPolicy +
+            ", brokerId=" + brokerId +
+            ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly +
+            ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
+            ", groupSysFlag=" + groupSysFlag +
+            '}';
     }
 }

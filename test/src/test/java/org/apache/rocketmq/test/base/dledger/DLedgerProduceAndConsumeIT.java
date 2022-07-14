@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
@@ -81,7 +82,7 @@ public class DLedgerProduceAndConsumeIT {
 
         String topic = UUID.randomUUID().toString();
         String consumerGroup = UUID.randomUUID().toString();
-        IntegrationTestBase.initTopic(topic, BaseConf.nsAddr, cluster, 1);
+        IntegrationTestBase.initTopic(topic, BaseConf.nsAddr, cluster, 1, CQType.SimpleCQ);
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(BaseConf.nsAddr);
         DefaultMQPullConsumer consumer = ConsumerFactory.getRMQPullConsumer(BaseConf.nsAddr, consumerGroup);
 

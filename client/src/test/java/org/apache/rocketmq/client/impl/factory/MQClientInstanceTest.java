@@ -180,4 +180,5 @@ public class MQClientInstanceTest {
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
     }
+
 }

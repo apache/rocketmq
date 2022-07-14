@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.9.5-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -101,13 +101,14 @@
 
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.10</logback.version>
-        <commons-cli.version>1.2</commons-cli.version>
+        <commons-cli.version>1.4</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.69_noneautotype</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.4</commons-lang3.version>
+        <commons-io.version>2.7</commons-io.version>
         <guava.version>31.0.1-jre</guava.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <log4j.version>1.2.17</log4j.version>
@@ -122,6 +123,7 @@
         <dleger.version>0.2.7</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
+        <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -173,6 +175,7 @@
         <module>logging</module>
         <module>acl</module>
         <module>example</module>
+        <module>container</module>
     </modules>
 
     <build>
@@ -485,6 +488,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-container</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -591,9 +599,19 @@
                 <version>${commons-lang3.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+                <artifactId>concurrentlinkedhashmap-lru</artifactId>
+                <version>${concurrentlinkedhashmap-lru.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.openmessaging</groupId>

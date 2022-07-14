@@ -134,8 +134,8 @@ class ConsumerConfigInfo {
         return brokerName;
     }
 
-    public void setBrokerName(String brokerNameList) {
-        this.brokerName = brokerNameList;
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 
     public SubscriptionGroupConfig getSubscriptionGroupConfig() {
