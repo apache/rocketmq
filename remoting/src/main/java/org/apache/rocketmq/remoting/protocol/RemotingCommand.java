@@ -17,20 +17,24 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -97,6 +101,15 @@ public class RemotingCommand {
         return cmd;
     }
 
+    public static RemotingCommand createResponseCommandWithHeader(int code, CommandCustomHeader customHeader) {
+        RemotingCommand cmd = new RemotingCommand();
+        cmd.setCode(code);
+        cmd.markResponseType();
+        cmd.customHeader = customHeader;
+        setCmdVersion(cmd);
+        return cmd;
+    }
+
     private static void setCmdVersion(RemotingCommand cmd) {
         if (configVersion >= 0) {
             cmd.setVersion(configVersion);
@@ -112,6 +125,18 @@ public class RemotingCommand {
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
+    }
+
+    public static RemotingCommand buildErrorResponse(int code, String remark,
+        Class<? extends CommandCustomHeader> classHeader) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(classHeader);
+        response.setCode(code);
+        response.setRemark(remark);
+        return response;
+    }
+
+    public static RemotingCommand buildErrorResponse(int code, String remark) {
+        return buildErrorResponse(code, remark, null);
     }
 
     public static RemotingCommand createResponseCommand(int code, String remark,
@@ -178,7 +203,8 @@ public class RemotingCommand {
         return length & 0xFFFFFF;
     }
 
-    private static RemotingCommand headerDecode(ByteBuf byteBuffer, int len, SerializeType type) throws RemotingCommandException {
+    private static RemotingCommand headerDecode(ByteBuf byteBuffer, int len,
+        SerializeType type) throws RemotingCommandException {
         switch (type) {
             case JSON:
                 byte[] headerData = new byte[len];
@@ -240,12 +266,12 @@ public class RemotingCommand {
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(
-            Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         return decodeCommandCustomHeader(classHeader, true);
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader,
-            boolean useFastEncode) throws RemotingCommandException {
+        boolean useFastEncode) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.getDeclaredConstructor().newInstance();
@@ -313,11 +339,17 @@ public class RemotingCommand {
         return objectHeader;
     }
 
-    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
+    //make it able to test
+    Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
         Field[] field = CLASS_HASH_MAP.get(classHeader);
 
         if (field == null) {
-            field = classHeader.getDeclaredFields();
+            Set<Field> fieldList = new HashSet<Field>();
+            for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
+                Field[] fields = className.getDeclaredFields();
+                fieldList.addAll(Arrays.asList(fields));
+            }
+            field = fieldList.toArray(new Field[0]);
             synchronized (CLASS_HASH_MAP) {
                 CLASS_HASH_MAP.put(classHeader, field);
             }

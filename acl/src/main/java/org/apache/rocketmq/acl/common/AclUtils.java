@@ -20,9 +20,11 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -272,6 +274,43 @@ public class AclUtils {
             }
         }
         return true;
+    }
+
+    public static boolean copyFile(String from, String to) {
+        FileChannel input = null;
+        FileChannel output = null;
+        try {
+            input = new FileInputStream(new File(from)).getChannel();
+            output = new FileOutputStream(new File(to)).getChannel();
+            output.transferFrom(input, 0, input.size());
+            return true;
+        } catch (Exception e) {
+            log.error("file copy error. from={}, to={}", from, to, e);
+        } finally {
+            closeFileChannel(input);
+            closeFileChannel(output);
+        }
+        return false;
+    }
+
+    public static boolean moveFile(String from, String to) {
+        try {
+            File file = new File(from);
+            return file.renameTo(new File(to));
+        } catch (Exception e) {
+            log.error("file move error. from={}, to={}", from, to, e);
+        }
+        return false;
+    }
+
+    private static void closeFileChannel(FileChannel fileChannel) {
+        if (fileChannel != null) {
+            try {
+                fileChannel.close();
+            } catch (IOException e) {
+                log.error("Close file channel error.", e);
+            }
+        }
     }
 
     public static RPCHook getAclRPCHook(String fileName) {

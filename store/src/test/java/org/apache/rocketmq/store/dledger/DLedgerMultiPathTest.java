@@ -46,8 +46,8 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
             DefaultMessageStore dLedgerStore = createDLedgerMessageStore(base, group, "n0", peers, multiStorePath, null);
             Thread.sleep(2000);
             doPutMessages(dLedgerStore, topic, 0, 1000, 0);
-            Assert.assertEquals(11, dLedgerStore.getMaxPhyOffset()/dLedgerStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
             Thread.sleep(500);
+            Assert.assertEquals(11, dLedgerStore.getMaxPhyOffset()/dLedgerStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
             Assert.assertEquals(0, dLedgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, dLedgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dLedgerStore.dispatchBehindBytes());
