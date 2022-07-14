@@ -29,7 +29,6 @@ public class MessageSysFlag {
      * | byte 2 |   |   |           |          |             | COMPRESSION_TYPE | COMPRESSION_TYPE | COMPRESSION_TYPE |
      * | byte 3 |   |   |           |          |             |                  |                  |                  |
      * | byte 4 |   |   |           |          |             |                  |                  |                  |
-     *
      */
     public final static int COMPRESSED_FLAG = 0x1;
     public final static int MULTI_TAGS_FLAG = 0x1 << 1;
@@ -64,6 +63,10 @@ public class MessageSysFlag {
     // To match the compression type
     public static CompressionType getCompressionType(final int flag) {
         return CompressionType.findByValue((flag & COMPRESSION_TYPE_COMPARATOR) >> 8);
+    }
+
+    public static boolean check(int flag, int expectedFlag) {
+        return (flag & expectedFlag) != 0;
     }
 
 }

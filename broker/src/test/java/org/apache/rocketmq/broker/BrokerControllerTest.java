@@ -30,7 +30,6 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +43,7 @@ public class BrokerControllerTest {
             new NettyServerConfig(),
             new NettyClientConfig(),
             new MessageStoreConfig());
-        assertThat(brokerController.initialize());
+        assertThat(brokerController.initialize()).isTrue();
         brokerController.start();
         brokerController.shutdown();
     }
