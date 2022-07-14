@@ -33,6 +33,9 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
+            return brokerController.getBrokerIdentity().getLoggerIdentifier() + TransactionalMessageCheckService.class.getSimpleName();
+        }
         return TransactionalMessageCheckService.class.getSimpleName();
     }
 

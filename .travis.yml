@@ -7,7 +7,7 @@ notifications:
     if: branch = develop OR branch = master
   on_success: change
   on_failure: always
-  
+
 
 language: java
 
@@ -48,7 +48,7 @@ before_script:
   - ulimit -c unlimited
 
 script:
-  - mvn -B verify -DskipTests
+  - mvn verify -DskipTests
   - travis_retry mvn -B clean apache-rat:check
   - travis_retry mvn -B install jacoco:report coveralls:report
   - travis_retry mvn -B clean install -pl test -Pit-test

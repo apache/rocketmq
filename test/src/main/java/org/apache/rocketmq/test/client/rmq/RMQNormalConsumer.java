@@ -49,6 +49,7 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
         consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setInstanceName(RandomUtil.getStringByUUID());
         consumer.setNamesrvAddr(nsAddr);
+        consumer.setPollNameServerInterval(100);
         try {
             consumer.subscribe(topic, subExpression);
         } catch (MQClientException e) {
@@ -91,5 +92,9 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
         consumer.shutdown();
         create();
         start();
+    }
+
+    public DefaultMQPushConsumer getConsumer() {
+        return consumer;
     }
 }

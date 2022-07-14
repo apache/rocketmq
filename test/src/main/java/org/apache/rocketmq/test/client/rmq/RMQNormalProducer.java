@@ -73,6 +73,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         producer.setProducerGroup(getProducerGroupName());
         producer.setInstanceName(getProducerInstanceName());
         producer.setUseTLS(useTLS);
+        producer.setPollNameServerInterval(100);
 
         if (nsAddr != null) {
             producer.setNamesrvAddr(nsAddr);
@@ -129,6 +130,12 @@ public class RMQNormalProducer extends AbstractMQProducer {
     public void send(List<Object> msgs, MessageQueue mq) {
         for (Object msg : msgs) {
             sendMQ((Message) msg, mq);
+        }
+    }
+
+    public void send(int num, MessageQueue mq) {
+        for (int i = 0; i < num; i++) {
+            sendMQ((Message) getMessageByTag(null), mq);
         }
     }
 

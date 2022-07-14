@@ -30,6 +30,20 @@ case $1 in
 
     echo "Send shutdown request to mqbroker(${pid}) OK"
     ;;
+    brokerContainer)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.container.BrokerContainerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No broker container running."
+            exit -1;
+    fi
+
+    echo "The broker container(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to broker container(${pid}) OK"
+    ;;
     namesrv)
 
     pid=`ps ax | grep -i 'org.apache.rocketmq.namesrv.NamesrvStartup' |grep java | grep -v grep | awk '{print $1}'`

@@ -30,7 +30,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public final class ThreadUtils {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
 
     public static ExecutorService newThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime,
         TimeUnit unit, BlockingQueue<Runnable> workQueue, String processName, boolean isDaemon) {
@@ -102,7 +102,7 @@ public final class ThreadUtils {
         thread.setDaemon(daemon);
         thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread t, Throwable e) {
-                log.error("Uncaught exception in thread '" + t.getName() + "':", e);
+                LOGGER.error("Uncaught exception in thread '" + t.getName() + "':", e);
             }
         });
         return thread;
@@ -153,7 +153,7 @@ public final class ThreadUtils {
                 executor.shutdownNow();
                 // Wait a while for tasks to respond to being cancelled.
                 if (!executor.awaitTermination(timeout, timeUnit)) {
-                    log.warn(String.format("%s didn't terminate!", executor));
+                    LOGGER.warn(String.format("%s didn't terminate!", executor));
                 }
             }
         } catch (InterruptedException ie) {
@@ -161,6 +161,17 @@ public final class ThreadUtils {
             executor.shutdownNow();
             // Preserve interrupt status.
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Shutdown the specific ExecutorService
+     *
+     * @param executorService the executor
+     */
+    public static void shutdown(ExecutorService executorService) {
+        if (executorService != null) {
+            executorService.shutdown();
         }
     }
 
