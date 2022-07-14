@@ -380,7 +380,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                         case ResponseCode.SUCCESS: {
                             try {
                                 QueryConsumerOffsetResponseHeader responseHeader =
-                                    response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+                                    (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
                                 future.complete(responseHeader.getOffset());
                             } catch (RemotingCommandException e) {
                                 future.completeExceptionally(e);
@@ -474,7 +474,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 if (response != null) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
-                            GetMaxOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                            GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
@@ -502,7 +502,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 if (response != null) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
-                            GetMinOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+                            GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
@@ -530,7 +530,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 if (response != null) {
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         try {
-                            SearchOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                            SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);

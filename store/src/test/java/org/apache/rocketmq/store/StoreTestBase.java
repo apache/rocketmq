@@ -21,7 +21,6 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.After;
 
 import java.io.File;

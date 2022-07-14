@@ -33,8 +33,8 @@ public class LocalRemotingCommand extends RemotingCommand {
     }
 
     @Override
-    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
-        Class<T> classHeader) throws RemotingCommandException {
+    public CommandCustomHeader decodeCommandCustomHeader(
+        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         return classHeader.cast(readCustomHeader());
     }
 }

@@ -109,7 +109,7 @@ public class BrokerOuterAPI {
     private final TopAddressing topAddressing = new DefaultTopAddressing(MixAll.getWSAddr());
     private String nameSrvAddr = null;
     private BrokerFixedThreadPoolExecutor brokerOuterExecutor = new BrokerFixedThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
-        new ArrayBlockingQueue<Runnable>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
+        new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
 
     private ClientMetadata clientMetadata;
     private RpcClient rpcClient;
@@ -141,7 +141,7 @@ public class BrokerOuterAPI {
     public String fetchNameServerAddr() {
         try {
             String addrs = this.topAddressing.fetchNSAddr();
-            if (addrs != null) {
+            if (!UtilAll.isBlank(addrs)) {
                 if (!addrs.equals(this.nameSrvAddr)) {
                     LOGGER.info("name server address changed, old: {} new: {}", this.nameSrvAddr, addrs);
                     this.updateNameServerAddressList(addrs);
@@ -321,7 +321,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                ExchangeHAInfoResponseHeader responseHeader = response.decodeCommandCustomHeader(ExchangeHAInfoResponseHeader.class);
+                ExchangeHAInfoResponseHeader responseHeader = (ExchangeHAInfoResponseHeader) response.decodeCommandCustomHeader(ExchangeHAInfoResponseHeader.class);
                 return new BrokerSyncInfo(responseHeader.getMasterHaAddress(), responseHeader.getMasterFlushOffset(), responseHeader.getMasterAddress());
             }
             default:
@@ -707,7 +707,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                GetMaxOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
 
                 return responseHeader.getOffset();
             }
@@ -729,7 +729,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                GetMinOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+                GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
 
                 return responseHeader.getOffset();
             }

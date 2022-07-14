@@ -128,7 +128,7 @@ eg.假设broker获取到的配额是500g（根据replicasPerDiskPartition计算�
 
 **开发者需要注意!**
 
-在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，因此所有broker的日志将会输出到同一个日志文件中，BrokerContainer模式下将提供broker日志分离功能，通过BrokerConfig配置isolateLogEnable=true进行开启，开启后不同broker的日志将会输出到不同文件中。
+在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，BrokerContainer模式下将提供broker日志分离功能，不同broker的日志将会输出到不同文件中。
 
 主要通过线程名（ThreadName）或者通过设置线程本地变量（ThreadLocal）来区分不同broker线程，并且hack logback的logAppender将日志重定向到不同的文件中。
 

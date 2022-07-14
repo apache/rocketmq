@@ -40,7 +40,8 @@ public class PlainAccessValidator implements AccessValidator {
         return PlainAccessResource.parse(request, remoteAddr);
     }
 
-    @Override public AccessResource parse(GeneratedMessageV3 messageV3, AuthenticationHeader header) {
+    @Override
+    public AccessResource parse(GeneratedMessageV3 messageV3, AuthenticationHeader header) {
         return PlainAccessResource.parse(messageV3, header);
     }
 
@@ -59,18 +60,26 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.deleteAccessConfig(accesskey);
     }
 
-    @Override public String  getAclConfigVersion() {
+    @Override
+    public String getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
     }
 
-    @Override public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+    @Override
+    public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
         return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
     }
 
-    @Override public AclConfig getAllAclConfig() {
+    @Override
+    public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String aclFileFullPath) {
+        return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList, aclFileFullPath);
+    }
+
+    @Override
+    public AclConfig getAllAclConfig() {
         return aclPlugEngine.getAllAclConfig();
     }
-    
+
     @Override
     public Map<String, DataVersion> getAllAclConfigVersion() {
         return aclPlugEngine.getDataVersionMap();

@@ -233,13 +233,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(
                     nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
         }
-
-        if (nettyClientConfig.getClientSocketSndBufSize() != 0) {
-            handler.option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize());
-        }
-        if (nettyClientConfig.getClientSocketRcvBufSize() != 0) {
-            handler.option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize());
-        }
         if (nettyClientConfig.isClientPooledByteBufAllocatorEnable()) {
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
@@ -480,11 +473,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             this.closeChannel(addr, channel);
             throw new RemotingConnectException(addr);
         }
-    }
-
-    @Override
-    public void closeChannels() {
-        closeChannels(new ArrayList<String>(this.channelTables.keySet()));
     }
 
     @Override
@@ -737,11 +725,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
         this.callbackExecutor = callbackExecutor;
-    }
-
-    @Override
-    public ConcurrentMap<Integer, ResponseFuture> getResponseTable() {
-        return this.responseTable;
     }
 
     protected void scanChannelTablesOfNameServer() {

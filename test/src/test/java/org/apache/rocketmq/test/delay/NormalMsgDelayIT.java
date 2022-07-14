@@ -19,7 +19,6 @@ package org.apache.rocketmq.test.delay;
 
 import java.util.List;
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;

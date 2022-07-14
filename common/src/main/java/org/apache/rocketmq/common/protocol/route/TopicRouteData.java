@@ -69,7 +69,9 @@ public class TopicRouteData extends RemotingSerializable {
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
-
+        topicRouteData.setQueueDatas(new ArrayList<>());
+        topicRouteData.setBrokerDatas(new ArrayList<>());
+        topicRouteData.setFilterServerTable(new HashMap<>());
         topicRouteData.setOrderTopicConf(this.orderTopicConf);
 
         topicRouteData.getQueueDatas().addAll(this.queueDatas);

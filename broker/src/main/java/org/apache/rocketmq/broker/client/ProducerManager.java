@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.ProducerInfo;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -62,6 +66,33 @@ public class ProducerManager {
 
     public ConcurrentHashMap<String, ConcurrentHashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
         return groupChannelTable;
+    }
+
+    public ProducerTableInfo getProducerTable() {
+        Map<String, List<ProducerInfo>> map = new HashMap<>();
+        for (String group : this.groupChannelTable.keySet()) {
+            for (Entry<Channel, ClientChannelInfo> entry: this.groupChannelTable.get(group).entrySet()) {
+                ClientChannelInfo clientChannelInfo = entry.getValue();
+                if (map.containsKey(group)) {
+                    map.get(group).add(new ProducerInfo(
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
+                    ));
+                } else {
+                    map.put(group, new ArrayList<ProducerInfo>(Collections.singleton(new ProducerInfo(
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
+                    ))));
+                }
+            }
+        }
+        return new ProducerTableInfo(map);
     }
 
     public void scanNotActiveChannel() {

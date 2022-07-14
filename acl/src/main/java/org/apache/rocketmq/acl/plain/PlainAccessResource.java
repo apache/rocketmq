@@ -112,13 +112,22 @@ public class PlainAccessResource implements AccessResource {
         try {
             switch (request.getCode()) {
                 case RequestCode.SEND_MESSAGE:
-                    accessResource.addResourceAndPerm(request.getExtFields().get("topic"), Permission.PUB);
+                    final String topic = request.getExtFields().get("topic");
+                    if (PlainAccessResource.isRetryTopic(topic)) {
+                        accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("group")), Permission.SUB);
+                    } else {
+                        accessResource.addResourceAndPerm(topic, Permission.PUB);
+                    }
                     break;
                 case RequestCode.SEND_MESSAGE_V2:
-                    accessResource.addResourceAndPerm(request.getExtFields().get("b"), Permission.PUB);
+                    final String topicV2 = request.getExtFields().get("b");
+                    if (PlainAccessResource.isRetryTopic(topicV2)) {
+                        accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("a")), Permission.SUB);
+                    } else {
+                        accessResource.addResourceAndPerm(topicV2, Permission.PUB);
+                    }
                     break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
-                    accessResource.addResourceAndPerm(request.getExtFields().get("originTopic"), Permission.PUB);
                     accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("group")), Permission.SUB);
                     break;
                 case RequestCode.PULL_MESSAGE:
