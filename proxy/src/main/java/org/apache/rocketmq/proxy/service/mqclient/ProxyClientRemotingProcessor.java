@@ -56,7 +56,7 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
                 CheckTransactionStateRequestHeader requestHeader =
-                    request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+                    (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                 request.writeCustomHeader(requestHeader);
                 request.addExtField(ProxyUtils.BROKER_ADDR, RemotingUtil.socketAddress2String(ctx.channel().remoteAddress()));
                 this.producerManager.getAvailableChannel(group).writeAndFlush(request);

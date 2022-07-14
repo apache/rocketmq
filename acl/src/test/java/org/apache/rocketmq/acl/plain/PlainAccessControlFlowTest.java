@@ -148,7 +148,7 @@ public class PlainAccessControlFlowTest {
     }
 
     @Test
-    public void testEmptyAclFolderCase() throws NoSuchFieldException, IllegalAccessException {
+    public void testEmptyAclFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         this.isCheckCase1 = true;
         System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/empty_acl_folder_conf").toString());
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -160,7 +160,7 @@ public class PlainAccessControlFlowTest {
     }
 
     @Test
-    public void testOnlyAclFolderCase() throws NoSuchFieldException, IllegalAccessException {
+    public void testOnlyAclFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         this.isCheckCase2 = true;
         System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/only_acl_folder_conf").toString());
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -172,7 +172,7 @@ public class PlainAccessControlFlowTest {
 
 
     @Test
-    public void testBothAclFileAndFolderCase() throws NoSuchFieldException, IllegalAccessException {
+    public void testBothAclFileAndFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         this.isCheckCase3 = true;
         System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/both_acl_file_folder_conf").toString());
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -183,7 +183,7 @@ public class PlainAccessControlFlowTest {
 
     }
 
-    private void testValidationAfterConfigFileChanged(PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException {
+    private void testValidationAfterConfigFileChanged(PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         PlainAccessConfig producerAccessConfig = generateProducerAccessConfig();
         PlainAccessConfig consumerAccessConfig = generateConsumerAccessConfig();
         List<PlainAccessConfig> plainAccessConfigList = new LinkedList<>();
@@ -237,7 +237,7 @@ public class PlainAccessControlFlowTest {
         PlainAccessConfig consumerAccessConfig = generateConsumerAccessConfig();
         plainAccessValidator.updateAccessConfig(consumerAccessConfig);
 
-        plainAccessValidator.updateGlobalWhiteAddrsConfig(DEFAULT_GLOBAL_WHITE_ADDRS_LIST);
+        plainAccessValidator.updateGlobalWhiteAddrsConfig(DEFAULT_GLOBAL_WHITE_ADDRS_LIST, null);
 
         // check if the above config updated successfully
         final AclConfig allAclConfig = plainAccessValidator.getAllAclConfig();

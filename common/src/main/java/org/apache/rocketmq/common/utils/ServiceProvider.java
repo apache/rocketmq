@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.utils;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -36,7 +37,8 @@ public class ServiceProvider {
     private static ClassLoader thisClassLoader;
 
     /**
-     * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider' specification</a>.
+     * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider'
+     * specification</a>.
      */
     public static final String TRANSACTION_SERVICE_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService";
 
@@ -44,13 +46,9 @@ public class ServiceProvider {
 
     public static final String HA_SERVICE_ID = "META-INF/service/org.apache.rocketmq.store.ha.HAService";
 
-
     public static final String RPC_HOOK_ID = "META-INF/service/org.apache.rocketmq.remoting.RPCHook";
 
-
     public static final String ACL_VALIDATOR_ID = "META-INF/service/org.apache.rocketmq.acl.AccessValidator";
-
-
 
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);
@@ -59,7 +57,8 @@ public class ServiceProvider {
     /**
      * Returns a string that uniquely identifies the specified object, including its class.
      * <p>
-     * The returned string is of form "classname@hashcode", ie is the same as the return value of the Object.toString() method, but works even when the specified object's class has overidden the toString method.
+     * The returned string is of form "classname@hashcode", ie is the same as the return value of the Object.toString()
+     * method, but works even when the specified object's class has overidden the toString method.
      *
      * @param o may be null.
      * @return a string of form classname@hashcode, or "null" if param o is null.
@@ -76,7 +75,7 @@ public class ServiceProvider {
         try {
             return clazz.getClassLoader();
         } catch (SecurityException e) {
-            LOG.error("Unable to get classloader for class {} due to security restrictions !",
+            LOG.error("Unable to get classloader for class {} due to security restrictions , error info {}",
                 clazz, e.getMessage());
             throw e;
         }
@@ -112,11 +111,7 @@ public class ServiceProvider {
             final InputStream is = getResourceAsStream(getContextClassLoader(), name);
             if (is != null) {
                 BufferedReader reader;
-                try {
-                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-                } catch (java.io.UnsupportedEncodingException e) {
-                    reader = new BufferedReader(new InputStreamReader(is));
-                }
+                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String serviceName = reader.readLine();
                 while (serviceName != null && !"".equals(serviceName)) {
                     LOG.info(
@@ -126,7 +121,7 @@ public class ServiceProvider {
                         names.add(serviceName);
                     }
 
-                    services.add((T)initService(getContextClassLoader(), serviceName, clazz));
+                    services.add((T) initService(getContextClassLoader(), serviceName, clazz));
 
                     serviceName = reader.readLine();
                 }
@@ -146,11 +141,7 @@ public class ServiceProvider {
         if (is != null) {
             BufferedReader reader;
             try {
-                try {
-                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-                } catch (java.io.UnsupportedEncodingException e) {
-                    reader = new BufferedReader(new InputStreamReader(is));
-                }
+                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String serviceName = reader.readLine();
                 reader.close();
                 if (serviceName != null && !"".equals(serviceName)) {
@@ -180,14 +171,14 @@ public class ServiceProvider {
                         // This indicates a problem with the ClassLoader tree. An incompatible ClassLoader was used to load the implementation.
                         LOG.error(
                             "Class {} loaded from classloader {} does not extend {} as loaded by this classloader.",
-                            new Object[] {serviceClazz.getName(),
-                                objectId(serviceClazz.getClassLoader()), clazz.getName()});
+                            serviceClazz.getName(),
+                            objectId(serviceClazz.getClassLoader()), clazz.getName());
                     }
-                    return (T)serviceClazz.newInstance();
+                    return (T) serviceClazz.getDeclaredConstructor().newInstance();
                 } catch (ClassNotFoundException ex) {
                     if (classLoader == thisClassLoader) {
                         // Nothing more to try, onwards.
-                        LOG.warn("Unable to locate any class {} via classloader", serviceName,
+                        LOG.warn("Unable to locate any class {} via classloader {}", serviceName,
                             objectId(classLoader));
                         throw ex;
                     }
@@ -206,6 +197,6 @@ public class ServiceProvider {
         } catch (Exception e) {
             LOG.error("Unable to init service.", e);
         }
-        return (T)serviceClazz;
+        return (T) serviceClazz;
     }
 }

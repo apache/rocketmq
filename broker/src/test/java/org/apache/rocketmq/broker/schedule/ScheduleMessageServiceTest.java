@@ -53,9 +53,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.BROKER_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_SIZE;
+import static org.apache.rocketmq.common.stats.Stats.BROKER_PUT_NUMS;
+import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_NUMS;
+import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 

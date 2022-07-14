@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -94,6 +95,9 @@ public interface MQAdminExt extends MQAdmin {
 
     void updateGlobalWhiteAddrConfig(final String addr,
         final String globalWhiteAddrs) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
+    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath)throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
@@ -154,6 +158,9 @@ public interface MQAdminExt extends MQAdmin {
     ProducerConnection examineProducerConnectionInfo(final String producerGroup,
         final String topic) throws RemotingException,
         MQClientException, InterruptedException, MQBrokerException;
+
+    ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException;
 
     List<String> getNameServerAddressList();
 
@@ -240,6 +247,12 @@ public interface MQAdminExt extends MQAdmin {
         RemotingTimeoutException, MQClientException, InterruptedException;
 
     boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException;
+
+    boolean deleteExpiredCommitLog(String cluster) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException;
+
+    boolean deleteExpiredCommitLogByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, MQClientException, InterruptedException;
 
     boolean cleanUnusedTopic(String cluster) throws RemotingConnectException, RemotingSendRequestException,

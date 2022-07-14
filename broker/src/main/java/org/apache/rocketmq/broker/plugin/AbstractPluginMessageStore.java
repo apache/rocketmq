@@ -276,6 +276,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         return next.getConsumeQueue(topic, queueId);
     }
 
+    @Override public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
+        return next.findConsumeQueue(topic, queueId);
+    }
+
     @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return next.getBrokerStatsManager();

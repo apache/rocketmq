@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import com.google.common.hash.Hashing;
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -382,7 +383,7 @@ public class DefaultMessageStore implements MessageStore {
             LOGGER.warn("[TooSmallCqOffset] maxPhysicalPosInLogicQueue={} clMinOffset={}", maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset());
         }
         LOGGER.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
-                maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
+            maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
         this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
 
         /**
@@ -490,7 +491,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
-                && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+            && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             LOGGER.warn("[BUG]The message had property {} but is not an inner batch", MessageConst.PROPERTY_INNER_NUM);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
@@ -563,15 +564,15 @@ public class DefaultMessageStore implements MessageStore {
     private PutMessageResult waitForPutResult(CompletableFuture<PutMessageResult> putMessageResultFuture) {
         try {
             int putMessageTimeout =
-                    Math.max(this.messageStoreConfig.getSyncFlushTimeout(),
-                            this.messageStoreConfig.getSlaveTimeout()) + 5000;
+                Math.max(this.messageStoreConfig.getSyncFlushTimeout(),
+                    this.messageStoreConfig.getSlaveTimeout()) + 5000;
             return putMessageResultFuture.get(putMessageTimeout, TimeUnit.MILLISECONDS);
         } catch (ExecutionException | InterruptedException e) {
             return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         } catch (TimeoutException e) {
             LOGGER.error("usually it will never timeout, putMessageTimeout is much bigger than slaveTimeout and "
-                    + "flushTimeout so the result can be got anyway, but in some situations timeout will happen like full gc "
-                    + "process hangs or other unexpected situations.");
+                + "flushTimeout so the result can be got anyway, but in some situations timeout will happen like full gc "
+                + "process hangs or other unexpected situations.");
             return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         }
     }
@@ -1045,7 +1046,10 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime() {
-        final long minPhyOffset = this.getMinPhyOffset();
+        long minPhyOffset = this.getMinPhyOffset();
+        if (this.getCommitLog() instanceof DLedgerCommitLog) {
+            minPhyOffset += DLedgerEntry.BODY_OFFSET;
+        }
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
@@ -1135,33 +1139,17 @@ public class DefaultMessageStore implements MessageStore {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
-
-                    boolean match = true;
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-//                    if (topic.equals(msg.getTopic())) {
-//                        for (String k : keyArray) {
-//                            if (k.equals(key)) {
-//                                match = true;
-//                                break;
-//                            }
-//                        }
-//                    }
-
-                    if (match) {
-                        SelectMappedBufferResult result = this.commitLog.getData(offset, false);
-                        if (result != null) {
-                            int size = result.getByteBuffer().getInt(0);
-                            result.getByteBuffer().limit(size);
-                            result.setSize(size);
-                            queryMessageResult.addMessage(result);
-                        }
-                    } else {
-                        LOGGER.warn("queryMessage hash duplicate, topic={}, key={}", topic, key);
+                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
+                    if (result != null) {
+                        int size = result.getByteBuffer().getInt(0);
+                        result.getByteBuffer().limit(size);
+                        result.setSize(size);
+                        queryMessageResult.addMessage(result);
                     }
                 } catch (Exception e) {
                     LOGGER.error("queryMessage exception", e);
@@ -1293,7 +1281,7 @@ public class DefaultMessageStore implements MessageStore {
                             int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
                             String msgId =
-                                    MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
+                                MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
                             messageIds.put(msgId, cqUnit.getQueueOffset());
                             nextOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
                             if (nextOffset >= maxOffset) {

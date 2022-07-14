@@ -367,8 +367,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     } catch (Exception e) {
                         log.error("parse subscription error", e);
                     }
-                    ms.setSubVersion(0L);
-                    result.add(ms);
+                    if (ms != null) {
+                        ms.setSubVersion(0L);
+                        result.add(ms);
+                    }
                 }
             }
         }

@@ -29,6 +29,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -379,7 +380,8 @@ public class DefaultLitePullConsumerTest {
         doReturn(Collections.emptySet()).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
         litePullConsumer.setTopicMetadataCheckIntervalMillis(10);
         litePullConsumer.registerTopicMessageQueueChangeListener(topic, new TopicMessageQueueChangeListener() {
-            @Override public void onChanged(String topic, Set<MessageQueue> messageQueues) {
+            @Override
+            public void onChanged(String topic, Set<MessageQueue> messageQueues) {
                 flag = true;
             }
         });
@@ -540,6 +542,33 @@ public class DefaultLitePullConsumerTest {
         Thread.sleep(100);
         defaultLitePullConsumer.shutdown();
         assertThat(defaultLitePullConsumer.isRunning()).isFalse();
+    }
+
+    @Test
+    public void testConsumerCommitWithMQ() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+        litePullConsumer.setOffsetStore(store);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+
+        //replace with real offsetStore.
+        Field offsetStore = litePullConsumerImpl.getClass().getDeclaredField("offsetStore");
+        offsetStore.setAccessible(true);
+        offsetStore.set(litePullConsumerImpl, store);
+
+        MessageQueue messageQueue = createMessageQueue();
+        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        set.add(messageQueue);
+
+        //mock assign and reset offset
+        litePullConsumer.assign(set);
+        litePullConsumer.seek(messageQueue, 0);
+
+        //commit
+        litePullConsumer.commit(set, true);
+
+        assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0);
     }
 
     static class AsyncConsumer {

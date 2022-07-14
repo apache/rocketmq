@@ -180,7 +180,7 @@ public class ClusterListSubCommand implements SubCommand {
     private void printClusterBaseInfo(final Set<String> clusterNames,
         final DefaultMQAdminExt defaultMQAdminExt,
         final ClusterInfo clusterInfo) {
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s %-10%n",
             "#Cluster Name",
             "#Broker Name",
             "#BID",

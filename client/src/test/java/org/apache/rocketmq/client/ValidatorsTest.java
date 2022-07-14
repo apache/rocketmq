@@ -29,6 +29,16 @@ import static org.junit.Assert.fail;
 public class ValidatorsTest {
 
     @Test
+    public void testGroupNameBlank() {
+        try {
+            Validators.checkGroup(null);
+            fail("excepted MQClientException for group name is blank");
+        } catch (MQClientException e) {
+            assertThat(e.getErrorMessage()).isEqualTo("the specified group is blank");
+        }
+    }
+    
+    @Test
     public void testCheckTopic_Success() throws MQClientException {
         Validators.checkTopic("Hello");
         Validators.checkTopic("%RETRY%Hello");

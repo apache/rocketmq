@@ -120,10 +120,10 @@ public class BrokerStartup {
                     configFileHelper.setFile(file);
                     configFile = file;
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
+                    properties = configFileHelper.loadConfig();
                 }
             }
 
-            properties = configFileHelper.loadConfig();
             if (properties != null) {
                 properties2SystemEnv(properties);
                 MixAll.properties2Object(properties, brokerConfig);

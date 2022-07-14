@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -508,7 +509,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
-                topicConfig.toString(),
+                topicConfig,
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
             LOGGER.warn(errorInfo);
