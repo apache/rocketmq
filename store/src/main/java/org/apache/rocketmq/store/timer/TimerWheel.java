@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MappedFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -55,7 +55,7 @@ public class TimerWheel {
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
 
         File file = new File(fileName);
-        MappedFile.ensureDirOK(file.getParent());
+        UtilAll.ensureDirOK(file.getParent());
 
         try {
             randomAccessFile = new RandomAccessFile(this.fileName, "rw");
@@ -88,8 +88,8 @@ public class TimerWheel {
             this.flush();
 
         // unmap mappedByteBuffer
-        MappedFile.clean(this.mappedByteBuffer);
-        MappedFile.clean(this.byteBuffer);
+        UtilAll.cleanBuffer(this.mappedByteBuffer);
+        UtilAll.cleanBuffer(this.byteBuffer);
 
         try {
             this.fileChannel.close();

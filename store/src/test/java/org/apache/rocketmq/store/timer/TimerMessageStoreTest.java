@@ -43,17 +43,17 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,7 +68,7 @@ import static org.junit.Assert.assertTrue;
 //@Ignore
 public class TimerMessageStoreTest {
     private final byte[] msgBody = new byte[1024];
-    private MessageStore messageStore;
+    private static MessageStore messageStore;
     private SocketAddress bornHost;
     private SocketAddress storeHost;
 
@@ -78,7 +78,7 @@ public class TimerMessageStoreTest {
     private final List<TimerMessageStore> timerStores = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
 
-    private MessageStoreConfig storeConfig;
+    public static MessageStoreConfig storeConfig;
 
     @Before
     public void init() throws Exception {
@@ -102,6 +102,8 @@ public class TimerMessageStoreTest {
 
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = messageStore.load();
+        List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
+
         assertTrue(load);
         messageStore.start();
     }
@@ -122,6 +124,49 @@ public class TimerMessageStoreTest {
         return timerMessageStore;
     }
 
+    private static PutMessageResult transformTimerMessage(TimerMessageStore timerMessageStore, MessageExtBrokerInner msg) {
+        //do transform
+        int delayLevel = msg.getDelayTimeLevel();
+        long deliverMs;
+
+        try {
+            if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+            } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
+                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+            } else {
+                deliverMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+            }
+        } catch (Exception e) {
+            return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+        }
+        if (deliverMs > System.currentTimeMillis()) {
+            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > storeConfig.getTimerMaxDelaySec() * 1000) {
+                return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+            }
+
+            int timerPrecisionMs = storeConfig.getTimerPrecisionMs();
+            if (deliverMs % timerPrecisionMs == 0) {
+                deliverMs -= timerPrecisionMs;
+            } else {
+                deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
+            }
+
+            if (timerMessageStore.isReject(deliverMs)) {
+                return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL, null);
+            }
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_OUT_MS, deliverMs + "");
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+            msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+            msg.setTopic(TimerMessageStore.TIMER_TOPIC);
+            msg.setQueueId(0);
+        } else if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
+            return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+        }
+        return null;
+    }
+
     @Test
     public void testPutTimerMessage() throws Exception {
         String topic = "TimerTest_testPutTimerMessage";
@@ -135,6 +180,7 @@ public class TimerMessageStoreTest {
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 5; j++) {
                 MessageExtBrokerInner inner = buildMessage((i % 2 == 0) ? 3000 : delayMs, topic + i, i % 2 == 0);
+                transformTimerMessage(timerMessageStore,inner);
                 PutMessageResult putMessageResult = messageStore.putMessage(inner);
                 assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             }
@@ -186,7 +232,15 @@ public class TimerMessageStoreTest {
             assertTrue(congestNum <= 220);
 
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
-            PutMessageResult putMessageResult = messageStore.putMessage(inner);
+
+            PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,inner);
+            if (putMessageResult==null || !putMessageResult.getPutMessageStatus().equals(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL)) {
+                putMessageResult = messageStore.putMessage(inner);
+            }
+            else{
+                putMessageResult = new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL,null);
+            }
+
 
             if (congestNum < 100) {
                 assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
@@ -215,6 +269,7 @@ public class TimerMessageStoreTest {
         long delayMs = System.currentTimeMillis() - 2 * precisionMs;
         for (int i = 0; i < 10; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+            transformTimerMessage(timerMessageStore,inner);
             PutMessageResult putMessageResult = messageStore.putMessage(inner);
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
         }
@@ -240,6 +295,7 @@ public class TimerMessageStoreTest {
         String uniqKey = null;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+            transformTimerMessage(timerMessageStore,inner);
             if (null == uniqKey) {
                 uniqKey = MessageClientIDSetter.getUniqID(inner);
             }
@@ -247,6 +303,7 @@ public class TimerMessageStoreTest {
         }
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore,delMsg);
         MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQKEY, uniqKey);
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
@@ -274,10 +331,12 @@ public class TimerMessageStoreTest {
         final long delayMs = curr + 1000;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+            transformTimerMessage(timerMessageStore,inner);
             assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
         }
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore,delMsg);
         MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQKEY, "XXX");
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
@@ -301,7 +360,8 @@ public class TimerMessageStoreTest {
         // Test put expired delete msg.
         MessageExtBrokerInner expiredInner = buildMessage(System.currentTimeMillis() - 100, topic, false);
         MessageAccessor.putProperty(expiredInner, TimerMessageStore.TIMER_DELETE_UNIQKEY, "XXX");
-        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, messageStore.putMessage(expiredInner).getPutMessageStatus());
+        PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,expiredInner);
+        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, putMessageResult.getPutMessageStatus());
     }
 
     @Test
@@ -318,6 +378,7 @@ public class TimerMessageStoreTest {
         final long delayMs = curr + 5000;
         for (int i = 0; i < msgNum; i++) {
             MessageExtBrokerInner inner = buildMessage((i % 2 == 0) ? 5000 : delayMs, topic, i % 2 == 0);
+            transformTimerMessage(first,inner);
             PutMessageResult putMessageResult = messageStore.putMessage(inner);
             long CQOffset = first.getCommitQueueOffset();
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
@@ -364,7 +425,7 @@ public class TimerMessageStoreTest {
         // Wait until all messages have wrote back to commitLog and consumeQueue.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
             @Override public Boolean call() {
-                ConsumeQueue cq = messageStore.getConsumeQueue(topic, 0);
+                ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(topic, 0);
                 return cq != null && cq.getMaxOffsetInQueue() >= msgNum - 1;
             }
         });
@@ -388,25 +449,14 @@ public class TimerMessageStoreTest {
         long delaySec = storeConfig.getTimerMaxDelaySec() + 20;
 
         MessageExtBrokerInner absolute = buildMessage(curr + delaySec * 1000, topic, false);
-        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, messageStore.putMessage(absolute).getPutMessageStatus());
+        PutMessageResult putMessageResult = transformTimerMessage(first,absolute);
+        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, putMessageResult.getPutMessageStatus());
 
         MessageExtBrokerInner relative = buildMessage(delaySec * 1000, topic, true);
-        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, messageStore.putMessage(relative).getPutMessageStatus());
+        putMessageResult = transformTimerMessage(first,relative);
+        assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, putMessageResult.getPutMessageStatus());
     }
 
-    @Test
-    public void testDisableTimer() throws Exception {
-        storeConfig.setTimerWheelEnable(false);
-        String topic = "TimerTest_testDisableTimer";
-
-        TimerMessageStore first = createTimerMessageStore(null);
-        first.load();
-        first.start();
-
-        MessageExtBrokerInner relative = buildMessage(System.currentTimeMillis() + 3000, topic, true);
-        assertEquals(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, messageStore.putMessage(relative).getPutMessageStatus());
-        storeConfig.setTimerWheelEnable(true);
-    }
 
     @Test
     public void testRollMessage() throws Exception {
@@ -420,6 +470,7 @@ public class TimerMessageStoreTest {
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delayMs = curr + 4 * precisionMs;
         MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore,inner);
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
 
         ByteBuffer msgBuff = getOneMessage(topic, 0, 0, 5000);
@@ -428,34 +479,6 @@ public class TimerMessageStoreTest {
         assertNotNull(msgExt);
         assertEquals(1, Integer.valueOf(msgExt.getProperty(MessageConst.PROPERTY_TIMER_ROLL_TIMES)).intValue());
         storeConfig.setTimerRollWindowSlot(Integer.MAX_VALUE);
-    }
-
-    // TimerMessageStore doesn't deal with delayLevel messages anymore.
-    @Ignore
-    @Test
-    public void testInterceptDelayLevel() throws Exception {
-        String topic = "TimerTest_testInterceptDelayLevel";
-
-        TimerMessageStore timerMessageStore = createTimerMessageStore(null);
-        timerMessageStore.load();
-        timerMessageStore.start();
-
-        MessageExtBrokerInner inner = buildMessage(0, topic , false);
-        MessageAccessor.clearProperty(inner, MessageConst.PROPERTY_TIMER_DELIVER_MS);
-        inner.setDelayTimeLevel(1);
-        PutMessageResult putMessageResult = messageStore.putMessage(inner);
-        assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
-        Thread.sleep(500);
-        Assert.assertEquals(1, timerMessageStore.getTimerMetrics().getTimingCount(topic));
-        ByteBuffer msgBuff = getOneMessage(topic, 0, 0, 3000);
-        assertNotNull(msgBuff);
-        MessageExt msgExt = MessageDecoder.decode(msgBuff);
-        assertNotNull(msgExt);
-        assertEquals(topic, msgExt.getTopic());
-        for (int i = 0; i < 10; i++) {
-            Assert.assertEquals(0, timerMessageStore.getTimerMetrics().getTimingCount(topic + i));
-        }
-        Assert.assertEquals(0, timerMessageStore.getTimerMetrics().getTimingCount(topic));
     }
 
     public ByteBuffer getOneMessage(String topic, int queue, long offset, int timeout) throws Exception {

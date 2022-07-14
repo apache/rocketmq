@@ -32,8 +32,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
-import org.apache.rocketmq.store.MappedFile;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -295,7 +295,7 @@ public class TimerMessageStore {
             // if not, use cq offset.
             long msgQueueOffset = messageExt.getQueueOffset();
             int queueId = messageExt.getQueueId();
-            ConsumeQueue cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
+            ConsumeQueue cq = (ConsumeQueue) this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
             if (null == cq) {
                 return msgQueueOffset;
             }
@@ -570,7 +570,7 @@ public class TimerMessageStore {
         if (!isRunningEnqueue()) {
             return false;
         }
-        ConsumeQueue cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
+        ConsumeQueue cq = (ConsumeQueue) this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
         if (null == cq) {
             return false;
         }
@@ -652,7 +652,6 @@ public class TimerMessageStore {
             magic = magic | MAGIC_DELETE;
         }
         String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
-
         Slot slot = timerWheel.getSlot(delayedTime);
         ByteBuffer tmpBuffer = timerLogBuffer;
         tmpBuffer.clear();
@@ -1497,7 +1496,7 @@ public class TimerMessageStore {
                     if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
                         start = System.currentTimeMillis();
                         long tmpQueueOffset = currQueueOffset;
-                        ConsumeQueue cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+                        ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(TIMER_TOPIC, 0);
                         long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
                         TimerMessageStore.log.info("[{}]Timer progress-check commitRead:[{}] currRead:[{}] currWrite:[{}] readBehind:{} currReadOffset:{} offsetBehind:{} behindMaster:{} " +
                                         "enqPutQueue:{} deqGetQueue:{} deqPutQueue:{} allCongestNum:{} enqExpiredStoreTime:{}",
@@ -1552,7 +1551,7 @@ public class TimerMessageStore {
 
     public long getOffsetBehind() {
         long tmpQueueOffset = currQueueOffset;
-        ConsumeQueue cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+        ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(TIMER_TOPIC, 0);
         long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
         return maxOffsetInQueue - tmpQueueOffset;
     }

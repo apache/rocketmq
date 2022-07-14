@@ -19,7 +19,7 @@ package org.apache.rocketmq.store.timer;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 

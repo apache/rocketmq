@@ -483,11 +483,6 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean getData(long offset, int size, ByteBuffer byteBuffer) {
-        return this.commitLog.getData(offset, size, byteBuffer);
-    }
-
-    @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
 
         for (PutMessageHook putMessageHook : putMessageHookList) {

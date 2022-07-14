@@ -69,7 +69,6 @@ public interface MessageStore {
      * Destroy this message store. Generally, all persistent files should be removed after invocation.
      */
     void destroy();
-    public boolean getData(long offset, int size, ByteBuffer byteBuffer);
 
     /** Store a message into store in async manner, the processor can process the next request
      *  rather than wait for result

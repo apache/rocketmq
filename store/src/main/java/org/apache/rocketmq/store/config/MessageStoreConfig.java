@@ -57,7 +57,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
-    private boolean timerWheelEnable = true;
+    private static boolean timerWheelEnable = true;
 
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
@@ -315,14 +315,6 @@ public class MessageStoreConfig {
     private int replicasPerDiskPartition = 1;
 
     private double logicalDiskSpaceCleanForciblyThreshold = 0.8;
-
-    /**
-     * 1. Register to broker after (startTime + disappearTimeAfterStart)
-     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
-     *  PopReviveService
-     */
-    @ImportantField
-    private int disappearTimeAfterStart = -1;
 
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
@@ -1364,9 +1356,6 @@ public class MessageStoreConfig {
     public boolean isTimerEnableDisruptor() {
         return timerEnableDisruptor;
     }
-    public int getDisappearTimeAfterStart() {
-        return disappearTimeAfterStart;
-    }
 
     public boolean isTimerEnableCheckMetrics() {
         return timerEnableCheckMetrics;
@@ -1393,7 +1382,7 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
-    public boolean isTimerWheelEnable() {
+    public static boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
     public void setTimerWheelEnable(boolean timerWheelEnable) {

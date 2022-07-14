@@ -85,35 +85,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
-    public boolean getData(int pos, int size, ByteBuffer byteBuffer) {
-        if (byteBuffer.remaining() < size) {
-            return false;
-        }
 
-        int readPosition = getReadPosition();
-        if ((pos + size) <= readPosition) {
-
-            if (this.hold()) {
-                try {
-                    int readNum = fileChannel.read(byteBuffer, pos);
-                    return size == readNum;
-                } catch (Throwable t) {
-                    log.warn("Get data failed pos:{} size:{} fileFromOffset:{}", pos, size, this.fileFromOffset);
-                    return false;
-                } finally {
-                    this.release();
-                }
-            } else {
-                log.debug("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                        + this.fileFromOffset);
-            }
-        } else {
-            log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                    + ", fileFromOffset: " + this.fileFromOffset);
-        }
-
-        return false;
-    }
     public static int getTotalMappedFiles() {
         return TOTAL_MAPPED_FILES.get();
     }
