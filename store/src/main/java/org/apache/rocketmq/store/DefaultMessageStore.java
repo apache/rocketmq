@@ -189,13 +189,14 @@ public class DefaultMessageStore implements MessageStore {
         this.correctLogicOffsetService = new CorrectLogicOffsetService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
+
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
-            if (null == this.haService) {
-                if (brokerConfig.isEnableControllerMode()) {
-                    this.haService = new AutoSwitchHAService();
-                    LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
-                } else {
+            if (brokerConfig.isEnableControllerMode()) {
+                this.haService = new AutoSwitchHAService();
+                LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
+            } else {
+                this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
+                if (null == this.haService) {
                     this.haService = new DefaultHAService();
                     LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
                 }
