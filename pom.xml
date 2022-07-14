@@ -124,11 +124,13 @@
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
+        <rocketmq-proto.version>2.0.0-SNAPSHOT</rocketmq-proto.version>
         <grpc.version>1.45.0</grpc.version>
+        <protobuf-java-util.version>3.20.1</protobuf-java-util.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
-        <assertj-core.version>2.6.0</assertj-core.version>
+        <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
@@ -483,7 +485,7 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>${rocketmq-proto.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
@@ -726,7 +728,6 @@
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
                 <version>${awaitility.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.truth</groupId>
@@ -762,7 +763,7 @@
             <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java-util</artifactId>
-                <version>3.20.1</version>
+                <version>${protobuf-java-util.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -772,16 +773,19 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj-core.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito-core.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
