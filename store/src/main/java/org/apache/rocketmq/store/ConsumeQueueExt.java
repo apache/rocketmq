@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
 /**
  * Extend of consume queue, to store something not important,
@@ -87,6 +88,10 @@ public class ConsumeQueueExt {
                 bitMapLength / Byte.SIZE
             );
         }
+    }
+
+    public long getTotalSize() {
+        return this.mappedFileQueue.getTotalFileSize();
     }
 
     /**

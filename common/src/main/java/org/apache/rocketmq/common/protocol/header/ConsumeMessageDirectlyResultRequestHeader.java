@@ -31,6 +31,12 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
     private String msgId;
     @CFNullable
     private String brokerName;
+    @CFNullable
+    private String topic;
+    @CFNullable
+    private Integer topicSysFlag;
+    @CFNullable
+    private Integer groupSysFlag;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -66,5 +72,29 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public Integer getTopicSysFlag() {
+        return topicSysFlag;
+    }
+
+    public void setTopicSysFlag(Integer topicSysFlag) {
+        this.topicSysFlag = topicSysFlag;
+    }
+
+    public Integer getGroupSysFlag() {
+        return groupSysFlag;
+    }
+
+    public void setGroupSysFlag(Integer groupSysFlag) {
+        this.groupSysFlag = groupSysFlag;
     }
 }

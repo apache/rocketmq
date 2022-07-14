@@ -21,8 +21,7 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import java.util.HashMap;
-
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -30,7 +29,7 @@ import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
 import io.netty.buffer.ByteBuf;
 
-public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesHeader {
+public class PullMessageRequestHeader extends TopicQueueRequestHeader implements FastCodesHeader {
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
@@ -53,6 +52,9 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
     private Long subVersion;
     private String expressionType;
 
+    @CFNullable
+    private Integer maxMsgBytes;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -70,6 +72,12 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
         writeIfNotNull(out, "subscription", subscription);
         writeIfNotNull(out, "subVersion", subVersion);
         writeIfNotNull(out, "expressionType", expressionType);
+        writeIfNotNull(out, "maxMsgBytes", maxMsgBytes);
+        writeIfNotNull(out, "lo", lo);
+        writeIfNotNull(out, "ns", ns);
+        writeIfNotNull(out, "nsd", nsd);
+        writeIfNotNull(out, "bname", bname);
+        writeIfNotNull(out, "oway", oway);
     }
 
     @Override
@@ -128,6 +136,36 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
         if (str != null) {
             this.expressionType = str;
         }
+
+        str = fields.get("maxMsgBytes");
+        if (str != null) {
+            this.maxMsgBytes = Integer.parseInt(str);
+        }
+
+        str = fields.get("lo");
+        if (str != null) {
+            this.lo = Boolean.parseBoolean(str);
+        }
+
+        str = fields.get("ns");
+        if (str != null) {
+            this.ns = str;
+        }
+
+        str = fields.get("nsd");
+        if (str != null) {
+            this.nsd = Boolean.parseBoolean(str);
+        }
+
+        str = fields.get("bname");
+        if (str != null) {
+            this.bname = str;
+        }
+
+        str = fields.get("oway");
+        if (str != null) {
+            this.oway = Boolean.parseBoolean(str);
+        }
     }
 
     public String getConsumerGroup() {
@@ -138,18 +176,22 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
         this.consumerGroup = consumerGroup;
     }
 
+    @Override
     public String getTopic() {
         return topic;
     }
 
+    @Override
     public void setTopic(String topic) {
         this.topic = topic;
     }
 
+    @Override
     public Integer getQueueId() {
         return queueId;
     }
 
+    @Override
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
@@ -216,5 +258,13 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
 
     public void setExpressionType(String expressionType) {
         this.expressionType = expressionType;
+    }
+
+    public Integer getMaxMsgBytes() {
+        return maxMsgBytes;
+    }
+
+    public void setMaxMsgBytes(Integer maxMsgBytes) {
+        this.maxMsgBytes = maxMsgBytes;
     }
 }

@@ -19,7 +19,7 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>4.9.5-SNAPSHOT</version>
+        <version>5.0.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -43,6 +43,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-acl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-tools</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
