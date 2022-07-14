@@ -43,12 +43,7 @@ public class ThreadFactoryImpl implements ThreadFactory {
     public Thread newThread(Runnable r) {
         Thread thread = new Thread(r, threadNamePrefix + this.threadIndex.incrementAndGet());
         thread.setDaemon(daemon);
-        thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                log.error("Uncaught exception in thread '" + t.getName() + "':", e);
-            }
-        });
+        thread.setUncaughtExceptionHandler((t, e) -> log.error("Uncaught exception in thread '" + t.getName() + "':", e));
         return thread;
     }
 }
