@@ -84,7 +84,7 @@ public class MessageStoreConfig {
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
-    private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    private int destroyMappedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
     @ImportantField
@@ -576,12 +576,12 @@ public class MessageStoreConfig {
         this.flushConsumeQueueThoroughInterval = flushConsumeQueueThoroughInterval;
     }
 
-    public int getDestroyMapedFileIntervalForcibly() {
-        return destroyMapedFileIntervalForcibly;
+    public int getDestroyMappedFileIntervalForcibly() {
+        return destroyMappedFileIntervalForcibly;
     }
 
-    public void setDestroyMapedFileIntervalForcibly(int destroyMapedFileIntervalForcibly) {
-        this.destroyMapedFileIntervalForcibly = destroyMapedFileIntervalForcibly;
+    public void setDestroyMappedFileIntervalForcibly(int destroyMappedFileIntervalForcibly) {
+        this.destroyMappedFileIntervalForcibly = destroyMappedFileIntervalForcibly;
     }
 
     public int getFileReservedTime() {
