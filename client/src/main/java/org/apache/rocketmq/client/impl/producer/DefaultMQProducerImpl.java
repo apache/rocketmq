@@ -640,7 +640,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             MQClientException mqClientException = new MQClientException(info, exception);
             if (callTimeout) {
-                throw new RemotingTooMuchRequestException("sendDefaultImpl call timeout");
+                throw new RemotingTimeoutException("sendDefaultImpl call timeout");
             }
 
             if (exception instanceof MQBrokerException) {
@@ -1133,7 +1133,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeout < costTime) {
-                throw new RemotingTooMuchRequestException("sendSelectImpl call timeout");
+                throw new RemotingTimeoutException("sendSelectImpl call timeout");
             }
             if (mq != null) {
                 return this.sendKernelImpl(msg, mq, communicationMode, sendCallback, null, timeout - costTime);
