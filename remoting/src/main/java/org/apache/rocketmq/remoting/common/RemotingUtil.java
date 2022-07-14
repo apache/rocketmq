@@ -218,13 +218,17 @@ public class RemotingUtil {
 
     public static void closeChannel(Channel channel) {
         final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
-        channel.close().addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
-                    future.isSuccess());
-            }
-        });
+        if ("".equals(addrRemote)) {
+            channel.close();
+        } else {
+            channel.close().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                        future.isSuccess());
+                }
+            });
+        }
     }
 
 }
