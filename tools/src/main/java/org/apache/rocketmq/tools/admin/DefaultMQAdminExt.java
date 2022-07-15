@@ -734,6 +734,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         this.defaultMQAdminExtImpl.createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force);
     }
 
+    @Deprecated
     @Override
     public long searchOffset(final String brokerAddr, final String topicName,
         final int queueId, final long timestamp, final long timeoutMillis)
