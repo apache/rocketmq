@@ -39,11 +39,16 @@ public class MessageConst {
     public static final String PROPERTY_MSG_REGION = "MSG_REGION";
     public static final String PROPERTY_TRACE_SWITCH = "TRACE_ON";
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
+    public static final String PROPERTY_EXTEND_UNIQ_INFO = "EXTEND_UNIQ_INFO";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
-    public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
-    public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
+    public static final String PROPERTY_INNER_NUM = "INNER_NUM";
+    public static final String PROPERTY_INNER_BASE = "INNER_BASE";
+    public static final String DUP_INFO = "DUP_INFO";
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
+    public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
+    public static final String PROPERTY_TRANSACTION_ID = "__transactionId__";
+    public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
     public static final String PROPERTY_INSTANCE_ID = "INSTANCE_ID";
     public static final String PROPERTY_CORRELATION_ID = "CORRELATION_ID";
     public static final String PROPERTY_MESSAGE_REPLY_TO_CLIENT = "REPLY_TO_CLIENT";
@@ -52,8 +57,29 @@ public class MessageConst {
     public static final String PROPERTY_PUSH_REPLY_TIME = "PUSH_REPLY_TIME";
     public static final String PROPERTY_CLUSTER = "CLUSTER";
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
+    public static final String PROPERTY_POP_CK = "POP_CK";
+    public static final String PROPERTY_POP_CK_OFFSET = "POP_CK_OFFSET";
+    public static final String PROPERTY_FIRST_POP_TIME = "1ST_POP_TIME";
+    public static final String PROPERTY_SHARDING_KEY = "__SHARDINGKEY";
+    public static final String PROPERTY_FORWARD_QUEUE_ID = "PROPERTY_FORWARD_QUEUE_ID";
+    public static final String PROPERTY_REDIRECT = "REDIRECT";
     public static final String PROPERTY_INNER_MULTI_DISPATCH = "INNER_MULTI_DISPATCH";
     public static final String PROPERTY_INNER_MULTI_QUEUE_OFFSET = "INNER_MULTI_QUEUE_OFFSET";
+
+    /**
+     * property which name starts with "__RMQ.TRANSIENT." is called transient one that will not stored in broker disks.
+     */
+    public static final String PROPERTY_TRANSIENT_PREFIX = "__RMQ.TRANSIENT.";
+
+    /**
+     * the transient property key of topicSysFlag (set by client when pulling messages)
+     */
+    public static final String PROPERTY_TRANSIENT_TOPIC_CONFIG = PROPERTY_TRANSIENT_PREFIX + "TOPIC_SYS_FLAG";
+
+    /**
+     * the transient property key of groupSysFlag (set by client when pulling messages)
+     */
+    public static final String PROPERTY_TRANSIENT_GROUP_CONFIG = PROPERTY_TRANSIENT_PREFIX + "GROUP_SYS_FLAG";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -82,6 +108,12 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         STRING_HASH_SET.add(PROPERTY_MAX_RECONSUME_TIMES);
         STRING_HASH_SET.add(PROPERTY_CONSUME_START_TIMESTAMP);
+        STRING_HASH_SET.add(PROPERTY_POP_CK);
+        STRING_HASH_SET.add(PROPERTY_POP_CK_OFFSET);
+        STRING_HASH_SET.add(PROPERTY_FIRST_POP_TIME);
+        STRING_HASH_SET.add(PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
+        STRING_HASH_SET.add(DUP_INFO);
+        STRING_HASH_SET.add(PROPERTY_EXTEND_UNIQ_INFO);
         STRING_HASH_SET.add(PROPERTY_INSTANCE_ID);
         STRING_HASH_SET.add(PROPERTY_CORRELATION_ID);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_REPLY_TO_CLIENT);

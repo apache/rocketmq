@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +27,13 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.ProducerInfo;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class ProducerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -37,13 +42,55 @@ public class ProducerManager {
     private final ConcurrentHashMap<String /* group name */, ConcurrentHashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
+    protected final BrokerStatsManager brokerStatsManager;
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
 
     public ProducerManager() {
+        this.brokerStatsManager = null;
+    }
+
+    public ProducerManager(final BrokerStatsManager brokerStatsManager) {
+        this.brokerStatsManager = brokerStatsManager;
+    }
+
+    public int groupSize() {
+        return this.groupChannelTable.size();
+    }
+
+    public boolean groupOnline(String group) {
+        Map<Channel, ClientChannelInfo> channels = this.groupChannelTable.get(group);
+        return channels != null && !channels.isEmpty();
     }
 
     public ConcurrentHashMap<String, ConcurrentHashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
         return groupChannelTable;
+    }
+
+    public ProducerTableInfo getProducerTable() {
+        Map<String, List<ProducerInfo>> map = new HashMap<>();
+        for (String group : this.groupChannelTable.keySet()) {
+            for (Entry<Channel, ClientChannelInfo> entry: this.groupChannelTable.get(group).entrySet()) {
+                ClientChannelInfo clientChannelInfo = entry.getValue();
+                if (map.containsKey(group)) {
+                    map.get(group).add(new ProducerInfo(
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
+                    ));
+                } else {
+                    map.put(group, new ArrayList<ProducerInfo>(Collections.singleton(new ProducerInfo(
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
+                    ))));
+                }
+            }
+        }
+        return new ProducerTableInfo(map);
     }
 
     public void scanNotActiveChannel() {
@@ -63,7 +110,7 @@ public class ProducerManager {
                     it.remove();
                     clientChannelTable.remove(info.getClientId());
                     log.warn(
-                            "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
+                            "ProducerManager#scanNotActiveChannel: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                     RemotingUtil.closeChannel(info.getChannel());
                 }
@@ -71,7 +118,8 @@ public class ProducerManager {
         }
     }
 
-    public synchronized void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public synchronized boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+        boolean removed = false;
         if (channel != null) {
             for (final Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
                     .entrySet()) {
@@ -82,6 +130,7 @@ public class ProducerManager {
                         clientChannelInfoTable.remove(channel);
                 if (clientChannelInfo != null) {
                     clientChannelTable.remove(clientChannelInfo.getClientId());
+                    removed = true;
                     log.info(
                             "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                             clientChannelInfo.toString(), remoteAddr, group);
@@ -89,6 +138,7 @@ public class ProducerManager {
 
             }
         }
+        return removed;
     }
 
     public synchronized void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {

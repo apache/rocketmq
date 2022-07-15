@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -219,6 +220,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
+        this.enableStreamRequestType = true;
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
@@ -313,6 +315,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    @Override
+    public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
     }
 
     @Override
@@ -447,10 +454,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.offsetStore = offsetStore;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
