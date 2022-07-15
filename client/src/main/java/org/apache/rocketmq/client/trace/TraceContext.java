@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 
 import java.util.List;
@@ -34,6 +35,7 @@ public class TraceContext implements Comparable<TraceContext> {
     private boolean isSuccess = true;
     private String requestId = MessageClientIDSetter.createUniqID();
     private int contextCode = 0;
+    private AccessChannel accessChannel;
     private List<TraceBean> traceBeans;
 
     public int getContextCode() {
@@ -114,6 +116,14 @@ public class TraceContext implements Comparable<TraceContext> {
 
     public void setRegionName(String regionName) {
         this.regionName = regionName;
+    }
+
+    public AccessChannel getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
     }
 
     @Override
