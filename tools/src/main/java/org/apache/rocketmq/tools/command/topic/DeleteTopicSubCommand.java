@@ -48,7 +48,7 @@ public class DeleteTopicSubCommand implements SubCommand {
             nameServerSet = new HashSet(Arrays.asList(ns));
         }
 
-        adminExt.deleteTopicInNameServer(nameServerSet, topic, clusterName);
+        adminExt.deleteTopicInNameServer(nameServerSet, clusterName, topic);
         System.out.printf("delete topic [%s] from NameServer success.%n", topic);
     }
 
