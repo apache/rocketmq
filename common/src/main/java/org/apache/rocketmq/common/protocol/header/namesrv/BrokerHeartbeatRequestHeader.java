@@ -25,7 +25,7 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String clusterName;
     @CFNotNull
-    private String brokerAddr;
+    private String brokerIdentity;
     @CFNotNull
     private String brokerName;
 
@@ -33,12 +33,12 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
 
     }
 
-    public String getBrokerAddr() {
-        return brokerAddr;
+    public String getBrokerIdentity() {
+        return brokerIdentity;
     }
 
-    public void setBrokerAddr(String brokerAddr) {
-        this.brokerAddr = brokerAddr;
+    public void setBrokerIdentity(String brokerIdentity) {
+        this.brokerIdentity = brokerIdentity;
     }
 
     public String getClusterName() {

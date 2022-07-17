@@ -28,9 +28,9 @@ import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
@@ -161,7 +161,7 @@ public class ReplicasInfoManager {
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
             // First, check whether the master is still active
             final String oldMaster = syncStateInfo.getMasterIdentity();
-            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(oldMaster))) {
+            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), oldMaster)) {
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
                 log.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
@@ -171,7 +171,7 @@ public class ReplicasInfoManager {
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
                 boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, candidate ->
-                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(candidate)));
+                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }
@@ -180,7 +180,7 @@ public class ReplicasInfoManager {
             // Try elect a master in lagging replicas if enableElectUncleanMaster = true
             if (controllerConfig.isEnableElectUncleanMaster()) {
                 boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), candidate ->
-                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(candidate)));
+                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }
@@ -207,13 +207,15 @@ public class ReplicasInfoManager {
         final Set<String> candidates, final Predicate<String> filter) {
         final int masterEpoch = this.syncStateSetInfoTable.get(brokerName).getMasterEpoch();
         final int syncStateSetEpoch = this.syncStateSetInfoTable.get(brokerName).getSyncStateSetEpoch();
+        final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
         for (final String candidate : candidates) {
             if (filter.test(candidate)) {
                 final ElectMasterResponseHeader response = result.getResponse();
                 response.setNewMasterIdentity(candidate);
+                response.setNewMasterAddress(brokerInfo.getBrokerAddress(candidate));
                 response.setMasterEpoch(masterEpoch + 1);
                 response.setSyncStateSetEpoch(syncStateSetEpoch);
-                response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
+                response.setBrokerTable(buildBrokerTable(brokerName));
 
                 final ElectMasterEvent event = new ElectMasterEvent(brokerName, candidate);
                 result.addEvent(event);
@@ -223,15 +225,13 @@ public class ReplicasInfoManager {
         return false;
     }
 
-    private BrokerMemberGroup buildBrokerMemberGroup(final String brokerName) {
+    private Map<String, Pair<Long, String>> buildBrokerTable(final String brokerName) {
         if (isContainsBroker(brokerName)) {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
-            final BrokerMemberGroup group = new BrokerMemberGroup(brokerInfo.getClusterName(), brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
-            final HashMap<Long, String> memberGroup = new HashMap<>();
-            brokerIdTable.forEach((identity, id) -> memberGroup.put(id, brokerInfo.getBrokerAddress(identity)));
-            group.setBrokerAddrs(memberGroup);
-            return group;
+            final HashMap<String, Pair<Long, String>> brokerTable = new HashMap<>();
+            brokerIdTable.forEach((identity, id) -> brokerTable.put(identity, new Pair<>(id, brokerInfo.getBrokerAddress(identity))));
+            return brokerTable;
         }
         return null;
     }

@@ -16,15 +16,18 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
+import java.util.Map;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ElectMasterResponseHeader implements CommandCustomHeader {
     private String newMasterIdentity;
+    private String newMasterAddress;
     private int masterEpoch;
     private int syncStateSetEpoch;
-    private BrokerMemberGroup brokerMemberGroup;
+    private Map<String/*BrokerIdentity*/, Pair<Long/*BrokerId*/, String/*BrokerAddr*/>> brokerTable;
+
 
     public ElectMasterResponseHeader() {
     }
@@ -35,6 +38,14 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
 
     public void setNewMasterIdentity(String newMasterIdentity) {
         this.newMasterIdentity = newMasterIdentity;
+    }
+
+    public String getNewMasterAddress() {
+        return newMasterAddress;
+    }
+
+    public void setNewMasterAddress(String newMasterAddress) {
+        this.newMasterAddress = newMasterAddress;
     }
 
     public int getMasterEpoch() {
@@ -53,21 +64,13 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public BrokerMemberGroup getBrokerMemberGroup() {
-        return brokerMemberGroup;
+    public Map<String, Pair<Long, String>> getBrokerTable() {
+        return brokerTable;
     }
 
-    public void setBrokerMemberGroup(BrokerMemberGroup brokerMemberGroup) {
-        this.brokerMemberGroup = brokerMemberGroup;
-    }
-
-    @Override public String toString() {
-        return "ElectMasterResponseHeader{" +
-            "newMasterAddress='" + newMasterIdentity + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMember=" + brokerMemberGroup +
-            '}';
+    public void setBrokerTable(
+        Map<String, Pair<Long, String>> brokerTable) {
+        this.brokerTable = brokerTable;
     }
 
     @Override

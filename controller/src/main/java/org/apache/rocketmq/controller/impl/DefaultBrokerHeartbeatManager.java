@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.ControllerConfig;
@@ -42,7 +41,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private final ExecutorService executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
 
     private final ControllerConfig controllerConfig;
-    private final Map<BrokerAddrInfo/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final Map<BrokerIdentity/* brokerIdentity*/, BrokerLiveInfo> brokerLiveTable;
     private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
     public DefaultBrokerHeartbeatManager(final ControllerConfig controllerConfig) {
@@ -65,9 +64,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     public void scanNotActiveBroker() {
         try {
             log.info("start scanNotActiveBroker");
-            final Iterator<Map.Entry<BrokerAddrInfo, BrokerLiveInfo>> iterator = this.brokerLiveTable.entrySet().iterator();
+            final Iterator<Map.Entry<BrokerIdentity, BrokerLiveInfo>> iterator = this.brokerLiveTable.entrySet().iterator();
             while (iterator.hasNext()) {
-                final Map.Entry<BrokerAddrInfo, BrokerLiveInfo> next = iterator.next();
+                final Map.Entry<BrokerIdentity, BrokerLiveInfo> next = iterator.next();
                 long last = next.getValue().lastUpdateTimestamp;
                 long timeoutMillis = next.getValue().heartbeatTimeoutMillis;
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
@@ -77,7 +76,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                         RemotingUtil.closeChannel(channel);
                     }
                     this.executor.submit(() ->
-                        notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
+                        notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().brokerName, next.getKey().getBrokerIdentity(), next.getValue().brokerId));
                     log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms", next.getValue().channel, next.getKey(), timeoutMillis);
                 }
             }
@@ -86,9 +85,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
-    private void notifyBrokerInActive(String clusterName, String brokerName, String brokerAddr, Long brokerId) {
+    private void notifyBrokerInActive(String clusterName, String brokerName, String brokerIdentity, Long brokerId) {
         for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
-            listener.onBrokerInactive(clusterName, brokerName, brokerAddr, brokerId);
+            listener.onBrokerInactive(clusterName, brokerName, brokerIdentity, brokerId);
         }
     }
 
@@ -98,9 +97,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void registerBroker(String clusterName, String brokerName, String brokerAddr,
+    public void registerBroker(String clusterName, String brokerName, String brokerIdentity,
         long brokerId, Long timeoutMillis, Channel channel) {
-        final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+        final BrokerIdentity addrInfo = new BrokerIdentity(clusterName, brokerIdentity);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
             new BrokerLiveInfo(brokerName,
                 brokerId,
@@ -113,18 +112,18 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void changeBrokerMetadata(String clusterName, String brokerAddr, Long brokerId) {
-        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+    public void changeBrokerMetadata(String clusterName, String brokerIdentity, Long brokerId) {
+        BrokerIdentity addrInfo = new BrokerIdentity(clusterName, brokerIdentity);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         if (prev != null) {
             prev.brokerId = brokerId;
-            log.info("Change broker {}'s brokerId to {}", brokerAddr, brokerId);
+            log.info("Change broker {}'s brokerId to {}", brokerIdentity, brokerId);
         }
     }
 
     @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerAddr) {
-        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+    public void onBrokerHeartbeat(String clusterName, String brokerIdentity) {
+        BrokerIdentity addrInfo = new BrokerIdentity(clusterName, brokerIdentity);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         if (prev != null) {
             prev.lastUpdateTimestamp = System.currentTimeMillis();
@@ -133,13 +132,13 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerChannelClose(Channel channel) {
-        BrokerAddrInfo addrInfo = null;
-        for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
+        BrokerIdentity addrInfo = null;
+        for (Map.Entry<BrokerIdentity, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
             if (entry.getValue().channel == channel) {
-                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().channel, entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
+                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().channel, entry.getValue().brokerName, entry.getKey().getBrokerIdentity(), entry.getValue().brokerId);
                 addrInfo = entry.getKey();
                 this.executor.submit(() ->
-                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
+                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().brokerName, entry.getKey().getBrokerIdentity(), entry.getValue().brokerId));
                 break;
             }
         }
@@ -149,8 +148,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public boolean isBrokerActive(String clusterName, String brokerAddr) {
-        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddr));
+    public boolean isBrokerActive(String clusterName, String brokerIdentity) {
+        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerIdentity(clusterName, brokerIdentity));
         if (info != null) {
             long last = info.lastUpdateTimestamp;
             long timeoutMillis = info.heartbeatTimeoutMillis;
@@ -182,6 +181,70 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 ", lastUpdateTimestamp=" + lastUpdateTimestamp +
                 ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
                 ", channel=" + channel +
+                '}';
+        }
+    }
+
+    static class BrokerIdentity {
+        private final String clusterName;
+        private final String brokerIdentity;
+
+        private int hash;
+
+        public BrokerIdentity(String clusterName, String brokerIdentity) {
+            this.clusterName = clusterName;
+            this.brokerIdentity = brokerIdentity;
+        }
+
+        public String getClusterName() {
+            return clusterName;
+        }
+
+        public String getBrokerIdentity() {
+            return brokerIdentity;
+        }
+
+        public boolean isEmpty() {
+            return clusterName.isEmpty() && brokerIdentity.isEmpty();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+
+            if (obj instanceof BrokerIdentity) {
+                BrokerIdentity addr = (BrokerIdentity) obj;
+                return clusterName.equals(addr.clusterName) && brokerIdentity.equals(addr.brokerIdentity);
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            int h = hash;
+            if (h == 0 && clusterName.length() + brokerIdentity.length() > 0) {
+                for (int i = 0; i < clusterName.length(); i++) {
+                    h = 31 * h + clusterName.charAt(i);
+                }
+                h = 31 * h + '_';
+                for (int i = 0; i < brokerIdentity.length(); i++) {
+                    h = 31 * h + brokerIdentity.charAt(i);
+                }
+                hash = h;
+            }
+            return h;
+        }
+
+        @Override public String toString() {
+            return "BrokerIdentity{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerIdentity='" + brokerIdentity + '\'' +
+                ", hash=" + hash +
                 '}';
         }
     }

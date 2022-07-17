@@ -69,7 +69,7 @@ public class BrokerInfo {
     }
 
     public Set<String> getAllBroker() {
-        return new HashSet<>(this.brokerAddressTable.values());
+        return new HashSet<>(this.brokerAddressTable.keySet());
     }
 
     public HashMap<String, Long> getBrokerIdTable() {

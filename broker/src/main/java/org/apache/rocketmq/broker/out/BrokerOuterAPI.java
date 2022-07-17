@@ -300,7 +300,7 @@ public class BrokerOuterAPI {
 
         final BrokerHeartbeatRequestHeader requestHeader = new BrokerHeartbeatRequestHeader();
         requestHeader.setClusterName(clusterName);
-        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerIdentity(brokerAddr);
         requestHeader.setBrokerName(brokerName);
 
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
@@ -1098,7 +1098,7 @@ public class BrokerOuterAPI {
 
         final BrokerHeartbeatRequestHeader requestHeader = new BrokerHeartbeatRequestHeader();
         requestHeader.setClusterName(clusterName);
-        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerIdentity(brokerAddr);
         requestHeader.setBrokerName(brokerName);
 
         brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {

@@ -117,9 +117,9 @@ public class ControllerManagerTest {
      */
     public RegisterBrokerToControllerResponseHeader registerBroker(
         final String controllerAddress, final String clusterName,
-        final String brokerName, final String address, final RemotingClient client) throws Exception {
+        final String brokerName, final String brokerIdentity, final String address, final RemotingClient client) throws Exception {
 
-        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address, "");
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address, brokerIdentity);
         // Timeout = 3000
         requestHeader.setHeartbeatTimeoutMillis(4000L);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
@@ -143,11 +143,11 @@ public class ControllerManagerTest {
         String leaderAddr = "localhost" + ":" + leader.getController().getRemotingServer().localListenPort();
 
         // Register two broker, the first one is master.
-        final RegisterBrokerToControllerResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient);
+        final RegisterBrokerToControllerResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "broker1", "127.0.0.1:8000", this.remotingClient);
         assert responseHeader1 != null;
         assertEquals(responseHeader1.getBrokerId(), MixAll.MASTER_ID);
 
-        final RegisterBrokerToControllerResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1);
+        final RegisterBrokerToControllerResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "broker2", "127.0.0.1:8001", this.remotingClient1);
         assert responseHeader2 != null;
         assertEquals(responseHeader2.getBrokerId(), 2);
 
@@ -157,7 +157,7 @@ public class ControllerManagerTest {
             final BrokerHeartbeatRequestHeader heartbeatRequestHeader = new BrokerHeartbeatRequestHeader();
             heartbeatRequestHeader.setClusterName("cluster1");
             heartbeatRequestHeader.setBrokerName("broker1");
-            heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
+            heartbeatRequestHeader.setBrokerIdentity("broker2");
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
             System.out.println("send heartbeat success");
             try {
