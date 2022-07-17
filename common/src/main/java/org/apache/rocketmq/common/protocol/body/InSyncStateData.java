@@ -42,17 +42,27 @@ public class InSyncStateData extends RemotingSerializable  {
     }
 
     public static class InSyncStateSet extends RemotingSerializable {
+        private String masterIdentity;
         private String masterAddress;
         private int masterEpoch;
         private int syncStateSetEpoch;
         private List<InSyncMember> inSyncMembers;
 
-        public InSyncStateSet(String masterAddress, int masterEpoch, int syncStateSetEpoch,
+        public InSyncStateSet(String masterIdentity, String masterAddress, int masterEpoch, int syncStateSetEpoch,
             List<InSyncMember> inSyncMembers) {
+            this.masterIdentity = masterIdentity;
             this.masterAddress = masterAddress;
             this.masterEpoch = masterEpoch;
             this.syncStateSetEpoch = syncStateSetEpoch;
             this.inSyncMembers = inSyncMembers;
+        }
+
+        public String getMasterIdentity() {
+            return masterIdentity;
+        }
+
+        public void setMasterIdentity(String masterIdentity) {
+            this.masterIdentity = masterIdentity;
         }
 
         public String getMasterAddress() {
@@ -90,12 +100,22 @@ public class InSyncStateData extends RemotingSerializable  {
     }
 
     public static class InSyncMember extends RemotingSerializable {
+        private String identity;
         private String address;
         private Long brokerId;
 
-        public InSyncMember(String address, Long brokerId) {
+        public InSyncMember(String identity, String address, Long brokerId) {
+            this.identity = identity;
             this.address = address;
             this.brokerId = brokerId;
+        }
+
+        public String getIdentity() {
+            return identity;
+        }
+
+        public void setIdentity(String identity) {
+            this.identity = identity;
         }
 
         public String getAddress() {

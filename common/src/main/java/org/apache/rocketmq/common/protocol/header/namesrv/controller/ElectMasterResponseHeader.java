@@ -21,7 +21,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ElectMasterResponseHeader implements CommandCustomHeader {
-    private String newMasterAddress;
+    private String newMasterIdentity;
     private int masterEpoch;
     private int syncStateSetEpoch;
     private BrokerMemberGroup brokerMemberGroup;
@@ -29,12 +29,12 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
     public ElectMasterResponseHeader() {
     }
 
-    public String getNewMasterAddress() {
-        return newMasterAddress;
+    public String getNewMasterIdentity() {
+        return newMasterIdentity;
     }
 
-    public void setNewMasterAddress(String newMasterAddress) {
-        this.newMasterAddress = newMasterAddress;
+    public void setNewMasterIdentity(String newMasterIdentity) {
+        this.newMasterIdentity = newMasterIdentity;
     }
 
     public int getMasterEpoch() {
@@ -63,7 +63,7 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
 
     @Override public String toString() {
         return "ElectMasterResponseHeader{" +
-            "newMasterAddress='" + newMasterAddress + '\'' +
+            "newMasterAddress='" + newMasterIdentity + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
             ", brokerMember=" + brokerMemberGroup +

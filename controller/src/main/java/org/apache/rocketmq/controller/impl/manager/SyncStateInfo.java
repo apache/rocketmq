@@ -26,24 +26,24 @@ public class SyncStateInfo {
     private final String clusterName;
     private final String brokerName;
 
-    private Set<String/*Address*/> syncStateSet;
+    private Set<String/*Identity*/> syncStateSet;
     private int syncStateSetEpoch;
 
-    private String masterAddress;
+    private String masterIdentity;
     private int masterEpoch;
 
-    public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
+    public SyncStateInfo(String clusterName, String brokerName, String masterIdentity) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
+        this.masterIdentity = masterIdentity;
         this.masterEpoch = 1;
         this.syncStateSet = new HashSet<>();
-        this.syncStateSet.add(masterAddress);
+        this.syncStateSet.add(masterIdentity);
         this.syncStateSetEpoch = 1;
     }
 
-    public void updateMasterInfo(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public void updateMasterInfo(String masterIdentity) {
+        this.masterIdentity = masterIdentity;
         this.masterEpoch++;
     }
 
@@ -53,7 +53,7 @@ public class SyncStateInfo {
     }
 
     public boolean isMasterExist() {
-        return !this.masterAddress.isEmpty();
+        return !this.masterIdentity.isEmpty();
     }
 
     public String getClusterName() {
@@ -72,8 +72,8 @@ public class SyncStateInfo {
         return syncStateSetEpoch;
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public String getMasterIdentity() {
+        return masterIdentity;
     }
 
     public int getMasterEpoch() {

@@ -106,8 +106,8 @@ public class ControllerManager {
                             final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
                             if (responseHeader != null) {
                                 log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
-                                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                                    heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                                if (StringUtils.isNotEmpty(responseHeader.getNewMasterIdentity())) {
+                                    heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterIdentity(), MixAll.MASTER_ID);
                                 }
 
                                 if (controllerConfig.isNotifyBrokerRoleChanged()) {
@@ -133,7 +133,7 @@ public class ControllerManager {
         final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
         if (memberGroup != null) {
             // First, inform the master
-            final String master = electMasterResult.getNewMasterAddress();
+            final String master = electMasterResult.getNewMasterIdentity();
             if (StringUtils.isNoneEmpty(master) && this.heartbeatManager.isBrokerActive(clusterName, master)) {
                 doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, electMasterResult);
             }
@@ -153,7 +153,7 @@ public class ControllerManager {
         final ElectMasterResponseHeader responseHeader) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
-            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
+            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterIdentity(),
                 responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             try {

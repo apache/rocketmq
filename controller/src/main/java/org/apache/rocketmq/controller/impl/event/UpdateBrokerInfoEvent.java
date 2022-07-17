@@ -16,43 +16,39 @@
  */
 package org.apache.rocketmq.controller.impl.event;
 
-/**
- * The event trys to apply a new id for a new broker.
- * Triggered by the RegisterBrokerApi.
- */
-public class ApplyBrokerIdEvent implements EventMessage {
+public class UpdateBrokerInfoEvent implements EventMessage {
+
     private final String brokerName;
-    private final long newBrokerId;
     private final String brokerIdentity;
+    private final String brokerAddress;
 
-    public ApplyBrokerIdEvent(String brokerName, long newBrokerId, String brokerIdentity) {
+    public UpdateBrokerInfoEvent(String brokerName, String brokerIdentity, String brokerAddress) {
         this.brokerName = brokerName;
-        this.newBrokerId = newBrokerId;
         this.brokerIdentity = brokerIdentity;
-    }
-
-    @Override
-    public EventType getEventType() {
-        return EventType.APPLY_BROKER_ID_EVENT;
+        this.brokerAddress = brokerAddress;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
-    public long getNewBrokerId() {
-        return newBrokerId;
-    }
-
     public String getBrokerIdentity() {
         return brokerIdentity;
     }
 
+    public String getBrokerAddress() {
+        return brokerAddress;
+    }
+
+    @Override public EventType getEventType() {
+        return EventType.UPDATE_BROKER_INFO_EVENT;
+    }
+
     @Override public String toString() {
-        return "ApplyBrokerIdEvent{" +
+        return "UpdateBrokerInfoEvent{" +
             "brokerName='" + brokerName + '\'' +
-            ", newBrokerId=" + newBrokerId +
             ", brokerIdentity='" + brokerIdentity + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
             '}';
     }
 }

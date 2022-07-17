@@ -92,7 +92,7 @@ public class DLedgerControllerTest {
         boolean isFirstRegisteredBroker) throws Exception {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
-            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
+            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress, "");
         final RemotingCommand response = leader.registerBroker(registerRequest).get(10, TimeUnit.SECONDS);
         final RegisterBrokerToControllerResponseHeader registerResult = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
         System.out.println("------------- Register broker done, the result is :" + registerResult);
@@ -183,8 +183,8 @@ public class DLedgerControllerTest {
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertFalse(response.getNewMasterIdentity().isEmpty());
+        assertNotEquals(response.getNewMasterIdentity(), "127.0.0.1:9000");
     }
 
     @Test
@@ -211,7 +211,7 @@ public class DLedgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
         final RegisterBrokerToControllerRequestHeader request1 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001", "");
         final RegisterBrokerToControllerResponseHeader r1 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getBrokerId(), 2);
         assertEquals(r1.getMasterAddress(), "");
@@ -219,7 +219,7 @@ public class DLedgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
         final RegisterBrokerToControllerRequestHeader request2 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000", "");
         final RegisterBrokerToControllerResponseHeader r2 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getBrokerId(), 0);
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");

@@ -119,7 +119,7 @@ public class ControllerManagerTest {
         final String controllerAddress, final String clusterName,
         final String brokerName, final String address, final RemotingClient client) throws Exception {
 
-        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address);
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address, "");
         // Timeout = 3000
         requestHeader.setHeartbeatTimeoutMillis(4000L);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);

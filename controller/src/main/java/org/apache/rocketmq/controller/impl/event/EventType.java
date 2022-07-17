@@ -23,7 +23,8 @@ public enum EventType {
     ALTER_SYNC_STATE_SET_EVENT("AlterSyncStateSetEvent", (short) 1),
     APPLY_BROKER_ID_EVENT("ApplyBrokerIdEvent", (short) 2),
     ELECT_MASTER_EVENT("ElectMasterEvent", (short) 3),
-    READ_EVENT("ReadEvent", (short) 4);
+    READ_EVENT("ReadEvent", (short) 4),
+    UPDATE_BROKER_INFO_EVENT("UpdateBrokerInfoEvent", (short) 5);
 
     private final String name;
     private final short id;
@@ -43,6 +44,8 @@ public enum EventType {
                 return ELECT_MASTER_EVENT;
             case 4:
                 return READ_EVENT;
+            case 5:
+                return UPDATE_BROKER_INFO_EVENT;
         }
         return null;
     }

@@ -24,20 +24,22 @@ public class ElectMasterEvent implements EventMessage {
     // Mark whether a new master was elected.
     private final boolean newMasterElected;
     private final String brokerName;
+    private final String newMasterIdentity;
     private final String newMasterAddress;
     private final String clusterName;
 
     public ElectMasterEvent(boolean newMasterElected, String brokerName) {
-        this(newMasterElected, brokerName, "", "");
+        this(newMasterElected, brokerName, "", "", "");
     }
 
-    public ElectMasterEvent(String brokerName, String newMasterAddress) {
-        this(true, brokerName, newMasterAddress, "");
+    public ElectMasterEvent(String brokerName, String newMasterIdentity) {
+        this(true, brokerName, newMasterIdentity, "", "");
     }
 
-    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress, String clusterName) {
+    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterIdentity, String newMasterAddress, String clusterName) {
         this.newMasterElected = newMasterElected;
         this.brokerName = brokerName;
+        this.newMasterIdentity = newMasterIdentity;
         this.newMasterAddress = newMasterAddress;
         this.clusterName = clusterName;
     }
@@ -55,6 +57,10 @@ public class ElectMasterEvent implements EventMessage {
         return brokerName;
     }
 
+    public String getNewMasterIdentity() {
+        return newMasterIdentity;
+    }
+
     public String getNewMasterAddress() {
         return newMasterAddress;
     }
@@ -67,7 +73,7 @@ public class ElectMasterEvent implements EventMessage {
         return "ElectMasterEvent{" +
             "isNewMasterElected=" + newMasterElected +
             ", brokerName='" + brokerName + '\'' +
-            ", newMasterAddress='" + newMasterAddress + '\'' +
+            ", newMasterAddress='" + newMasterIdentity + '\'' +
             ", clusterName='" + clusterName + '\'' +
             '}';
     }

@@ -24,6 +24,7 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
+    private String brokerIdentity;
     @CFNullable
     private Long heartbeatTimeoutMillis;
 
@@ -31,10 +32,11 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     public RegisterBrokerToControllerRequestHeader() {
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, String brokerIdentity) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+        this.brokerIdentity = brokerIdentity;
     }
 
     public String getClusterName() {
@@ -67,6 +69,14 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     public void setHeartbeatTimeoutMillis(Long heartbeatTimeoutMillis) {
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
+    }
+
+    public String getBrokerIdentity() {
+        return brokerIdentity;
+    }
+
+    public void setBrokerIdentity(String brokerIdentity) {
+        this.brokerIdentity = brokerIdentity;
     }
 
     @Override public String toString() {

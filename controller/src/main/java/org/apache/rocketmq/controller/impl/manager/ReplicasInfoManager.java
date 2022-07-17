@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller.impl.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,27 +26,28 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
+import org.apache.rocketmq.controller.impl.event.UpdateBrokerInfoEvent;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -88,9 +90,9 @@ public class ReplicasInfoManager {
             }
 
             // Check master
-            if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
+            if (!syncStateInfo.getMasterIdentity().equals(request.getMasterIdentity())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
-                    syncStateInfo.getMasterAddress(), request.getMasterAddress());
+                    syncStateInfo.getMasterIdentity(), request.getMasterIdentity());
                 log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
                 return result;
@@ -114,7 +116,7 @@ public class ReplicasInfoManager {
                 return result;
             }
 
-            // Check newSyncStateSet correctness
+            // Check correctness of newSyncStateSet
             for (String replicas : newSyncStateSet) {
                 if (!brokerInfo.isBrokerExist(replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't exist", replicas);
@@ -122,7 +124,7 @@ public class ReplicasInfoManager {
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REPLICAS, err);
                     return result;
                 }
-                if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
+                if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(replicas))) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't alive", replicas);
                     log.error(err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE, err);
@@ -130,8 +132,8 @@ public class ReplicasInfoManager {
                 }
             }
 
-            if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
-                String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
+            if (!newSyncStateSet.contains(syncStateInfo.getMasterIdentity())) {
+                String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterIdentity());
                 log.error(err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
                 return result;
@@ -158,8 +160,8 @@ public class ReplicasInfoManager {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
             // First, check whether the master is still active
-            final String oldMaster = syncStateInfo.getMasterAddress();
-            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), oldMaster)) {
+            final String oldMaster = syncStateInfo.getMasterIdentity();
+            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(oldMaster))) {
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
                 log.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
@@ -169,7 +171,7 @@ public class ReplicasInfoManager {
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
                 boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
+                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(candidate)));
                 if (electSuccess) {
                     return result;
                 }
@@ -178,7 +180,7 @@ public class ReplicasInfoManager {
             // Try elect a master in lagging replicas if enableElectUncleanMaster = true
             if (controllerConfig.isEnableElectUncleanMaster()) {
                 boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
+                    !candidate.equals(syncStateInfo.getMasterIdentity()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerInfo.getBrokerAddress(candidate)));
                 if (electSuccess) {
                     return result;
                 }
@@ -208,7 +210,7 @@ public class ReplicasInfoManager {
         for (final String candidate : candidates) {
             if (filter.test(candidate)) {
                 final ElectMasterResponseHeader response = result.getResponse();
-                response.setNewMasterAddress(candidate);
+                response.setNewMasterIdentity(candidate);
                 response.setMasterEpoch(masterEpoch + 1);
                 response.setSyncStateSetEpoch(syncStateSetEpoch);
                 response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
@@ -227,7 +229,7 @@ public class ReplicasInfoManager {
             final BrokerMemberGroup group = new BrokerMemberGroup(brokerInfo.getClusterName(), brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
             final HashMap<Long, String> memberGroup = new HashMap<>();
-            brokerIdTable.forEach((addr, id) -> memberGroup.put(id, addr));
+            brokerIdTable.forEach((identity, id) -> memberGroup.put(id, brokerInfo.getBrokerAddress(identity)));
             group.setBrokerAddrs(memberGroup);
             return group;
         }
@@ -238,6 +240,7 @@ public class ReplicasInfoManager {
         final RegisterBrokerToControllerRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
+        final String brokerIdentity = request.getBrokerIdentity();
         final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
         final RegisterBrokerToControllerResponseHeader response = result.getResponse();
         boolean canBeElectedAsMaster;
@@ -247,29 +250,36 @@ public class ReplicasInfoManager {
 
             // Get brokerId.
             long brokerId;
-            if (!brokerInfo.isBrokerExist(brokerAddress)) {
-                // If this broker replicas is first time come online, we need to apply a new id for this replicas.
+            if (!brokerInfo.isBrokerExist(brokerIdentity)) {
+                // If this Broker replicas come online for the first time, we need to assign a brokerId to it
                 brokerId = brokerInfo.newBrokerId();
-                final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(), brokerAddress, brokerId);
+                final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(), brokerId, brokerIdentity);
                 result.addEvent(applyIdEvent);
             } else {
-                brokerId = brokerInfo.getBrokerId(brokerAddress);
+                brokerId = brokerInfo.getBrokerId(brokerIdentity);
             }
             response.setBrokerId(brokerId);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
 
+            // Check whether the brokerAddress changed
+            if (!StringUtils.equals(brokerAddress, brokerInfo.getBrokerAddress(brokerIdentity))) {
+                final UpdateBrokerInfoEvent updateBrokerInfoEvent = new UpdateBrokerInfoEvent(brokerName, brokerIdentity, brokerAddress);
+                result.addEvent(updateBrokerInfoEvent);
+            }
+
             if (syncStateInfo.isMasterExist()) {
                 // If the master is alive, just return master info.
-                final String masterAddress = syncStateInfo.getMasterAddress();
-                response.setMasterAddress(masterAddress);
+                final String masterIdentity = syncStateInfo.getMasterIdentity();
+                response.setMasterAddress(brokerInfo.getBrokerAddress(masterIdentity));
                 return result;
             } else {
                 // If the master is not alive, we should elect a new master:
                 // Case1: This replicas was in sync state set list
                 // Case2: The option {EnableElectUncleanMaster} is true
-                canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster();
+                canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerIdentity) || this.controllerConfig.isEnableElectUncleanMaster();
             }
+
         } else {
             // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             canBeElectedAsMaster = true;
@@ -284,7 +294,7 @@ public class ReplicasInfoManager {
             response.setSyncStateSetEpoch(syncStateSetEpoch);
             response.setBrokerId(MixAll.MASTER_ID);
 
-            final ElectMasterEvent event = new ElectMasterEvent(true, brokerName, brokerAddress, request.getClusterName());
+            final ElectMasterEvent event = new ElectMasterEvent(true, brokerName, brokerIdentity, brokerAddress, request.getClusterName());
             result.addEvent(event);
             return result;
         }
@@ -302,11 +312,12 @@ public class ReplicasInfoManager {
             // If exist broker metadata, just return metadata
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
-            final String masterAddress = syncStateInfo.getMasterAddress();
-            response.setMasterAddress(masterAddress);
+            final String masterIdentity = syncStateInfo.getMasterIdentity();
+            response.setMasterIdentity(masterIdentity);
+            response.setMasterAddress(brokerInfo.getBrokerAddress(masterIdentity));
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
-            if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
-                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
+            if (StringUtils.isNotEmpty(request.getBrokerIdentity())) {
+                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerIdentity()));
             }
             result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
             return result;
@@ -320,18 +331,17 @@ public class ReplicasInfoManager {
         final InSyncStateData inSyncStateData = new InSyncStateData();
         for (String brokerName : brokerNames) {
             if (isContainsBroker(brokerName)) {
-                // If exist broker metadata, just return metadata
                 final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
                 final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
                 final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
-                final String master = syncStateInfo.getMasterAddress();
+                final String master = syncStateInfo.getMasterIdentity();
                 final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
                 syncStateSet.forEach(replicas -> {
                     long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(replicas);
-                    inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
+                    inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerInfo.getBrokerAddress(replicas), brokerId));
                 });
 
-                final InSyncStateData.InSyncStateSet inSyncState = new InSyncStateData.InSyncStateSet(master, syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(), inSyncMembers);
+                final InSyncStateData.InSyncStateSet inSyncState = new InSyncStateData.InSyncStateSet(master, brokerInfo.getBrokerAddress(master), syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(), inSyncMembers);
                 inSyncStateData.addInSyncState(brokerName, inSyncState);
             }
         }
@@ -356,6 +366,8 @@ public class ReplicasInfoManager {
             case ELECT_MASTER_EVENT:
                 handleElectMaster((ElectMasterEvent) event);
                 break;
+            case UPDATE_BROKER_INFO_EVENT:
+                handleUpdateBrokerInfo((UpdateBrokerInfoEvent)event);
             default:
                 break;
         }
@@ -373,26 +385,23 @@ public class ReplicasInfoManager {
         final String brokerName = event.getBrokerName();
         if (isContainsBroker(brokerName)) {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
-            if (!brokerInfo.isBrokerExist(event.getBrokerAddress())) {
-                brokerInfo.addBroker(event.getBrokerAddress(), event.getNewBrokerId());
+            if (!brokerInfo.isBrokerExist(event.getBrokerIdentity())) {
+                brokerInfo.addBroker(event.getBrokerIdentity(), event.getNewBrokerId());
             }
         }
     }
 
     private void handleElectMaster(final ElectMasterEvent event) {
         final String brokerName = event.getBrokerName();
-        final String newMaster = event.getNewMasterAddress();
+        final String newMaster = event.getNewMasterIdentity();
         if (isContainsBroker(brokerName)) {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
 
             if (event.getNewMasterElected()) {
-                // Record new master
+                // Record new master and newSyncStateSet
                 syncStateInfo.updateMasterInfo(newMaster);
+                syncStateInfo.updateSyncStateSetInfo(new HashSet<>(Collections.singletonList(newMaster)));
 
-                // Record new newSyncStateSet list
-                final HashSet<String> newSyncStateSet = new HashSet<>();
-                newSyncStateSet.add(newMaster);
-                syncStateInfo.updateSyncStateSetInfo(newSyncStateSet);
             } else {
                 // If new master was not elected, which means old master was shutdown and the newSyncStateSet list had no more replicas
                 // So we should delete old master, but retain newSyncStateSet list.
@@ -404,9 +413,18 @@ public class ReplicasInfoManager {
             final String clusterName = event.getClusterName();
             final BrokerInfo brokerInfo = new BrokerInfo(clusterName, brokerName);
             brokerInfo.addBroker(newMaster, 1L);
+            brokerInfo.updateBrokerAddress(newMaster, event.getNewMasterAddress());
             final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName, newMaster);
             this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
+        }
+    }
+
+
+    private void handleUpdateBrokerInfo(final UpdateBrokerInfoEvent event) {
+        if (isContainsBroker(event.getBrokerName())) {
+            final BrokerInfo brokerInfo = this.replicaInfoTable.get(event.getBrokerName());
+            brokerInfo.updateBrokerAddress(event.getBrokerIdentity(), event.getBrokerAddress());
         }
     }
 

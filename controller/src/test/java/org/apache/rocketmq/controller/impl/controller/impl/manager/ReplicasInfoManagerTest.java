@@ -53,10 +53,10 @@ public class ReplicasInfoManagerTest {
         this.replicasInfoManager = new ReplicasInfoManager(config);
     }
 
-    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, boolean isFirstRegisteredBroker) {
+    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, String brokerIdentity, boolean isFirstRegisteredBroker) {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
-            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
+            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress, brokerIdentity);
         final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest);
         apply(registerResult.getEvents());
 
@@ -65,6 +65,7 @@ public class ReplicasInfoManagerTest {
             final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
             assertEquals(replicaInfo.getMasterAddress(), brokerAddress);
             assertEquals(replicaInfo.getMasterEpoch(), 1);
+            assertEquals(replicaInfo.getMasterIdentity(), brokerIdentity);
         } else {
             final RegisterBrokerToControllerResponseHeader response = registerResult.getResponse();
             assertTrue(response.getBrokerId() > 0);
@@ -72,9 +73,9 @@ public class ReplicasInfoManagerTest {
         return true;
     }
 
-    private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch, Set<String> newSyncStateSet, int syncStateSetEpoch) {
+    private boolean alterNewInSyncSet(String brokerName, String masterIdentity, int masterEpoch, Set<String> newSyncStateSet, int syncStateSetEpoch) {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
+            new AlterSyncStateSetRequestHeader(brokerName, masterIdentity, masterEpoch);
         final ControllerResult<AlterSyncStateSetResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch), (va1, va2) -> true);
         apply(result.getEvents());
 
@@ -94,14 +95,19 @@ public class ReplicasInfoManagerTest {
     }
 
     public void mockMetaData() {
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", true);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", false);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", false);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", "broker1", true);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", "broker2", false);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", "broker3", false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
-        newSyncStateSet.add("127.0.0.1:9000");
-        newSyncStateSet.add("127.0.0.1:9001");
-        newSyncStateSet.add("127.0.0.1:9002");
-        assertTrue(alterNewInSyncSet("broker1", "127.0.0.1:9000", 1, newSyncStateSet, 1));
+        newSyncStateSet.add("broker1");
+        newSyncStateSet.add("broker2");
+        newSyncStateSet.add("broker3");
+        assertTrue(alterNewInSyncSet("broker1", "broker1", 1, newSyncStateSet, 1));
+    }
+
+    @Test
+    public void testMock() {
+        mockMetaData();
     }
 
     @Test
@@ -111,16 +117,16 @@ public class ReplicasInfoManagerTest {
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request, (clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"));
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertFalse(response.getNewMasterIdentity().isEmpty());
+        assertNotEquals(response.getNewMasterIdentity(), "127.0.0.1:9000");
     }
 
     @Test
     public void testAllReplicasShutdownAndRestart() {
         mockMetaData();
         final HashSet<String> newSyncStateSet = new HashSet<>();
-        newSyncStateSet.add("127.0.0.1:9000");
-        assertTrue(alterNewInSyncSet("broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
+        newSyncStateSet.add("broker1");
+        assertTrue(alterNewInSyncSet("broker1", "broker1", 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
@@ -137,5 +143,4 @@ public class ReplicasInfoManagerTest {
         assertEquals(replicaInfo.getMasterAddress(), "");
         assertEquals(replicaInfo.getMasterEpoch(), 2);
     }
-
 }

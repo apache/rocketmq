@@ -26,7 +26,7 @@ import java.util.Set;
 public class AlterSyncStateSetEvent implements EventMessage {
 
     private final String brokerName;
-    private final Set<String/*Address*/> newSyncStateSet;
+    private final Set<String/*Identity*/> newSyncStateSet;
 
     public AlterSyncStateSetEvent(String brokerName, Set<String> newSyncStateSet) {
         this.brokerName = brokerName;

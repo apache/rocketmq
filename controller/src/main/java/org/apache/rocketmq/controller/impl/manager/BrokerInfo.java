@@ -29,13 +29,15 @@ public class BrokerInfo {
     private final String brokerName;
     // Start from 1
     private final AtomicLong brokerIdCount;
-    private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
+    private final HashMap<String/*Identity*/, Long/*brokerId*/> brokerIdTable;
+    private final HashMap<String/*Identity*/, String/*brokerAddr*/> brokerAddressTable;
 
     public BrokerInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerIdCount = new AtomicLong(1L);
         this.brokerIdTable = new HashMap<>();
+        this.brokerAddressTable = new HashMap<>();
     }
 
     public long newBrokerId() {
@@ -50,26 +52,31 @@ public class BrokerInfo {
         return brokerName;
     }
 
-    public void addBroker(final String address, final Long brokerId) {
-        this.brokerIdTable.put(address, brokerId);
+    public void addBroker(final String identity, final Long brokerId) {
+        this.brokerIdTable.put(identity, brokerId);
     }
 
-    public boolean isBrokerExist(final String address) {
-        return this.brokerIdTable.containsKey(address);
+    public void updateBrokerAddress(final String identity, final String address) {
+        this.brokerAddressTable.put(identity, address);
+    }
+
+    public String getBrokerAddress(final String identity) {
+        return this.brokerAddressTable.getOrDefault(identity, "");
+    }
+
+    public boolean isBrokerExist(final String identity) {
+        return this.brokerIdTable.containsKey(identity);
     }
 
     public Set<String> getAllBroker() {
-        return new HashSet<>(this.brokerIdTable.keySet());
+        return new HashSet<>(this.brokerAddressTable.values());
     }
 
     public HashMap<String, Long> getBrokerIdTable() {
         return new HashMap<>(this.brokerIdTable);
     }
 
-    public Long getBrokerId(final String address) {
-        if (this.brokerIdTable.containsKey(address)) {
-            return this.brokerIdTable.get(address);
-        }
-        return -1L;
+    public Long getBrokerId(final String identity) {
+        return this.brokerIdTable.getOrDefault(identity, -1L);
     }
 }
