@@ -578,6 +578,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     this.executeHookBefore(consumeMessageContext);
                     consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
                     consumeMessageContext.setSuccess(true);
+                    consumeMessageContext.setAccessChannel(defaultLitePullConsumer.getAccessChannel());
                     this.executeHookAfter(consumeMessageContext);
                 }
                 return messages;
