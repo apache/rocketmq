@@ -233,7 +233,7 @@ public class DefaultMQProducerTest {
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
 
-        // off enableBackpressureForAsyncMode
+        // off enableBackpressureForAsyncMode 
         producer.setEnableBackpressureForAsyncMode(false);
         producer.send(new Message(), sendCallback);
         producer.send(message, new MessageQueue(), sendCallback);
