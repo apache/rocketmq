@@ -475,6 +475,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("rocketmq3");
@@ -559,6 +560,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("rocketmq3");
@@ -638,6 +640,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("rocketmq3");
@@ -688,6 +691,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         List<String> globalWhiteAddrsList = new ArrayList<>();
         globalWhiteAddrsList.add("192.168.1.*");
@@ -808,6 +812,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("RocketMQ33");
@@ -827,6 +832,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("watchrocketmqh");
@@ -921,6 +927,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -952,6 +959,7 @@ public class PlainAccessValidatorTest {
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
