@@ -708,8 +708,9 @@ public class LoggingBuilder {
                     throw ex;
                 }
             }
+            Writer fw = null;
             try {
-                Writer fw = createWriter(ostream);
+                fw = createWriter(ostream);
                 if (bufferedIO) {
                     fw = new BufferedWriter(fw, bufferSize);
                 }
@@ -725,6 +726,9 @@ public class LoggingBuilder {
             } finally {
                 if (ostream != null) {
                     ostream.close();
+                }
+                if (fw != null) {
+                    fw.close();
                 }
             }
             
