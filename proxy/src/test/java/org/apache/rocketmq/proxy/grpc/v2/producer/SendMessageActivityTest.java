@@ -28,7 +28,9 @@ import apache.rocketmq.v2.SystemProperties;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +45,7 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -425,6 +428,35 @@ public class SendMessageActivityTest extends BaseActivityTest {
             }
         });
 
+        // tag with \t
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setTag("\t")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_TAG, e.getCode());
+                throw e;
+            }
+        });
+
         // blank message key
         assertThrows(GrpcProxyException.class, () -> {
             try {
@@ -439,6 +471,35 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setMessageId("msgId")
                                 .setQueueId(0)
                                 .addKeys("  ")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_KEY, e.getCode());
+                throw e;
+            }
+        });
+
+        // blank message with \t
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .addKeys("\t")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
                                 .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
@@ -496,7 +557,36 @@ public class SendMessageActivityTest extends BaseActivityTest {
                             .setSystemProperties(SystemProperties.newBuilder()
                                 .setMessageId("msgId")
                                 .setQueueId(0)
-                                .setMessageGroup(createStr(1025))
+                                .setMessageGroup(createStr(ConfigurationManager.getProxyConfig().getMaxMessageGroupSize() + 1))
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_GROUP, e.getCode());
+                throw e;
+            }
+        });
+
+        // message group with \t
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageGroup("\t")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
                                 .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
@@ -529,7 +619,40 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
                                 .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
-                            .putUserProperties("key", createStr(16 * 1024))
+                            .putUserProperties("key", createStr(16 * 1024 + 1))
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.MESSAGE_PROPERTIES_TOO_LARGE, e.getCode());
+                throw e;
+            }
+        });
+
+        // too large message property
+        assertThrows(GrpcProxyException.class, () -> {
+            Map<String, String> p = new HashMap<>();
+            for (int i = 0; i <= ConfigurationManager.getProxyConfig().getUserPropertyMaxNum(); i++) {
+                p.put(String.valueOf(i), String.valueOf(i));
+            }
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .putAllUserProperties(p)
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
                         .build()
@@ -594,6 +717,66 @@ public class SendMessageActivityTest extends BaseActivityTest {
             } catch (ExecutionException t) {
                 GrpcProxyException e = (GrpcProxyException) t.getCause();
                 assertEquals(Code.ILLEGAL_MESSAGE_ID, e.getCode());
+                throw e;
+            }
+        });
+
+        // delay time
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("id")
+                                .setDeliveryTimestamp(
+                                    Timestamps.fromMillis(System.currentTimeMillis() + Duration.ofDays(1).toMillis() + Duration.ofSeconds(10).toMillis()))
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_DELIVERY_TIME, e.getCode());
+                throw e;
+            }
+        });
+
+        // transactionRecoverySecond
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("id")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setOrphanedTransactionRecoveryDuration(Durations.fromHours(2))
+                                .setMessageType(MessageType.TRANSACTION)
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.BAD_REQUEST, e.getCode());
                 throw e;
             }
         });

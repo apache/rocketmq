@@ -19,10 +19,10 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Resource;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
+import com.google.common.base.CharMatcher;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -32,7 +32,6 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class GrpcValidator {
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected static final Map<String, Pattern> CHECK_PATTERN_CACHE = new ConcurrentHashMap<>();
 
     protected static final Object INSTANCE_CREATE_LOCK = new Object();
     protected static volatile GrpcValidator instance;
@@ -48,17 +47,6 @@ public class GrpcValidator {
         return instance;
     }
 
-    protected Pattern getPattern(String regex) {
-        return CHECK_PATTERN_CACHE.compute(regex, (regexKey, oldPattern) -> {
-            try {
-                return Pattern.compile(regex);
-            } catch (Exception e) {
-                log.error("create check pattern failed. regex:{}", regex, e);
-                return oldPattern;
-            }
-        });
-    }
-
     public void validateTopic(Resource topic) {
         validateTopic(GrpcConverter.getInstance().wrapResourceWithNamespace(topic));
     }
@@ -70,16 +58,10 @@ public class GrpcValidator {
         if (TopicValidator.isSystemTopic(topicName)) {
             throw new GrpcProxyException(Code.ILLEGAL_TOPIC, "cannot access system topic");
         }
-        String regex = ConfigurationManager.getProxyConfig().getTopicNameCheckRegex();
-        if (StringUtils.isBlank(regex)) {
-            return;
-        }
-        Pattern pattern = getPattern(regex);
-        if (pattern == null) {
-            throw new GrpcProxyException(Code.INTERNAL_SERVER_ERROR, "get topic name check pattern failed");
-        }
-        if (!pattern.matcher(topicName).matches()) {
-            throw new GrpcProxyException(Code.ILLEGAL_TOPIC, "the format of topic is not correct");
+        try {
+            Validators.checkTopic(topicName);
+        } catch (MQClientException mqClientException) {
+            throw new GrpcProxyException(Code.ILLEGAL_TOPIC, mqClientException.getErrorMessage());
         }
     }
 
@@ -94,16 +76,10 @@ public class GrpcValidator {
         if (MixAll.isSysConsumerGroup(consumerGroupName)) {
             throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "cannot use system consumer group");
         }
-        String regex = ConfigurationManager.getProxyConfig().getConsumerGroupNameCheckRegex();
-        if (StringUtils.isBlank(regex)) {
-            return;
-        }
-        Pattern pattern = getPattern(regex);
-        if (pattern == null) {
-            throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "get consumer group check pattern failed");
-        }
-        if (!pattern.matcher(consumerGroupName).matches()) {
-            throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "the format of consumer group is not correct");
+        try {
+            Validators.checkGroup(consumerGroupName);
+        } catch (MQClientException mqClientException) {
+            throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, mqClientException.getErrorMessage());
         }
     }
 
@@ -127,5 +103,28 @@ public class GrpcValidator {
         if (invisibleTime > maxInvisibleTime) {
             throw new GrpcProxyException(Code.ILLEGAL_INVISIBLE_TIME, "the invisibleTime is too large. max is " + maxInvisibleTime);
         }
+    }
+
+    public void validateTag(String tag) {
+        if (StringUtils.isNotEmpty(tag)) {
+            if (StringUtils.isBlank(tag)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot be the char sequence of whitespace");
+            }
+            if (tag.contains("|")) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
+            }
+            if (containControlCharacter(tag)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain control character");
+            }
+        }
+    }
+
+    public boolean containControlCharacter(String data) {
+        for (int i = 0; i < data.length(); i++) {
+            if (CharMatcher.javaIsoControl().matches(data.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

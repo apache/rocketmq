@@ -56,15 +56,6 @@ public class ProxyConfig {
      * 130M = 4M * 32 messages + 2M attributes
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
-
-    /**
-     * the regex to check topic name, empty string means not to check
-     */
-    private String topicNameCheckRegex = "^[%|a-zA-Z0-9_-]{1,127}$";
-    /**
-     * the regex to check consumer group name, empty string means not to check
-     */
-    private String consumerGroupNameCheckRegex = "^[%a-zA-Z0-9_-]{1,64}$";
     /**
      * max message body size, 0 or negative number means no limit for proxy
      */
@@ -73,13 +64,15 @@ public class ProxyConfig {
      * max user property size, 0 or negative number means no limit for proxy
      */
     private int maxUserPropertySize = 16 * 1024;
+    private int userPropertyMaxNum = 128;
     /**
      * max message group size, 0 or negative number means no limit for proxy
      */
-    private int maxMessageGroupSize = 1024;
+    private int maxMessageGroupSize = 64;
     private long minInvisibleTimeMillsForRecv = Duration.ofSeconds(10).toMillis();
     private long maxInvisibleTimeMills = Duration.ofHours(12).toMillis();
     private long maxDelayTimeMills = Duration.ofDays(1).toMillis();
+    private long maxTransactionRecoverySecond = Duration.ofHours(1).getSeconds();
     private boolean enableTopicMessageTypeCheck = true;
 
     private int grpcClientProducerMaxAttempts = 3;
@@ -299,22 +292,6 @@ public class ProxyConfig {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
     }
 
-    public String getTopicNameCheckRegex() {
-        return topicNameCheckRegex;
-    }
-
-    public void setTopicNameCheckRegex(String topicNameCheckRegex) {
-        this.topicNameCheckRegex = topicNameCheckRegex;
-    }
-
-    public String getConsumerGroupNameCheckRegex() {
-        return consumerGroupNameCheckRegex;
-    }
-
-    public void setConsumerGroupNameCheckRegex(String consumerGroupNameCheckRegex) {
-        this.consumerGroupNameCheckRegex = consumerGroupNameCheckRegex;
-    }
-
     public int getMaxMessageSize() {
         return maxMessageSize;
     }
@@ -329,6 +306,14 @@ public class ProxyConfig {
 
     public void setMaxUserPropertySize(int maxUserPropertySize) {
         this.maxUserPropertySize = maxUserPropertySize;
+    }
+
+    public int getUserPropertyMaxNum() {
+        return userPropertyMaxNum;
+    }
+
+    public void setUserPropertyMaxNum(int userPropertyMaxNum) {
+        this.userPropertyMaxNum = userPropertyMaxNum;
     }
 
     public int getMaxMessageGroupSize() {
@@ -361,6 +346,14 @@ public class ProxyConfig {
 
     public void setMaxDelayTimeMills(long maxDelayTimeMills) {
         this.maxDelayTimeMills = maxDelayTimeMills;
+    }
+
+    public long getMaxTransactionRecoverySecond() {
+        return maxTransactionRecoverySecond;
+    }
+
+    public void setMaxTransactionRecoverySecond(long maxTransactionRecoverySecond) {
+        this.maxTransactionRecoverySecond = maxTransactionRecoverySecond;
     }
 
     public int getGrpcClientProducerMaxAttempts() {

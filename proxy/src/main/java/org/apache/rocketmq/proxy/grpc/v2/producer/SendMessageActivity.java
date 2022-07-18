@@ -43,11 +43,13 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
@@ -139,21 +141,13 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
     }
 
-    protected void validateTag(String tag) {
-        if (StringUtils.isNotEmpty(tag)) {
-            if (StringUtils.isBlank(tag)) {
-                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot be the char sequence of whitespace");
-            }
-            if (tag.contains("|")) {
-                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
-            }
-        }
-    }
-
     protected void validateMessageKey(String key) {
         if (StringUtils.isNotEmpty(key)) {
             if (StringUtils.isBlank(key)) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_KEY, "key cannot be the char sequence of whitespace");
+            }
+            if (GrpcValidator.getInstance().containControlCharacter(key)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_KEY, "key cannot contain control character");
             }
         }
     }
@@ -170,20 +164,8 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (messageGroup.length() >= maxSize) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
             }
-        }
-    }
-
-    protected void validateMessagePropertySize(Map<String, String> property) {
-        int maxSize = ConfigurationManager.getProxyConfig().getMaxUserPropertySize();
-        if (maxSize <= 0) {
-            return;
-        }
-        int curSize = 0;
-        for (Map.Entry<String, String> entry : property.entrySet()) {
-            curSize += entry.getKey().length();
-            curSize += entry.getValue().length();
-            if (curSize > maxSize) {
-                throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "the size of message properties cannot exceed the max " + maxSize);
+            if (GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group cannot contain control character");
             }
         }
     }
@@ -194,33 +176,56 @@ public class SendMessageActivity extends AbstractMessingActivity {
             return;
         }
         if (deliveryTimestampMs - System.currentTimeMillis() > maxDelay) {
-            throw new GrpcProxyException(Code.ILLEGAL_DELIVERY_TIME, "the max delay time of message is too large");
+            throw new GrpcProxyException(Code.ILLEGAL_DELIVERY_TIME, "the max delay time of message is too large, max is " + maxDelay);
+        }
+    }
+
+    protected void validateTransactionRecoverySecond(long transactionRecoverySecond) {
+        long maxTransactionRecoverySecond = ConfigurationManager.getProxyConfig().getMaxTransactionRecoverySecond();
+        if (maxTransactionRecoverySecond <= 0) {
+            return;
+        }
+        if (transactionRecoverySecond > maxTransactionRecoverySecond) {
+            throw new GrpcProxyException(Code.BAD_REQUEST, "the max transaction recovery time of message is too large, max is " + maxTransactionRecoverySecond);
         }
     }
 
     protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
+        long userPropertySize = 0;
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
         org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
         // set user properties
         Map<String, String> userProperties = message.getUserPropertiesMap();
+        if (userProperties.size() > config.getUserPropertyMaxNum()) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "too many user properties, max is " + config.getUserPropertyMaxNum());
+        }
         for (Map.Entry<String, String> userPropertiesEntry : userProperties.entrySet()) {
             if (MessageConst.STRING_HASH_SET.contains(userPropertiesEntry.getKey())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + userPropertiesEntry.getKey());
             }
+            userPropertySize += userPropertiesEntry.getKey().length();
+            userPropertySize += userPropertiesEntry.getValue().length();
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
         // set tag
         String tag = message.getSystemProperties().getTag();
-        validateTag(tag);
+        GrpcValidator.getInstance().validateTag(tag);
         messageWithHeader.setTags(tag);
+        userPropertySize += tag.length();
 
         // set keys
         List<String> keysList = message.getSystemProperties().getKeysList();
         for (String key : keysList) {
             validateMessageKey(key);
+            userPropertySize += key.length();
         }
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
+        }
+
+        if (userPropertySize > config.getMaxUserPropertySize()) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "the total size of user property is too large, max is " + config.getMaxUserPropertySize());
         }
 
         // set message id
@@ -236,8 +241,10 @@ public class SendMessageActivity extends AbstractMessingActivity {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
             if (message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
+                long transactionRecoverySecond = Durations.toSeconds(message.getSystemProperties().getOrphanedTransactionRecoveryDuration());
+                validateTransactionRecoverySecond(transactionRecoverySecond);
                 MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,
-                    String.valueOf(Durations.toSeconds(message.getSystemProperties().getOrphanedTransactionRecoveryDuration())));
+                    String.valueOf(transactionRecoverySecond));
             }
         }
 
@@ -276,7 +283,6 @@ public class SendMessageActivity extends AbstractMessingActivity {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_BORN_HOST, bornHost);
         }
 
-        validateMessagePropertySize(messageWithHeader.getProperties());
         return messageWithHeader.getProperties();
     }
 
