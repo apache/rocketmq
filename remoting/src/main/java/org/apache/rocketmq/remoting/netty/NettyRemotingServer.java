@@ -204,11 +204,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             && Epoll.isAvailable();
     }
 
-    /**
-     * mac: support
-     * freeBSD: should copy distribution/lib/libnetty_transport_native_kqueue_x86_64.so to java.library.path
-     * openBSD & netBSD: not support now, libnetty_transport_native_kqueue cannot be compiled successfully because the sendfile function is missing
-     */
     private boolean useKqueue() {
         return RemotingUtil.isBSDFamilyPlatform() && nettyServerConfig.isUseKqueueNativeSelector()
             && KQueue.isAvailable();
