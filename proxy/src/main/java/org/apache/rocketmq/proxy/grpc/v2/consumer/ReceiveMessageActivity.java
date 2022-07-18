@@ -65,15 +65,19 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
+            ProxyConfig config = ConfigurationManager.getProxyConfig();
 
             Long timeRemaining = ctx.getRemainingMs();
             if (timeRemaining == null) {
                 timeRemaining = Duration.ofSeconds(20).toMillis();
             }
-            long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
+            long pollTime = timeRemaining - config.getLongPollingReserveTimeInMillis();
             if (pollTime <= 0) {
-                writer.writeAndComplete(ctx, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
+                writer.writeAndComplete(ctx, Code.BAD_REQUEST, "time remaining is too small");
                 return;
+            }
+            if (pollTime > config.getGrpcClientConsumerLongPollingTimeoutMillis()) {
+                pollTime = config.getGrpcClientConsumerLongPollingTimeoutMillis();
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
