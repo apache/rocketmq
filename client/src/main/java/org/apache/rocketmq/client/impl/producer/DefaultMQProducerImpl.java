@@ -530,22 +530,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
         boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
-        boolean isAsyncNumAquired = false;
-        boolean isAsyncSizeAquired = false;
+        boolean isSemaphoreAsyncNumAquired = false;
+        boolean isSemaphoreAsyncSizeAquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
 
         try {
             if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
-                isAsyncNumAquired = semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isAsyncNumAquired) {
+                isSemaphoreAsyncNumAquired = semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
+                if (!isSemaphoreAsyncNumAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
                 costTime = System.currentTimeMillis() - beginStartTime;
-                isAsyncSizeAquired = semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isAsyncSizeAquired) {
+                isSemaphoreAsyncSizeAquired = semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
+                if (!isSemaphoreAsyncSizeAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
@@ -560,10 +560,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw new MQClientException("executor rejected ", e);
             }
         } finally {
-            if (isAsyncSizeAquired) {
+            if (isSemaphoreAsyncSizeAquired) {
                 semaphoreAsyncSendSize.release(msgLen);
             }
-            if (isAsyncNumAquired) {
+            if (isSemaphoreAsyncNumAquired) {
                 semaphoreAsyncSendNum.release();
             }
         }
