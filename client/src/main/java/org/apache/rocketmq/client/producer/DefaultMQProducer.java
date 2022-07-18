@@ -146,8 +146,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
+     * default is 100M
      */
-    private Semaphore semaphoreAsyncSize = new Semaphore(512 * 1024 * 1024, true);
+    private Semaphore semaphoreAsyncSize = new Semaphore(100 * 1024 * 1024, true);
 
     /**
      * Default constructor.
