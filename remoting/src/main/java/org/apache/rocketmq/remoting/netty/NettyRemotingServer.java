@@ -32,6 +32,9 @@ import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -141,6 +144,27 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     return new Thread(r, String.format("NettyServerEPOLLSelector_%d_%d", threadTotal, this.threadIndex.incrementAndGet()));
                 }
             });
+        } else if (useKqueue()) {
+            this.eventLoopGroupBoss = new KQueueEventLoopGroup(1, new ThreadFactory() {
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, String.format("NettyKQUEUEBoss_%d", this.threadIndex.incrementAndGet()));
+                }
+            });
+
+            this.eventLoopGroupSelector =
+                new KQueueEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
+                    private AtomicInteger threadIndex = new AtomicInteger(0);
+                    private int threadTotal = nettyServerConfig.getServerSelectorThreads();
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, String.format("NettyServerKQUEUESelector_%d_%d", threadTotal,
+                            this.threadIndex.incrementAndGet()));
+                    }
+                });
         } else {
             this.eventLoopGroupBoss = new NioEventLoopGroup(1, new ThreadFactory() {
                 private AtomicInteger threadIndex = new AtomicInteger(0);
@@ -189,6 +213,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             && Epoll.isAvailable();
     }
 
+    private boolean useKqueue() {
+        return RemotingUtil.isBSDFamilyPlatform() && nettyServerConfig.isUseKqueueNativeSelector()
+            && KQueue.isAvailable();
+    }
+
     @Override
     public void start() {
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
@@ -205,9 +234,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         prepareSharableHandlers();
 
-        ServerBootstrap childHandler =
-            this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
-                .channel(useEpoll() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+        ServerBootstrap childHandler = this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
+            .channel(useEpoll() ? EpollServerSocketChannel.class :
+                useKqueue() ? KQueueServerSocketChannel.class : NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.SO_REUSEADDR, true)
                 .option(ChannelOption.SO_KEEPALIVE, false)
