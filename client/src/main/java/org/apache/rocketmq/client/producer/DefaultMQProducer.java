@@ -141,14 +141,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
+     * default is 10000
      */
-    private Semaphore semaphoreAsyncNum = new Semaphore(60000, true);
+    private int backPressureForAsyncSendNum = 10000;
 
     /**
      * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
      * default is 100M
      */
-    private Semaphore semaphoreAsyncSize = new Semaphore(100 * 1024 * 1024, true);
+    private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
     /**
      * Default constructor.
@@ -1135,20 +1136,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.enableBackpressureForAsyncMode = enableBackpressureForAsyncMode;
     }
 
-    public Semaphore getSemaphoreAsyncNum() {
-        return semaphoreAsyncNum;
+    public int getBackPressureForAsyncSendNum() {
+        return backPressureForAsyncSendNum;
     }
 
-    public void setSemaphoreAsyncNum(int num) {
-        semaphoreAsyncNum = new Semaphore(num, true);
+    public void setBackPressureForAsyncSendNum(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
+        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum);
     }
 
-    public Semaphore getSemaphoreAsyncSize() {
-        return semaphoreAsyncSize;
+    public int getBackPressureForAsyncSendSize() {
+        return backPressureForAsyncSendSize;
     }
 
-    public void setSemaphoreAsyncSize(int num) {
-        semaphoreAsyncSize = new Semaphore(num, true);
+    public void setBackPressureForAsyncSendSize(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
+        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize);
     }
 
 }

@@ -217,8 +217,8 @@ public class DefaultMQProducerTest {
 
         // on enableBackpressureForAsyncMode
         producer.setEnableBackpressureForAsyncMode(true);
-        producer.setSemaphoreAsyncNum(60000);
-        producer.setSemaphoreAsyncSize(512 * 1024 * 1024);
+        producer.setBackPressureForAsyncSendNum(5000);
+        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());

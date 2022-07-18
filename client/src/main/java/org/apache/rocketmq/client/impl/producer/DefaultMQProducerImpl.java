@@ -120,6 +120,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
     private final Compressor compressor = CompressorFactory.getCompressor(compressType);
 
+    // backpressure related
+    private Semaphore semaphoreAsyncSendNum;
+    private Semaphore semaphoreAsyncSendSize;
+
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
     }
@@ -143,12 +147,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     return new Thread(r, "AsyncSenderExecutor_" + this.threadIndex.incrementAndGet());
                 }
             });
+        semaphoreAsyncSendNum = new Semaphore(defaultMQProducer.getBackPressureForAsyncSendNum(), true);
+        semaphoreAsyncSendSize = new Semaphore(defaultMQProducer.getBackPressureForAsyncSendSize(), true);
     }
 
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
         this.checkForbiddenHookList.add(checkForbiddenHook);
         log.info("register a new checkForbiddenHook. hookName={}, allHookSize={}", checkForbiddenHook.hookName(),
             checkForbiddenHookList.size());
+    }
+
+    public void setSemaphoreAsyncSendNum(int num) {
+        semaphoreAsyncSendNum = new Semaphore(num, true);
+    }
+
+    public void setSemaphoreAsyncSendSize(int size) {
+        semaphoreAsyncSendSize = new Semaphore(size, true);
     }
 
     public void initTransactionEnv() {
@@ -515,8 +529,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                          final long timeout, final long beginStartTime)
             throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
-        Semaphore semaphoreAsyncNum = this.getDefaultMQProducer().getSemaphoreAsyncNum();
-        Semaphore semaphoreAsyncSize = this.getDefaultMQProducer().getSemaphoreAsyncSize();
         boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
         boolean isAsyncNumAquired = false;
         boolean isAsyncSizeAquired = false;
@@ -525,14 +537,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
-                isAsyncNumAquired = semaphoreAsyncNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
+                isAsyncNumAquired = semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
                 if (!isAsyncNumAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
                 costTime = System.currentTimeMillis() - beginStartTime;
-                isAsyncSizeAquired = semaphoreAsyncSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
+                isAsyncSizeAquired = semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
                 if (!isAsyncSizeAquired) {
                     sendCallback.onException(
                             new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
@@ -549,10 +561,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         } finally {
             if (isAsyncSizeAquired) {
-                semaphoreAsyncSize.release(msgLen);
+                semaphoreAsyncSendSize.release(msgLen);
             }
             if (isAsyncNumAquired) {
-                semaphoreAsyncNum.release();
+                semaphoreAsyncSendNum.release();
             }
         }
 
