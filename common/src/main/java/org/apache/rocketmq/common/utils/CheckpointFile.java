@@ -18,23 +18,37 @@
 package org.apache.rocketmq.common.utils;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
 
 /**
  * Entry Checkpoint file util
  * Format:
- *   First line: Entries size
- *   Then: every Entry(String)
+ * <li>First line:  Entries size
+ * <li>Second line: Entries crc32
+ * <li>Next: Entry data per line
+ * <p>
+ * Example:
+ * <li>2 (size)
+ * <li>773307083 (crc32)
+ * <li>7-7000 (entry data)
+ * <li>8-8000 (entry data)
  */
 public class CheckpointFile<T> {
+
+    /**
+     * Not check crc32 when value is 0
+     */
+    private static final int NOT_CHECK_CRC_MAGIC_CODE = 0;
+    private final String filePath;
+    private final CheckpointSerializer<T> serializer;
 
     public interface CheckpointSerializer<T> {
         /**
@@ -48,39 +62,78 @@ public class CheckpointFile<T> {
         T fromLine(final String line);
     }
 
-    private final String path;
-    private final CheckpointSerializer<T> serializer;
-
-    public CheckpointFile(final String path, final CheckpointSerializer<T> serializer) {
-        this.path = path;
+    public CheckpointFile(final String filePath, final CheckpointSerializer<T> serializer) {
+        this.filePath = filePath;
         this.serializer = serializer;
+    }
+
+    public String getBackFilePath() {
+        return this.filePath + ".bak";
     }
 
     /**
      * Write entries to file
      */
-    public void write(final List<T> entries) throws IOException  {
+    public void write(final List<T> entries) throws IOException {
         if (entries.isEmpty()) {
             return;
         }
         synchronized (this) {
-            final FileOutputStream fos = new FileOutputStream(this.path);
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
-                // Write size
-                writer.write(entries.size() + "");
-                writer.newLine();
+            StringBuilder entryContent = new StringBuilder();
+            for (T entry : entries) {
+                final String line = this.serializer.toLine(entry);
+                if (line != null && !line.isEmpty()) {
+                    entryContent.append(line);
+                    entryContent.append(System.lineSeparator());
+                }
+            }
+            int crc32 = UtilAll.crc32(entryContent.toString().getBytes(StandardCharsets.UTF_8));
 
-                // Write entries
-                for (T entry : entries) {
-                    final String line = this.serializer.toLine(entry);
-                    if (line != null && !line.isEmpty()) {
-                        writer.write(line);
-                        writer.newLine();
+            String content = entries.size() + System.lineSeparator() +
+                crc32 + System.lineSeparator() + entryContent;
+            MixAll.string2File(content, this.filePath);
+        }
+    }
+
+    private List<T> read(String filePath) throws IOException {
+        final ArrayList<T> result = new ArrayList<>();
+        synchronized (this) {
+            final File file = new File(filePath);
+            if (!file.exists()) {
+                return result;
+            }
+            try (BufferedReader reader = Files.newBufferedReader(file.toPath())) {
+                // Read size
+                int expectedLines = Integer.parseInt(reader.readLine());
+
+                // Read block crc
+                int expectedCrc32 = Integer.parseInt(reader.readLine());
+
+                // Read entries
+                StringBuilder sb = new StringBuilder();
+                String line = reader.readLine();
+                while (line != null) {
+                    sb.append(line).append(System.lineSeparator());
+                    final T entry = this.serializer.fromLine(line);
+                    if (entry != null) {
+                        result.add(entry);
                     }
+                    line = reader.readLine();
+                }
+                int truthCrc32 = UtilAll.crc32(sb.toString().getBytes(StandardCharsets.UTF_8));
+
+                if (result.size() != expectedLines) {
+                    final String err = String.format(
+                        "Expect %d entries, only found %d entries", expectedLines, result.size());
+                    throw new IOException(err);
                 }
 
-                writer.flush();
-                fos.getFD().sync();
+                if (NOT_CHECK_CRC_MAGIC_CODE != expectedCrc32 && truthCrc32 != expectedCrc32) {
+                    final String err = String.format(
+                        "Entries crc32 not match, file=%s, truth=%s", expectedCrc32, truthCrc32);
+                    throw new IOException(err);
+                }
+                return result;
             }
         }
     }
@@ -89,34 +142,14 @@ public class CheckpointFile<T> {
      * Read entries from file
      */
     public List<T> read() throws IOException {
-        final ArrayList<T> result = new ArrayList<>();
-        synchronized (this) {
-            final File file = new File(this.path);
-            if (!file.exists()) {
-                return result;
+        try {
+            List<T> result = this.read(this.filePath);
+            if (CollectionUtils.isEmpty(result)) {
+                result = this.read(this.getBackFilePath());
             }
-            final BufferedReader reader = Files.newBufferedReader(file.toPath());
-            try {
-                // Read size
-                int expectedLines = Integer.parseInt(reader.readLine());
-
-                // Read entries
-                String line = reader.readLine();
-                while (line != null) {
-                    final T entry = this.serializer.fromLine(line);
-                    if (entry != null) {
-                        result.add(entry);
-                    }
-                    line = reader.readLine();
-                }
-                if (result.size() != expectedLines) {
-                    final String err = String.format("Expect %d entries, only found %d entries", expectedLines, result.size());
-                    throw new IOException(err);
-                }
-                return result;
-            } finally {
-                reader.close();
-            }
+            return result;
+        } catch (IOException e) {
+            return this.read(this.getBackFilePath());
         }
     }
 }
