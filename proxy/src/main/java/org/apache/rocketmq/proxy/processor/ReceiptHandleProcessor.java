@@ -243,6 +243,9 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         ProxyContext context = createContext("ClearGroup");
         ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
+        if (handleGroup == null) {
+            return;
+        }
         handleGroup.scan((msgID, handle, messageReceiptHandle) -> {
             ReceiptHandle receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandle());
             messagingProcessor.changeInvisibleTime(
