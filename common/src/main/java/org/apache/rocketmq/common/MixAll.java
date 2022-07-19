@@ -58,8 +58,6 @@ public class MixAll {
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-    //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-    //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
@@ -175,17 +173,11 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        FileWriter fileWriter = null;
 
-        try {
-            fileWriter = new FileWriter(file);
+        try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(str);
         } catch (IOException e) {
             throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
         }
     }
 
@@ -199,15 +191,9 @@ public class MixAll {
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
-            FileInputStream inputStream = null;
-            try {
-                inputStream = new FileInputStream(file);
+            try (FileInputStream inputStream = new FileInputStream(file)) {
                 int len = inputStream.read(data);
                 result = len == data.length;
-            } finally {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
             }
 
             if (result) {
@@ -271,7 +257,6 @@ public class MixAll {
 
                     if (logger != null) {
                         logger.info(name + "=" + value);
-                    } else {
                     }
                 }
             }
@@ -282,7 +267,7 @@ public class MixAll {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<Object, Object> entry : properties.entrySet()) {
             if (entry.getValue() != null) {
-                sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
+                sb.append(entry.getKey().toString()).append("=").append(entry.getValue().toString()).append("\n");
             }
         }
         return sb.toString();
@@ -460,11 +445,11 @@ public class MixAll {
     }
 
     public static int compareInteger(int x, int y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Integer.compare(x, y);
     }
 
     public static int compareLong(long x, long y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Long.compare(x, y);
     }
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);

@@ -71,7 +71,6 @@ public class NamesrvStartup {
 
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-        //PackageConflictDetect.detectFastjson();
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
@@ -87,17 +86,17 @@ public class NamesrvStartup {
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                InputStream in = new BufferedInputStream(new FileInputStream(file));
-                properties = new Properties();
-                properties.load(in);
-                MixAll.properties2Object(properties, namesrvConfig);
-                MixAll.properties2Object(properties, nettyServerConfig);
-                MixAll.properties2Object(properties, nettyClientConfig);
+                try(InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+                    properties = new Properties();
+                    properties.load(in);
+                    MixAll.properties2Object(properties, namesrvConfig);
+                    MixAll.properties2Object(properties, nettyServerConfig);
+                    MixAll.properties2Object(properties, nettyClientConfig);
 
-                namesrvConfig.setConfigStorePath(file);
+                    namesrvConfig.setConfigStorePath(file);
 
-                System.out.printf("load config properties file OK, %s%n", file);
-                in.close();
+                    System.out.printf("load config properties file OK, %s%n", file);
+                }
             }
         }
 
@@ -128,7 +127,6 @@ public class NamesrvStartup {
 
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);
 
-        // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
 
         return controller;
