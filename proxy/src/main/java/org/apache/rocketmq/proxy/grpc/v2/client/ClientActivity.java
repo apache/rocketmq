@@ -86,9 +86,6 @@ public class ClientActivity extends AbstractMessingActivity {
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
 
         try {
-            String clientId = ctx.getClientID();
-            LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
-
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
             if (clientSettings == null) {
                 future.complete(HeartbeatResponse.newBuilder()
