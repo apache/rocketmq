@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -712,7 +713,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long offset = mqClientAPI.getMaxOffset(brokerAddr, topic, 0, 10000);
+        long offset = mqClientAPI.getMaxOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(offset).isEqualTo(100L);
     }
 
@@ -733,7 +734,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long offset = mqClientAPI.getMinOffset(brokerAddr, topic, 0, 10000);
+        long offset = mqClientAPI.getMinOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(offset).isEqualTo(100L);
     }
 
@@ -754,7 +755,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long t = mqClientAPI.getEarliestMsgStoretime(brokerAddr, topic, 0, 10000);
+        long t = mqClientAPI.getEarliestMsgStoretime(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(t).isEqualTo(100L);
     }
 
