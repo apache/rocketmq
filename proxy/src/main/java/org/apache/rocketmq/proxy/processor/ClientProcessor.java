@@ -71,7 +71,8 @@ public class ClientProcessor extends AbstractProcessor {
         ConsumeType consumeType,
         MessageModel messageModel,
         ConsumeFromWhere consumeFromWhere,
-        Set<SubscriptionData> subList
+        Set<SubscriptionData> subList,
+        boolean updateSubscription
     ) {
         this.serviceManager.getConsumerManager().registerConsumer(
             consumerGroup,
@@ -80,7 +81,8 @@ public class ClientProcessor extends AbstractProcessor {
             messageModel,
             consumeFromWhere,
             subList,
-            false);
+            false,
+            updateSubscription);
     }
 
     public ClientChannelInfo findConsumerChannel(

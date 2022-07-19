@@ -118,6 +118,13 @@ public class ConsumerManager {
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
+        return registerConsumer(group, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList,
+            isNotifyConsumerIdsChangedEnable, true);
+    }
+
+    public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
+        ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
+        final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable, boolean updateSubscription) {
         long start = System.currentTimeMillis();
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
@@ -131,7 +138,10 @@ public class ConsumerManager {
         boolean r1 =
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                 consumeFromWhere);
-        boolean r2 = consumerGroupInfo.updateSubscription(subList);
+        boolean r2 = false;
+        if (updateSubscription) {
+            r2 = consumerGroupInfo.updateSubscription(subList);
+        }
 
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {
