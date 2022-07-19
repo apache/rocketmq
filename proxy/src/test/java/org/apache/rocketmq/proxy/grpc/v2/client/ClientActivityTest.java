@@ -62,6 +62,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
@@ -177,7 +178,8 @@ public class ClientActivityTest extends BaseActivityTest {
             any(),
             any(),
             any(),
-            subscriptionDatasArgumentCaptor.capture()
+            subscriptionDatasArgumentCaptor.capture(),
+            anyBoolean()
         );
 
         HeartbeatResponse response = this.sendConsumerHeartbeat(context);
