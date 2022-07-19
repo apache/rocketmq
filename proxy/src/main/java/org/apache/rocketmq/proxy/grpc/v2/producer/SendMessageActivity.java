@@ -29,6 +29,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -161,7 +162,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (maxSize <= 0) {
                 return;
             }
-            if (messageGroup.length() >= maxSize) {
+            if (messageGroup.getBytes(StandardCharsets.UTF_8).length >= maxSize) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
             }
             if (GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
@@ -203,8 +204,8 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (MessageConst.STRING_HASH_SET.contains(userPropertiesEntry.getKey())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + userPropertiesEntry.getKey());
             }
-            userPropertySize += userPropertiesEntry.getKey().length();
-            userPropertySize += userPropertiesEntry.getValue().length();
+            userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
+            userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
@@ -212,13 +213,13 @@ public class SendMessageActivity extends AbstractMessingActivity {
         String tag = message.getSystemProperties().getTag();
         GrpcValidator.getInstance().validateTag(tag);
         messageWithHeader.setTags(tag);
-        userPropertySize += tag.length();
+        userPropertySize += tag.getBytes(StandardCharsets.UTF_8).length;
 
         // set keys
         List<String> keysList = message.getSystemProperties().getKeysList();
         for (String key : keysList) {
             validateMessageKey(key);
-            userPropertySize += key.length();
+            userPropertySize += key.getBytes(StandardCharsets.UTF_8).length;
         }
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
@@ -249,14 +250,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
 
         // set delay level or deliver timestamp
-        if (message.getSystemProperties().hasDeliveryTimestamp()) {
-            Timestamp deliveryTimestamp = message.getSystemProperties().getDeliveryTimestamp();
-            long deliveryTimestampMs = Timestamps.toMillis(deliveryTimestamp);
-            validateDelayTime(deliveryTimestampMs);
-
-            String timestampString = String.valueOf(deliveryTimestampMs);
-            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TIMER_DELIVER_MS, timestampString);
-        }
+        fillDelayMessageProperty(message, messageWithHeader);
 
         // set reconsume times
         int reconsumeTimes = message.getSystemProperties().getDeliveryAttempt();
@@ -284,6 +278,23 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
 
         return messageWithHeader.getProperties();
+    }
+
+    protected void fillDelayMessageProperty(apache.rocketmq.v2.Message message, org.apache.rocketmq.common.message.Message messageWithHeader) {
+        if (message.getSystemProperties().hasDeliveryTimestamp()) {
+            Timestamp deliveryTimestamp = message.getSystemProperties().getDeliveryTimestamp();
+            long deliveryTimestampMs = Timestamps.toMillis(deliveryTimestamp);
+            validateDelayTime(deliveryTimestampMs);
+
+            ProxyConfig config = ConfigurationManager.getProxyConfig();
+            if (config.isUseDelayLevel()) {
+                int delayLevel = config.computeDelayLevel(deliveryTimestampMs);
+                MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(delayLevel));
+            }
+
+            String timestampString = String.valueOf(deliveryTimestampMs);
+            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TIMER_DELIVER_MS, timestampString);
+        }
     }
 
     protected SendMessageResponse convertToSendMessageResponse(ProxyContext ctx, SendMessageRequest request,

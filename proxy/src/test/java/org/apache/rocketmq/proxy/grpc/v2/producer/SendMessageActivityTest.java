@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -203,7 +204,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
     @Test
     public void testBuildMessage() {
-        long deliveryTime = System.currentTimeMillis();
+        long deliveryTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
         String msgId = MessageClientIDSetter.createUniqID();
 
         org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,
@@ -226,7 +227,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
             Resource.newBuilder().setName(TOPIC).build()).get(0);
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
-        assertEquals(String.valueOf(deliveryTime), messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+        assertEquals(String.valueOf(2), messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL));
     }
 
     @Test
