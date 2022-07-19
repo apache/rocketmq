@@ -241,8 +241,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public void registerConsumer(ProxyContext ctx, String consumerGroup, ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
-        Set<SubscriptionData> subList) {
-        this.clientProcessor.registerConsumer(ctx, consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList);
+        Set<SubscriptionData> subList, boolean updateSubscription) {
+        this.clientProcessor.registerConsumer(ctx, consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList, updateSubscription);
     }
 
     @Override

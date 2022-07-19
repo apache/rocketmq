@@ -105,7 +105,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
-                    this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList());
+                    this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList(), false);
                     break;
                 }
                 default: {
@@ -227,7 +227,7 @@ public class ClientActivity extends AbstractMessingActivity {
         if (settings.hasSubscription()) {
             validateConsumerGroup(settings.getSubscription().getGroup());
             String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
-            GrpcClientChannel consumerChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList());
+            GrpcClientChannel consumerChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList(), true);
             consumerChannel.setClientObserver(responseObserver);
         }
 
@@ -251,7 +251,7 @@ public class ClientActivity extends AbstractMessingActivity {
         return channel;
     }
 
-    protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType, List<SubscriptionEntry> subscriptionEntryList) {
+    protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType, List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
         String clientId = ctx.getClientID();
         LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 
@@ -265,7 +265,8 @@ public class ClientActivity extends AbstractMessingActivity {
             this.buildConsumeType(clientType),
             MessageModel.CLUSTERING,
             ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
-            this.buildSubscriptionDataSet(subscriptionEntryList)
+            this.buildSubscriptionDataSet(subscriptionEntryList),
+            updateSubscription
         );
         return channel;
     }

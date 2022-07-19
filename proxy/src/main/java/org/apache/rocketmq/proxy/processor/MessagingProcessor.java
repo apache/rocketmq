@@ -259,7 +259,8 @@ public interface MessagingProcessor extends StartAndShutdown {
         ConsumeType consumeType,
         MessageModel messageModel,
         ConsumeFromWhere consumeFromWhere,
-        Set<SubscriptionData> subList
+        Set<SubscriptionData> subList,
+        boolean updateSubscription
     );
 
     ClientChannelInfo findConsumerChannel(
