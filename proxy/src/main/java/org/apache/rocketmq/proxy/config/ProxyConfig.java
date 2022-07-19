@@ -18,10 +18,20 @@
 package org.apache.rocketmq.proxy.config;
 
 import java.time.Duration;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.ProxyMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class ProxyConfig {
+public class ProxyConfig implements ConfigFile {
+    private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
 
@@ -136,9 +146,55 @@ public class ProxyConfig {
 
     private boolean enableACL = false;
 
+    private boolean useDelayLevel = true;
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+    private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
+
     private int metricCollectorMode = MetricCollectorMode.OFF.getOrdinal();
     // Example address: 127.0.0.1:1234
     private String metricCollectorAddress = "";
+
+    @Override
+    public void initData() {
+        parseDelayLevel();
+    }
+
+    public int computeDelayLevel(long timeMillis) {
+        long intervalMillis = timeMillis - System.currentTimeMillis();
+        List<Map.Entry<Integer, Long>> sortedLevels = delayLevelTable.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getValue)).collect(Collectors.toList());
+        for (Map.Entry<Integer, Long> entry : sortedLevels) {
+            if (entry.getValue() > intervalMillis) {
+                return entry.getKey();
+            }
+        }
+        return sortedLevels.get(sortedLevels.size() - 1).getKey();
+    }
+
+    public void parseDelayLevel() {
+        this.delayLevelTable = new ConcurrentHashMap<>();
+        Map<String, Long> timeUnitTable = new HashMap<>();
+        timeUnitTable.put("s", 1000L);
+        timeUnitTable.put("m", 1000L * 60);
+        timeUnitTable.put("h", 1000L * 60 * 60);
+        timeUnitTable.put("d", 1000L * 60 * 60 * 24);
+
+        String levelString = this.getMessageDelayLevel();
+        try {
+            String[] levelArray = levelString.split(" ");
+            for (int i = 0; i < levelArray.length; i++) {
+                String value = levelArray[i];
+                String ch = value.substring(value.length() - 1);
+                Long tu = timeUnitTable.get(ch);
+
+                int level = i + 1;
+                long num = Long.parseLong(value.substring(0, value.length() - 1));
+                long delayTimeMillis = tu * num;
+                this.delayLevelTable.put(level, delayTimeMillis);
+            }
+        } catch (Exception e) {
+            log.error("parse delay level failed. messageDelayLevel:{}", messageDelayLevel, e);
+        }
+    }
 
     public String getRocketMQClusterName() {
         return rocketMQClusterName;
@@ -778,5 +834,25 @@ public class ProxyConfig {
 
     public void setMetricCollectorAddress(String metricCollectorAddress) {
         this.metricCollectorAddress = metricCollectorAddress;
+    }
+
+    public boolean isUseDelayLevel() {
+        return useDelayLevel;
+    }
+
+    public void setUseDelayLevel(boolean useDelayLevel) {
+        this.useDelayLevel = useDelayLevel;
+    }
+
+    public String getMessageDelayLevel() {
+        return messageDelayLevel;
+    }
+
+    public void setMessageDelayLevel(String messageDelayLevel) {
+        this.messageDelayLevel = messageDelayLevel;
+    }
+
+    public Map<Integer, Long> getDelayLevelTable() {
+        return delayLevelTable;
     }
 }

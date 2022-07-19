@@ -87,6 +87,10 @@ public class ClusterGrpcIT extends GrpcBaseIT {
         super.testTransactionCheckThenCommit();
     }
 
+    @Test
+    public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvDelayMessage();
+    }
 
     @Test
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {

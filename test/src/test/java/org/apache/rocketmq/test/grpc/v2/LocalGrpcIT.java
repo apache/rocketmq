@@ -76,6 +76,11 @@ public class LocalGrpcIT extends GrpcBaseIT {
     }
 
     @Test
+    public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvDelayMessage();
+    }
+
+    @Test
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
         super.testSimpleConsumerSendAndRecvBigMessage();
     }
