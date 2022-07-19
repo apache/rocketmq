@@ -279,8 +279,7 @@ public class ClientActivity extends AbstractMessingActivity {
             try {
                 String tmp = StringUtils.upperCase(clientVersionStr);
                 clientVersion = MQVersion.Version.valueOf(tmp).ordinal();
-            } catch (Exception e) {
-                log.warn("client version from client not recognized: %s", clientVersionStr);
+            } catch (Exception ignored) {
             }
         }
         return clientVersion;
