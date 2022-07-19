@@ -84,6 +84,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
@@ -306,6 +307,54 @@ public class GrpcBaseIT extends BaseConf {
                 .setName(group)
                 .build())
             .build();
+    }
+
+    public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.DELAY);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        long delayTime = TimeUnit.SECONDS.toMillis(5);
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(messageId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.NORMAL)
+                    .setBodyEncoding(Encoding.GZIP)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + delayTime))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("hello"))
+                .build())
+            .build());
+        long sendTime = System.currentTimeMillis();
+        assertSendMessage(sendResponse, messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+
+        AtomicLong recvTime = new AtomicLong();
+        AtomicReference<Message> recvMessage = new AtomicReference<>();
+        await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
+            List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+            if (messageList.isEmpty()) {
+                return false;
+            }
+            recvTime.set(System.currentTimeMillis());
+            recvMessage.set(messageList.get(0));
+            return messageList.get(0).getSystemProperties().getMessageId().equals(messageId);
+        });
+
+        assertThat(Math.abs(recvTime.get() - sendTime - delayTime) < 2 * 1000).isTrue();
     }
 
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {

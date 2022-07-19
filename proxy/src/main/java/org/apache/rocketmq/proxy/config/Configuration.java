@@ -36,6 +36,7 @@ public class Configuration {
         }
 
         ProxyConfig proxyConfig = JSON.parseObject(proxyConfigData, ProxyConfig.class);
+        proxyConfig.initData();
         setProxyConfig(proxyConfig);
     }
 
