@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import java.util.HashMap;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -266,5 +267,23 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
 
     public void setMaxMsgBytes(Integer maxMsgBytes) {
         this.maxMsgBytes = maxMsgBytes;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("queueOffset", queueOffset)
+            .add("maxMsgBytes", maxMsgBytes)
+            .add("maxMsgNums", maxMsgNums)
+            .add("sysFlag", sysFlag)
+            .add("commitOffset", commitOffset)
+            .add("suspendTimeoutMillis", suspendTimeoutMillis)
+            .add("subscription", subscription)
+            .add("subVersion", subVersion)
+            .add("expressionType", expressionType)
+            .toString();
     }
 }

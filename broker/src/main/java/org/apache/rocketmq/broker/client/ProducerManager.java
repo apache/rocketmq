@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.ProducerInfo;
@@ -44,6 +45,7 @@ public class ProducerManager {
     private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
     protected final BrokerStatsManager brokerStatsManager;
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
+    private final List<ProducerChangeListener> producerChangeListenerList = new CopyOnWriteArrayList<>();
 
     public ProducerManager() {
         this.brokerStatsManager = null;
@@ -94,8 +96,11 @@ public class ProducerManager {
     }
 
     public void scanNotActiveChannel() {
-        for (final Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
-                .entrySet()) {
+        Iterator<Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>>> iterator = this.groupChannelTable.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry = iterator.next();
+
             final String group = entry.getKey();
             final ConcurrentHashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
 
@@ -112,8 +117,15 @@ public class ProducerManager {
                     log.warn(
                             "ProducerManager#scanNotActiveChannel: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
+                    callProducerChangeListener(ProducerGroupEvent.CLIENT_UNREGISTER, group, info);
                     RemotingUtil.closeChannel(info.getChannel());
                 }
+            }
+
+            if (chlMap.isEmpty()) {
+                log.warn("SCAN: remove expired channel from ProducerManager groupChannelTable, all clear, group={}", group);
+                iterator.remove();
+                callProducerChangeListener(ProducerGroupEvent.GROUP_UNREGISTER, group, null);
             }
         }
     }
@@ -134,6 +146,14 @@ public class ProducerManager {
                     log.info(
                             "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                             clientChannelInfo.toString(), remoteAddr, group);
+                    callProducerChangeListener(ProducerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo);
+                    if (clientChannelInfoTable.isEmpty()) {
+                        ConcurrentHashMap<Channel, ClientChannelInfo> oldGroupTable = this.groupChannelTable.remove(group);
+                        if (oldGroupTable != null) {
+                            log.info("unregister a producer group[{}] from groupChannelTable", group);
+                            callProducerChangeListener(ProducerGroupEvent.GROUP_UNREGISTER, group, null);
+                        }
+                    }
                 }
 
             }
@@ -172,10 +192,12 @@ public class ProducerManager {
             if (old != null) {
                 log.info("unregister a producer[{}] from groupChannelTable {}", group,
                         clientChannelInfo.toString());
+                callProducerChangeListener(ProducerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo);
             }
 
             if (channelTable.isEmpty()) {
                 this.groupChannelTable.remove(group);
+                callProducerChangeListener(ProducerGroupEvent.GROUP_UNREGISTER, group, null);
                 log.info("unregister a producer group[{}] from groupChannelTable", group);
             }
         }
@@ -223,5 +245,20 @@ public class ProducerManager {
 
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
+    }
+
+    private void callProducerChangeListener(ProducerGroupEvent event, String group,
+        ClientChannelInfo clientChannelInfo) {
+        for (ProducerChangeListener listener : producerChangeListenerList) {
+            try {
+                listener.handle(event, group, clientChannelInfo);
+            } catch (Throwable t) {
+                log.error("err when call producerChangeListener", t);
+            }
+        }
+    }
+
+    public void appendProducerChangeListener(ProducerChangeListener producerChangeListener) {
+        producerChangeListenerList.add(producerChangeListener);
     }
 }

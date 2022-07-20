@@ -90,6 +90,9 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 Collection<SubscriptionData> subscriptionDataList = (Collection<SubscriptionData>) args[0];
                 this.brokerController.getConsumerFilterManager().register(group, subscriptionDataList);
                 break;
+            case CLIENT_REGISTER:
+            case CLIENT_UNREGISTER:
+                break;
             default:
                 throw new RuntimeException("Unknown event " + event);
         }

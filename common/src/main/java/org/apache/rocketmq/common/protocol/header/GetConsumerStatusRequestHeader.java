@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -56,5 +57,14 @@ public class GetConsumerStatusRequestHeader implements CommandCustomHeader {
 
     public void setClientAddr(String clientAddr) {
         this.clientAddr = clientAddr;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("topic", topic)
+            .add("group", group)
+            .add("clientAddr", clientAddr)
+            .toString();
     }
 }

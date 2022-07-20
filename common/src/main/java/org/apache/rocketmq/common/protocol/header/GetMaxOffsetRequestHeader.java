@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -70,5 +71,14 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
 
     public void setCommitted(final boolean committed) {
         this.committed = committed;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("committed", committed)
+            .toString();
     }
 }
