@@ -58,13 +58,13 @@ public class TransactionDataManager implements StartAndShutdown {
         });
     }
 
-    public TransactionData pollFirstNoExpireTransactionData(String producerGroup, String transactionId) {
+    public TransactionData pollNoExpireTransactionData(String producerGroup, String transactionId) {
         AtomicReference<TransactionData> res = new AtomicReference<>();
         long currTimestamp = System.currentTimeMillis();
         this.transactionIdDataMap.computeIfPresent(buildKey(producerGroup, transactionId), (key, dataSet) -> {
-            TransactionData data = dataSet.pollFirst();
+            TransactionData data = dataSet.pollLast();
             while (data != null && data.getExpireTime() < currTimestamp) {
-                data = dataSet.pollFirst();
+                data = dataSet.pollLast();
             }
             if (data != null) {
                 res.set(data);
