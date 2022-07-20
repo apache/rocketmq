@@ -98,23 +98,24 @@ public class ConsumerGroupInfo {
         return result;
     }
 
-    public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
+    public boolean unregisterChannel(final ClientChannelInfo clientChannelInfo) {
         ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel());
         if (old != null) {
             log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
+            return true;
         }
+        return false;
     }
 
-    public boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public ClientChannelInfo doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         final ClientChannelInfo info = this.channelInfoTable.remove(channel);
         if (info != null) {
             log.warn(
                 "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
                 info.toString(), groupName);
-            return true;
         }
 
-        return false;
+        return info;
     }
 
     /**

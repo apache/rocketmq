@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
@@ -251,7 +250,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         if (requestHeader.isTimeoutTooMuch()) {
-            response.setCode(POLLING_TIMEOUT);
+            response.setCode(ResponseCode.POLLING_TIMEOUT);
             response.setRemark(String.format("the broker[%s] poping message is timeout too much",
                 this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
@@ -302,14 +301,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark(String.format("subscription group [%s] does not exist, %s",
                 requestHeader.getConsumerGroup(), FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST)));
-            return response;
-        }
-        ConsumerGroupInfo consumerGroupInfo =
-            this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
-        if (null == consumerGroupInfo) {
-            POP_LOGGER.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
-            response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-            response.setRemark("the consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
             return response;
         }
 
@@ -463,6 +454,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     response = null;
                 }
                 break;
+            case ResponseCode.POLLING_TIMEOUT:
+                return response;
             default:
                 assert false;
         }

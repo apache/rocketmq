@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -65,4 +66,12 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
         this.timestamp = timestamp;
     }
 
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("timestamp", timestamp)
+            .toString();
+    }
 }
