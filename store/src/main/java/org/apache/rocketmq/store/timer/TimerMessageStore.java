@@ -199,7 +199,6 @@ public class TimerMessageStore {
         boolean load = timerLog.load();
         load = load && this.timerMetrics.load();
         recover();
-        // TODO: Add the distribution metrics' calculation. Once it setup it will give the initial distribution.
         calcTimerDistribution();
         return load;
     }
