@@ -38,9 +38,6 @@ public class NettyClientConfig {
     private boolean clientPooledByteBufAllocatorEnable = false;
     private boolean clientCloseSocketIfTimeout = NettySystemConfig.clientCloseSocketIfTimeout;
 
-    private boolean preferredDirectByteBuffer = false;
-    private boolean defaultEventExecutorGroupEnable = true;
-
     private boolean useTLS;
 
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
@@ -169,4 +166,11 @@ public class NettyClientConfig {
         this.disableCallbackExecutor = disableCallbackExecutor;
     }
 
+    public boolean isDisableNettyWorkerGroup() {
+        return disableNettyWorkerGroup;
+    }
+
+    public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
+        this.disableNettyWorkerGroup = disableNettyWorkerGroup;
+    }
 }

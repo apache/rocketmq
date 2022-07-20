@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol.header;
 import java.util.HashMap;
 
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -287,5 +288,24 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
 
     public void setM(boolean m) {
         this.m = m;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("a", a)
+            .add("b", b)
+            .add("c", c)
+            .add("d", d)
+            .add("e", e)
+            .add("f", f)
+            .add("g", g)
+            .add("h", h)
+            .add("i", i)
+            .add("j", j)
+            .add("k", k)
+            .add("l", l)
+            .add("m", m)
+            .toString();
     }
 }
