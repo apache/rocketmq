@@ -86,7 +86,7 @@ public class NamesrvStartup {
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                try(InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+                try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
                     properties = new Properties();
                     properties.load(in);
                     MixAll.properties2Object(properties, namesrvConfig);
