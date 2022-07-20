@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -65,7 +66,7 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
     }
 
     @Test
-    public void testPollFirst() {
+    public void testPoll() {
         String txId = MessageClientIDSetter.createUniqID();
         TransactionData transactionData1 = createTransactionData(txId, System.currentTimeMillis() - Duration.ofMinutes(2).toMillis());
         TransactionData transactionData2 = createTransactionData(txId);
@@ -73,9 +74,9 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
         this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId, transactionData1);
         this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId, transactionData2);
 
-        TransactionData resTransactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(PRODUCER_GROUP, txId);
+        TransactionData resTransactionData = this.transactionDataManager.pollNoExpireTransactionData(PRODUCER_GROUP, txId);
         assertSame(transactionData2, resTransactionData);
-        assertTrue(this.transactionDataManager.transactionIdDataMap.isEmpty());
+        assertNull(this.transactionDataManager.pollNoExpireTransactionData(PRODUCER_GROUP, txId));
     }
 
     @Test

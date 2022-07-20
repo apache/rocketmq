@@ -57,7 +57,7 @@ public abstract class AbstractTransactionService implements TransactionService, 
     @Override
     public EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId) {
-        TransactionData transactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(producerGroup, transactionId);
+        TransactionData transactionData = this.transactionDataManager.pollNoExpireTransactionData(producerGroup, transactionId);
         if (transactionData == null) {
             return null;
         }
