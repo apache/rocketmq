@@ -94,9 +94,7 @@ public class MessageConst {
     public static final String PROPERTY_TIMER_ROLL_TIMES = "TIMER_ROLL_TIMES";
     public static final String PROPERTY_TIMER_OUT_MS = "TIMER_OUT_MS";
     public static final String PROPERTY_TIMER_DEL_UNIQKEY = "TIMER_DEL_UNIQKEY";
-    public static final String PROPERTY_TIMER_DELIVER_MS = "TIMER_DELIVER_MS";
     public static final String PROPERTY_TIMER_DELAY_LEVEL = "TIMER_DELAY_LEVEL";
-    public static final String PROPERTY_TIMER_DELAY_SEC = "TIMER_DELAY_SEC";
     public static final String PROPERTY_TIMER_DELAY_MS = "TIMER_DELAY_MS";
 
     static {
