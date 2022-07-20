@@ -38,7 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ConsumerManagerTest {
+public class ConsumerManagerScannerTest {
     private ConsumerManager consumerManager;
     private String group = "FooBar";
     private String clientId = "clientId";
