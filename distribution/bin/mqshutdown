@@ -58,6 +58,20 @@ case $1 in
 
     echo "Send shutdown request to mqnamesrv(${pid}) OK"
     ;;
+    proxy)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.proxy.ProxyStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqproxy running."
+            exit -1;
+    fi
+
+    echo "The mqproxy(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to mqproxy(${pid}) OK"
+    ;;
     *)
-    echo "Useage: mqshutdown broker | namesrv"
+    echo "Useage: mqshutdown broker | namesrv | proxy"
 esac

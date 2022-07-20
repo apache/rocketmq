@@ -75,7 +75,7 @@ public class DLedgerProduceAndConsumeIT {
         BrokerConfig brokerConfig = buildBrokerConfig(cluster, brokerName);
         MessageStoreConfig storeConfig = buildStoreConfig(brokerName, peers, selfId);
         BrokerController brokerController = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
-        Thread.sleep(3000);
+        BaseConf.waitBrokerRegistered(BaseConf.nsAddr, brokerConfig.getBrokerName(), 1);
 
         Assert.assertEquals(BrokerRole.SYNC_MASTER, storeConfig.getBrokerRole());
 
