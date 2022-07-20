@@ -68,7 +68,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private final AutoSwitchHAService haService;
     private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
     private final DefaultMessageStore messageStore;
-    private final EpochFileCache epochCache;
+    private final EpochStoreService epochCache;
 
     private String localAddress;
     private SocketChannel socketChannel;
@@ -94,7 +94,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private volatile long currentReceivedEpoch;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
-        EpochFileCache epochCache) throws IOException {
+        EpochStoreService epochCache) throws IOException {
         this.haService = haService;
         this.messageStore = defaultMessageStore;
         this.epochCache = epochCache;
@@ -386,21 +386,21 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
     private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws IOException {
-        if (this.epochCache.getEntrySize() == 0) {
+        if (this.epochCache.getAllEntries().size() == 0) {
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
             changeCurrentState(HAConnectionState.TRANSFER);
             this.currentReportedOffset = 0;
         } else {
-            final EpochFileCache masterEpochCache = new EpochFileCache();
-            masterEpochCache.initCacheFromEntries(masterEpochEntries);
+            final EpochStoreService masterEpochCache = new EpochStoreService();
+            masterEpochCache.initStateFromEntries(masterEpochEntries);
             masterEpochCache.setLastEpochEntryEndOffset(masterEndOffset);
             final List<EpochEntry> localEpochEntries = this.epochCache.getAllEntries();
-            final EpochFileCache localEpochCache = new EpochFileCache();
-            localEpochCache.initCacheFromEntries(localEpochEntries);
+            final EpochStoreService localEpochCache = new EpochStoreService();
+            localEpochCache.initStateFromEntries(localEpochEntries);
             localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
 
-            final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
+            final long truncateOffset = localEpochCache.findLastConsistentPoint(masterEpochCache);
             if (truncateOffset < 0) {
                 // If truncateOffset < 0, means we can't find a consistent point
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
@@ -488,7 +488,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     // If epoch changed
                                     if (masterEpoch != AutoSwitchHAClient.this.currentReceivedEpoch) {
                                         AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
-                                        AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
+                                        AutoSwitchHAClient.this.epochCache.tryAppendEpochEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
                                     }
 
                                     if (bodySize > 0) {

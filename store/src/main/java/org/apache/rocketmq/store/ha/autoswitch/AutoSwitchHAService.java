@@ -58,15 +58,15 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private String localAddress;
 
-    private EpochFileCache epochCache;
+    private EpochStoreService epochCache;
     private AutoSwitchHAClient haClient;
 
     public AutoSwitchHAService() {
     }
 
     @Override public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
-        this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
-        this.epochCache.initCacheFromFile();
+        this.epochCache = new EpochStoreService(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
+        this.epochCache.initStateFromFile();
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
@@ -93,8 +93,9 @@ public class AutoSwitchHAService extends DefaultHAService {
         super.removeConnection(conn);
     }
 
-    @Override public boolean changeToMaster(int masterEpoch) {
-        final int lastEpoch = this.epochCache.lastEpoch();
+    @Override
+    public boolean changeToMaster(int masterEpoch) {
+        final long lastEpoch = this.epochCache.getLastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
@@ -116,10 +117,10 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         // Append new epoch to epochFile
         final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
-        if (this.epochCache.lastEpoch() >= masterEpoch) {
+        if (this.epochCache.getLastEpoch() >= masterEpoch) {
             this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
-        this.epochCache.appendEntry(newEpochEntry);
+        this.epochCache.tryAppendEpochEntry(newEpochEntry);
 
         // Waiting consume queue dispatch
         while (defaultMessageStore.dispatchBehindBytes() > 0) {
@@ -137,8 +138,9 @@ public class AutoSwitchHAService extends DefaultHAService {
         return true;
     }
 
-    @Override public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
-        final int lastEpoch = this.epochCache.lastEpoch();
+    @Override
+    public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
+        final long lastEpoch = this.epochCache.getLastEpoch();
         if (newMasterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to slave", newMasterEpoch, lastEpoch);
             return false;
@@ -218,7 +220,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
         final long confirmOffset = getConfirmOffset();
         if (slaveMaxOffset >= confirmOffset) {
-            final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
+            final EpochEntry currentLeaderEpoch = this.epochCache.getLastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
                 currentSyncStateSet.add(slaveAddress);
                 // Notify the upper layer that syncStateSet changed.
@@ -254,6 +256,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
         return syncStateSet.size();
     }

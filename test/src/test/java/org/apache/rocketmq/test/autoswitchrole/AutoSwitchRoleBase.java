@@ -110,7 +110,7 @@ public class AutoSwitchRoleBase {
         storeConfig.setHaListenPort(haPort);
         storeConfig.setStorePathRootDir(storePathRootDir + File.separator + brokerName);
         storeConfig.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + File.separator + "commitlog");
-        storeConfig.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + File.separator + "EpochFileCache");
+        storeConfig.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + File.separator + "EpochStoreService");
         storeConfig.setTotalReplicas(3);
         storeConfig.setInSyncReplicas(2);
 

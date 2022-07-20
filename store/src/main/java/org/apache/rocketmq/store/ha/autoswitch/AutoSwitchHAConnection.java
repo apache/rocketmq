@@ -50,7 +50,7 @@ public class AutoSwitchHAConnection implements HAConnection {
     private final AutoSwitchHAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddress;
-    private final EpochFileCache epochCache;
+    private final EpochStoreService epochCache;
     private final AbstractWriteSocketService writeSocketService;
     private final ReadSocketService readSocketService;
     private final FlowMonitor flowMonitor;
@@ -79,7 +79,7 @@ public class AutoSwitchHAConnection implements HAConnection {
     private volatile long lastTransferTimeMs = 0;
 
     public AutoSwitchHAConnection(AutoSwitchHAService haService, SocketChannel socketChannel,
-        EpochFileCache epochCache) throws IOException {
+        EpochStoreService epochCache) throws IOException {
         this.haService = haService;
         this.socketChannel = socketChannel;
         this.epochCache = epochCache;
@@ -162,20 +162,12 @@ public class AutoSwitchHAConnection implements HAConnection {
     }
 
     private void changeTransferEpochToNext(final EpochEntry entry) {
-        this.currentTransferEpoch = entry.getEpoch();
+        this.currentTransferEpoch = (int) entry.getEpoch();
         this.currentTransferEpochEndOffset = entry.getEndOffset();
-        if (entry.getEpoch() == this.epochCache.lastEpoch()) {
+        if (entry.getEpoch() == this.epochCache.getLastEpoch()) {
             // Use -1 to stand for Long.max
             this.currentTransferEpochEndOffset = -1;
         }
-    }
-
-    public boolean isAsyncLearner() {
-        return isAsyncLearner;
-    }
-
-    public boolean isSyncFromLastFile() {
-        return isSyncFromLastFile;
     }
 
     private synchronized void updateLastTransferInfo() {
@@ -453,7 +445,7 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         private boolean buildHandshakeBuffer() {
             final List<EpochEntry> epochEntries = AutoSwitchHAConnection.this.epochCache.getAllEntries();
-            final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();
+            final long lastEpoch = AutoSwitchHAConnection.this.epochCache.getLastEpoch();
             final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
             this.byteBufferHeader.position(0);
             this.byteBufferHeader.limit(MSG_HEADER_SIZE);
@@ -464,7 +456,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             // Offset
             this.byteBufferHeader.putLong(maxPhyOffset);
             // Epoch
-            this.byteBufferHeader.putInt(lastEpoch);
+            this.byteBufferHeader.putInt((int) lastEpoch);
             // EpochStartOffset (not needed in handshake)
             this.byteBufferHeader.putLong(0L);
             // Additional info (not needed in handshake)
@@ -476,7 +468,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             this.handShakeBuffer.limit(EPOCH_ENTRY_SIZE * epochEntries.size());
             for (final EpochEntry entry : epochEntries) {
                 if (entry != null) {
-                    this.handShakeBuffer.putInt(entry.getEpoch());
+                    this.handShakeBuffer.putInt((int) entry.getEpoch());
                     this.handShakeBuffer.putLong(entry.getStartOffset());
                 }
             }
@@ -499,14 +491,14 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         // Normal transfer method
         private void buildTransferHeaderBuffer(long nextOffset, int bodySize) {
-            EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+            EpochEntry entry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByEpoch(AutoSwitchHAConnection.this.currentTransferEpoch);
             if (entry == null) {
                 LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
                 if (bodySize > 0) {
                     return;
                 }
                 // Maybe it's used for heartbeat
-                entry = AutoSwitchHAConnection.this.epochCache.firstEntry();
+                entry = AutoSwitchHAConnection.this.epochCache.getFirstEntry();
             }
             // Build Header
             this.byteBufferHeader.position(0);
@@ -518,7 +510,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             // Offset
             this.byteBufferHeader.putLong(nextOffset);
             // Epoch
-            this.byteBufferHeader.putInt(entry.getEpoch());
+            this.byteBufferHeader.putInt((int) entry.getEpoch());
             // EpochStartOffset
             this.byteBufferHeader.putLong(entry.getStartOffset());
             // Additional info(confirm offset)
@@ -572,7 +564,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = Long.max
                 final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
                 if (currentEpochEndOffset != -1 && this.nextTransferFromWhere + size > currentEpochEndOffset) {
-                    final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.nextEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+                    final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findCeilingEntryByEpoch(AutoSwitchHAConnection.this.currentTransferEpoch);
                     if (epochEntry == null) {
                         LOGGER.error("Can't find a bigger epochEntry than epoch {}", AutoSwitchHAConnection.this.currentTransferEpoch);
                         waitForRunning(100);
