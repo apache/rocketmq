@@ -95,6 +95,7 @@ public class ReplicasManager {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
         RUNNING,
+        SHUTDOWN,
     }
 
     public void start() {
@@ -142,7 +143,7 @@ public class ReplicasManager {
     }
 
     public void shutdown() {
-        this.state = State.INITIAL;
+        this.state = State.SHUTDOWN;
         this.executorService.shutdown();
         this.scheduledService.shutdown();
     }

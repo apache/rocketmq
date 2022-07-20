@@ -1226,6 +1226,10 @@ public class BrokerController {
             this.messageStore.shutdown();
         }
 
+        if (this.replicasManager != null) {
+            this.replicasManager.shutdown();
+        }
+
         shutdownScheduledExecutorService(this.scheduledExecutorService);
 
         if (this.sendMessageExecutor != null) {
