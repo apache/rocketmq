@@ -89,6 +89,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public class DefaultMessageStore implements MessageStore {
@@ -133,6 +134,7 @@ public class DefaultMessageStore implements MessageStore {
     private volatile boolean shutdown = true;
 
     private StoreCheckpoint storeCheckpoint;
+    private TimerMessageStore timerMessageStore;
 
     private AtomicLong printTimes = new AtomicLong(0);
 
@@ -883,6 +885,16 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public TimerMessageStore getTimerMessageStore() {
+        return this.timerMessageStore;
+    }
+
+    @Override
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        this.timerMessageStore = timerMessageStore;
+    }
+
+    @Override
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
@@ -1621,6 +1633,15 @@ public class DefaultMessageStore implements MessageStore {
 
         LOGGER.info("Recover end total:{} recoverCq:{} recoverClog:{} recoverOffset:{}",
             recoverOffsetEnd - recoverCqStart, recoverCqEnd - recoverCqStart, recoverClogEnd - recoverCqEnd, recoverOffsetEnd - recoverClogEnd);
+    }
+
+    @Override
+    public long getTimingMessageCount(String topic) {
+        if (null == timerMessageStore) {
+            return 0L;
+        } else {
+            return timerMessageStore.getTimerMetrics().getTimingCount(topic);
+        }
     }
 
     @Override

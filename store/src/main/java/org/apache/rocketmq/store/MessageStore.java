@@ -38,6 +38,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 /**
@@ -165,6 +166,10 @@ public interface MessageStore {
      */
     long getMinOffsetInQueue(final String topic, final int queueId);
 
+    TimerMessageStore getTimerMessageStore();
+
+    void setTimerMessageStore(TimerMessageStore timerMessageStore);
+
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
      *
@@ -225,7 +230,7 @@ public interface MessageStore {
      * @return message store running info.
      */
     String getRunningDataInfo();
-
+    long getTimingMessageCount(String topic);
     /**
      * Message store runtime information, which should generally contains various statistical information.
      *

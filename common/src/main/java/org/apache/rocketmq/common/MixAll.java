@@ -72,6 +72,7 @@ public class MixAll {
     public static final String ONS_HTTP_PROXY_GROUP = "CID_ONS-HTTP-PROXY";
     public static final String CID_ONSAPI_PERMISSION_GROUP = "CID_ONSAPI_PERMISSION";
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
+    public static final String SYSTEM_TOPIC_PREFIX = "RMQ_SYS_";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
     public static final List<String> LOCAL_INET_ADDRESS = getLocalInetAddress();
