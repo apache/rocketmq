@@ -65,6 +65,10 @@ public class MessageConst {
     public static final String PROPERTY_REDIRECT = "REDIRECT";
     public static final String PROPERTY_INNER_MULTI_DISPATCH = "INNER_MULTI_DISPATCH";
     public static final String PROPERTY_INNER_MULTI_QUEUE_OFFSET = "INNER_MULTI_QUEUE_OFFSET";
+    public static final String PROPERTY_TRACE_CONTEXT = "TRACE_CONTEXT";
+    public static final String PROPERTY_TIMER_DELAY_SEC = "TIMER_DELAY_SEC";
+    public static final String PROPERTY_TIMER_DELIVER_MS = "TIMER_DELIVER_MS";
+    public static final String PROPERTY_BORN_HOST = "__BORNHOST";
 
     /**
      * property which name starts with "__RMQ.TRANSIENT." is called transient one that will not stored in broker disks.
@@ -123,5 +127,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CLUSTER);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_TYPE);
         STRING_HASH_SET.add(PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        STRING_HASH_SET.add(PROPERTY_BORN_HOST);
     }
 }

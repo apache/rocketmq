@@ -373,6 +373,7 @@ public interface MQAdminExt extends MQAdmin {
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQClientException;
 
+    @Deprecated
     long searchOffset(final String brokerAddr, final String topicName,
         final int queueId, final long timestamp, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException;

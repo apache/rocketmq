@@ -108,7 +108,7 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
         int queueNum = 10;
-        int msgEachQueue = 100;
+        int msgEachQueue = 10;
         {
             Set<String> brokers = ImmutableSet.of(broker1Name);
             MQAdminTestUtils.createStaticTopicWithCommand(topic, queueNum, brokers, null, nsAddr);
@@ -207,7 +207,7 @@ public class StaticTopicIT extends BaseConf {
     }
 
     private void consumeMessagesAndCheck(RMQNormalProducer producer, RMQNormalConsumer consumer, String topic, int queueNum, int msgEachQueue, int startGen, int genNum) {
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 30000);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 60000);
 //        System.out.println("produce:" + producer.getAllMsgBody().size());
 //        System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());
 
@@ -243,7 +243,7 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         int queueNum = 10;
-        int msgEachQueue = 100;
+        int msgEachQueue = 10;
         //create static topic
         Map<String, TopicConfigAndQueueMapping> localBrokerConfigMap = MQAdminTestUtils.createStaticTopic(topic, queueNum, getBrokers(), defaultMQAdminExt);
         //check the static topic config
@@ -275,7 +275,7 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         int queueNum = 1;
-        int msgEachQueue = 100;
+        int msgEachQueue = 10;
         //create send consume
         {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);
@@ -345,8 +345,8 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalConsumer consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
         long start = System.currentTimeMillis();
 
-        int queueNum = 10;
-        int msgEachQueue = 100;
+        int queueNum = 5;
+        int msgEachQueue = 10;
         //create static topic
         {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);

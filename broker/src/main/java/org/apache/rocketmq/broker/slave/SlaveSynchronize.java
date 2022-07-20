@@ -47,8 +47,8 @@ public class SlaveSynchronize {
 
     public void setMasterAddr(String masterAddr) {
         if (!StringUtils.equals(this.masterAddr, masterAddr)) {
-            this.masterAddr = masterAddr;
             LOGGER.info("Update master address from {} to {}", this.masterAddr, masterAddr);
+            this.masterAddr = masterAddr;
         }
     }
 

@@ -20,13 +20,19 @@ package org.apache.rocketmq.common.subscription;
 import com.google.common.base.MoreObjects;
 import java.util.concurrent.TimeUnit;
 
-/**
- * next delay time = min(max, initial * multiplier^reconsumeTimes)
- */
 public class ExponentialRetryPolicy implements RetryPolicy {
     private long initial = TimeUnit.SECONDS.toMillis(5);
     private long max = TimeUnit.HOURS.toMillis(2);
     private long multiplier = 2;
+
+    public ExponentialRetryPolicy() {
+    }
+
+    public ExponentialRetryPolicy(long initial, long max, long multiplier) {
+        this.initial = initial;
+        this.max = max;
+        this.multiplier = multiplier;
+    }
 
     public long getInitial() {
         return initial;

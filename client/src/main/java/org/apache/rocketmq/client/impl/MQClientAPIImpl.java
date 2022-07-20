@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -740,7 +741,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
     }
 
-    private SendResult processSendResponse(
+    protected SendResult processSendResponse(
         final String brokerName,
         final Message msg,
         final RemotingCommand response,
@@ -858,9 +859,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
-                        popCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                        popCallback.onException(new MQClientException(ClientErrorCode.CONNECT_BROKER_EXCEPTION, "send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {
-                        popCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                        popCallback.onException(new MQClientException(ClientErrorCode.ACCESS_BROKER_TIMEOUT, "wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
                             responseFuture.getCause()));
                     } else {
                         popCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
@@ -897,9 +898,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
-                        ackCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                        ackCallback.onException(new MQClientException(ClientErrorCode.CONNECT_BROKER_EXCEPTION, "send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {
-                        ackCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                        ackCallback.onException(new MQClientException(ClientErrorCode.ACCESS_BROKER_TIMEOUT, "wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
                             responseFuture.getCause()));
                     } else {
                         ackCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeOut + ". Request: " + request, responseFuture.getCause()));
@@ -943,9 +944,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
-                        ackCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                        ackCallback.onException(new MQClientException(ClientErrorCode.CONNECT_BROKER_EXCEPTION, "send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {
-                        ackCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                        ackCallback.onException(new MQClientException(ClientErrorCode.ACCESS_BROKER_TIMEOUT, "wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
                             responseFuture.getCause()));
                     } else {
                         ackCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
@@ -975,9 +976,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
-                        pullCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                        pullCallback.onException(new MQClientException(ClientErrorCode.CONNECT_BROKER_EXCEPTION, "send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {
-                        pullCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                        pullCallback.onException(new MQClientException(ClientErrorCode.ACCESS_BROKER_TIMEOUT, "wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
                             responseFuture.getCause()));
                     } else {
                         pullCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
@@ -1034,7 +1035,11 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             case ResponseCode.SUCCESS:
                 popStatus = PopStatus.FOUND;
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
-                msgFoundList = MessageDecoder.decodes(byteBuffer);
+                msgFoundList = MessageDecoder.decodesBatch(
+                    byteBuffer,
+                    clientConfig.isDecodeReadBody(),
+                    clientConfig.isDecodeDecompressBody(),
+                    true);
                 break;
             case ResponseCode.POLLING_FULL:
                 popStatus = PopStatus.POLLING_FULL;
@@ -1141,6 +1146,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
+    @Deprecated
     public long searchOffset(final String addr, final String topic, final int queueId, final long timestamp,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
@@ -1166,11 +1172,37 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
-    public long getMaxOffset(final String addr, final String topic, final int queueId, final long timeoutMillis)
+    public long searchOffset(final String addr, final MessageQueue messageQueue, final long timestamp, final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+        requestHeader.setTopic(messageQueue.getTopic());
+        requestHeader.setQueueId(messageQueue.getQueueId());
+        requestHeader.setBname(messageQueue.getBrokerName());
+        requestHeader.setTimestamp(timestamp);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                SearchOffsetResponseHeader responseHeader =
+                    (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                return responseHeader.getOffset();
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public long getMaxOffset(final String addr, final MessageQueue messageQueue, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
+        requestHeader.setTopic(messageQueue.getTopic());
+        requestHeader.setQueueId(messageQueue.getQueueId());
+        requestHeader.setBname(messageQueue.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1217,11 +1249,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
-    public long getMinOffset(final String addr, final String topic, final int queueId, final long timeoutMillis)
+    public long getMinOffset(final String addr, final MessageQueue messageQueue, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         GetMinOffsetRequestHeader requestHeader = new GetMinOffsetRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
+        requestHeader.setTopic(messageQueue.getTopic());
+        requestHeader.setQueueId(messageQueue.getQueueId());
+        requestHeader.setBname(messageQueue.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1241,12 +1274,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
-    public long getEarliestMsgStoretime(final String addr, final String topic, final int queueId,
-        final long timeoutMillis)
+    public long getEarliestMsgStoretime(final String addr, final MessageQueue mq, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         GetEarliestMsgStoretimeRequestHeader requestHeader = new GetEarliestMsgStoretimeRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
+        requestHeader.setTopic(mq.getTopic());
+        requestHeader.setQueueId(mq.getQueueId());
+        requestHeader.setBname(mq.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
