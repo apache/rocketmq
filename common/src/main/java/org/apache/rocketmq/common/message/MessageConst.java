@@ -68,7 +68,6 @@ public class MessageConst {
     public static final String PROPERTY_TRACE_CONTEXT = "TRACE_CONTEXT";
     public static final String PROPERTY_TIMER_DELAY_SEC = "TIMER_DELAY_SEC";
     public static final String PROPERTY_TIMER_DELIVER_MS = "TIMER_DELIVER_MS";
-    public static final String PROPERTY_BORN_TIMESTAMP = "BORN_TIMESTAMP";
     public static final String PROPERTY_BORN_HOST = "__BORNHOST";
 
     /**
