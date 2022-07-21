@@ -30,6 +30,12 @@ if /I "%1" == "broker" (
     for /f "tokens=1" %%i in ('jps -m ^| find "NamesrvStartup"') do ( taskkill /F /PID %%i )
 
     echo Done!
+) else if /I "%1" == "controller" (
+    echo killing controller server
+
+    for /f "tokens=1" %%i in ('jps -m ^| find "ControllerStartup"') do ( taskkill /F /PID %%i )
+
+    echo Done!
 ) else (
-    echo Unknown role to kill, please specify broker or namesrv
+    echo Unknown role to kill, please specify broker or namesrv or controller
 )

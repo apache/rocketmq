@@ -41,8 +41,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -56,6 +56,7 @@ import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
+import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
@@ -114,6 +115,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -139,7 +141,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -253,6 +254,7 @@ public class BrokerController {
     protected volatile String minBrokerAddrInGroup = null;
     private final Lock lock = new ReentrantLock();
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
+    protected ReplicasManager replicasManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -378,7 +380,7 @@ public class BrokerController {
 
         this.escapeBridge = new EscapeBridge(this);
 
-        if (!this.brokerConfig.isSkipPreOnline()) {
+        if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
     }
@@ -604,7 +606,7 @@ public class BrokerController {
             }
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !brokerConfig.isEnableControllerMode()) {
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= HA_ADDRESS_MIN_LENGTH) {
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
@@ -638,6 +640,10 @@ public class BrokerController {
                     }
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
+        }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.updateMasterHAServerAddrPeriodically = true;
         }
     }
 
@@ -708,7 +714,9 @@ public class BrokerController {
                 MessageStorePluginContext context = new MessageStorePluginContext(this, messageStoreConfig, brokerStatsManager, messageArrivingListener);
                 this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-
+                if (this.brokerConfig.isEnableControllerMode()) {
+                    this.replicasManager = new ReplicasManager(this);
+                }
             } catch (IOException e) {
                 result = false;
                 LOG.error("BrokerController#initialize: unexpected error occurs", e);
@@ -1218,6 +1226,10 @@ public class BrokerController {
             this.messageStore.shutdown();
         }
 
+        if (this.replicasManager != null) {
+            this.replicasManager.shutdown();
+        }
+
         shutdownScheduledExecutorService(this.scheduledExecutorService);
 
         if (this.sendMessageExecutor != null) {
@@ -1361,6 +1373,10 @@ public class BrokerController {
             this.messageStore.start();
         }
 
+        if (this.replicasManager != null) {
+            this.replicasManager.start();
+        }
+
         if (remotingServerStartLatch != null) {
             remotingServerStartLatch.await();
         }
@@ -1437,7 +1453,7 @@ public class BrokerController {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
+        if ((messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) || this.brokerConfig.isEnableControllerMode()) {
             isIsolated = true;
         }
 
@@ -1472,20 +1488,7 @@ public class BrokerController {
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
-            scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override
-                public void run2() {
-                    if (isIsolated) {
-                        return;
-                    }
-                    try {
-                        BrokerController.this.sendHeartbeat();
-                    } catch (Exception e) {
-                        BrokerController.LOG.error("sendHeartbeat Exception", e);
-                    }
-
-                }
-            }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
+            scheduleSendHeartbeat();
 
             scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
                 @Override public void run2() {
@@ -1498,9 +1501,30 @@ public class BrokerController {
             }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
         }
 
+        if (this.brokerConfig.isEnableControllerMode()) {
+            scheduleSendHeartbeat();
+        }
+
         if (brokerConfig.isSkipPreOnline()) {
             startServiceWithoutCondition();
         }
+    }
+
+    protected void scheduleSendHeartbeat() {
+        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            @Override
+            public void run2() {
+                if (isIsolated) {
+                    return;
+                }
+                try {
+                    BrokerController.this.sendHeartbeat();
+                } catch (Exception e) {
+                    BrokerController.LOG.error("sendHeartbeat Exception", e);
+                }
+
+            }
+        }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
     }
 
     public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
@@ -1606,23 +1630,42 @@ public class BrokerController {
     }
 
     protected void sendHeartbeat() {
-        if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
-            this.brokerOuterAPI.sendHeartbeatViaDataVersion(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                this.getTopicConfigManager().getDataVersion(),
-                this.brokerConfig.isInBrokerContainer());
-        } else {
-            this.brokerOuterAPI.sendHeartbeat(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                this.brokerConfig.isInBrokerContainer());
+        if (this.brokerConfig.isEnableControllerMode()) {
+            final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
+            for (String controllerAddress : controllerAddresses) {
+                if (StringUtils.isNotEmpty(controllerAddress)) {
+                    this.brokerOuterAPI.sendHeartbeatToController(
+                        controllerAddress,
+                        this.brokerConfig.getBrokerClusterName(),
+                        this.getBrokerAddr(),
+                        this.brokerConfig.getBrokerName(),
+                        this.brokerConfig.getBrokerId(),
+                        this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                        this.brokerConfig.isInBrokerContainer()
+                    );
+                }
+            }
+        }
+
+        if (this.brokerConfig.isEnableSlaveActingMaster()) {
+            if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
+                this.brokerOuterAPI.sendHeartbeatViaDataVersion(
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(),
+                    this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                    this.getTopicConfigManager().getDataVersion(),
+                    this.brokerConfig.isInBrokerContainer());
+            } else {
+                this.brokerOuterAPI.sendHeartbeat(
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(),
+                    this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                    this.brokerConfig.isInBrokerContainer());
+            }
         }
     }
 
@@ -1663,7 +1706,6 @@ public class BrokerController {
                 }
 
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
-
                 if (checkOrderConfig) {
                     this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
                 }
@@ -2143,6 +2185,14 @@ public class BrokerController {
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
                 brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
         }
+    }
+
+    public ReplicasManager getReplicasManager() {
+        return replicasManager;
+    }
+
+    public void setIsolated(boolean isolated) {
+        isIsolated = isolated;
     }
 
     public boolean isIsolated() {
