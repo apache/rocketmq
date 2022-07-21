@@ -142,7 +142,7 @@ public class ProducerProcessor extends AbstractProcessor {
         requestHeader.setDefaultTopicQueueNums(4);
         requestHeader.setQueueId(queueId);
         requestHeader.setSysFlag(sysFlag);
-        requestHeader.setBornTimestamp(System.currentTimeMillis());
+        requestHeader.setBornTimestamp(Long.parseLong(message.getProperty(MessageConst.PROPERTY_BORN_TIMESTAMP)));
         requestHeader.setFlag(message.getFlag());
         requestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
         requestHeader.setReconsumeTimes(0);
