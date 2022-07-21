@@ -139,9 +139,13 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 1.5  RocketMQ 5.0 自动主从切换
 
+RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
+
 [快速开始](controller/quick_start.md)
 
 [部署文档](controller/deploy.md)
+
+[设计思想](controller/design.md)
 
 ### 2 mqadmin管理工具
 
