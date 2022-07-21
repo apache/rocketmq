@@ -683,7 +683,7 @@ public class PlainAccessValidatorTest {
 
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
-
+    
     @Test
     public void updateGlobalWhiteRemoteAddressesTest() throws InterruptedException {
         String backupFileName = System.getProperty("rocketmq.home.dir")

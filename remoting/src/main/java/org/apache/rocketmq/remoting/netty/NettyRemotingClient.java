@@ -210,8 +210,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             LOGGER.warn("Connections are insecure as SSLContext is null!");
                         }
                     }
-                    pipeline.addLast(
-                        defaultEventExecutorGroup,
+                    ch.pipeline().addLast(
+                        nettyClientConfig.isDisableNettyWorkerGroup() ? null : defaultEventExecutorGroup,
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
@@ -268,7 +268,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     LOGGER.error("scanAvailableNameSrv exception", e);
                 }
             }
-        }, 1000 * 3, this.nettyClientConfig.getConnectTimeoutMillis());
+        }, 0, this.nettyClientConfig.getConnectTimeoutMillis());
 
     }
 
