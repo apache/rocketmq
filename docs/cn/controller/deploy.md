@@ -34,6 +34,8 @@ notifyBrokerRoleChanged = true
 
 其他一些参数可以参考ControllerConfig代码。
 
+参数设置完成后，指定配置文件启动Nameserver即可。
+
 ### 独立部署
 
 独立部署执行以下脚本即可
@@ -58,7 +60,7 @@ Broker启动方法与之前相同，增加以下参数
 - syncFromLastFile：若slave是空盘启动，是否从最后一个文件进行复制。默认为false。
 - asyncLearner：若该值为true，则该副本不会进入SyncStateSet，也就是不会被选举成Master，而是一直作为一个learner副本进行异步复制。默认为false。
 
-在Controller模式下，Broker配置必须设置enableControllerMode=true，并填写controllerAddr。若controller为独立部署，还需要将controllerDeployedStandAlone设置为true。
+在Controller模式下，Broker配置必须设置enableControllerMode=true，并填写controllerAddr。
 
 ## 兼容性
 
