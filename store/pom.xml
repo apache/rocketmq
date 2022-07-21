@@ -70,7 +70,6 @@
         <dependency>
             <groupId>com.conversantmedia</groupId>
             <artifactId>disruptor</artifactId>
-            <version>1.2.10</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
