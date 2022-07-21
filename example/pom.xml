@@ -64,5 +64,9 @@
             <groupId>io.jaegertracing</groupId>
             <artifactId>jaeger-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+        </dependency>
     </dependencies>
 </project>
