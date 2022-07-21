@@ -179,6 +179,7 @@
         <module>acl</module>
         <module>example</module>
         <module>container</module>
+        <module>controller</module>
         <module>proxy</module>
     </modules>
 
@@ -485,6 +486,11 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-controller</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
                 <version>${rocketmq-proto.version}</version>
             </dependency>
@@ -567,6 +573,11 @@
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proxy</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openmessaging.storage</groupId>
+                <artifactId>dledger</artifactId>
+                <version>${dleger.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

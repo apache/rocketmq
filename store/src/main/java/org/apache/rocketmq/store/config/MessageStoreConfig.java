@@ -37,6 +37,11 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathDLedgerCommitLog = null;
 
+    //The directory in which the epochFile is kept
+    @ImportantField
+    private String storePathEpochFile = System.getProperty("user.home") + File.separator + "store"
+        + File.separator + "epochFileCheckpoint";
+
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -274,15 +279,23 @@ public class MessageStoreConfig {
      * Each message must be written successfully to at least in-sync replicas.
      * The master broker is considered one of the in-sync replicas, and it's included in the count of total.
      * If a master broker is ASYNC_MASTER, inSyncReplicas will be ignored.
+     * If enableControllerMode is true and ackAckInSyncStateSet is true, inSyncReplicas will be ignored.
      */
     @ImportantField
     private int inSyncReplicas = 1;
 
     /**
      * Will be worked in auto multiple replicas mode, to provide minimum in-sync replicas.
+     * It is still valid in controller mode.
      */
     @ImportantField
     private int minInSyncReplicas = 1;
+
+    /**
+     * Each message must be written successfully to all replicas in InSyncStateSet.
+     */
+    @ImportantField
+    private boolean allAckInSyncStateSet = false;
 
     /**
      * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
@@ -303,6 +316,11 @@ public class MessageStoreConfig {
     private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
 
     /**
+     * The max gap time that slave doesn't catch up to master.
+     */
+    private long haMaxTimeSlaveNotCatchup = 1000 * 15;
+
+    /**
      * Sync flush offset from master when broker startup, used in upgrading from old version broker.
      */
     private boolean syncMasterFlushOffsetWhenStartup = false;
@@ -318,7 +336,12 @@ public class MessageStoreConfig {
 
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
-    private boolean syncFromMinOffset = false;
+    /**
+     * Whether sync from lastFile when a new broker replicas(no data) join the master.
+     */
+    private boolean syncFromLastFile = false;
+
+    private boolean asyncLearner = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -503,6 +526,14 @@ public class MessageStoreConfig {
 
     public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
         this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
+    }
+
+    public String getStorePathEpochFile() {
+        return storePathEpochFile;
+    }
+
+    public void setStorePathEpochFile(String storePathEpochFile) {
+        this.storePathEpochFile = storePathEpochFile;
     }
 
     public String getDeleteWhen() {
@@ -1188,6 +1219,14 @@ public class MessageStoreConfig {
         this.minInSyncReplicas = minInSyncReplicas;
     }
 
+    public boolean isAllAckInSyncStateSet() {
+        return allAckInSyncStateSet;
+    }
+
+    public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
+        this.allAckInSyncStateSet = allAckInSyncStateSet;
+    }
+
     public boolean isEnableAutoInSyncReplicas() {
         return enableAutoInSyncReplicas;
     }
@@ -1210,6 +1249,14 @@ public class MessageStoreConfig {
 
     public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
         this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public long getHaMaxTimeSlaveNotCatchup() {
+        return haMaxTimeSlaveNotCatchup;
+    }
+
+    public void setHaMaxTimeSlaveNotCatchup(long haMaxTimeSlaveNotCatchup) {
+        this.haMaxTimeSlaveNotCatchup = haMaxTimeSlaveNotCatchup;
     }
 
     public boolean isSyncMasterFlushOffsetWhenStartup() {
@@ -1260,12 +1307,12 @@ public class MessageStoreConfig {
         this.maxSlaveResendLength = maxSlaveResendLength;
     }
 
-    public boolean isSyncFromMinOffset() {
-        return syncFromMinOffset;
+    public boolean isSyncFromLastFile() {
+        return syncFromLastFile;
     }
 
-    public void setSyncFromMinOffset(boolean syncFromMinOffset) {
-        this.syncFromMinOffset = syncFromMinOffset;
+    public void setSyncFromLastFile(boolean syncFromLastFile) {
+        this.syncFromLastFile = syncFromLastFile;
     }
 
     public boolean isEnableLmq() {
@@ -1314,6 +1361,14 @@ public class MessageStoreConfig {
 
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public boolean isAsyncLearner() {
+        return asyncLearner;
+    }
+
+    public void setAsyncLearner(boolean asyncLearner) {
+        this.asyncLearner = asyncLearner;
     }
 
     public int getMappedFileSizeTimerLog() {

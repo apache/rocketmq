@@ -19,10 +19,10 @@ package org.apache.rocketmq.tools.command;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -43,6 +43,7 @@ import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
+import org.apache.rocketmq.tools.command.broker.GetBrokerEpochCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
@@ -57,12 +58,14 @@ import org.apache.rocketmq.tools.command.consumer.GetConsumerConfigSubCommand;
 import org.apache.rocketmq.tools.command.consumer.SetConsumeModeSubCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
+import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
-import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
-import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
+import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -252,6 +255,10 @@ public class MQAdminStartup {
         initCommand(new ExportMetricsCommand());
 
         initCommand(new HAStatusSubCommand());
+
+        initCommand(new GetSyncStateSetSubCommand());
+        initCommand(new GetBrokerEpochCommand());
+        initCommand(new GetControllerMetaDataCommand());
     }
 
     private static void initLogback() throws JoranException {
