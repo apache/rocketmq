@@ -155,9 +155,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                 if (timeDelay != null) {
                     if (this.enableAsyncDeliver) {
-                        this.handleExecutorService.schedule(new HandlePutResultTask(level), FIRST_DELAY_TIME, TimeUnit.MILLISECONDS);
+                        this.handleExecutorService.scheduleWithFixedDelay(new HandlePutResultTask(level), FIRST_DELAY_TIME, DELAY_FOR_A_SLEEP, TimeUnit.MILLISECONDS);
                     }
-                    this.deliverExecutorService.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME, TimeUnit.MILLISECONDS);
+                    this.deliverExecutorService.scheduleWithFixedDelay(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME, DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
                 }
             }
 
@@ -382,7 +382,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     class DeliverDelayedMessageTimerTask implements Runnable {
         private final int delayLevel;
-        private final long offset;
+        private long offset;
 
         public DeliverDelayedMessageTimerTask(int delayLevel, long offset) {
             this.delayLevel = delayLevel;
@@ -398,7 +398,12 @@ public class ScheduleMessageService extends ConfigManager {
             } catch (Exception e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
-                this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
+                try {
+                    // Wait for a period of time if an error has occurred.
+                    TimeUnit.MILLISECONDS.sleep(DELAY_FOR_A_PERIOD);
+                } catch (InterruptedException ignored) {
+                    // ignored
+                }
             }
         }
 
@@ -423,7 +428,6 @@ public class ScheduleMessageService extends ConfigManager {
                     delayLevel2QueueId(delayLevel));
 
             if (cq == null) {
-                this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_WHILE);
                 return;
             }
 
@@ -433,14 +437,12 @@ public class ScheduleMessageService extends ConfigManager {
                 if ((resetOffset = cq.getMinOffsetInQueue()) > this.offset) {
                     log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, queueId={}",
                         this.offset, resetOffset, cq.getQueueId());
+                    this.offset = resetOffset;
                 } else if ((resetOffset = cq.getMaxOffsetInQueue()) < this.offset) {
                     log.error("schedule CQ offset invalid. offset={}, cqMaxOffset={}, queueId={}",
                         this.offset, resetOffset, cq.getQueueId());
-                } else {
-                    resetOffset = this.offset;
+                    this.offset = resetOffset;
                 }
-
-                this.scheduleNextTimerTask(resetOffset, DELAY_FOR_A_WHILE);
                 return;
             }
 
@@ -469,7 +471,7 @@ public class ScheduleMessageService extends ConfigManager {
 
                     long countdown = deliverTimestamp - now;
                     if (countdown > 0) {
-                        this.scheduleNextTimerTask(currOffset, DELAY_FOR_A_WHILE);
+                        this.offset = currOffset;
                         ScheduleMessageService.this.updateOffset(this.delayLevel, currOffset);
                         return;
                     }
@@ -494,7 +496,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
 
                     if (!deliverSuc) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.offset = nextOffset;
                         return;
                     }
                 }
@@ -504,12 +506,7 @@ public class ScheduleMessageService extends ConfigManager {
                 bufferCQ.release();
             }
 
-            this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
-        }
-
-        public void scheduleNextTimerTask(long offset, long delay) {
-            ScheduleMessageService.this.deliverExecutorService.schedule(new DeliverDelayedMessageTimerTask(
-                this.delayLevel, offset), delay, TimeUnit.MILLISECONDS);
+            this.offset = nextOffset;
         }
 
         private boolean syncDeliver(MessageExtBrokerInner msgInner, String msgId, long offset, long offsetPy,
@@ -575,6 +572,11 @@ public class ScheduleMessageService extends ConfigManager {
 
         @Override
         public void run() {
+            // Skip if not started.
+            if (!isStarted()) {
+                return;
+            }
+
             LinkedBlockingQueue<PutResultProcess> pendingQueue =
                 ScheduleMessageService.this.deliverPendingTable.get(this.delayLevel);
 
@@ -605,11 +607,6 @@ public class ScheduleMessageService extends ConfigManager {
                     log.error("HandlePutResultTask exception. info={}", putResultProcess.toString(), e);
                     putResultProcess.doResend();
                 }
-            }
-
-            if (isStarted()) {
-                ScheduleMessageService.this.handleExecutorService
-                    .schedule(new HandlePutResultTask(this.delayLevel), DELAY_FOR_A_SLEEP, TimeUnit.MILLISECONDS);
             }
         }
     }
