@@ -293,9 +293,20 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean lockInStrictMode = false;
 
-    private String metaDataHosts = "";
-
     private boolean compatibleWithOldNameSrv = true;
+
+    /**
+     * Is startup controller mode, which support auto switch broker's role.
+     */
+    private boolean enableControllerMode = false;
+
+    private String controllerAddr = "";
+
+    private long syncBrokerMetadataPeriod = 5 * 1000;
+
+    private long checkSyncStateSetPeriod = 5 * 1000;
+
+    private long syncControllerMetadataPeriod = 10 * 1000;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1257,14 +1268,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.lockInStrictMode = lockInStrictMode;
     }
 
-    public String getMetaDataHosts() {
-        return metaDataHosts;
-    }
-
-    public void setMetaDataHosts(String metaDataHosts) {
-        this.metaDataHosts = metaDataHosts;
-    }
-
     public boolean isIsolateLogEnable() {
         return isolateLogEnable;
     }
@@ -1279,5 +1282,45 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
         this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
+    }
+
+    public boolean isEnableControllerMode() {
+        return enableControllerMode;
+    }
+
+    public void setEnableControllerMode(boolean enableControllerMode) {
+        this.enableControllerMode = enableControllerMode;
+    }
+
+    public String getControllerAddr() {
+        return controllerAddr;
+    }
+
+    public void setControllerAddr(String controllerAddr) {
+        this.controllerAddr = controllerAddr;
+    }
+
+    public long getSyncBrokerMetadataPeriod() {
+        return syncBrokerMetadataPeriod;
+    }
+
+    public void setSyncBrokerMetadataPeriod(long syncBrokerMetadataPeriod) {
+        this.syncBrokerMetadataPeriod = syncBrokerMetadataPeriod;
+    }
+
+    public long getCheckSyncStateSetPeriod() {
+        return checkSyncStateSetPeriod;
+    }
+
+    public void setCheckSyncStateSetPeriod(long checkSyncStateSetPeriod) {
+        this.checkSyncStateSetPeriod = checkSyncStateSetPeriod;
+    }
+
+    public long getSyncControllerMetadataPeriod() {
+        return syncControllerMetadataPeriod;
+    }
+
+    public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
+        this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
     }
 }

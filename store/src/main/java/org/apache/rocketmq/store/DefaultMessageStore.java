@@ -79,6 +79,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
@@ -188,11 +189,17 @@ public class DefaultMessageStore implements MessageStore {
         this.correctLogicOffsetService = new CorrectLogicOffsetService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
+
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
-            if (null == this.haService) {
-                this.haService = new DefaultHAService();
-                LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
+            if (brokerConfig.isEnableControllerMode()) {
+                this.haService = new AutoSwitchHAService();
+                LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
+            } else {
+                this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
+                if (null == this.haService) {
+                    this.haService = new DefaultHAService();
+                    LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
+                }
             }
         }
 
@@ -407,7 +414,6 @@ public class DefaultMessageStore implements MessageStore {
 
             this.scheduledExecutorService.shutdown();
             try {
-
                 Thread.sleep(1000 * 3);
             } catch (InterruptedException e) {
                 LOGGER.error("shutdown Exception, ", e);
@@ -511,7 +517,7 @@ public class DefaultMessageStore implements MessageStore {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
-                    msg.getTopic(), msg.getBody().length);
+                    elapsedTime, msg.getTopic(), msg.getBody().length);
             }
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
@@ -628,6 +634,8 @@ public class DefaultMessageStore implements MessageStore {
 
         this.reputMessageService.shutdown();
 
+        long oldReputFromOffset = this.reputMessageService.getReputFromOffset();
+
         // truncate commitLog
         this.commitLog.truncateDirtyFiles(offsetToTruncate);
 
@@ -637,7 +645,7 @@ public class DefaultMessageStore implements MessageStore {
         recoverTopicQueueTable();
 
         this.reputMessageService = new ReputMessageService();
-        this.reputMessageService.setReputFromOffset(offsetToTruncate);
+        this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
         this.reputMessageService.start();
     }
 
@@ -1392,6 +1400,9 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getConfirmOffset() {
+        if (this.brokerConfig.isEnableControllerMode()) {
+            return ((AutoSwitchHAService) this.haService).getConfirmOffset();
+        }
         return this.commitLog.getConfirmOffset();
     }
 
@@ -1950,6 +1961,13 @@ public class DefaultMessageStore implements MessageStore {
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
                     destroyMappedFileIntervalForcibly, cleanAtOnce, deleteFileBatchMax);
                 if (deleteCount > 0) {
+                    // If in the controller mode, we should notify the AutoSwitchHaService to truncateEpochFile
+                    if (DefaultMessageStore.this.brokerConfig.isEnableControllerMode()) {
+                        if (DefaultMessageStore.this.haService instanceof AutoSwitchHAService) {
+                            final long minPhyOffset = getMinPhyOffset();
+                            ((AutoSwitchHAService) DefaultMessageStore.this.haService).truncateEpochFilePrefix(minPhyOffset - 1);
+                        }
+                    }
                 } else if (isUsageExceedsThreshold) {
                     LOGGER.warn("disk space will be full soon, but delete file failed.");
                 }
@@ -2394,12 +2412,15 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public long behind() {
-            return DefaultMessageStore.this.commitLog.getConfirmOffset() - this.reputFromOffset;
+            return DefaultMessageStore.this.getConfirmOffset() - this.reputFromOffset;
         }
 
         private boolean isCommitLogAvailable() {
             if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
                 return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
+            }
+            if (DefaultMessageStore.this.getBrokerConfig().isEnableControllerMode()) {
+                return this.reputFromOffset < ((AutoSwitchHAService) DefaultMessageStore.this.haService).getConfirmOffset();
             }
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
@@ -2412,20 +2433,20 @@ public class DefaultMessageStore implements MessageStore {
             }
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
-                if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
-                    && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
-                    break;
-                }
-
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
                         this.reputFromOffset = result.getStartOffset();
 
-                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset <= DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                             int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
+
+                            if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                                doNext = false;
+                                break;
+                            }
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
