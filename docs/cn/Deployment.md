@@ -157,3 +157,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 ```
 
 上述Master和Slave是通过指定相同的config命名为“brokerName”来配对的，master节点的brokerId必须为0，slave节点的brokerId必须大于0。
+
+### 5 RocketMQ 5.0 自动主从切换
+
+[快速开始](controller/quick_start.md)
+
+[部署文档](controller/deploy.md)
+
+

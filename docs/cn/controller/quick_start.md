@@ -2,7 +2,7 @@
 
 ## 前言
 
-该文档主要介绍如何快速构建和部署基于 Controller 的可以自动切换的 RocketMQ 集群。
+该文档主要介绍如何快速构建自动主从切换的 RocketMQ 集群。
 
 详细的新集群部署和旧集群升级指南请参考 [部署指南](deploy.md)。
 
@@ -11,8 +11,6 @@
 `git clone https://github.com/apache/rocketmq.git`
 
 `cd rocketmq`
-
-`git checkout -b controller_mode origin/5.0.0-beta-dledger-controller `
 
 `	mvn -Prelease-all -DskipTests clean install -U`
 
