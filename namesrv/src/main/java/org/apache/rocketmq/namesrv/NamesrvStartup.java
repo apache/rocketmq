@@ -104,7 +104,7 @@ public class NamesrvStartup {
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
-                MixAll.properties2Object(properties, controllerConfig);
+                    MixAll.properties2Object(properties, controllerConfig);
 
                     namesrvConfig.setConfigStorePath(file);
 

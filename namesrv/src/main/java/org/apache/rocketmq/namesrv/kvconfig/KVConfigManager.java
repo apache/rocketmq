@@ -179,8 +179,7 @@ public class KVConfigManager {
                     log.info("configTable SIZE: {}", this.configTable.size());
                     for (Entry<String, HashMap<String, String>> next : this.configTable.entrySet()) {
                         for (Entry<String, String> nextSub : next.getValue().entrySet()) {
-                            log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
-                                    nextSub.getValue());
+                            log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(), nextSub.getValue());
                         }
                     }
                 }
