@@ -1,4 +1,4 @@
-# Controller mode quick start
+# 自动主从切换快速开始
 
 ## 前言
 

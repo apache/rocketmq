@@ -199,3 +199,7 @@ Shrink SyncStateSet ，指把 SyncStateSet 副本集合中那些与Master差距�
 #### Expand
 
 如果⼀个 Slave 副本追赶上了 Master，Master 需要及时向Controller Alter SyncStateSet 。加⼊SyncStateSet 的条件是 slaveAckOffset >= ConfirmOffset（当前 SyncStateSet  中所有副本的 MaxOffset 的最⼩值）。
+
+## 参考资料
+
+[RIP-44原文](https://github.com/apache/rocketmq/wiki/RIP-44-Support-DLedger-Controller)

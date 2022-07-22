@@ -59,8 +59,25 @@ Broker启动方法与之前相同，增加以下参数
 - allAckInSyncStateSet：若该值为true，则一条消息需要复制到SyncStateSet中的每一个副本才会向客户端返回成功，可以保证消息不丢失。默认为false。
 - syncFromLastFile：若slave是空盘启动，是否从最后一个文件进行复制。默认为false。
 - asyncLearner：若该值为true，则该副本不会进入SyncStateSet，也就是不会被选举成Master，而是一直作为一个learner副本进行异步复制。默认为false。
+- inSyncReplicas：需保持同步的副本组数量，默认为1，allAckInSyncStateSet=true时该参数无效。
+- minInSyncReplicas：最小需保持同步的副本组数量，若SyncStateSet中副本个数小于minInSyncReplicas则putMessage直接返回PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH，默认为1。
 
 在Controller模式下，Broker配置必须设置enableControllerMode=true，并填写controllerAddr。
+
+### 重要参数解析
+
+其中inSyncReplicas、minInSyncReplicas等参数在普通Master-Salve部署、SlaveActingMaster模式、自动主从切换架构有重叠和不同含义，具体区别如下
+
+|                      | inSyncReplicas                                                      | minInSyncReplicas                                                        | enableAutoInSyncReplicas                    | allAckInSyncStateSet                                          | haMaxGapNotInSync                     | haMaxTimeSlaveNotCatchup                          |
+|----------------------|---------------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------|---------------------------------------------------------------|---------------------------------------|---------------------------------------------------|
+| 普通Master-Salve部署     | 同步复制下需要ACK的副本数，异步复制无效                                               | 无效                                                                       | 无效                                          | 无效                                                            | 无效                                    | 无效                                                |
+| 开启SlaveActingMaster （slaveActingMaster=true） | 不自动降级情况下同步复制下需要ACK的副本数                                              | 自动降级后，需要ACK最小副本数                                                         | 是否开启自动降级，自动降级后，ACK最小副本数降级到minInSyncReplicas | 无效                                                            | 判断降级依据：Slave与Master Commitlog差距值，单位字节 | 无效                                                |
+| 自动主从切换架构（enableControllerMode=true） | 不开启allAckInSyncStateSet下，同步复制下需要ACK的副本数，开启allAckInSyncStateSet后该值无效 | SyncStateSet可以降低到最小的副本数，如果SyncStateSet中副本个数小于minInSyncReplicas则直接返回副本数不足 | 无效                                          | 若该值为true，则一条消息需要复制到SyncStateSet中的每一个副本才会向客户端返回成功，该参数可以保证消息不丢失 | 无效                             | SyncStateSet收缩时，Slave最小未跟上Master的时间差，详见[RIP-44](https://shimo.im/docs/N2A1Mz9QZltQZoAD) |
+
+总结来说：
+- 普通Master-Slave下无自动降级能力，除了inSyncReplicas其他参数均无效，inSyncReplicas表示同步复制下需要ACK的副本数。
+- slaveActingMaster模式下开启enableAutoInSyncReplicas有降级能力，最小可降级到minInSyncReplicas副本数，降级判断依据是主备Commitlog高度差（haMaxGapNotInSync）以及副本存活情况，参考[自动降级](../QuorumACK.md)。
+- 自动主从切换（Controller模式）依赖SyncStateSet的收缩进行自动降级，SyncStateSet副本数最小收缩到minInSyncReplicas仍能正常工作，小于minInSyncReplicas直接返回副本数不足，收缩依据之一是Slave跟上的时间间隔（haMaxTimeSlaveNotCatchup）而非Commitlog高度。若allAckInSyncStateSet=true，则inSyncReplicas参数无效。
 
 ## 兼容性
 
