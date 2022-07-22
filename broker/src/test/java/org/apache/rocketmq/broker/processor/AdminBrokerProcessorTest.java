@@ -21,8 +21,8 @@ import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -263,9 +263,10 @@ public class AdminBrokerProcessorTest {
         socketAddress = mock(SocketAddress.class);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
-        Map<String, String> bodyMap = new HashMap<>();
-        bodyMap.put("key", "value");
-        request.setBody(bodyMap.toString().getBytes());
+        Properties properties = new Properties();
+        properties.put("key1", "value1");
+        properties.put("key2", "value2");
+        request.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

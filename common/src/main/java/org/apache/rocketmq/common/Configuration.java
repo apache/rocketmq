@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common;
 
+import java.io.File;
+import java.io.FileReader;
 import org.apache.rocketmq.logging.InternalLogger;
 
 import java.io.IOException;
@@ -198,7 +200,7 @@ public class Configuration {
             return;
         }
 
-        persist();
+        persistBrokerConf(properties);
     }
 
     public void persist() {
@@ -216,6 +218,35 @@ public class Configuration {
             }
         } catch (InterruptedException e) {
             log.error("persist lock error");
+        }
+    }
+
+    public void persistBrokerConf(Properties from) {
+        FileReader reader = null;
+        try {
+            readWriteLock.readLock().lockInterruptibly();
+            String fileName = this.getStorePath();
+            File file = new File(fileName);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            Properties properties = new Properties();
+            reader = new FileReader(fileName);
+            properties.load(reader);
+            merge(from, properties);
+            final String str = MixAll.properties2String(properties);
+            MixAll.string2File(str, fileName);
+        } catch (Exception e) {
+            log.error("persist brokerConf error", e);
+        } finally {
+            readWriteLock.readLock().unlock();
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    log.error("unable to close FileReader", e);
+                }
+            }
         }
     }
 
