@@ -95,8 +95,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 
-;
-
 public class DefaultMQProducerImpl implements MQProducerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final Random random = new Random();
@@ -323,11 +321,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     try {
                         if (transactionCheckListener != null) {
                             localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
-                        } else if (transactionListener != null) {
+                        } else {
                             log.debug("Used new check API in transaction message");
                             localTransactionState = transactionListener.checkLocalTransaction(message);
-                        } else {
-                            log.warn("CheckTransactionState, pick transactionListener by group[{}] failed", group);
                         }
                     } catch (Throwable e) {
                         log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
@@ -989,6 +985,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             executeEndTransactionHook(context);
         }
     }
+
     /**
      * DEFAULT ONEWAY -------------------------------------------------------
      */
