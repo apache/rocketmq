@@ -1,4 +1,5 @@
 # Dledger快速搭建
+> 该模式为4.x的切换方式，建议采用 5.x [自动主从切换](../controller/quick_start.md)
 ---
 ### 前言
 该文档主要介绍如何快速构建和部署基于 DLedger 的可以自动容灾切换的 RocketMQ 集群。
