@@ -128,6 +128,7 @@
         <grpc.version>1.45.0</grpc.version>
         <protobuf-java-util.version>3.20.1</protobuf-java-util.version>
         <disruptor.version>1.2.10</disruptor.version>
+        <caffeine.version>2.8.5</caffeine.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -781,6 +782,11 @@
                 <groupId>com.conversantmedia</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
