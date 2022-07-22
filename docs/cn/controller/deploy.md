@@ -4,7 +4,7 @@
 
 若需要保证Controller具备容错能力，Controller部署需要三副本及以上（遵循Raft的多数派协议）。
 
-> Controller若只部署单副本也能完成Broker Failover，只是若该单点Controller故障，会影响切换能力，但不会影响存量集群的正常收发。
+> Controller若只部署单副本也能完成Broker Failover，但若该单点Controller故障，会影响切换能力，但不会影响存量集群的正常收发。
 
 Controller部署有两种方式。一种是嵌入于NameServer进行部署，可以通过配置enableControllerInNamesrv打开（可以选择性打开，并不强制要求每一台NameServer都打开），在该模式下，NameServer本身能力仍然是无状态的，也就是内嵌模式下若NameServer挂掉多数派，只影响切换能力，不影响原来路由获取等功能。另一种是独立部署，需要单独部署Controller组件。
 
@@ -76,7 +76,7 @@ Broker启动方法与之前相同，增加以下参数
 
 总结来说：
 - 普通Master-Slave下无自动降级能力，除了inSyncReplicas其他参数均无效，inSyncReplicas表示同步复制下需要ACK的副本数。
-- slaveActingMaster模式下开启enableAutoInSyncReplicas有降级能力，最小可降级到minInSyncReplicas副本数，降级判断依据是主备Commitlog高度差（haMaxGapNotInSync）以及副本存活情况，参考[自动降级](../QuorumACK.md)。
+- slaveActingMaster模式下开启enableAutoInSyncReplicas有降级能力，最小可降级到minInSyncReplicas副本数，降级判断依据是主备Commitlog高度差（haMaxGapNotInSync）以及副本存活情况，参考[slaveActingMaster模式自动降级](../QuorumACK.md)。
 - 自动主从切换（Controller模式）依赖SyncStateSet的收缩进行自动降级，SyncStateSet副本数最小收缩到minInSyncReplicas仍能正常工作，小于minInSyncReplicas直接返回副本数不足，收缩依据之一是Slave跟上的时间间隔（haMaxTimeSlaveNotCatchup）而非Commitlog高度。若allAckInSyncStateSet=true，则inSyncReplicas参数无效。
 
 ## 兼容性
