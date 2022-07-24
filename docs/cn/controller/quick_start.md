@@ -1,8 +1,12 @@
-# Controller mode quick start
+# 自动主从切换快速开始
 
 ## 前言
 
-该文档主要介绍如何快速构建自动主从切换的 RocketMQ 集群。
+![架构图](../image/controller/controller_design_2.png)
+
+该文档主要介绍如何快速构建自动主从切换的 RocketMQ 集群，其架构如上图所示, 主要增加支持自动主从切换的Controller组件，其可以独立部署也可以内嵌在NameServer中。
+
+详细设计思路请参考 [设计思想](design.md).
 
 详细的新集群部署和旧集群升级指南请参考 [部署指南](deploy.md)。
 

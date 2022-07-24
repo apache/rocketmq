@@ -151,6 +151,9 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.TimerMetrics;
 
 public class BrokerController {
     protected static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -232,6 +235,8 @@ public class BrokerController {
     protected boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
+    private TimerMessageStore timerMessageStore;
+    private TimerCheckpoint timerCheckpoint;
     protected BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
@@ -717,6 +722,12 @@ public class BrokerController {
                 if (this.brokerConfig.isEnableControllerMode()) {
                     this.replicasManager = new ReplicasManager(this);
                 }
+                if (messageStoreConfig.isTimerWheelEnable()) {
+                    this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
+                    TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
+                    this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
+                    this.messageStore.setTimerMessageStore(this.timerMessageStore);
+                }
             } catch (IOException e) {
                 result = false;
                 LOG.error("BrokerController#initialize: unexpected error occurs", e);
@@ -727,6 +738,10 @@ public class BrokerController {
         }
 
         result = result && this.messageStore.load();
+
+        if (messageStoreConfig.isTimerWheelEnable()) {
+            result = result && this.timerMessageStore.load();
+        }
 
         //scheduleMessageService load after messageStore load success
         result = result && this.scheduleMessageService.load();
@@ -1154,6 +1169,10 @@ public class BrokerController {
         return popMessageProcessor;
     }
 
+    public TimerMessageStore getTimerMessageStore() {
+        return timerMessageStore;
+    }
+
     public AckMessageProcessor getAckMessageProcessor() {
         return ackMessageProcessor;
     }
@@ -1217,7 +1236,10 @@ public class BrokerController {
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.shutdown();
         }
-
+        //it is better to make sure the timerMessageStore shutdown firstly
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.shutdown();
+        }
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
@@ -1371,6 +1393,10 @@ public class BrokerController {
 
         if (this.messageStore != null) {
             this.messageStore.start();
+        }
+
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.start();
         }
 
         if (this.replicasManager != null) {
