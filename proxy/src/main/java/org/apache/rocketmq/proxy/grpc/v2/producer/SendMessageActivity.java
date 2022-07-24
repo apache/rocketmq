@@ -51,6 +51,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
+import org.apache.rocketmq.proxy.grpc.v2.common.MessageGrpcOrRemoting;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
@@ -281,6 +282,9 @@ public class SendMessageActivity extends AbstractMessingActivity {
         if (Timestamps.isValid(bornTimestamp)) {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_BORN_TIMESTAMP, String.valueOf(Timestamps.toMillis(bornTimestamp)));
         }
+
+        // mark message is sent via grpc proto
+        MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_GRPC_OR_REMOTING, MessageGrpcOrRemoting.GRPC.name());
 
         return messageWithHeader.getProperties();
     }
