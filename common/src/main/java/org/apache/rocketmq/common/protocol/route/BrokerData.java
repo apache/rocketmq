@@ -47,9 +47,7 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerName = brokerData.brokerName;
         if (brokerData.brokerAddrs != null) {
             this.brokerAddrs = new HashMap<Long, String>();
-            for (final Map.Entry<Long, String> brokerEntry : brokerData.brokerAddrs.entrySet()) {
-                this.brokerAddrs.put(brokerEntry.getKey(), brokerEntry.getValue());
-            }
+            this.brokerAddrs.putAll(brokerData.brokerAddrs);
         }
         this.enableActingMaster = brokerData.enableActingMaster;
     }
