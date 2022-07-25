@@ -39,7 +39,7 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return messages.iterator();
     }
 
-    public static MessageBatch generateFromList(Collection<Message> messages) {
+    public static MessageBatch generateFromList(Collection<? extends Message> messages) {
         assert messages != null;
         assert messages.size() > 0;
         List<Message> messageList = new ArrayList<Message>(messages.size());

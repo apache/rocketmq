@@ -29,6 +29,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -299,5 +300,29 @@ public class PlainPermissionManagerTest {
         }
         transport.delete();
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+    }
+    
+    @Test
+    public void updateAccessConfigTest() {
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(null));
+        
+        plainAccessConfig.setAccessKey("admin_test");
+        // Invalid parameter
+        plainAccessConfig.setSecretKey("123456");
+        plainAccessConfig.setAdmin(true);
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        plainAccessConfig.setSecretKey("12345678");
+        // Invalid parameter
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA!SUB"));
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        // first update
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
+        
+        // second update
+        plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
     }
 }

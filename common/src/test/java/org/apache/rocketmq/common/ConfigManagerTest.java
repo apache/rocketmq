@@ -15,13 +15,10 @@ package org.apache.rocketmq.common;/*
  * limitations under the License.
  */
 
-import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.MixAll;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

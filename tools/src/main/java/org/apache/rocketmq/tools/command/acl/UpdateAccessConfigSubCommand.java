@@ -61,7 +61,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "secretKey", true, "set secretKey in acl config file");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file");
