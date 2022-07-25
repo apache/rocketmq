@@ -277,6 +277,11 @@ public class SendMessageActivity extends AbstractMessingActivity {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_BORN_HOST, bornHost);
         }
 
+        Timestamp bornTimestamp = message.getSystemProperties().getBornTimestamp();
+        if (Timestamps.isValid(bornTimestamp)) {
+            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_BORN_TIMESTAMP, String.valueOf(Timestamps.toMillis(bornTimestamp)));
+        }
+
         return messageWithHeader.getProperties();
     }
 
