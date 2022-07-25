@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 
@@ -39,6 +40,7 @@ public class SchemaTest {
     }
 
     @Test
+    @Ignore
     public void checkSchema() throws Exception {
         SchemaDefiner.doLoad();
         Map<String, Map<String, String>> schemaFromFile = new HashMap<>();
