@@ -53,6 +53,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
@@ -530,6 +531,18 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override public boolean isMappedFilesEmpty() {
         return next.isMappedFilesEmpty();
+    }
+
+    @Override public TimerMessageStore getTimerMessageStore() {
+        return next.getTimerMessageStore();
+    }
+
+    @Override public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        next.setTimerMessageStore(timerMessageStore);
+    }
+
+    @Override public long getTimingMessageCount(String topic) {
+        return next.getTimingMessageCount(topic);
     }
 
     @Override public boolean isShutdown() {
