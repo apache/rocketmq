@@ -62,27 +62,27 @@ public class KVConfigManager {
     public void putKVConfig(final String namespace, final String key, final String value) {
         try {
             this.lock.writeLock().lockInterruptibly();
-            try {
-                HashMap<String, String> kvTable = this.configTable.get(namespace);
-                if (null == kvTable) {
-                    kvTable = new HashMap<>();
-                    this.configTable.put(namespace, kvTable);
-                    log.info("putKVConfig create new Namespace {}", namespace);
-                }
+            HashMap<String, String> kvTable = this.configTable.get(namespace);
+            if (null == kvTable) {
+                kvTable = new HashMap<>();
+                this.configTable.put(namespace, kvTable);
+                log.info("putKVConfig create new Namespace {}", namespace);
+            }
 
-                final String prev = kvTable.put(key, value);
-                if (null != prev) {
-                    log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}",
-                        namespace, key, value);
-                } else {
-                    log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}",
-                        namespace, key, value);
-                }
-            } finally {
-                this.lock.writeLock().unlock();
+            final String prev = kvTable.put(key, value);
+            if (null != prev) {
+                log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}",
+                    namespace, key, value);
+            } else {
+                log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}",
+                    namespace, key, value);
             }
         } catch (InterruptedException e) {
             log.error("putKVConfig InterruptedException", e);
+            // set interrupt flag
+            Thread.currentThread().interrupt();
+        } finally {
+            this.lock.writeLock().unlock();
         }
 
         this.persist();
