@@ -243,9 +243,9 @@ public class RouteActivityTest extends BaseActivityTest {
 
         // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and  4 write only queues.
         QueueData queueDataWith4R8WPermRW = createQueueData(4, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith4R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, GRPC_TOPIC, TopicMessageType.NORMAL, GRPC_BROKER);
+        List<MessageQueue> partitionWith4R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
         assertEquals(8, partitionWith4R8WPermRW.size());
-        assertEquals(8, partitionWith4R8WPermRW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.NORMAL.getNumber()).count());
+        assertEquals(8, partitionWith4R8WPermRW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
