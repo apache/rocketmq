@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -248,7 +249,7 @@ public class RouteInfoManager {
                 }
 
                 boolean isOldVersionBroker = enableActingMaster == null;
-                brokerData.setEnableActingMaster(!isOldVersionBroker && enableActingMaster);
+                brokerData.setEnableActingMaster(isOldVersionBroker ? false : enableActingMaster);
 
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
 
@@ -286,7 +287,7 @@ public class RouteInfoManager {
                 }
 
                 String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
-                registerFirst = registerFirst || (null == oldAddr);
+                registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
                 boolean isMaster = MixAll.MASTER_ID == brokerId;
                 boolean isPrimeSlave = !isOldVersionBroker && !isMaster
