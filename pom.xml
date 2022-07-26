@@ -591,11 +591,6 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.openmessaging.storage</groupId>
-                <artifactId>dledger</artifactId>
-                <version>${dleger.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
@@ -832,10 +827,6 @@
                     <exclusion>
                         <groupId>com.google.errorprone</groupId>
                         <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.code.gson</groupId>
-                        <artifactId>gson</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
