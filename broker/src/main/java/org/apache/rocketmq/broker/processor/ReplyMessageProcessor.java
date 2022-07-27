@@ -39,6 +39,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -58,15 +59,16 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext = null;
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         SendMessageRequestHeader requestHeader = parseRequestHeader(request);
         if (requestHeader == null) {
             return null;
         }
 
-        mqtraceContext = buildMsgContext(ctx, requestHeader);
-        this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+        mqtraceContext = buildMsgContext(requestHeader, wrappedCtx);
+        this.executeSendMessageHookBefore(request, mqtraceContext, wrappedCtx);
 
-        RemotingCommand response = this.processReplyMessageRequest(ctx, request, mqtraceContext, requestHeader);
+        RemotingCommand response = this.processReplyMessageRequest(ctx, request, mqtraceContext, requestHeader, wrappedCtx);
 
         this.executeSendMessageHookAfter(response, mqtraceContext);
         return response;
@@ -98,7 +100,8 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
     private RemotingCommand processReplyMessageRequest(final ChannelHandlerContext ctx,
         final RemotingCommand request,
         final SendMessageContext sendMessageContext,
-        final SendMessageRequestHeader requestHeader) {
+        final SendMessageRequestHeader requestHeader,
+        final WrappedChannelHandlerContext wrappedCtx) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
 
@@ -116,7 +119,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         }
 
         response.setCode(-1);
-        super.msgCheck(ctx, requestHeader, request, response);
+        super.msgCheck(requestHeader, request, response, wrappedCtx);
         if (response.getCode() != -1) {
             return response;
         }

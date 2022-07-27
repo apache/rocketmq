@@ -14,13 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.remoting.netty;
 
+import java.util.concurrent.Future;
+import org.apache.rocketmq.remoting.RPCHookContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import java.util.concurrent.CompletableFuture;
+public class DefaultRPCHookContext implements RPCHookContext {
 
-public interface RemotingResponseCallback {
-    CompletableFuture<RemotingCommand> callback(RemotingCommand response);
+    private Decision decision;
+
+    //Make it compatible in 1.6
+    private Future<RemotingCommand> responseFuture;
+
+    public DefaultRPCHookContext() {
+        this.decision = Decision.CONTINUE;
+    }
+
+
+    public void setResponseFuture(Future<RemotingCommand> responseFuture) {
+        this.responseFuture = responseFuture;
+    }
+
+    @Override
+    public Decision getDecision() {
+        return decision;
+    }
+
+    @Override public void setDecision(Decision decision) {
+        this.decision = decision;
+    }
+
+    @Override
+    public Future<RemotingCommand> getResponseFuture() {
+        return responseFuture;
+    }
+
+    @Override public void clear() {
+        this.decision = Decision.CONTINUE;
+        this.responseFuture = null;
+    }
 }

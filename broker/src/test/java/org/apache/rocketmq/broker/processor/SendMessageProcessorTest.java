@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
-import java.util.concurrent.Executors;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -56,9 +55,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -70,7 +67,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -99,7 +95,6 @@ public class SendMessageProcessorTest {
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
-        when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
@@ -221,13 +216,6 @@ public class SendMessageProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
         await().atMost(Duration.ofSeconds(10)).until(() -> {
             RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
             if (responseToReturn != null) {
@@ -368,13 +356,6 @@ public class SendMessageProcessorTest {
     private void assertPutResult(int responseCode) throws RemotingCommandException {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
         await().atMost(Duration.ofSeconds(10)).until(() -> {
             RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
             if (responseToReturn != null) {

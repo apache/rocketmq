@@ -17,10 +17,17 @@
 
 package org.apache.rocketmq.remoting.netty;
 
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+/**
+ * Represents an operation that accepts three input arguments and returns no result.
+ */
+@FunctionalInterface
+public interface TriConsumer<T, U, S> {
 
-import java.util.concurrent.CompletableFuture;
-
-public interface RemotingResponseCallback {
-    CompletableFuture<RemotingCommand> callback(RemotingCommand response);
+    /**
+     * Performs this operation on the given arguments.
+     *  @param t the first input argument
+     * @param u the second input argument
+     * @param s the third input argument
+     */
+    void run(T t, U u, S s);
 }

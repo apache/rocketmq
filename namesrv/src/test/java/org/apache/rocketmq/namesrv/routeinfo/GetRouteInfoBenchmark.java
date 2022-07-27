@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -117,7 +118,7 @@ public class GetRouteInfoBenchmark {
                             Channel channel = mock(Channel.class);
 
                             routeInfoManager.registerBroker(clusterName, brokerAddr, brokerName, 0, brokerAddr,
-                                null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                                null, topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
                         }
                     }
                 });

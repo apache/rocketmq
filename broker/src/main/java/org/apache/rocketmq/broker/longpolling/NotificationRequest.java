@@ -16,26 +16,21 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import io.netty.channel.Channel;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NotificationRequest {
     private RemotingCommand remotingCommand;
-    private Channel channel;
     private long expired;
+    private WrappedChannelHandlerContext wrappedCtx;
     private AtomicBoolean complete = new AtomicBoolean(false);
 
-    public NotificationRequest(RemotingCommand remotingCommand, Channel channel, long expired) {
-        this.channel = channel;
+    public NotificationRequest(RemotingCommand remotingCommand, long expired, WrappedChannelHandlerContext wrappedCtx) {
         this.remotingCommand = remotingCommand;
         this.expired = expired;
-    }
-
-    public Channel getChannel() {
-        return channel;
+        this.wrappedCtx = wrappedCtx;
     }
 
     public RemotingCommand getRemotingCommand() {
@@ -44,6 +39,10 @@ public class NotificationRequest {
 
     public boolean isTimeout() {
         return System.currentTimeMillis() > (expired - 3000);
+    }
+
+    public WrappedChannelHandlerContext getWrappedCtx() {
+        return wrappedCtx;
     }
 
     public boolean complete() {

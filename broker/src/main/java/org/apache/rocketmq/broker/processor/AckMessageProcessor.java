@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.util.MsgUtil;
@@ -34,9 +33,9 @@ import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -90,15 +89,17 @@ public class AckMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request, true);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return this.processRequest(request, true, wrappedCtx);
     }
 
     @Override public boolean rejectRequest() {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
-        boolean brokerAllowSuspend) throws RemotingCommandException {
+    private RemotingCommand processRequest(RemotingCommand request,
+        boolean brokerAllowSuspend,
+        WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final AckMessageRequestHeader requestHeader = (AckMessageRequestHeader) request.decodeCommandCustomHeader(AckMessageRequestHeader.class);
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         AckMsg ackMsg = new AckMsg();
@@ -106,7 +107,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         response.setOpaque(request.getOpaque());
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
+            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), wrappedCtx.channelRemoteAddr());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
             return response;
@@ -114,7 +115,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums() || requestHeader.getQueueId() < 0) {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
-                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
+                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), wrappedCtx.remoteAddress());
             POP_LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark(errorInfo);
@@ -166,7 +167,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                     requestHeader.getTopic(), requestHeader.getConsumerGroup(),
                     requestHeader.getQueueId(), requestHeader.getOffset());
                 if (nextOffset > -1) {
-                    this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
+                    this.brokerController.getConsumerOffsetManager().commitOffset(wrappedCtx.remoteAddress().toString(),
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                         requestHeader.getQueueId(),
                         nextOffset);
@@ -174,7 +175,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getQueueId());
                 } else if (nextOffset == -1) {
                     String errorInfo = String.format("offset is illegal, key:%s, old:%d, commit:%d, next:%d, %s",
-                        lockKey, oldOffset, requestHeader.getOffset(), nextOffset, channel.remoteAddress());
+                        lockKey, oldOffset, requestHeader.getOffset(), nextOffset, wrappedCtx.remoteAddress());
                     POP_LOGGER.warn(errorInfo);
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark(errorInfo);

@@ -17,27 +17,26 @@
 
 package org.apache.rocketmq.remoting.netty;
 
-import io.netty.channel.Channel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RequestTask implements Runnable {
     private final Runnable runnable;
     private final long createTimestamp = System.currentTimeMillis();
-    private final Channel channel;
     private final RemotingCommand request;
-    private volatile boolean stopRun = false;
+    // alternative to channel
+    private final WrappedChannel wrappedChannel;
+    private boolean stopRun = false;
 
-    public RequestTask(final Runnable runnable, final Channel channel, final RemotingCommand request) {
+    public RequestTask(final Runnable runnable, final RemotingCommand request, WrappedChannel wrappedChannel) {
         this.runnable = runnable;
-        this.channel = channel;
         this.request = request;
+        this.wrappedChannel = wrappedChannel;
     }
 
     @Override
     public int hashCode() {
         int result = runnable != null ? runnable.hashCode() : 0;
         result = 31 * result + (int) (getCreateTimestamp() ^ (getCreateTimestamp() >>> 32));
-        result = 31 * result + (channel != null ? channel.hashCode() : 0);
         result = 31 * result + (request != null ? request.hashCode() : 0);
         result = 31 * result + (isStopRun() ? 1 : 0);
         return result;
@@ -55,8 +54,6 @@ public class RequestTask implements Runnable {
         if (getCreateTimestamp() != that.getCreateTimestamp())
             return false;
         if (isStopRun() != that.isStopRun())
-            return false;
-        if (channel != null ? !channel.equals(that.channel) : that.channel != null)
             return false;
         return request != null ? request.getOpaque() == that.request.getOpaque() : that.request == null;
 
@@ -81,8 +78,6 @@ public class RequestTask implements Runnable {
     }
 
     public void returnResponse(int code, String remark) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(code, remark);
-        response.setOpaque(request.getOpaque());
-        this.channel.writeAndFlush(response);
+        this.wrappedChannel.getFastFailCallback().run(request.getOpaque(), code, remark);
     }
 }

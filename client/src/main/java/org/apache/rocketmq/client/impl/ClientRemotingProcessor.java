@@ -55,6 +55,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ClientRemotingProcessor implements NettyRequestProcessor {
@@ -68,24 +69,25 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         switch (request.getCode()) {
             case RequestCode.CHECK_TRANSACTION_STATE:
-                return this.checkTransactionState(ctx, request);
+                return this.checkTransactionState(request, wrappedCtx);
             case RequestCode.NOTIFY_CONSUMER_IDS_CHANGED:
-                return this.notifyConsumerIdsChanged(ctx, request);
+                return this.notifyConsumerIdsChanged(request, wrappedCtx);
             case RequestCode.RESET_CONSUMER_CLIENT_OFFSET:
-                return this.resetOffset(ctx, request);
+                return this.resetOffset(request, wrappedCtx);
             case RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT:
-                return this.getConsumeStatus(ctx, request);
+                return this.getConsumeStatus(request, wrappedCtx);
 
             case RequestCode.GET_CONSUMER_RUNNING_INFO:
-                return this.getConsumerRunningInfo(ctx, request);
+                return this.getConsumerRunningInfo(request, wrappedCtx);
 
             case RequestCode.CONSUME_MESSAGE_DIRECTLY:
-                return this.consumeMessageDirectly(ctx, request);
+                return this.consumeMessageDirectly(request, wrappedCtx);
 
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
-                return this.receiveReplyMessage(ctx, request);
+                return this.receiveReplyMessage(request, wrappedCtx);
             default:
                 break;
         }
@@ -97,8 +99,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand checkTransactionState(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
             (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
@@ -116,7 +117,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             if (group != null) {
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
-                    final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    final String addr = wrappedCtx.channelRemoteAddr();
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);
@@ -131,13 +132,12 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand notifyConsumerIdsChanged(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         try {
             final NotifyConsumerIdsChangedRequestHeader requestHeader =
                 (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
             log.info("receive broker's notification[{}], the consumer group: {} changed, rebalance immediately",
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                wrappedCtx.channelRemoteAddr(),
                 requestHeader.getConsumerGroup());
             this.mqClientFactory.rebalanceImmediately();
         } catch (Exception e) {
@@ -146,12 +146,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    public RemotingCommand resetOffset(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand resetOffset(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final ResetOffsetRequestHeader requestHeader =
             (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
         log.info("invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
-            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
+            wrappedCtx.channelRemoteAddr(), requestHeader.getTopic(), requestHeader.getGroup(),
             requestHeader.getTimestamp());
         Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
         if (request.getBody() != null) {
@@ -163,8 +162,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     }
 
     @Deprecated
-    public RemotingCommand getConsumeStatus(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand getConsumeStatus(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetConsumerStatusRequestHeader requestHeader =
             (GetConsumerStatusRequestHeader) request.decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
@@ -177,8 +175,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getConsumerRunningInfo(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetConsumerRunningInfoRequestHeader requestHeader =
             (GetConsumerRunningInfoRequestHeader) request.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
@@ -201,8 +198,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand consumeMessageDirectly(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand consumeMessageDirectly(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ConsumeMessageDirectlyResultRequestHeader requestHeader =
             (ConsumeMessageDirectlyResultRequestHeader) request
@@ -224,8 +220,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand receiveReplyMessage(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand receiveReplyMessage(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         long receiveTime = System.currentTimeMillis();

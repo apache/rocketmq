@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -146,7 +147,7 @@ public class RegisterBrokerBenchmark {
             "127.0.0.1:500" + index,
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
     }
 
     @Benchmark
@@ -168,7 +169,7 @@ public class RegisterBrokerBenchmark {
             "127.0.0.1:500" + index,
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
     }
 
     public static void main(String[] args) throws Exception {

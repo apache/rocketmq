@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import java.net.SocketAddress;
@@ -29,19 +30,24 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.AbstractRpcHook;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RPCHookContext;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
@@ -167,7 +173,7 @@ public abstract class NettyRemotingAbstract {
 
     protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
         if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
+            for (RPCHook rpcHook: rpcHooks) {
                 rpcHook.doBeforeRequest(addr, request);
             }
         }
@@ -175,8 +181,77 @@ public abstract class NettyRemotingAbstract {
 
     public void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
         if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
+            for (RPCHook rpcHook: rpcHooks) {
                 rpcHook.doAfterResponse(addr, request, response);
+            }
+        }
+    }
+
+    protected RemotingCommand getResponseFromRpcHookContext(RPCHookContext rpcHookContext) {
+        if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
+            RemotingCommand response;
+            if (rpcHookContext.getResponseFuture() != null
+                    && rpcHookContext.getResponseFuture().isDone()) {
+                try {
+                    response = rpcHookContext.getResponseFuture().get();
+                } catch (ExecutionException | InterruptedException e) {
+                    response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                            "Stopped by handler chain, but get result failed");
+                }
+            } else {
+                final String message = "A handle is incorrectly implemented. " +
+                        "It stopped the handler chain without setting ResponseFuture";
+                log.warn(message);
+                response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                        message);
+            }
+            return response;
+        }
+        return null;
+    }
+
+    protected void doBeforeRpcHooks(String addr, RemotingCommand request, RPCHookContext rpcHookContext) {
+        if (rpcHooks.size() > 0) {
+            for (RPCHook rpcHook : rpcHooks) {
+                try {
+                    if (rpcHookContext != null
+                            && rpcHook instanceof AbstractRpcHook) {
+                        ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
+                    }
+                    rpcHook.doBeforeRequest(addr, request);
+                } catch (Throwable e) {
+                    RemotingCommand response  = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                            "Exception from RPCHook:" + e.getMessage());
+                    response.setOpaque(request.getOpaque());
+                    if (rpcHookContext != null) {
+                        rpcHookContext.setDecision(RPCHookContext.Decision.STOP);
+                        rpcHookContext.setResponseFuture(CompletableFuture.completedFuture(response));
+                    }
+                }
+
+                if (rpcHookContext != null
+                        && rpcHookContext.getDecision() == RPCHookContext.Decision.STOP) {
+                    break;
+                }
+            }
+        }
+    }
+
+    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response, RPCHookContext rpcHookContext) {
+        if (rpcHooks.size() > 0) {
+            for (RPCHook rpcHook : rpcHooks) {
+                try {
+                    if (rpcHookContext != null
+                            && rpcHook instanceof AbstractRpcHook) {
+                        ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
+                    }
+                    rpcHook.doAfterResponse(addr, request, response);
+                } catch (Throwable ignore) {
+                }
+                if (rpcHookContext != null
+                        && rpcHookContext.getDecision() == RPCHookContext.Decision.STOP) {
+                    break;
+                }
             }
         }
     }
@@ -196,56 +271,90 @@ public abstract class NettyRemotingAbstract {
             Runnable run = new Runnable() {
                 @Override
                 public void run() {
-                    Exception exception = null;
-                    RemotingCommand response;
-
                     try {
                         String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                        try {
-                            doBeforeRpcHooks(remoteAddr, cmd);
-                        } catch (Exception e) {
-                            exception = e;
-                        }
-
-                        if (exception == null) {
-                            response = pair.getObject1().processRequest(ctx, cmd);
-                        } else {
-                            response = RemotingCommand.createResponseCommand(null);
-                            response.setCode(RemotingSysResponseCode.SYSTEM_ERROR);
-                        }
-
-                        try {
-                            doAfterRpcHooks(remoteAddr, cmd, response);
-                        } catch (Exception e) {
-                            exception = e;
-                        }
-
-                        if (exception != null) {
-                            throw exception;
-                        }
-
-                        if (!cmd.isOnewayRPC()) {
-                            if (response != null) {
-                                response.setOpaque(opaque);
-                                response.markResponseType();
-                                try {
-                                    ctx.writeAndFlush(response);
-                                } catch (Throwable e) {
-                                    log.error("process request over, but response failed", e);
-                                    log.error(cmd.toString());
-                                    log.error(response.toString());
-                                }
-                            } else {
-
+                        final RPCHookContext rpcHookContext = new DefaultRPCHookContext();
+                        doBeforeRpcHooks(remoteAddr, cmd, rpcHookContext);
+                        if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
+                            if (cmd.isOnewayRPC()) {
+                                return;
                             }
+                            RemotingCommand response = getResponseFromRpcHookContext(rpcHookContext);
+                            response.setOpaque(opaque);
+                            ctx.writeAndFlush(response);
+                            return;
+                        }
+
+                        final RemotingResponseCallback callback = response -> {
+                            doAfterRpcHooks(remoteAddr, cmd, response, rpcHookContext);
+                            if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
+                                log.info("The RPCHook chain stopped during post process, this may should not happen");
+                            }
+                            if (null != response) {
+                                response.setOpaque(cmd.getOpaque());
+                            }
+                            return CompletableFuture.completedFuture(response);
+                        };
+
+                        Consumer<RemotingCommand> writeResponseAction = result -> {
+                            if (!cmd.isOnewayRPC()) {
+                                if (result != null) {
+                                    result.setOpaque(opaque);
+                                    result.markResponseType();
+                                    result.setSerializeTypeCurrentRPC(cmd.getSerializeTypeCurrentRPC());
+                                    try {
+                                        Object payload;
+                                        if (result.getFileRegionAttachment() instanceof FileRegion) {
+                                            payload = result.getFileRegionAttachment();
+                                        } else {
+                                            payload = result;
+                                        }
+                                        ctx.writeAndFlush(payload).addListener((ChannelFutureListener) future -> {
+                                            try {
+                                                if (result.getCallback() != null) {
+                                                    pair.getObject2().submit(result.getCallback());
+                                                }
+                                            } catch (Exception e) {
+                                                log.error("Execution failed in channel future listener.", e);
+                                                if (result.getCallback() != null) {
+                                                    result.getCallback().run();
+                                                }
+                                            } finally {
+                                                if (result.getFinallyReleasingCallback() != null) {
+                                                    result.getFinallyReleasingCallback().run();
+                                                }
+                                            }
+                                        });
+                                    } catch (Throwable e) {
+                                        try {
+                                            final String format = "Process request completed OK while failed to " +
+                                                    "write response. Request: {}, Response: {}";
+                                            log.error(format, cmd.toString(), result.toString(), e);
+                                        } finally {
+                                            if (result.getFinallyReleasingCallback() != null) {
+                                                result.getFinallyReleasingCallback().run();
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+                        };
+                        if (pair.getObject1() instanceof AsyncNettyRequestProcessor) {
+                            AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor) pair.getObject1();
+                            processor.asyncProcessRequest(ctx, cmd, callback).thenAccept(writeResponseAction);
+                        } else {
+                            NettyRequestProcessor processor = pair.getObject1();
+                            RemotingCommand response = processor.processRequest(ctx, cmd);
+                            callback.callback(response).thenAccept(writeResponseAction);
                         }
                     } catch (Throwable e) {
                         log.error("process request exception", e);
                         log.error(cmd.toString());
 
                         if (!cmd.isOnewayRPC()) {
-                            response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                                RemotingHelper.exceptionSimpleDesc(e));
+                            final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                                    RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(opaque);
                             ctx.writeAndFlush(response);
                         }
@@ -262,7 +371,7 @@ public abstract class NettyRemotingAbstract {
             }
 
             try {
-                final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                final RequestTask requestTask = new RequestTask(run, cmd, new WrappedChannel(ctx.channel()));
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
                 if ((System.currentTimeMillis() % 10000) == 0) {

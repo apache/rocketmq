@@ -57,7 +57,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -90,8 +89,6 @@ public class AckMessageProcessorTest {
         when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
-        Channel mockChannel = mock(Channel.class);
-        when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(

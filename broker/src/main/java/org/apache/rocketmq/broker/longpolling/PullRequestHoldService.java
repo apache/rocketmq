@@ -129,6 +129,9 @@ public class PullRequestHoldService extends ServiceThread {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();
 
                 for (PullRequest request : requestList) {
+                    if (request.getFuture() != null && request.getFuture().isDone()) {
+                        continue;
+                    }
                     long newestOffset = maxOffset;
                     if (newestOffset <= request.getPullFromThisOffset()) {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
@@ -144,8 +147,8 @@ public class PullRequestHoldService extends ServiceThread {
 
                         if (match) {
                             try {
-                                this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                                    request.getRequestCommand());
+                                this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(
+                                    request.getRequestCommand(), request.getFuture(), request.getWrappedCtx());
                             } catch (Throwable e) {
                                 log.error(
                                     "PullRequestHoldService#notifyMessageArriving: failed to execute request when "
@@ -157,8 +160,8 @@ public class PullRequestHoldService extends ServiceThread {
 
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
-                            this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                                request.getRequestCommand());
+                            this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(
+                                request.getRequestCommand(), request.getFuture(), request.getWrappedCtx());
                         } catch (Throwable e) {
                             log.error(
                                 "PullRequestHoldService#notifyMessageArriving: failed to execute request when time's "
@@ -184,9 +187,9 @@ public class PullRequestHoldService extends ServiceThread {
             }
             for (PullRequest request : mpr.cloneListAndClear()) {
                 try {
-                    log.info("notify master online, wakeup {} {}", request.getClientChannel(), request.getRequestCommand());
-                    this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                        request.getRequestCommand());
+                    log.info("notify master online, wakeup {} {}", request.getWrappedCtx().channelInfo(), request.getRequestCommand());
+                    this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(
+                            request.getRequestCommand(), request.getFuture(), request.getWrappedCtx());
                 } catch (Throwable e) {
                     log.error("execute request when master online failed.", e);
                 }

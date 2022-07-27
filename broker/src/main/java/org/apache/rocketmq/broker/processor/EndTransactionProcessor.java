@@ -30,9 +30,9 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -52,6 +52,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws
         RemotingCommandException {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return processRequest(request, wrappedCtx);
+    }
+
+    private RemotingCommand processRequest(RemotingCommand request,
+        WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
             (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
@@ -67,7 +73,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
                     LOGGER.warn("Check producer[{}] transaction state, but it's pending status."
                             + "RequestHeader: {} Remark: {}",
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        wrappedCtx.channelRemoteAddr(),
                         requestHeader.toString(),
                         request.getRemark());
                     return null;
@@ -76,7 +82,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE: {
                     LOGGER.warn("Check producer[{}] transaction state, the producer commit the message."
                             + "RequestHeader: {} Remark: {}",
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        wrappedCtx.channelRemoteAddr(),
                         requestHeader.toString(),
                         request.getRemark());
 
@@ -86,7 +92,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: {
                     LOGGER.warn("Check producer[{}] transaction state, the producer rollback the message."
                             + "RequestHeader: {} Remark: {}",
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        wrappedCtx.channelRemoteAddr(),
                         requestHeader.toString(),
                         request.getRemark());
                     break;
@@ -99,7 +105,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
                     LOGGER.warn("The producer[{}] end transaction in sending message,  and it's pending status."
                             + "RequestHeader: {} Remark: {}",
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        wrappedCtx.channelRemoteAddr(),
                         requestHeader.toString(),
                         request.getRemark());
                     return null;
@@ -112,7 +118,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: {
                     LOGGER.warn("The producer[{}] end transaction in sending message, rollback the message."
                             + "RequestHeader: {} Remark: {}",
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        wrappedCtx.channelRemoteAddr(),
                         requestHeader.toString(),
                         request.getRemark());
                     break;

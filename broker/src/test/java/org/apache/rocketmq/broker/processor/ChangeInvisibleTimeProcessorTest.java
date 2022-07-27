@@ -85,8 +85,6 @@ public class ChangeInvisibleTimeProcessorTest {
         ScheduleMessageService scheduleMessageService = new ScheduleMessageService(brokerController);
         scheduleMessageService.parseDelayLevel();
         when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
-        Channel mockChannel = mock(Channel.class);
-        when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         ConsumerData consumerData = createConsumerData(group, topic);
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);

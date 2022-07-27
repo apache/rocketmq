@@ -43,6 +43,7 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Maps;
 import org.junit.Before;
@@ -557,7 +558,7 @@ public class RequestProcessorTest {
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
         RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
-            null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            null, topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
 
     }
 }

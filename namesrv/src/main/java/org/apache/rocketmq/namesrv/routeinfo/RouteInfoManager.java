@@ -58,11 +58,11 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RouteInfoManager {
@@ -216,8 +216,8 @@ public class RouteInfoManager {
         final Long timeoutMillis,
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final List<String> filterServerList,
-        final Channel channel) {
-        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
+        final WrappedChannel wrappedChannel) {
+        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, timeoutMillis, false, topicConfigWrapper, filterServerList, wrappedChannel);
     }
 
     public RegisterBrokerResult registerBroker(
@@ -230,7 +230,7 @@ public class RouteInfoManager {
         final Boolean enableActingMaster,
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final List<String> filterServerList,
-        final Channel channel) {
+        final WrappedChannel wrappedChannel) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
@@ -333,8 +333,8 @@ public class RouteInfoManager {
                         System.currentTimeMillis(),
                         timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
                         topicConfigWrapper == null ? new DataVersion() : topicConfigWrapper.getDataVersion(),
-                        channel,
-                        haServerAddr));
+                        haServerAddr,
+                        wrappedChannel));
                 if (null == prevBrokerLiveInfo) {
                     log.info("new broker registered, {} HAService: {}", brokerAddrInfo, haServerAddr);
                 }
@@ -773,7 +773,7 @@ public class RouteInfoManager {
                 long last = next.getValue().getLastUpdateTimestamp();
                 long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis();
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
-                    RemotingUtil.closeChannel(next.getValue().getChannel());
+                    next.getValue().getWrappedChannel().closeChannel();
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
                     this.onChannelDestroy(next.getKey());
                 }
@@ -815,7 +815,7 @@ public class RouteInfoManager {
                 try {
                     this.lock.readLock().lockInterruptibly();
                     for (Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
-                        if (entry.getValue().getChannel() == channel) {
+                        if (entry.getValue().getWrappedChannel().isSameChannel(channel)) {
                             brokerAddrFound = entry.getKey();
                             break;
                         }
@@ -1112,17 +1112,17 @@ class BrokerLiveInfo {
     private long lastUpdateTimestamp;
     private long heartbeatTimeoutMillis;
     private DataVersion dataVersion;
-    private Channel channel;
     private String haServerAddr;
+    // alternative to channel
+    private final WrappedChannel wrappedChannel;
 
     public BrokerLiveInfo(long lastUpdateTimestamp, long heartbeatTimeoutMillis, DataVersion dataVersion,
-        Channel channel,
-        String haServerAddr) {
+        String haServerAddr, WrappedChannel wrappedChannel) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
         this.dataVersion = dataVersion;
-        this.channel = channel;
         this.haServerAddr = haServerAddr;
+        this.wrappedChannel = wrappedChannel;
     }
 
     public long getLastUpdateTimestamp() {
@@ -1149,14 +1149,6 @@ class BrokerLiveInfo {
         this.dataVersion = dataVersion;
     }
 
-    public Channel getChannel() {
-        return channel;
-    }
-
-    public void setChannel(Channel channel) {
-        this.channel = channel;
-    }
-
     public String getHaServerAddr() {
         return haServerAddr;
     }
@@ -1165,10 +1157,14 @@ class BrokerLiveInfo {
         this.haServerAddr = haServerAddr;
     }
 
+    public WrappedChannel getWrappedChannel() {
+        return wrappedChannel;
+    }
+
     @Override
     public String toString() {
         return "BrokerLiveInfo [lastUpdateTimestamp=" + lastUpdateTimestamp + ", dataVersion=" + dataVersion
-            + ", channel=" + channel + ", haServerAddr=" + haServerAddr + "]";
+            + ", channel=" + this.wrappedChannel.info() + ", haServerAddr=" + haServerAddr + "]";
     }
 }
 

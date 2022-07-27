@@ -17,9 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.ArrayList;
@@ -42,10 +39,10 @@ import org.apache.rocketmq.common.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NotificationProcessor implements NettyRequestProcessor {
@@ -110,7 +107,8 @@ public class NotificationProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        return this.processRequest(ctx.channel(), request);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return this.processRequest(request, wrappedCtx);
     }
 
     @Override
@@ -144,26 +142,23 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (request == null || !request.complete()) {
             return;
         }
-        if (!request.getChannel().isActive()) {
-            return;
+        if (!request.getWrappedCtx().isChannelActive()) {
+            return ;
         }
         Runnable run = new Runnable() {
             @Override
             public void run() {
-                final RemotingCommand response = NotificationProcessor.this.responseNotification(request.getChannel(), hasMsg);
+                final RemotingCommand response = NotificationProcessor.this.responseNotification(hasMsg);
 
                 if (response != null) {
                     response.setOpaque(request.getRemotingCommand().getOpaque());
                     response.markResponseType();
                     try {
-                        request.getChannel().writeAndFlush(response).addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                if (!future.isSuccess()) {
-                                    POP_LOGGER.error("ProcessRequestWrapper response to {} failed", future.channel().remoteAddress(), future.cause());
-                                    POP_LOGGER.error(request.toString());
-                                    POP_LOGGER.error(response.toString());
-                                }
+                        request.getWrappedCtx().response(response, future -> {
+                            if (!future.isSuccess()) {
+                                POP_LOGGER.error("ProcessRequestWrapper response to {} failed", future.channel().remoteAddress(), future.cause());
+                                POP_LOGGER.error(request.toString());
+                                POP_LOGGER.error(response.toString());
                             }
                         });
                     } catch (Throwable e) {
@@ -174,10 +169,10 @@ public class NotificationProcessor implements NettyRequestProcessor {
                 }
             }
         };
-        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
+        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getRemotingCommand(), request.getWrappedCtx().getWrappedChannel()));
     }
 
-    public RemotingCommand responseNotification(final Channel channel, boolean hasMsg) {
+    public RemotingCommand responseNotification(boolean hasMsg) {
         RemotingCommand response = RemotingCommand.createResponseCommand(NotificationResponseHeader.class);
         final NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.readCustomHeader();
         responseHeader.setHasMsg(hasMsg);
@@ -185,7 +180,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request)
+    private RemotingCommand processRequest(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(NotificationResponseHeader.class);
         final NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.readCustomHeader();
@@ -202,7 +197,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
+            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), wrappedCtx.channelRemoteAddr());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
             return response;
@@ -216,7 +211,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
-                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
+                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), wrappedCtx.remoteAddress());
             POP_LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
@@ -261,7 +256,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
 
         if (!hasMsg) {
-            if (polling(channel, request, requestHeader)) {
+            if (polling(request, requestHeader, wrappedCtx)) {
                 return null;
             }
         }
@@ -291,14 +286,15 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
     }
 
-    private boolean polling(final Channel channel, RemotingCommand remotingCommand,
-        final NotificationRequestHeader requestHeader) {
+    private boolean polling(RemotingCommand remotingCommand,
+        final NotificationRequestHeader requestHeader,
+        final WrappedChannelHandlerContext wrappedCtx) {
         if (requestHeader.getPollTime() <= 0) {
             return false;
         }
 
         long expired = requestHeader.getBornTime() + requestHeader.getPollTime();
-        final NotificationRequest request = new NotificationRequest(remotingCommand, channel, expired);
+        final NotificationRequest request = new NotificationRequest(remotingCommand, expired, wrappedCtx);
         boolean result = false;
         if (!request.isTimeout()) {
             String key = KeyBuilder.buildPollingNotificationKey(requestHeader.getTopic(), requestHeader.getQueueId());

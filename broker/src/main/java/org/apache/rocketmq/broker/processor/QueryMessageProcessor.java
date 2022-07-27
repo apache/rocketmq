@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import org.apache.rocketmq.broker.BrokerController;
@@ -34,6 +32,7 @@ import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -49,11 +48,12 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         switch (request.getCode()) {
             case RequestCode.QUERY_MESSAGE:
-                return this.queryMessage(ctx, request);
+                return this.queryMessage(request, wrappedCtx);
             case RequestCode.VIEW_MESSAGE_BY_ID:
-                return this.viewMessageById(ctx, request);
+                return this.viewMessageById(request, wrappedCtx);
             default:
                 break;
         }
@@ -66,7 +66,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
+    public RemotingCommand queryMessage(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
@@ -98,31 +98,23 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
             try {
                 FileRegion fileRegion =
-                    new QueryMessageTransfer(response.encodeHeader(queryMessageResult
-                        .getBufferTotalSize()), queryMessageResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        queryMessageResult.release();
-                        if (!future.isSuccess()) {
-                            LOGGER.error("transfer query message by page cache failed, ", future.cause());
-                        }
-                    }
-                });
+                    new QueryMessageTransfer(response.encodeHeader(queryMessageResult.getBufferTotalSize()), queryMessageResult);
+                Runnable releasingCallback = queryMessageResult::release;
+                response.setFileRegionAttachment(fileRegion);
+                response.setFinallyReleasingCallback(releasingCallback);
             } catch (Throwable e) {
-                LOGGER.error("", e);
+                LOGGER.error("gathering many-message-transfer exception", e);
                 queryMessageResult.release();
             }
-
-            return null;
+        } else {
+            response.setCode(ResponseCode.QUERY_NOT_FOUND);
+            response.setRemark("can not find message, maybe time range not correct");
         }
 
-        response.setCode(ResponseCode.QUERY_NOT_FOUND);
-        response.setRemark("can not find message, maybe time range not correct");
         return response;
     }
 
-    public RemotingCommand viewMessageById(ChannelHandlerContext ctx, RemotingCommand request)
+    public RemotingCommand viewMessageById(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ViewMessageRequestHeader requestHeader =
@@ -138,23 +130,14 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
             try {
                 FileRegion fileRegion =
-                    new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()),
-                        selectMappedBufferResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        selectMappedBufferResult.release();
-                        if (!future.isSuccess()) {
-                            LOGGER.error("Transfer one message from page cache failed, ", future.cause());
-                        }
-                    }
-                });
+                    new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()), selectMappedBufferResult);
+                Runnable releasingCallback = selectMappedBufferResult::release;
+                response.setFileRegionAttachment(fileRegion);
+                response.setFinallyReleasingCallback(releasingCallback);
             } catch (Throwable e) {
-                LOGGER.error("", e);
+                LOGGER.error("gathering many-message-transfer exception", e);
                 selectMappedBufferResult.release();
             }
-
-            return null;
         } else {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("can not find message by the offset, " + requestHeader.getOffset());

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.ConcurrentSkipListSet;
 import org.apache.rocketmq.broker.BrokerController;
@@ -32,9 +31,9 @@ import org.apache.rocketmq.common.protocol.header.PollingInfoResponseHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PollingInfoProcessor implements NettyRequestProcessor {
@@ -48,7 +47,8 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return this.processRequest(request, wrappedCtx);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request)
+    private RemotingCommand processRequest(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PollingInfoResponseHeader.class);
         final PollingInfoResponseHeader responseHeader = (PollingInfoResponseHeader) response.readCustomHeader();
@@ -73,7 +73,7 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
+            POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), wrappedCtx.channelRemoteAddr());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
             return response;
@@ -87,7 +87,7 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
-                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
+                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), wrappedCtx.remoteAddress());
             POP_LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);

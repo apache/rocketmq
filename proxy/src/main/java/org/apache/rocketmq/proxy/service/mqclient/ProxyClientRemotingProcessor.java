@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
@@ -41,15 +42,15 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         if (request.getCode() == RequestCode.CHECK_TRANSACTION_STATE) {
-            return this.checkTransactionState(ctx, request);
+            return this.checkTransactionState(request, wrappedCtx);
         }
         return null;
     }
 
     @Override
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand checkTransactionState(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer, true, false, false);
         if (messageExt != null) {
@@ -58,7 +59,7 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
                 CheckTransactionStateRequestHeader requestHeader =
                     (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                 request.writeCustomHeader(requestHeader);
-                request.addExtField(ProxyUtils.BROKER_ADDR, RemotingUtil.socketAddress2String(ctx.channel().remoteAddress()));
+                request.addExtField(ProxyUtils.BROKER_ADDR, RemotingUtil.socketAddress2String(wrappedCtx.remoteAddress()));
                 this.producerManager.getAvailableChannel(group).writeAndFlush(request);
             }
         }

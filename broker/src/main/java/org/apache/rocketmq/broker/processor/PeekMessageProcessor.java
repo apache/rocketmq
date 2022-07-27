@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 
@@ -40,9 +37,9 @@ import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -60,7 +57,8 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request, true);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return this.processRequest(request, true, wrappedCtx);
     }
 
     @Override
@@ -68,7 +66,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
+    private RemotingCommand processRequest(RemotingCommand request, boolean brokerAllowSuspend, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
@@ -85,7 +83,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            LOG.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
+            LOG.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), wrappedCtx.channelRemoteAddr());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
             return response;
@@ -99,7 +97,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
-                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
+                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), wrappedCtx.remoteAddress());
             LOG.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
@@ -129,7 +127,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                    restNum = peekMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime);
+                    restNum = peekMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, popTime);
                 }
             }
         }
@@ -137,11 +135,11 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
             // read all queue
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
-                restNum = peekMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime);
+                restNum = peekMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, popTime);
             }
         } else {
             int queueId = requestHeader.getQueueId();
-            restNum = peekMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime);
+            restNum = peekMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, popTime);
         }
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums()) {
@@ -149,7 +147,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                    restNum = peekMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime);
+                    restNum = peekMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, popTime);
                 }
             }
         }
@@ -181,25 +179,16 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                         (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                     response.setBody(r);
                 } else {
-                    final GetMessageResult tmpGetMessageResult = getMessageResult;
                     try {
                         FileRegion fileRegion =
                             new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
-                        channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                tmpGetMessageResult.release();
-                                if (!future.isSuccess()) {
-                                    LOG.error("Fail to transfer messages from page cache to {}", channel.remoteAddress(), future.cause());
-                                }
-                            }
-                        });
+                        Runnable releasingCallback = getMessageResult::release;
+                        response.setFileRegionAttachment(fileRegion);
+                        response.setFinallyReleasingCallback(releasingCallback);
                     } catch (Throwable e) {
-                        LOG.error("Error occurred when transferring messages from page cache", e);
+                        LOG.error("gathering many-message-transfer exception", e);
                         getMessageResult.release();
                     }
-
-                    response = null;
                 }
                 break;
             default:
@@ -209,8 +198,8 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
     }
 
     private long peekMsgFromQueue(boolean isRetry, GetMessageResult getMessageResult,
-        PeekMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid, Channel channel,
-        long popTime) {
+                                  PeekMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
+                                  long popTime) {
         String topic = isRetry ? KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()) : requestHeader.getTopic();
         GetMessageResult getMessageTmpResult;
         long offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId);

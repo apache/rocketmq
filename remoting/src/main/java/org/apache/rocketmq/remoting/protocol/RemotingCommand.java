@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.buffer.ByteBuf;
@@ -90,6 +91,17 @@ public class RemotingCommand {
 
     private transient byte[] body;
 
+    // use some sort of @JsonIgnore?
+    // zero-copy attachment
+    private transient Object fileRegionAttachment;
+
+    // async response future
+    private transient CompletableFuture<RemotingCommand> asyncFuture;
+    // async response common callback
+    private transient Runnable callback;
+    // async response special callback, and it’s USED ONLY FOR releasing reference-counted resources.
+    private transient Runnable finallyReleasingCallback;
+
     protected RemotingCommand() {
     }
 
@@ -108,6 +120,12 @@ public class RemotingCommand {
         cmd.customHeader = customHeader;
         setCmdVersion(cmd);
         return cmd;
+    }
+
+    public void setHeader(int code, CommandCustomHeader customHeader) {
+        this.setCode(code);
+        this.customHeader = customHeader;
+        setCmdVersion(this);
     }
 
     protected static void setCmdVersion(RemotingCommand cmd) {
@@ -175,11 +193,19 @@ public class RemotingCommand {
     }
 
     public static RemotingCommand decode(final ByteBuffer byteBuffer) throws RemotingCommandException {
-        return decode(Unpooled.wrappedBuffer(byteBuffer));
+        int length = byteBuffer.remaining();
+        return decode(Unpooled.wrappedBuffer(byteBuffer), length);
     }
 
     public static RemotingCommand decode(final ByteBuf byteBuffer) throws RemotingCommandException {
         int length = byteBuffer.readableBytes();
+        return decode(byteBuffer, length);
+    }
+
+    /**
+     * This method will take in a buffer with 4 bytes stripped.
+     */
+    private static RemotingCommand decode(final ByteBuf byteBuffer, final int length) throws RemotingCommandException {
         int oriHeaderLen = byteBuffer.readInt();
         int headerLength = getHeaderLength(oriHeaderLen);
         if (headerLength > length - 4) {
@@ -599,6 +625,38 @@ public class RemotingCommand {
             extFields = new HashMap<String, String>();
         }
         extFields.put(key, value);
+    }
+
+    public CompletableFuture<RemotingCommand> getAsyncFuture() {
+        return asyncFuture;
+    }
+
+    public void setAsyncFuture(CompletableFuture<RemotingCommand> asyncFuture) {
+        this.asyncFuture = asyncFuture;
+    }
+
+    public Object getFileRegionAttachment() {
+        return fileRegionAttachment;
+    }
+
+    public void setFileRegionAttachment(Object fileRegionAttachment) {
+        this.fileRegionAttachment = fileRegionAttachment;
+    }
+
+    public Runnable getCallback() {
+        return callback;
+    }
+
+    public void setCallback(Runnable callback) {
+        this.callback = callback;
+    }
+
+    public Runnable getFinallyReleasingCallback() {
+        return finallyReleasingCallback;
+    }
+
+    public void setFinallyReleasingCallback(Runnable finallyReleasingCallback) {
+        this.finallyReleasingCallback = finallyReleasingCallback;
     }
 
     @Override

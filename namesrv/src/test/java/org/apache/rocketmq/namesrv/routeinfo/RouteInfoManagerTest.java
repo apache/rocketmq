@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -95,7 +96,7 @@ public class RouteInfoManagerTest {
             topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
             Channel channel = mock(Channel.class);
             RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster-1", "127.0.0.1:10911", "default-broker-1", 1234, "127.0.0.1:1001",
-                    null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                    null, topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
             assertThat(registerBrokerResult).isNotNull();
 
             DataVersion dataVersion0 = routeInfoManager.queryBrokerTopicConfig("default-cluster", "127.0.0.1:10911");
@@ -140,7 +141,7 @@ public class RouteInfoManagerTest {
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
         RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
-                null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                null, topicConfigSerializeWrapper, new ArrayList<String>(), new WrappedChannel(channel));
         assertThat(registerBrokerResult).isNotNull();
     }
 

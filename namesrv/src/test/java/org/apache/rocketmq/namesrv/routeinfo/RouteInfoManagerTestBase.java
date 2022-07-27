@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -152,7 +153,8 @@ public class RouteInfoManagerTestBase {
                 null,
                 topicConfigSerializeWrapper,
                 filterServerAddr,
-                channel);
+                new WrappedChannel(channel)
+        );
     }
 
 

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 
 public interface BrokerHeartbeatManager {
 
@@ -49,7 +50,7 @@ public interface BrokerHeartbeatManager {
      * Register new broker to heartManager.
      */
     void registerBroker(final String clusterName, final String brokerName, final String brokerAddr, final long brokerId,
-        final Long timeoutMillis, final Channel channel);
+                        final Long timeoutMillis, WrappedChannel wrappedChannel);
 
     /**
      * Broker channel close

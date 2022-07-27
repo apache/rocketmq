@@ -20,27 +20,22 @@ import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-import io.netty.channel.Channel;
 
 public class PopRequest {
     private static final AtomicLong COUNTER = new AtomicLong(Long.MIN_VALUE);
 
     private RemotingCommand remotingCommand;
-    private Channel channel;
     private long expired;
+    private final WrappedChannelHandlerContext wrappedCtx;
     private AtomicBoolean complete = new AtomicBoolean(false);
     private final long op = COUNTER.getAndIncrement();
 
-    public PopRequest(RemotingCommand remotingCommand, Channel channel, long expired) {
-        this.channel = channel;
+    public PopRequest(RemotingCommand remotingCommand, long expired, WrappedChannelHandlerContext wrappedCtx) {
         this.remotingCommand = remotingCommand;
         this.expired = expired;
-    }
-
-    public Channel getChannel() {
-        return channel;
+        this.wrappedCtx = wrappedCtx;
     }
 
     public RemotingCommand getRemotingCommand() {
@@ -59,11 +54,15 @@ public class PopRequest {
         return expired;
     }
 
+    public WrappedChannelHandlerContext getWrappedCtx() {
+        return wrappedCtx;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("PopRequest{");
         sb.append("cmd=").append(remotingCommand);
-        sb.append(", channel=").append(channel);
+        sb.append(", channel=").append(this.getWrappedCtx().channelInfo());
         sb.append(", expired=").append(expired);
         sb.append(", complete=").append(complete);
         sb.append(", op=").append(op);

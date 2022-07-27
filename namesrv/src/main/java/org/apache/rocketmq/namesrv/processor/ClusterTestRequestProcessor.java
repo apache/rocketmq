@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv.processor;
 
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -28,6 +27,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHea
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -50,8 +50,7 @@ public class ClusterTestRequestProcessor extends ClientRequestProcessor {
     }
 
     @Override
-    public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand getRouteInfoByTopic(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);

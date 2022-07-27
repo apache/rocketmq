@@ -201,6 +201,7 @@ public class BrokerController {
     protected final BlockingQueue<Runnable> ackThreadPoolQueue;
     protected final BlockingQueue<Runnable> pullThreadPoolQueue;
     protected final BlockingQueue<Runnable> litePullThreadPoolQueue;
+    protected final BlockingQueue<Runnable> longPollingThreadPoolQueue;
     protected final BlockingQueue<Runnable> replyThreadPoolQueue;
     protected final BlockingQueue<Runnable> queryThreadPoolQueue;
     protected final BlockingQueue<Runnable> clientManagerThreadPoolQueue;
@@ -222,6 +223,7 @@ public class BrokerController {
     protected ExecutorService sendMessageExecutor;
     protected ExecutorService pullMessageExecutor;
     protected ExecutorService litePullMessageExecutor;
+    protected ExecutorService longPollingExecutor;
     protected ExecutorService putMessageFutureExecutor;
     protected ExecutorService ackMessageExecutor;
     protected ExecutorService replyMessageExecutor;
@@ -331,6 +333,7 @@ public class BrokerController {
         this.putThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPutThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
         this.litePullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getLitePullThreadPoolQueueCapacity());
+        this.longPollingThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 
         this.ackThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getAckThreadPoolQueueCapacity());
         this.replyThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getReplyThreadPoolQueueCapacity());
@@ -406,6 +409,10 @@ public class BrokerController {
         return pullThreadPoolQueue;
     }
 
+    public BlockingQueue<Runnable> getLongPollingThreadPoolQueue() {
+        return longPollingThreadPoolQueue;
+    }
+
     public BlockingQueue<Runnable> getQueryThreadPoolQueue() {
         return queryThreadPoolQueue;
     }
@@ -447,6 +454,14 @@ public class BrokerController {
             TimeUnit.MILLISECONDS,
             this.litePullThreadPoolQueue,
             new ThreadFactoryImpl("LitePullMessageThread_", getBrokerIdentity()));
+
+        this.longPollingExecutor = new BrokerFixedThreadPoolExecutor(
+            this.brokerConfig.getPullMessageThreadPoolNums(),
+            this.brokerConfig.getPullMessageThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            this.longPollingThreadPoolQueue,
+            new ThreadFactoryImpl("LongPollingThread_"));
 
         this.putMessageFutureExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getPutMessageFutureThreadPoolNums(),
@@ -1990,6 +2005,14 @@ public class BrokerController {
 
     public void setPullMessageExecutor(ExecutorService pullMessageExecutor) {
         this.pullMessageExecutor = pullMessageExecutor;
+    }
+
+    public ExecutorService getLongPollingExecutor() {
+        return longPollingExecutor;
+    }
+
+    public void setLongPollingExecutor(ExecutorService longPollingExecutor) {
+        this.longPollingExecutor = longPollingExecutor;
     }
 
     public BlockingQueue<Runnable> getSendThreadPoolQueue() {

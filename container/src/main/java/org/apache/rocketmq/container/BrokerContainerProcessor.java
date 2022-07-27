@@ -35,9 +35,9 @@ import org.apache.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
@@ -52,15 +52,16 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         switch (request.getCode()) {
             case RequestCode.ADD_BROKER:
-                return this.addBroker(ctx, request);
+                return this.addBroker(request, wrappedCtx);
             case RequestCode.REMOVE_BROKER:
-                return this.removeBroker(ctx, request);
+                return this.removeBroker(request, wrappedCtx);
             case RequestCode.GET_BROKER_CONFIG:
-                return this.getBrokerConfig(ctx, request);
+                return this.getBrokerConfig(request, wrappedCtx);
             case RequestCode.UPDATE_BROKER_CONFIG:
-                return this.updateBrokerConfig(ctx, request);
+                return this.updateBrokerConfig(request, wrappedCtx);
             default:
                 break;
         }
@@ -71,12 +72,11 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+    private synchronized RemotingCommand addBroker(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final AddBrokerRequestHeader requestHeader = (AddBrokerRequestHeader) request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
 
-        LOGGER.info("addBroker called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        LOGGER.info("addBroker called by {}", wrappedCtx.channelRemoteAddr());
 
         Properties brokerProperties = null;
         String configPath = requestHeader.getConfigPath();
@@ -191,12 +191,11 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private synchronized RemotingCommand removeBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private synchronized RemotingCommand removeBroker(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final RemoveBrokerRequestHeader requestHeader = (RemoveBrokerRequestHeader) request.decodeCommandCustomHeader(RemoveBrokerRequestHeader.class);
 
-        LOGGER.info("removeBroker called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        LOGGER.info("removeBroker called by {}", wrappedCtx.channelRemoteAddr());
 
         BrokerIdentity brokerIdentity = new BrokerIdentity(requestHeader.getBrokerClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerId());
 
@@ -223,10 +222,10 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         this.brokerBootHookList = brokerBootHookList;
     }
 
-    private RemotingCommand updateBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand updateBrokerConfig(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        LOGGER.info("updateSharedBrokerConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        LOGGER.info("updateSharedBrokerConfig called by {}", wrappedCtx.channelRemoteAddr());
 
         byte[] body = request.getBody();
         if (body != null) {
@@ -234,7 +233,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
-                    LOGGER.info("updateSharedBrokerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
+                    LOGGER.info("updateSharedBrokerConfig, new config: [{}] client: {} ", properties, wrappedCtx.remoteAddress());
                     this.brokerContainer.getConfiguration().update(properties);
                 } else {
                     LOGGER.error("string2Properties error");
@@ -255,7 +254,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getBrokerConfig(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();

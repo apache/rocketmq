@@ -17,10 +17,9 @@
 package org.apache.rocketmq.broker.processor;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -58,10 +57,11 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -71,7 +71,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
-public class PullMessageProcessor implements NettyRequestProcessor {
+public class PullMessageProcessor extends AsyncNettyRequestProcessor {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private List<ConsumeMessageHook> consumeMessageHookList;
     private PullMessageResultHandler pullMessageResultHandler;
@@ -276,26 +276,60 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     }
 
     @Override
+    public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
+        return asyncProcessRequest(ctx, request).thenCompose(responseCallback::callback);
+    }
+
+    @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request, true);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return syncPullMessage(request, wrappedCtx);
+    }
+
+    public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final PullMessageRequestHeader header =
+                (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+
+        if (!wrappedCtx.channelIsWritable(this.brokerController.getBrokerConfig().isNetWorkFlowController())) {
+            LOGGER.warn("channel {} not writable ,cid {}", wrappedCtx.remoteAddress(), header.getConsumerGroup());
+            // rate limit. Should we return dedicated code for rate limit?
+            return CompletableFuture.completedFuture(null);
+        }
+        return asyncPullMessage(request, header, true, wrappedCtx);
     }
 
     @Override
     public boolean rejectRequest() {
-        if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()
-            && this.brokerController.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-            return true;
-        }
-        return false;
+        return !this.brokerController.getBrokerConfig().isSlaveReadEnable()
+                && this.brokerController.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
-        throws RemotingCommandException {
+    public RemotingCommand syncPullMessage(
+        RemotingCommand request,
+        WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
+        RemotingCommand response = null;
+        try {
+            final PullMessageRequestHeader header =
+                    (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+            CompletableFuture<RemotingCommand> future = asyncPullMessage(request, header, false, wrappedCtx);
+            assert future.isDone();
+            response = future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("process PullMessage error, request : " + request, e);
+        }
+        return response;
+    }
+
+    public CompletableFuture<RemotingCommand> asyncPullMessage(
+        final RemotingCommand request,
+        final PullMessageRequestHeader requestHeader,
+        final boolean brokerAllowSuspend,
+        final WrappedChannelHandlerContext wrappedCtx) {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
-        final PullMessageRequestHeader requestHeader =
-            (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
 
@@ -304,14 +338,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark(String.format("the broker[%s] pulling message is forbidden", this.brokerController.getBrokerConfig().getBrokerIP1()));
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         if (request.getCode() == RequestCode.LITE_PULL_MESSAGE && !this.brokerController.getBrokerConfig().isLitePullMessageEnable()) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark(
                 "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] for lite pull consumer is forbidden");
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         SubscriptionGroupConfig subscriptionGroupConfig =
@@ -319,14 +353,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (null == subscriptionGroupConfig) {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark(String.format("subscription group [%s] does not exist, %s", requestHeader.getConsumerGroup(), FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST)));
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         if (!subscriptionGroupConfig.isConsumeEnable()) {
             response.setCode(ResponseCode.NO_PERMISSION);
             responseHeader.setForbiddenType(ForbiddenType.GROUP_FORBIDDEN);
             response.setRemark("subscription group no permission, " + requestHeader.getConsumerGroup());
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         final boolean hasCommitOffsetFlag = PullSysFlag.hasCommitOffsetFlag(requestHeader.getSysFlag());
@@ -334,17 +368,17 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            LOGGER.error("the topic {} not exist, consumer: {}", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
+            LOGGER.error("the topic {} not exist, consumer: {}", requestHeader.getTopic(), wrappedCtx.channelRemoteAddr());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         if (!PermName.isReadable(topicConfig.getPerm())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             responseHeader.setForbiddenType(ForbiddenType.TOPIC_FORBIDDEN);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] pulling message is forbidden");
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
@@ -352,20 +386,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         {
             RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
             if (rewriteResult != null) {
-                return rewriteResult;
+                return CompletableFuture.completedFuture(rewriteResult);
             }
         }
 
         if (requestHeader.getQueueId() < 0 || requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
-                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
+                requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), wrappedCtx.remoteAddress());
             LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
-        SubscriptionData subscriptionData = null;
+        SubscriptionData subscriptionData;
         ConsumerFilterData consumerFilterData = null;
         if (hasSubscriptionFlag) {
             try {
@@ -384,7 +418,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark("parse the consumer's subscription failed");
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
         } else {
             ConsumerGroupInfo consumerGroupInfo =
@@ -393,7 +427,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 LOGGER.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
                 response.setRemark("the consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
 
             if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
@@ -401,7 +435,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 responseHeader.setForbiddenType(ForbiddenType.BROADCASTING_DISABLE_FORBIDDEN);
                 response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
 
             boolean readForbidden = this.brokerController.getSubscriptionGroupManager().getForbidden(//
@@ -410,7 +444,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 responseHeader.setForbiddenType(ForbiddenType.SUBSCRIPTION_FORBIDDEN);
                 response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] is forbidden for topic[" + requestHeader.getTopic() + "]");
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
 
             subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
@@ -418,7 +452,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 LOGGER.warn("the consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
                 response.setRemark("the consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
 
             if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
@@ -426,7 +460,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     subscriptionData.getSubString());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_LATEST);
                 response.setRemark("the consumer's subscription not latest");
-                return response;
+                return CompletableFuture.completedFuture(response);
             }
             if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                 consumerFilterData = this.brokerController.getConsumerFilterManager().get(requestHeader.getTopic(),
@@ -434,14 +468,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 if (consumerFilterData == null) {
                     response.setCode(ResponseCode.FILTER_DATA_NOT_EXIST);
                     response.setRemark("The broker's consumer filter data is not exist!Your expression may be wrong!");
-                    return response;
+                    return CompletableFuture.completedFuture(response);
                 }
                 if (consumerFilterData.getClientVersion() < requestHeader.getSubVersion()) {
                     LOGGER.warn("The broker's consumer filter data is not latest, group: {}, topic: {}, serverV: {}, clientV: {}",
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(), consumerFilterData.getClientVersion(), requestHeader.getSubVersion());
                     response.setCode(ResponseCode.FILTER_DATA_NOT_LATEST);
                     response.setRemark("the consumer's consumer filter data not latest");
-                    return response;
+                    return CompletableFuture.completedFuture(response);
                 }
             }
         }
@@ -450,7 +484,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             && !this.brokerController.getBrokerConfig().isEnablePropertyFilter()) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The broker does not support consumer to filter message by " + subscriptionData.getExpressionType());
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         MessageFilter messageFilter;
@@ -507,7 +541,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                     // XXX: warn and notify me
                     LOGGER.info("the request offset: {} over flow badly, fix to {}, broker max offset: {}, consumer: {}",
-                        requestHeader.getQueueOffset(), getMessageResult.getNextBeginOffset(), getMessageResult.getMaxOffset(), channel.remoteAddress());
+                        requestHeader.getQueueOffset(), getMessageResult.getNextBeginOffset(), getMessageResult.getMaxOffset(), wrappedCtx.remoteAddress());
                     break;
                 case OFFSET_OVERFLOW_ONE:
                     response.setCode(ResponseCode.PULL_NOT_FOUND);
@@ -516,7 +550,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                     LOGGER.info("the request offset too small. group={}, topic={}, requestOffset={}, brokerMinOffset={}, clientIp={}",
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueOffset(),
-                        getMessageResult.getMinOffset(), channel.remoteAddress());
+                        getMessageResult.getMinOffset(), wrappedCtx.remoteAddress());
                     break;
                 default:
                     assert false;
@@ -618,7 +652,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 } catch (AbortProcessException e) {
                     response.setCode(e.getResponseCode());
                     response.setRemark(e.getErrorMessage());
-                    return response;
+                    return CompletableFuture.completedFuture(response);
                 }
             }
 
@@ -632,12 +666,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 getMessageResult,
                 request,
                 requestHeader,
-                channel,
                 subscriptionData,
                 subscriptionGroupConfig,
                 brokerAllowSuspend,
                 messageFilter,
-                response
+                response,
+                wrappedCtx
             );
         } else {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -647,10 +681,16 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         boolean storeOffsetEnable = brokerAllowSuspend;
         storeOffsetEnable = storeOffsetEnable && hasCommitOffsetFlag;
         if (storeOffsetEnable) {
-            this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(channel),
+            this.brokerController.getConsumerOffsetManager().commitOffset(wrappedCtx.channelRemoteAddr(),
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
-        return response;
+
+        if (response.getAsyncFuture() != null) {
+            // long-polling
+            return response.getAsyncFuture();
+        } else {
+            return CompletableFuture.completedFuture(response);
+        }
     }
 
     public boolean hasConsumeMessageHook() {
@@ -668,41 +708,25 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void executeRequestWhenWakeup(final Channel channel,
-        final RemotingCommand request) throws RemotingCommandException {
+    public void executeRequestWhenWakeup(final RemotingCommand request,
+        final CompletableFuture<RemotingCommand> future,
+        final WrappedChannelHandlerContext wrappedCtx) {
         Runnable run = new Runnable() {
             @Override
             public void run() {
                 try {
-                    final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
-
+                    final RemotingCommand response = PullMessageProcessor.this.syncPullMessage(request, wrappedCtx);
                     if (response != null) {
                         response.setOpaque(request.getOpaque());
                         response.markResponseType();
-                        try {
-                            channel.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                                @Override
-                                public void operationComplete(ChannelFuture future) throws Exception {
-                                    if (!future.isSuccess()) {
-                                        LOGGER.error("processRequestWrapper response to {} failed",
-                                            future.channel().remoteAddress(), future.cause());
-                                        LOGGER.error(request.toString());
-                                        LOGGER.error(response.toString());
-                                    }
-                                }
-                            });
-                        } catch (Throwable e) {
-                            LOGGER.error("processRequestWrapper process request over, but response failed", e);
-                            LOGGER.error(request.toString());
-                            LOGGER.error(response.toString());
-                        }
                     }
+                    future.complete(response);
                 } catch (RemotingCommandException e1) {
-                    LOGGER.error("excuteRequestWhenWakeup run", e1);
+                    LOGGER.error("executeRequestWhenWakeup run", e1);
                 }
             }
         };
-        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
+        this.brokerController.getLongPollingExecutor().submit(new RequestTask(run, request, wrappedCtx.getWrappedChannel()));
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {

@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -558,7 +559,7 @@ public class RouteInfoManager_NewTest {
     public void onChannelDestroy() {
         Channel channel = mock(Channel.class);
 
-        registerBroker(BrokerBasicInfo.defaultBroker(), channel, null, "TestTopic", "TestTopic1");
+        registerBroker(BrokerBasicInfo.defaultBroker(), new WrappedChannel(channel), null, "TestTopic", "TestTopic1");
         routeInfoManager.onChannelDestroy(channel);
         await().atMost(Duration.ofSeconds(5)).until(() -> routeInfoManager.blockedUnRegisterRequests() == 0);
 
@@ -571,8 +572,8 @@ public class RouteInfoManager_NewTest {
         Channel masterChannel = mock(Channel.class);
         Channel slaveChannel = mock(Channel.class);
 
-        registerBroker(masterBroker, masterChannel, null, "TestTopic");
-        registerBroker(slaveBroker, slaveChannel, null, "TestTopic");
+        registerBroker(masterBroker, new WrappedChannel(masterChannel), null, "TestTopic");
+        registerBroker(slaveBroker, new WrappedChannel(slaveChannel), null, "TestTopic");
 
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic").getBrokerDatas().get(0).getBrokerAddrs()).containsKeys(0L, 1L);
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic").getBrokerDatas().get(0).getBrokerAddrs())
@@ -599,8 +600,8 @@ public class RouteInfoManager_NewTest {
         Channel masterChannel = mock(Channel.class);
         Channel slaveChannel = mock(Channel.class);
 
-        registerBroker(masterBroker, masterChannel, null, "TestTopic");
-        registerBroker(slaveBroker, slaveChannel, null, "TestTopic");
+        registerBroker(masterBroker, new WrappedChannel(masterChannel), null, "TestTopic");
+        registerBroker(slaveBroker, new WrappedChannel(slaveChannel), null, "TestTopic");
 
         // Master Down
         routeInfoManager.onChannelDestroy(masterChannel);
@@ -640,7 +641,7 @@ public class RouteInfoManager_NewTest {
             topicConfigConcurrentHashMap.put(topic, topicConfig);
         }
 
-        return registerBroker(brokerInfo, mock(Channel.class), topicConfigConcurrentHashMap, topics);
+        return registerBroker(brokerInfo, new WrappedChannel(mock(Channel.class)), topicConfigConcurrentHashMap, topics);
     }
 
     private RegisterBrokerResult registerBrokerWithOrderTopic(BrokerBasicInfo brokerBasicInfo, String... topics) {
@@ -655,7 +656,7 @@ public class RouteInfoManager_NewTest {
             topicConfig.setOrder(true);
             topicConfigConcurrentHashMap.put(topic, topicConfig);
         }
-        return registerBroker(brokerBasicInfo, mock(Channel.class), topicConfigConcurrentHashMap, topics);
+        return registerBroker(brokerBasicInfo, new WrappedChannel(mock(Channel.class)), topicConfigConcurrentHashMap, topics);
     }
 
     private RegisterBrokerResult registerBrokerWithGlobalOrderTopic(BrokerBasicInfo brokerBasicInfo, String... topics) {
@@ -670,10 +671,11 @@ public class RouteInfoManager_NewTest {
             topicConfig.setOrder(true);
             topicConfigConcurrentHashMap.put(topic, topicConfig);
         }
-        return registerBroker(brokerBasicInfo, mock(Channel.class), topicConfigConcurrentHashMap, topics);
+        return registerBroker(brokerBasicInfo, new WrappedChannel(mock(Channel.class)), topicConfigConcurrentHashMap, topics);
     }
 
-    private RegisterBrokerResult registerBroker(BrokerBasicInfo brokerInfo, Channel channel,
+    private RegisterBrokerResult registerBroker(BrokerBasicInfo brokerInfo,
+        WrappedChannel wrappedChannel,
         ConcurrentMap<String, TopicConfig> topicConfigConcurrentHashMap, String... topics) {
 
         if (topicConfigConcurrentHashMap == null) {
@@ -702,7 +704,9 @@ public class RouteInfoManager_NewTest {
             brokerInfo.haAddr,
             null,
             brokerInfo.enableActingMaster,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper,
+            new ArrayList<String>(),
+            wrappedChannel);
         return registerBrokerResult;
     }
 

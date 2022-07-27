@@ -45,9 +45,9 @@ import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class QueryAssignmentProcessor implements NettyRequestProcessor {
@@ -76,11 +76,12 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
         switch (request.getCode()) {
             case RequestCode.QUERY_ASSIGNMENT:
-                return this.queryAssignment(ctx, request);
+                return this.queryAssignment(request, wrappedCtx);
             case RequestCode.SET_MESSAGE_REQUEST_MODE:
-                return this.setMessageRequestMode(ctx, request);
+                return this.setMessageRequestMode(request, wrappedCtx);
             default:
                 break;
         }
@@ -95,7 +96,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
     /**
      *
      */
-    private RemotingCommand queryAssignment(ChannelHandlerContext ctx, RemotingCommand request)
+    private RemotingCommand queryAssignment(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx)
         throws RemotingCommandException {
         final QueryAssignmentRequestBody requestBody = QueryAssignmentRequestBody.decode(request.getBody(), QueryAssignmentRequestBody.class);
         final String topic = requestBody.getTopic();
@@ -126,7 +127,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
             }
         }
 
-        Set<MessageQueue> messageQueues = doLoadBalance(topic, consumerGroup, clientId, messageModel, strategyName, setMessageRequestModeRequestBody, ctx);
+        Set<MessageQueue> messageQueues = doLoadBalance(topic, consumerGroup, clientId, messageModel, strategyName, setMessageRequestModeRequestBody, wrappedCtx);
 
         Set<MessageQueueAssignment> assignments = null;
         if (messageQueues != null) {
@@ -157,11 +158,13 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
      * @param clientId
      * @param messageModel
      * @param strategyName
+     * @param wrappedCtx
      * @return the MessageQueues assigned to this client
      */
     private Set<MessageQueue> doLoadBalance(final String topic, final String consumerGroup, final String clientId,
         final MessageModel messageModel, final String strategyName,
-        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody, final ChannelHandlerContext ctx) {
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody,
+        WrappedChannelHandlerContext wrappedCtx) {
         Set<MessageQueue> assignedQueueSet = null;
         AssignmentManager assignmentManager = brokerController.getAssignmentManager();
 
@@ -205,7 +208,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 try {
                     AllocateMessageQueueStrategy allocateMessageQueueStrategy = name2LoadStrategy.get(strategyName);
                     if (null == allocateMessageQueueStrategy) {
-                        log.warn("QueryLoad: unsupported strategy [{}],  {}", strategyName, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                        log.warn("QueryLoad: unsupported strategy [{}],  {}", strategyName, wrappedCtx.channelRemoteAddr());
                         return null;
                     }
 
@@ -296,8 +299,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         return result;
     }
 
-    private RemotingCommand setMessageRequestMode(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand setMessageRequestMode(RemotingCommand request, WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final SetMessageRequestModeRequestBody requestBody = SetMessageRequestModeRequestBody.decode(request.getBody(), SetMessageRequestModeRequestBody.class);
 

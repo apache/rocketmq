@@ -16,38 +16,39 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
-import io.netty.channel.Channel;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageFilter;
 
+import java.util.concurrent.CompletableFuture;
+
 public class PullRequest {
     private final RemotingCommand requestCommand;
-    private final Channel clientChannel;
     private final long timeoutMillis;
     private final long suspendTimestamp;
     private final long pullFromThisOffset;
     private final SubscriptionData subscriptionData;
     private final MessageFilter messageFilter;
+    private final CompletableFuture<RemotingCommand> future;
+    private final WrappedChannelHandlerContext wrappedCtx;
 
-    public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis, long suspendTimestamp,
-        long pullFromThisOffset, SubscriptionData subscriptionData,
-        MessageFilter messageFilter) {
+    public PullRequest(RemotingCommand requestCommand, long timeoutMillis, long suspendTimestamp,
+                       long pullFromThisOffset, SubscriptionData subscriptionData,
+                       MessageFilter messageFilter, CompletableFuture<RemotingCommand> future,
+                       WrappedChannelHandlerContext wrappedCtx) {
         this.requestCommand = requestCommand;
-        this.clientChannel = clientChannel;
         this.timeoutMillis = timeoutMillis;
         this.suspendTimestamp = suspendTimestamp;
         this.pullFromThisOffset = pullFromThisOffset;
         this.subscriptionData = subscriptionData;
         this.messageFilter = messageFilter;
+        this.future = future;
+        this.wrappedCtx = wrappedCtx;
     }
 
     public RemotingCommand getRequestCommand() {
         return requestCommand;
-    }
-
-    public Channel getClientChannel() {
-        return clientChannel;
     }
 
     public long getTimeoutMillis() {
@@ -68,5 +69,13 @@ public class PullRequest {
 
     public MessageFilter getMessageFilter() {
         return messageFilter;
+    }
+
+    public CompletableFuture<RemotingCommand> getFuture() {
+        return future;
+    }
+
+    public WrappedChannelHandlerContext getWrappedCtx() {
+        return wrappedCtx;
     }
 }

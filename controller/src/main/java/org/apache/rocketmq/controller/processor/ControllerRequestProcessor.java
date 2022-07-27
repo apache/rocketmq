@@ -19,7 +19,10 @@ package org.apache.rocketmq.controller.processor;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
@@ -34,8 +37,9 @@ import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.WrappedChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
@@ -63,11 +67,17 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-        if (ctx != null) {
+        WrappedChannelHandlerContext wrappedCtx = new WrappedChannelHandlerContext(ctx);
+        return this.processRequest(request, wrappedCtx);
+    }
+
+    private RemotingCommand processRequest(RemotingCommand request,
+        WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException, InterruptedException, ExecutionException, TimeoutException {
+        if (wrappedCtx != null) {
             log.debug("Receive request, {} {} {}",
                 request.getCode(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                request);
+                wrappedCtx.channelRemoteAddr(),
+                    request);
         }
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
@@ -95,7 +105,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
                     if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                         this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel());
+                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), wrappedCtx.getWrappedChannel());
                     }
                     return response;
                 }

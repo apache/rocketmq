@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
@@ -71,14 +71,12 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 long last = next.getValue().lastUpdateTimestamp;
                 long timeoutMillis = next.getValue().heartbeatTimeoutMillis;
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
-                    final Channel channel = next.getValue().channel;
+                    WrappedChannel wrappedChannel = next.getValue().wrappedChannel;
                     iterator.remove();
-                    if (channel != null) {
-                        RemotingUtil.closeChannel(channel);
-                    }
+                    wrappedChannel.closeChannel();
                     this.executor.submit(() ->
                         notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
-                    log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms", next.getValue().channel, next.getKey(), timeoutMillis);
+                    log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms", next.getValue().wrappedChannel.info(), next.getKey(), timeoutMillis);
                 }
             }
         } catch (Exception e) {
@@ -99,14 +97,14 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void registerBroker(String clusterName, String brokerName, String brokerAddr,
-        long brokerId, Long timeoutMillis, Channel channel) {
+                               long brokerId, Long timeoutMillis, WrappedChannel wrappedChannel) {
         final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
             new BrokerLiveInfo(brokerName,
                 brokerId,
                 System.currentTimeMillis(),
                 timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                channel));
+                wrappedChannel));
         if (prevBrokerLiveInfo == null) {
             log.info("new broker registered, {}, brokerId:{}", addrInfo, brokerId);
         }
@@ -135,8 +133,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     public void onBrokerChannelClose(Channel channel) {
         BrokerAddrInfo addrInfo = null;
         for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
-            if (entry.getValue().channel == channel) {
-                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().channel, entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
+            if (entry.getValue().wrappedChannel.isSameChannel(channel)) {
+                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().wrappedChannel.info(), entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
                 addrInfo = entry.getKey();
                 this.executor.submit(() ->
                     notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
@@ -162,17 +160,18 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     static class BrokerLiveInfo {
         private final String brokerName;
         private final long heartbeatTimeoutMillis;
-        private final Channel channel;
         private long brokerId;
         private long lastUpdateTimestamp;
+        // alternative to channel
+        private final WrappedChannel wrappedChannel;
 
         public BrokerLiveInfo(String brokerName, long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
-            Channel channel) {
+            WrappedChannel wrappedChannel) {
             this.brokerName = brokerName;
             this.brokerId = brokerId;
             this.lastUpdateTimestamp = lastUpdateTimestamp;
             this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
-            this.channel = channel;
+            this.wrappedChannel = wrappedChannel;
         }
 
         @Override public String toString() {
@@ -181,7 +180,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 ", brokerId=" + brokerId +
                 ", lastUpdateTimestamp=" + lastUpdateTimestamp +
                 ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
-                ", channel=" + channel +
+                ", channel=" + this.wrappedChannel.info() +
                 '}';
         }
     }

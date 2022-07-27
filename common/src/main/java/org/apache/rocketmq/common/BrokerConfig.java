@@ -280,6 +280,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean skipPreOnline = false;
 
+    @Deprecated
     private boolean asyncSendEnable = true;
 
     private long consumerOffsetUpdateVersionStep = 500;
@@ -1196,6 +1197,7 @@ public class BrokerConfig extends BrokerIdentity {
         this.skipPreOnline = skipPreOnline;
     }
 
+    @Deprecated
     public boolean isAsyncSendEnable() {
         return asyncSendEnable;
     }

@@ -104,7 +104,7 @@ public class ClusterTestRequestProcessorTest {
 
             }
         });
-        RemotingCommand remoting = clusterTestProcessor.getRouteInfoByTopic(ctx, request);
+        RemotingCommand remoting = clusterTestProcessor.getRouteInfoByTopic(request, null);
         assertThat(remoting.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
         assertThat(remoting.getBody()).isNull();
         assertThat(remoting.getRemark()).isNotNull();
