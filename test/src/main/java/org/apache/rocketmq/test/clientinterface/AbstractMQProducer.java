@@ -34,6 +34,7 @@ public abstract class AbstractMQProducer extends MQCollector implements MQProduc
     protected String producerInstanceName = null;
     protected boolean isDebug = false;
 
+
     public AbstractMQProducer(String topic) {
         super();
         producerGroupName = RandomUtil.getStringByUUID();

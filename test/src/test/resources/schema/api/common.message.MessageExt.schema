@@ -1,0 +1,102 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field body : private [B null
+Field bodyCRC : private int 0
+Field bornHost : private java.net.SocketAddress null
+Field bornTimestamp : private long 0
+Field brokerName : private java.lang.String null
+Field commitLogOffset : private long 0
+Field flag : private int 0
+Field msgId : private java.lang.String null
+Field preparedTransactionOffset : private long 0
+Field properties : private java.util.Map null
+Field queueId : private int 0
+Field queueOffset : private long 0
+Field reconsumeTimes : private int 0
+Field serialVersionUID : private long 8445773977080406428
+Field storeHost : private java.net.SocketAddress null
+Field storeSize : private int 0
+Field storeTimestamp : private long 0
+Field sysFlag : private int 0
+Field topic : private java.lang.String null
+Field transactionId : private java.lang.String null
+Method getBody() : public throws ([B)
+Method getBodyCRC() : public throws (int)
+Method getBornHost() : public throws (java.net.SocketAddress)
+Method getBornHostBytes() : public throws (java.nio.ByteBuffer)
+Method getBornHostBytes(java.nio.ByteBuffer) : public throws (java.nio.ByteBuffer)
+Method getBornHostNameString() : public throws (java.lang.String)
+Method getBornHostString() : public throws (java.lang.String)
+Method getBornTimestamp() : public throws (long)
+Method getBrokerName() : public throws (java.lang.String)
+Method getBuyerId() : public throws (java.lang.String)
+Method getCommitLogOffset() : public throws (long)
+Method getDelayTimeLevel() : public throws (int)
+Method getFlag() : public throws (int)
+Method getKeys() : public throws (java.lang.String)
+Method getMsgId() : public throws (java.lang.String)
+Method getPreparedTransactionOffset() : public throws (long)
+Method getProperties() : public throws (java.util.Map)
+Method getProperty(java.lang.String) : public throws (java.lang.String)
+Method getQueueId() : public throws (int)
+Method getQueueOffset() : public throws (long)
+Method getReconsumeTimes() : public throws (int)
+Method getStoreHost() : public throws (java.net.SocketAddress)
+Method getStoreHostBytes() : public throws (java.nio.ByteBuffer)
+Method getStoreHostBytes(java.nio.ByteBuffer) : public throws (java.nio.ByteBuffer)
+Method getStoreSize() : public throws (int)
+Method getStoreTimestamp() : public throws (long)
+Method getSysFlag() : public throws (int)
+Method getTags() : public throws (java.lang.String)
+Method getTopic() : public throws (java.lang.String)
+Method getTransactionId() : public throws (java.lang.String)
+Method getUserProperty(java.lang.String) : public throws (java.lang.String)
+Method isWaitStoreMsgOK() : public throws (boolean)
+Method parseTopicFilterType(int) : public throws (org.apache.rocketmq.common.TopicFilterType)
+Method putUserProperty(java.lang.String,java.lang.String) : public throws (void)
+Method setBody([B) : public throws (void)
+Method setBodyCRC(int) : public throws (void)
+Method setBornHost(java.net.SocketAddress) : public throws (void)
+Method setBornHostV6Flag() : public throws (void)
+Method setBornTimestamp(long) : public throws (void)
+Method setBrokerName(java.lang.String) : public throws (void)
+Method setBuyerId(java.lang.String) : public throws (void)
+Method setCommitLogOffset(long) : public throws (void)
+Method setDelayTimeLevel(int) : public throws (void)
+Method setFlag(int) : public throws (void)
+Method setInstanceId(java.lang.String) : public throws (void)
+Method setKeys(java.lang.String) : public throws (void)
+Method setKeys(java.util.Collection) : public throws (void)
+Method setMsgId(java.lang.String) : public throws (void)
+Method setPreparedTransactionOffset(long) : public throws (void)
+Method setQueueId(int) : public throws (void)
+Method setQueueOffset(long) : public throws (void)
+Method setReconsumeTimes(int) : public throws (void)
+Method setStoreHost(java.net.SocketAddress) : public throws (void)
+Method setStoreHostAddressV6Flag() : public throws (void)
+Method setStoreSize(int) : public throws (void)
+Method setStoreTimestamp(long) : public throws (void)
+Method setSysFlag(int) : public throws (void)
+Method setTags(java.lang.String) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)
+Method setTransactionId(java.lang.String) : public throws (void)
+Method setWaitStoreMsgOK(boolean) : public throws (void)
+Method socketAddress2ByteBuffer(java.net.SocketAddress) : public throws (java.nio.ByteBuffer)
+Method socketAddress2ByteBuffer(java.net.SocketAddress,java.nio.ByteBuffer) : public throws (java.nio.ByteBuffer)
+Method toString() : public throws (java.lang.String)

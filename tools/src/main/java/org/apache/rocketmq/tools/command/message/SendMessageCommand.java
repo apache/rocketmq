@@ -28,6 +28,8 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.nio.charset.StandardCharsets;
+
 public class SendMessageCommand implements SubCommand {
 
     private DefaultMQProducer producer;
@@ -112,7 +114,7 @@ public class SendMessageCommand implements SubCommand {
                     queueId = Integer.parseInt(commandLine.getOptionValue('i').trim());
                 }
             }
-            msg = new Message(topic, tag, keys, body.getBytes("utf-8"));
+            msg = new Message(topic, tag, keys, body.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new RuntimeException(this.getClass().getSimpleName() + " command failed", e);
         }

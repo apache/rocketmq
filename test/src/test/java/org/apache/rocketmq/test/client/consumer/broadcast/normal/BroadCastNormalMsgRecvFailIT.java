@@ -27,6 +27,7 @@ import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -50,6 +51,7 @@ public class BroadCastNormalMsgRecvFailIT extends BaseBroadCastIT {
         super.shutdown();
     }
 
+    @Ignore
     @Test
     public void testStartTwoConsumerAndOneConsumerFail() {
         int msgSize = 16;

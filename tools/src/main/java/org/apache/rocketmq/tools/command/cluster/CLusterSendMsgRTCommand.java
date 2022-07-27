@@ -20,7 +20,7 @@ package org.apache.rocketmq.tools.command.cluster;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
@@ -58,7 +58,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "size", true, "message size | default 128 Byte");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("c", "cluster", true, "cluster name | default display all cluster");
@@ -93,12 +93,12 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             producer.start();
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
-            HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
+            Map<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
                 .getClusterAddrTable();
 
             Set<String> clusterNames = null;
 
-            long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
+            long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
                 .getOptionValue('a').trim());
 
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
