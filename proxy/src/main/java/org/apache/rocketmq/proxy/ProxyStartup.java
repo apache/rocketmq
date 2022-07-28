@@ -23,9 +23,11 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.Date;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -168,6 +170,12 @@ public class ProxyStartup {
         lc.reset();
         //https://logback.qos.ch/manual/configuration.html
         lc.setPackagingDataEnabled(false);
-        configurator.doConfigure(ConfigurationManager.getProxyHome() + "/conf/logback_proxy.xml");
+        final String home = ConfigurationManager.getProxyHome();
+        if (StringUtils.isEmpty(home)) {
+            System.out.printf("Please set the %s variable or %s variable in your environment to match the location of the RocketMQ installation%n",
+                MixAll.ROCKETMQ_HOME_ENV, ConfigurationManager.RMQ_PROXY_HOME);
+            System.exit(-1);
+        }
+        configurator.doConfigure(home + "/conf/logback_proxy.xml");
     }
 }
