@@ -336,7 +336,7 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
                     }
                 }
-                long deliverTime = MsgUtil.getMessageDeliverTime(this.brokerController, messageExt);
+                long deliverTime = MsgUtil.getMessageDeliverTime(messageExt);
                 if (deliverTime > endTime) {
                     endTime = deliverTime;
                 }

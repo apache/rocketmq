@@ -573,7 +573,7 @@ public class PopBufferMergeService extends ServiceThread {
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
 
-        MsgUtil.setMessageDeliverTime(this.brokerController, msgInner, point.getReviveTime());
+        MsgUtil.setMessageDeliverTime(msgInner, point.getReviveTime());
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
 
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
@@ -607,7 +607,7 @@ public class PopBufferMergeService extends ServiceThread {
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
 
-        MsgUtil.setMessageDeliverTime(brokerController, msgInner, point.getReviveTime() - PopAckConstants.ackTimeInterval);
+        MsgUtil.setMessageDeliverTime(msgInner, point.getReviveTime() - PopAckConstants.ackTimeInterval);
 
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
