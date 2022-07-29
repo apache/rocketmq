@@ -85,6 +85,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor {
         final GetConsumerListByGroupRequestHeader requestHeader =
             (GetConsumerListByGroupRequestHeader) request
                 .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+        response.setOpaque(request.getOpaque());
 
         ConsumerGroupInfo consumerGroupInfo =
             this.brokerController.getConsumerManager().getConsumerGroupInfo(
@@ -150,6 +151,8 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor {
         final UpdateConsumerOffsetRequestHeader requestHeader =
             (UpdateConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+        response.setOpaque(request.getOpaque());
+
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
 
         RemotingCommand rewriteResult  =  rewriteRequestForStaticTopic(requestHeader, mappingContext);
@@ -274,7 +277,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor {
         final QueryConsumerOffsetRequestHeader requestHeader =
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
-
+        response.setOpaque(request.getOpaque());
 
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
         RemotingCommand rewriteResult  = rewriteRequestForStaticTopic(requestHeader, mappingContext);

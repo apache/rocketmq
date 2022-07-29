@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.pagecache;
 
+import com.google.common.base.Objects;
 import io.netty.channel.FileRegion;
 import io.netty.util.AbstractReferenceCounted;
 import java.io.IOException;
@@ -110,5 +111,22 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
     @Override
     protected void deallocate() {
         this.getMessageResult.release();
+    }
+
+    public boolean isComplete() {
+        return transferred == count();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ManyMessageTransfer that = (ManyMessageTransfer) o;
+        return Objects.equal(byteBufferHeader, that.byteBufferHeader) && Objects.equal(getMessageResult, that.getMessageResult);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(byteBufferHeader, getMessageResult);
     }
 }

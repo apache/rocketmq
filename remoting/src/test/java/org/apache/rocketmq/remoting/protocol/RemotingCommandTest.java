@@ -19,7 +19,11 @@ package org.apache.rocketmq.remoting.protocol;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
@@ -259,6 +263,38 @@ public class RemotingCommandTest {
         remotingCommand.makeCustomHeaderToNet();
         SubExtFieldsHeader other = (SubExtFieldsHeader) remotingCommand.decodeCommandCustomHeader(subExtFieldsHeader.getClass());
         Assert.assertEquals(other, subExtFieldsHeader);
+    }
+
+    @Test
+    public void testParseAndMergeChildren() throws Exception {
+        Map<Integer, RemotingCommand> expectedChildren = new HashMap<>();
+
+        int total = 100;
+
+        for (int i = 0; i < total; i++) {
+            CommandCustomHeader header = new SampleCommandCustomHeader();
+            int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+            RemotingCommand child = RemotingCommand.createRequestCommand(code, header);
+            child.setBody(new byte[] {(byte) i});
+            child.setOpaque(i);
+            expectedChildren.put(i, child);
+        }
+
+        RemotingCommand batch = RemotingCommand.mergeChildren(new ArrayList<>(expectedChildren.values()));
+
+        List<RemotingCommand> parsedChildren = RemotingCommand.parseChildren(batch);
+        for (RemotingCommand actual : parsedChildren) {
+            assertThat(actual).isNotNull();
+
+            RemotingCommand expected = expectedChildren.get(actual.getOpaque());
+            assertEquals(expected, actual);
+        }
+    }
+
+    private void assertEquals(RemotingCommand expected, RemotingCommand actual) {
+        assertThat(expected.getBody()).isEqualTo(actual.getBody());
+        assertThat(expected.getCode()).isEqualTo(actual.getCode());
+        assertThat(expected.getRemark()).isEqualTo(actual.getRemark());
     }
 }
 

@@ -76,6 +76,7 @@ import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
+import org.apache.rocketmq.broker.processor.CommonBatchProcessor;
 import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
 import org.apache.rocketmq.broker.processor.NotificationProcessor;
@@ -183,7 +184,9 @@ public class BrokerController {
     protected final QueryAssignmentProcessor queryAssignmentProcessor;
     protected final ClientManageProcessor clientManageProcessor;
     protected final SendMessageProcessor sendMessageProcessor;
+    protected final ConsumerManageProcessor consumerManageProcessor;
     protected final ReplyMessageProcessor replyMessageProcessor;
+    protected final CommonBatchProcessor commonBatchProcessor;
     protected final PullRequestHoldService pullRequestHoldService;
     protected final MessageArrivingListener messageArrivingListener;
     protected final Broker2Client broker2Client;
@@ -234,6 +237,7 @@ public class BrokerController {
     protected ExecutorService consumerManageExecutor;
     protected ExecutorService loadBalanceExecutor;
     protected ExecutorService endTransactionExecutor;
+    protected ExecutorService commonBatchExecutor;
     protected boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -297,6 +301,7 @@ public class BrokerController {
         this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
+        this.consumerManageProcessor = new ConsumerManageProcessor(this);
         this.peekMessageProcessor = new PeekMessageProcessor(this);
         this.pullRequestHoldService = messageStoreConfig.isEnableLmq() ? new LmqPullRequestHoldService(this) : new PullRequestHoldService(this);
         this.popMessageProcessor = new PopMessageProcessor(this);
@@ -306,6 +311,7 @@ public class BrokerController {
         this.changeInvisibleTimeProcessor = new ChangeInvisibleTimeProcessor(this);
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.replyMessageProcessor = new ReplyMessageProcessor(this);
+        this.commonBatchProcessor = new CommonBatchProcessor(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService, this.popMessageProcessor, this.notificationProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager);
@@ -542,6 +548,14 @@ public class BrokerController {
             TimeUnit.MILLISECONDS,
             this.loadBalanceThreadPoolQueue,
             new ThreadFactoryImpl("LoadBalanceProcessorThread_", getBrokerIdentity()));
+
+        this.commonBatchExecutor = new BrokerFixedThreadPoolExecutor(
+                this.brokerConfig.getCommonBatchThreadPoolNums(),
+                this.brokerConfig.getCommonBatchThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.consumerManagerThreadPoolQueue,
+                new ThreadFactoryImpl("CommonBatchThread_"));
 
         this.syncBrokerMemberGroupExecutorService = new ScheduledThreadPoolExecutor(1,
             new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", getBrokerIdentity()));
@@ -941,8 +955,8 @@ public class BrokerController {
         /*
          * SendMessageProcessor
          */
-        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
-        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        this.sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        this.sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
@@ -1022,14 +1036,13 @@ public class BrokerController {
         /**
          * ConsumerManageProcessor
          */
-        ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, this.consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, this.consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, this.consumerManageProcessor, this.consumerManageExecutor);
 
-        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, this.consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, this.consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, this.consumerManageProcessor, this.consumerManageExecutor);
 
         /**
          * QueryAssignmentProcessor
@@ -1044,6 +1057,12 @@ public class BrokerController {
          */
         this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
+
+        /**
+         * Batch-protocol
+         */
+        this.remotingServer.registerProcessor(RequestCode.COMMON_BATCH_REQUEST, new CommonBatchProcessor(this), this.commonBatchExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.COMMON_BATCH_REQUEST, new CommonBatchProcessor(this), this.commonBatchExecutor);
 
         /*
          * Default
@@ -1170,6 +1189,18 @@ public class BrokerController {
 
     public PullMessageProcessor getPullMessageProcessor() {
         return pullMessageProcessor;
+    }
+
+    public SendMessageProcessor getSendProcessor() {
+        return sendMessageProcessor;
+    }
+
+    public ConsumerManageProcessor getConsumerManageProcessor() {
+        return consumerManageProcessor;
+    }
+
+    public CommonBatchProcessor getCommonBatchProcessor() {
+        return commonBatchProcessor;
     }
 
     public PullRequestHoldService getPullRequestHoldService() {
@@ -1345,6 +1376,10 @@ public class BrokerController {
 
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();
+        }
+
+        if (this.commonBatchExecutor != null) {
+            this.commonBatchExecutor.shutdown();
         }
 
         if (this.escapeBridge != null) {

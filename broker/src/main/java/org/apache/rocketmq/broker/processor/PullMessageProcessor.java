@@ -720,7 +720,12 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor {
                         response.setOpaque(request.getOpaque());
                         response.markResponseType();
                     }
-                    future.complete(response);
+                    boolean triggered = future.complete(response);
+                    if (!triggered && response != null && response.getFinallyReleasingCallback() != null) {
+                        // It means other thread has completed this future.
+                        // If you want to add some code before finally callback, please make sure callback is in finally block.
+                        response.getFinallyReleasingCallback().run();
+                    }
                 } catch (RemotingCommandException e1) {
                     LOGGER.error("executeRequestWhenWakeup run", e1);
                 }

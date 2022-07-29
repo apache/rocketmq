@@ -217,6 +217,8 @@ public class RequestCode {
 
     public static final int UPDATE_AND_CREATE_STATIC_TOPIC = 513;
 
+    public static final int COMMON_BATCH_REQUEST = 666;
+
     public static final int GET_BROKER_MEMBER_GROUP = 901;
 
     public static final int ADD_BROKER = 902;

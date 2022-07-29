@@ -71,6 +71,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int ackMessageThreadPoolNums = 3;
     private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
+    private int commonBatchThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
 
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
@@ -308,6 +309,8 @@ public class BrokerConfig extends BrokerIdentity {
     private long checkSyncStateSetPeriod = 5 * 1000;
 
     private long syncControllerMetadataPeriod = 10 * 1000;
+
+    private long maxChildRequestNum = 1000;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1324,5 +1327,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
         this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
+    }
+
+    public int getCommonBatchThreadPoolNums() {
+        return commonBatchThreadPoolNums;
+    }
+
+    public void setCommonBatchThreadPoolNums(int commonBatchThreadPoolNums) {
+        this.commonBatchThreadPoolNums = commonBatchThreadPoolNums;
+    }
+
+    public long getMaxChildRequestNum() {
+        return maxChildRequestNum;
+    }
+
+    public void setMaxChildRequestNum(long maxChildRequestNum) {
+        this.maxChildRequestNum = maxChildRequestNum;
     }
 }

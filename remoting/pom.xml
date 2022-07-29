@@ -40,6 +40,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-logging</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.gson</groupId>
