@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.util.HookUtils;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -198,7 +197,7 @@ public class PopReviveServiceTest {
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
-        MsgUtil.setMessageDeliverTime(msgInner, System.currentTimeMillis() + invisible);
+        msgInner.setDeliverTimeMs(System.currentTimeMillis() + invisible);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         HookUtils.handleScheduleMessage(brokerController, msgInner);

@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -336,7 +335,7 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
                     }
                 }
-                long deliverTime = MsgUtil.getMessageDeliverTime(messageExt);
+                long deliverTime = messageExt.getDeliverTimeMs();
                 if (deliverTime > endTime) {
                     endTime = deliverTime;
                 }
