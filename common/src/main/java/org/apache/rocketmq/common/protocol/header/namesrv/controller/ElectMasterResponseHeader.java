@@ -61,7 +61,8 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
         this.brokerMemberGroup = brokerMemberGroup;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ElectMasterResponseHeader{" +
             "newMasterAddress='" + newMasterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +

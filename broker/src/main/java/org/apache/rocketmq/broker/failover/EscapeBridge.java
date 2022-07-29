@@ -139,11 +139,13 @@ public class EscapeBridge {
             try {
                 messageExt.setWaitStoreMsgOK(false);
                 innerProducer.send(messageExt, new SendCallback() {
-                    @Override public void onSuccess(SendResult sendResult) {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
                         completableFuture.complete(transformSendResult2PutResult(sendResult));
                     }
 
-                    @Override public void onException(Throwable e) {
+                    @Override
+                    public void onException(Throwable e) {
                         completableFuture.complete(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
                     }
                 });

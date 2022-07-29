@@ -52,9 +52,11 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             new ThreadFactoryImpl("DLegerRoleChangeHandler_", brokerController.getBrokerIdentity()));
     }
 
-    @Override public void handle(long term, MemberState.Role role) {
+    @Override
+    public void handle(long term, MemberState.Role role) {
         Runnable runnable = new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 long start = System.currentTimeMillis();
                 try {
                     boolean succ = true;
@@ -168,11 +170,13 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         LOGGER.info("Finish to change to master brokerName={}", this.brokerController.getBrokerConfig().getBrokerName());
     }
 
-    @Override public void startup() {
+    @Override
+    public void startup() {
 
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
         executorService.shutdown();
     }
 }

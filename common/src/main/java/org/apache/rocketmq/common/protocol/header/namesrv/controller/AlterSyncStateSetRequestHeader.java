@@ -57,7 +57,8 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", masterAddress='" + masterAddress + '\'' +

@@ -69,7 +69,8 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "RegisterBrokerRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +

@@ -77,7 +77,8 @@ public class GetMetaDataResponseHeader implements CommandCustomHeader {
         this.peers = peers;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "GetMetaDataResponseHeader{" +
             "group='" + group + '\'' +
             ", controllerLeaderId='" + controllerLeaderId + '\'' +

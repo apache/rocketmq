@@ -175,7 +175,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             this.channel = channel;
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return "BrokerLiveInfo{" +
                 "brokerName='" + brokerName + '\'' +
                 ", brokerId=" + brokerId +

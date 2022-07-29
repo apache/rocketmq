@@ -75,7 +75,8 @@ public class EpochEntryCache extends RemotingSerializable {
         this.maxOffset = maxOffset;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "EpochEntryCache{" +
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +
