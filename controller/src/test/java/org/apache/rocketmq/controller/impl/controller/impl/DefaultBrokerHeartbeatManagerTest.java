@@ -18,13 +18,17 @@ package org.apache.rocketmq.controller.impl.controller.impl;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import io.netty.channel.Channel;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.remoting.netty.WrappedChannel;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class DefaultBrokerHeartbeatManagerTest {
     private BrokerHeartbeatManager heartbeatManager;
@@ -44,7 +48,8 @@ public class DefaultBrokerHeartbeatManagerTest {
             System.out.println("Broker shutdown:" + brokerAddress);
             latch.countDown();
         });
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:7000", 1L, 3000L, null);
+        Channel channel = mock(Channel.class);
+        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:7000", 1L, 3000L, new WrappedChannel(channel));
         assertTrue(latch.await(5000, TimeUnit.MILLISECONDS));
         this.heartbeatManager.shutdown();
     }
