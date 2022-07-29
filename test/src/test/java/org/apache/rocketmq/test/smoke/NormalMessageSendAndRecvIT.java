@@ -17,12 +17,18 @@
 
 package org.apache.rocketmq.test.smoke;
 
+import java.util.List;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.message.MessageClientExt;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,13 +41,18 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;
+    private String group = null;
+    private DefaultMQAdminExt defaultMQAdminExt;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         topic = initTopic();
+        group = initConsumerGroup();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
+        defaultMQAdminExt = getAdmin(nsAddr);
+        defaultMQAdminExt.start();
     }
 
     @After
@@ -50,13 +61,31 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
     }
 
     @Test
-    public void testSynSendMessage() {
+    public void testSynSendMessage() throws Exception {
         int msgSize = 10;
-        producer.send(msgSize);
-        Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
+        List<MessageQueue> messageQueueList = producer.getProducer().fetchPublishMessageQueues(topic);
+        for (MessageQueue messageQueue: messageQueueList) {
+            producer.send(msgSize, messageQueue);
+        }
+        Assert.assertEquals("Not all sent succeeded", msgSize * messageQueueList.size(), producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
+
+        for (Object o : consumer.getListener().getAllOriginMsg()) {
+            MessageClientExt msg = (MessageClientExt) o;
+            assertThat(msg.getProperty(MessageConst.PROPERTY_POP_CK)).isNull();
+        }
+        //shutdown to persist the offset
+        consumer.getConsumer().shutdown();
+        ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+        //+1 for the retry topic
+        for (MessageQueue messageQueue: messageQueueList) {
+            Assert.assertTrue(consumeStats.getOffsetTable().containsKey(messageQueue));
+            Assert.assertEquals(msgSize, consumeStats.getOffsetTable().get(messageQueue).getConsumerOffset());
+            Assert.assertEquals(msgSize, consumeStats.getOffsetTable().get(messageQueue).getBrokerOffset());
+        }
+
     }
 }

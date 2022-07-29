@@ -37,6 +37,7 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
     @CFNotNull
     private Long queueOffset;
     private String transactionId;
+    private String batchUniqId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -48,6 +49,7 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
         writeIfNotNull(out, "queueId", queueId);
         writeIfNotNull(out, "queueOffset", queueOffset);
         writeIfNotNull(out, "transactionId", transactionId);
+        writeIfNotNull(out, "batchUniqId", batchUniqId);
     }
 
     @Override
@@ -70,6 +72,11 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
         str = fields.get("transactionId");
         if (str != null) {
             this.transactionId = str;
+        }
+
+        str = fields.get("batchUniqId");
+        if (str != null) {
+            this.batchUniqId = str;
         }
     }
 
@@ -103,5 +110,13 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public String getBatchUniqId() {
+        return batchUniqId;
+    }
+
+    public void setBatchUniqId(String batchUniqId) {
+        this.batchUniqId = batchUniqId;
     }
 }

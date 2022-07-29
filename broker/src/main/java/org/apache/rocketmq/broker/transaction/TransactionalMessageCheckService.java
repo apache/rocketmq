@@ -33,14 +33,17 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
+            return brokerController.getBrokerIdentity().getLoggerIdentifier() + TransactionalMessageCheckService.class.getSimpleName();
+        }
         return TransactionalMessageCheckService.class.getSimpleName();
     }
 
     @Override
     public void run() {
         log.info("Start transaction check service thread!");
-        long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
         while (!this.isStopped()) {
+            long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
             this.waitForRunning(checkInterval);
         }
         log.info("End transaction check service thread!");
