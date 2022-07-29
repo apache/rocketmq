@@ -154,17 +154,13 @@ public class PopReviveServiceTest {
                 popMessageProcessor.reviveTopic, queueId);
             assertThat(offsetOld).isEqualTo(-1L);
 
-            await().atMost(12, SECONDS).until(new Callable() {
-                @Override
-                public Boolean call() throws Exception {
-                    long offsetNew = brokerController.getConsumerOffsetManager().queryOffset(
-                        PopAckConstants.REVIVE_GROUP,
-                        popMessageProcessor.reviveTopic, queueId);
-                    return offsetNew == ackOffset + 1;
+            await().atMost(12, SECONDS).until((Callable) () -> {
+                long offsetNew = brokerController.getConsumerOffsetManager().queryOffset(
+                    PopAckConstants.REVIVE_GROUP,
+                    popMessageProcessor.reviveTopic, queueId);
+                return offsetNew == ackOffset + 1;
 
-                }
             });
-
         } catch (Exception e) {
             System.out.printf("Error!" + e);
         }
