@@ -165,8 +165,6 @@ public class PopReviveServiceTest {
                 }
             });
 
-            System.out.println("Done...");
-
         } catch (Exception e) {
             System.out.printf("Error!" + e);
         }
