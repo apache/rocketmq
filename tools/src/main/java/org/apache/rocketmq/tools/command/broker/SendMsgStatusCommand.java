@@ -54,7 +54,7 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerName", true, "Broker Name");
+        Option opt = new Option("b", "brokerName", true, "Broker Name e.g. clusterName_brokerName as DefaultCluster_broker-a");
         opt.setRequired(true);
         options.addOption(opt);
 
