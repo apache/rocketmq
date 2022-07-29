@@ -214,7 +214,8 @@ public class GrpcClientChannel extends ProxyChannel {
             }
             try {
                 observer.onNext(command);
-            } catch (StatusRuntimeException | IllegalStateException statusRuntimeException) {
+            } catch (StatusRuntimeException | IllegalStateException exception) {
+                log.warn("write telemetry failed. command:{}", command, exception);
                 this.clearClientObserver(observer);
             }
         }
