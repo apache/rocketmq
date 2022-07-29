@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -52,8 +53,12 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
             validateInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
 
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
-
             String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+
+            MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, request.getMessageId(), receiptHandle.getReceiptHandle());
+            if (messageReceiptHandle != null) {
+                receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandle());
+            }
             return this.messagingProcessor.changeInvisibleTime(
                 ctx,
                 receiptHandle,
@@ -61,12 +66,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
                 group,
                 GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()),
                 Durations.toMillis(request.getInvisibleDuration())
-            ).thenApply(ackResult -> {
-                if (AckStatus.OK.equals(ackResult.getStatus())) {
-                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, request.getMessageId(), receiptHandle.getReceiptHandle());
-                }
-                return convertToChangeInvisibleDurationResponse(ctx, request, ackResult);
-            });
+            ).thenApply(ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
