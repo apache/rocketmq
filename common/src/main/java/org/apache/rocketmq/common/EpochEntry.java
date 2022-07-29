@@ -22,7 +22,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class EpochEntry extends RemotingSerializable {
 
-    private int epoch;
+    private long epoch;
     private long startOffset;
     private long endOffset = Long.MAX_VALUE;
 
@@ -32,16 +32,16 @@ public class EpochEntry extends RemotingSerializable {
         this.endOffset = entry.getEndOffset();
     }
 
-    public EpochEntry(int epoch, long startOffset) {
+    public EpochEntry(long epoch, long startOffset) {
         this.epoch = epoch;
         this.startOffset = startOffset;
     }
 
-    public int getEpoch() {
+    public long getEpoch() {
         return epoch;
     }
 
-    public void setEpoch(int epoch) {
+    public void setEpoch(long epoch) {
         this.epoch = epoch;
     }
 
@@ -64,10 +64,10 @@ public class EpochEntry extends RemotingSerializable {
     @Override
     public String toString() {
         return "EpochEntry{" +
-            "epoch=" + epoch +
-            ", startOffset=" + startOffset +
-            ", endOffset=" + endOffset +
-            '}';
+                "epoch=" + epoch +
+                ", startOffset=" + startOffset +
+                ", endOffset=" + endOffset +
+                '}';
     }
 
     @Override
