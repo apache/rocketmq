@@ -22,14 +22,11 @@ public class AbstractRpcHook implements RPCHook {
 
     private RPCHookContext handlerContext;
 
-    @Override public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+    @Override
+    public void doBeforeRequest(String remoteAddr, RemotingCommand request) {}
 
-    }
-
-    @Override public void doAfterResponse(String remoteAddr, RemotingCommand request,
-        RemotingCommand response) {
-
-    }
+    @Override
+    public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {}
 
     //This method should move to the parent interface RPCHook in the future
     //Currently, to be compatible with client of jdk 1.6, put it here

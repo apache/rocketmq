@@ -73,12 +73,10 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(RemotingCommand request,
         WrappedChannelHandlerContext wrappedCtx) throws RemotingCommandException, InterruptedException, ExecutionException, TimeoutException {
-        if (wrappedCtx != null) {
-            log.debug("Receive request, {} {} {}",
+        log.debug("Receive request, {} {} {}",
                 request.getCode(),
                 wrappedCtx.channelRemoteAddr(),
-                    request);
-        }
+                request);
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
                 final AlterSyncStateSetRequestHeader controllerRequest = (AlterSyncStateSetRequestHeader) request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);

@@ -211,11 +211,10 @@ public abstract class NettyRemotingAbstract {
     }
 
     protected void doBeforeRpcHooks(String addr, RemotingCommand request, RPCHookContext rpcHookContext) {
-        if (rpcHooks.size() > 0) {
+        if (!rpcHooks.isEmpty()) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
-                    if (rpcHookContext != null
-                            && rpcHook instanceof AbstractRpcHook) {
+                    if (rpcHookContext != null && rpcHook instanceof AbstractRpcHook) {
                         ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
                     }
                     rpcHook.doBeforeRequest(addr, request);
@@ -238,11 +237,10 @@ public abstract class NettyRemotingAbstract {
     }
 
     protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response, RPCHookContext rpcHookContext) {
-        if (rpcHooks.size() > 0) {
+        if (!rpcHooks.isEmpty()) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
-                    if (rpcHookContext != null
-                            && rpcHook instanceof AbstractRpcHook) {
+                    if (rpcHookContext != null && rpcHook instanceof AbstractRpcHook) {
                         ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
                     }
                     rpcHook.doAfterResponse(addr, request, response);
