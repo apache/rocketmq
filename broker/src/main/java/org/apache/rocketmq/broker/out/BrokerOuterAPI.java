@@ -531,7 +531,7 @@ public class BrokerOuterAPI {
                     this.unregisterBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId);
                     LOGGER.info("unregisterBroker OK, NamesrvAddr: {}", namesrvAddr);
                 } catch (Exception e) {
-                    LOGGER.warn("unregisterBroker Exception, {}", namesrvAddr, e);
+                    LOGGER.warn("unregisterBroker Exception, NamesrvAddr: {}", namesrvAddr, e);
                 }
             }
         }
@@ -556,6 +556,9 @@ public class BrokerOuterAPI {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return;
+            }
+            case ResponseCode.SYSTEM_ERROR: {
+                throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
             }
             default:
                 break;
