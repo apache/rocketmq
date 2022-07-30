@@ -489,7 +489,6 @@ public class RouteInfoManager {
     }
 
     private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
-        Set<String> changedTopics = new HashSet<>();
         int topicCnt = 0;
 
         Iterator<Entry<String, Map<String, QueueData>>> itTopic = this.topicQueueTable.entrySet().iterator();
