@@ -260,6 +260,7 @@ public class BrokerController {
     private final Lock lock = new ReentrantLock();
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
+    private long lastSyncTimeMs = System.currentTimeMillis();
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -625,12 +626,17 @@ public class BrokerController {
                     @Override
                     public void run() {
                         try {
-                            BrokerController.this.slaveSynchronize.syncAll();
+                            if (System.currentTimeMillis() - lastSyncTimeMs > 60 * 1000) {
+                                BrokerController.this.getSlaveSynchronize().syncAll();
+                                lastSyncTimeMs = System.currentTimeMillis();
+                            }
+                            //timer checkpoint, latency-sensitive, so sync it more frequently
+                            BrokerController.this.getSlaveSynchronize().syncTimerCheckPoint();
                         } catch (Throwable e) {
                             LOG.error("Failed to sync all config for slave.", e);
                         }
                     }
-                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+                }, 1000 * 10, 3 * 1000, TimeUnit.MILLISECONDS);
 
             } else {
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -1952,6 +1958,25 @@ public class BrokerController {
         }
     }
 
+    public MessageStore getMessageStoreByBrokerName(String brokerName) {
+        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
+            return this.getMessageStore();
+        }
+        return null;
+    }
+
+    public BrokerIdentity getBrokerIdentity() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
+        } else {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
+        }
+    }
+
     public TopicConfigManager getTopicConfigManager() {
         return topicConfigManager;
     }
@@ -2194,25 +2219,6 @@ public class BrokerController {
         return scheduleMessageService;
     }
 
-    public MessageStore getMessageStoreByBrokerName(String brokerName) {
-        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
-            return this.getMessageStore();
-        }
-        return null;
-    }
-
-    public BrokerIdentity getBrokerIdentity() {
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            return new BrokerIdentity(
-                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
-                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
-        } else {
-            return new BrokerIdentity(
-                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
-                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
-        }
-    }
-
     public ReplicasManager getReplicasManager() {
         return replicasManager;
     }
@@ -2224,4 +2230,9 @@ public class BrokerController {
     public boolean isIsolated() {
         return this.isIsolated;
     }
+
+    public TimerCheckpoint getTimerCheckpoint() {
+        return timerCheckpoint;
+    }
+
 }
