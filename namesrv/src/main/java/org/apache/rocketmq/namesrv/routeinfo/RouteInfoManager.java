@@ -993,7 +993,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getSystemTopicList Exception", e);
         }
 
         return topicList;
@@ -1022,7 +1022,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getTopicsByCluster Exception", e);
         }
 
         return topicList;
@@ -1048,7 +1048,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getUnitTopics Exception", e);
         }
 
         return topicList;
@@ -1074,7 +1074,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubTopicList Exception", e);
         }
 
         return topicList;
@@ -1101,7 +1101,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubUnUnitTopicList Exception", e);
         }
 
         return topicList;
