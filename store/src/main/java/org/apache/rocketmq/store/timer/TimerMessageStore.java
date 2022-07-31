@@ -95,8 +95,7 @@ public class TimerMessageStore {
     private final ThreadLocal<ByteBuffer> bufferLocal;
     public static final int INITIAL = 0, RUNNING = 1, HAULT = 2, SHUTDOWN = 3;
     private volatile int state = INITIAL;
-    private final ScheduledExecutorService scheduler =
-            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("TimerScheduledThread"));
+    private final ScheduledExecutorService scheduler;
 
     private final MessageStore messageStore;
     private final TimerWheel timerWheel;
@@ -107,7 +106,7 @@ public class TimerMessageStore {
     private final TimerEnqueuePutService enqueuePutService;
     private final TimerDequeueWarmService dequeueWarmService;
     private final TimerDequeueGetService dequeueGetService;
-    private final TimerDequeuePutMessageService[] dequeuePutMessaageServices;
+    private final TimerDequeuePutMessageService[] dequeuePutMessageServices;
     private final TimerDequeueGetMessageService[] dequeueGetMessageServices;
     private final TimerFlushService timerFlushService;
 
@@ -153,6 +152,12 @@ public class TimerMessageStore {
         this.timerCheckpoint = timerCheckpoint;
         this.lastBrokerRole = storeConfig.getBrokerRole();
 
+        if (messageStore instanceof DefaultMessageStore) {
+            scheduler =
+                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("TimerScheduledThread", ((DefaultMessageStore) messageStore).getBrokerIdentity()));
+        } else {
+            scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("TimerScheduledThread"));
+        }
         // timerRollWindow contains the fixed number of slots regardless of precision.
         if (storeConfig.getTimerRollWindowSlot() > slotsTotal - TIMER_BLANK_SLOTS || storeConfig.getTimerRollWindowSlot() < 2) {
             this.timerRollWindowSlots = slotsTotal - TIMER_BLANK_SLOTS;
@@ -180,9 +185,9 @@ public class TimerMessageStore {
         }
         int putThreadNum = storeConfig.getTimerPutMessageThreadNum();
         if (putThreadNum <= 0) putThreadNum = 1;
-        dequeuePutMessaageServices = new TimerDequeuePutMessageService[putThreadNum];
-        for (int i = 0; i < dequeuePutMessaageServices.length; i++) {
-            dequeuePutMessaageServices[i] = new TimerDequeuePutMessageService();
+        dequeuePutMessageServices = new TimerDequeuePutMessageService[putThreadNum];
+        for (int i = 0; i < dequeuePutMessageServices.length; i++) {
+            dequeuePutMessageServices[i] = new TimerDequeuePutMessageService();
         }
         if (storeConfig.isTimerEnableDisruptor()) {
             enqueuePutQueue = new DisruptorBlockingQueue<TimerRequest>(1024);
@@ -415,8 +420,8 @@ public class TimerMessageStore {
         for (int i = 0; i < dequeueGetMessageServices.length; i++) {
             dequeueGetMessageServices[i].start();
         }
-        for (int i = 0; i < dequeuePutMessaageServices.length; i++) {
-            dequeuePutMessaageServices[i].start();
+        for (int i = 0; i < dequeuePutMessageServices.length; i++) {
+            dequeuePutMessageServices[i].start();
         }
         timerFlushService.start();
 
@@ -487,8 +492,8 @@ public class TimerMessageStore {
         for (int i = 0; i < dequeueGetMessageServices.length; i++) {
             dequeueGetMessageServices[i].shutdown();
         }
-        for (int i = 0; i < dequeuePutMessaageServices.length; i++) {
-            dequeuePutMessaageServices[i].shutdown();
+        for (int i = 0; i < dequeuePutMessageServices.length; i++) {
+            dequeuePutMessageServices[i].shutdown();
         }
         timerWheel.shutdown(false);
 
@@ -769,7 +774,7 @@ public class TimerMessageStore {
     }
 
     public boolean checkStateForPutMessages(int state) {
-        for (AbstractStateService service : dequeuePutMessaageServices) {
+        for (AbstractStateService service : dequeuePutMessageServices) {
             if (!service.isState(state)) {
                 return false;
             }
