@@ -81,8 +81,7 @@ public class ReplicasManager {
         this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
-        final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = brokerConfig.getControllerAddr();
+        final String controllerPaths = this.brokerConfig.getControllerAddr();
         final String[] controllers = controllerPaths.split(";");
         assert controllers.length > 0;
         this.controllerAddresses = new ArrayList<>(Arrays.asList(controllers));
@@ -111,8 +110,7 @@ public class ReplicasManager {
                     }
                     retryTimes++;
                     LOGGER.warn("Failed to start replicasManager, retry times:{}, current state:{}, try it again", retryTimes, this.state);
-                }
-                while (!startBasicService());
+                } while (!startBasicService());
 
                 LOGGER.info("Start replicasManager success, retry times:{}", retryTimes);
             });
