@@ -171,7 +171,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public void updateBrokerConfig(String brokerAddr,
         Properties properties) throws RemotingConnectException, RemotingSendRequestException,
-        RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException, MQClientException {
         defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);
     }
 
