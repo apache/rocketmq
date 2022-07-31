@@ -765,6 +765,7 @@ public class GrpcBaseIT extends BaseConf {
     public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
             .setBackoffPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(maxDeliveryAttempts)
                 .build())
