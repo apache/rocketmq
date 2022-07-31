@@ -67,6 +67,7 @@ public class Consumer {
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
         final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
         final boolean aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
+        final boolean clientRebalanceEnable = commandLine.hasOption('c') ? Boolean.parseBoolean(commandLine.getOptionValue('c')) : true;
 
         String group = groupPrefix;
         if (Boolean.parseBoolean(isSuffixEnable)) {
@@ -140,6 +141,7 @@ public class Consumer {
         consumer.setConsumeThreadMin(threadCount);
         consumer.setConsumeThreadMax(threadCount);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
+        consumer.setClientRebalance(clientRebalanceEnable);
 
         if (filterType == null || expression == null) {
             consumer.subscribe(topic, "*");
