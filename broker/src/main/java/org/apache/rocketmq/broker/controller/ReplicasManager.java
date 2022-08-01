@@ -73,6 +73,7 @@ public class ReplicasManager {
     private int syncStateSetEpoch = 0;
     private String masterAddress = "";
     private int masterEpoch = 0;
+    private long lastSyncTimeMs = System.currentTimeMillis();
 
     public ReplicasManager(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -257,11 +258,17 @@ public class ReplicasManager {
             this.brokerController.getSlaveSynchronize().setMasterAddr(this.masterAddress);
             slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
-                    brokerController.getSlaveSynchronize().syncAll();
+                    if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
+                        brokerController.getSlaveSynchronize().syncAll();
+                        lastSyncTimeMs = System.currentTimeMillis();
+                    }
+                    //timer checkpoint, latency-sensitive, so sync it more frequently
+                    brokerController.getSlaveSynchronize().syncTimerCheckPoint();
                 } catch (final Throwable e) {
                     LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                 }
-            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 3, TimeUnit.MILLISECONDS);
+
         } else {
             if (this.slaveSyncFuture != null) {
                 this.slaveSyncFuture.cancel(false);
