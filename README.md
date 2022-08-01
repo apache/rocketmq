@@ -166,7 +166,9 @@ name-service         1/1     107m
 ## Apache RocketMQ Community
 * [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on Apache RocketMQ.
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The Apache RocketMQ connector of Apache Flink that supports source and sink connector in data stream and Table.
-* RocketMQ Muli-Language Clients
+* [RocketMQ APIs](https://github.com/apache/rocketmq-apis): RocketMQ protobuf protocol.
+* [RocketMQ Clients](https://github.com/apache/rocketmq-clients): gRPC/protobuf-based RocketMQ clients.
+* RocketMQ Native Protocol-Based Clients
 	 - [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 	 - [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 	 - [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
