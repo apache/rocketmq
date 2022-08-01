@@ -752,6 +752,7 @@ public class GrpcBaseIT extends BaseConf {
     public Settings buildSimpleConsumerClientSettings(String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
             .setSubscription(Subscription.newBuilder()
                 .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
@@ -765,6 +766,7 @@ public class GrpcBaseIT extends BaseConf {
     public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
             .setBackoffPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(maxDeliveryAttempts)
                 .build())

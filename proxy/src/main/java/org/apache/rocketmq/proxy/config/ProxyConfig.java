@@ -91,6 +91,7 @@ public class ProxyConfig implements ConfigFile {
     private int grpcClientProducerBackoffMultiplier = 2;
     private long grpcClientConsumerLongPollingTimeoutMillis = Duration.ofSeconds(30).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
+    private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
 
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
@@ -854,5 +855,13 @@ public class ProxyConfig implements ConfigFile {
 
     public Map<Integer, Long> getDelayLevelTable() {
         return delayLevelTable;
+    }
+
+    public long getGrpcClientIdleTimeMills() {
+        return grpcClientIdleTimeMills;
+    }
+
+    public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
+        this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
     }
 }

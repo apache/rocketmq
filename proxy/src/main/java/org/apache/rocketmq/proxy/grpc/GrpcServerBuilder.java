@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLException;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -70,20 +71,22 @@ public class GrpcServerBuilder {
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
         int workerLoopNum = ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum();
         int maxInboundMessageSize = ConfigurationManager.getProxyConfig().getGrpcMaxInboundMessageSize();
+        long idleTimeMills = ConfigurationManager.getProxyConfig().getGrpcClientIdleTimeMills();
 
         if (ConfigurationManager.getProxyConfig().isEnableGrpcEpoll()) {
-            serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
+            serverBuilder.bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
                 .workerEventLoopGroup(new EpollEventLoopGroup(workerLoopNum))
                 .channelType(EpollServerSocketChannel.class)
                 .executor(executor);
         } else {
-            serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
+            serverBuilder.bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
                 .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
                 .channelType(NioServerSocketChannel.class)
                 .executor(executor);
         }
+
+        serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
+                .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
         log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
@@ -153,5 +156,4 @@ public class GrpcServerBuilder {
 
         return this;
     }
-
 }

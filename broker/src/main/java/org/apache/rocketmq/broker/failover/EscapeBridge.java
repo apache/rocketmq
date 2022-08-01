@@ -213,6 +213,10 @@ public class EscapeBridge {
         MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
         if (messageStore != null) {
             final GetMessageResult getMessageTmpResult = messageStore.getMessage(innerConsumerGroupName, topic, queueId, offset, 1, null);
+            if (getMessageTmpResult == null) {
+                LOG.warn("getMessageResult is null , innerConsumerGroupName {}, topic {}, offset {}, queueId {}", innerConsumerGroupName, topic, offset, queueId);
+                return null;
+            }
             List<MessageExt> list = decodeMsgList(getMessageTmpResult);
             if (list == null || list.isEmpty()) {
                 LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, getMessageTmpResult);
