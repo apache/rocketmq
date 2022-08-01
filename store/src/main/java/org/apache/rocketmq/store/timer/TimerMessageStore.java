@@ -64,6 +64,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.store.util.PerfCounter;
 
 public class TimerMessageStore {
     public static final String TIMER_TOPIC = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
@@ -85,6 +86,7 @@ public class TimerMessageStore {
     public boolean debug = false;
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private final PerfCounter.Ticks perfs = new PerfCounter.Ticks(log);
     private final BlockingQueue<TimerRequest> enqueuePutQueue;
     private final BlockingQueue<List<TimerRequest>> dequeueGetQueue;
     private final BlockingQueue<TimerRequest> dequeuePutQueue;
@@ -585,12 +587,15 @@ public class TimerMessageStore {
         try {
             int i = 0;
             for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                perfs.startTick("enqueue_get");
                 try {
                     long offsetPy = bufferCQ.getByteBuffer().getLong();
                     int sizePy = bufferCQ.getByteBuffer().getInt();
                     bufferCQ.getByteBuffer().getLong(); //tags code
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
-                    if (msgExt != null) {
+                    if (null == msgExt) {
+                        perfs.getCounter("enqueue_get_miss");
+                    } else {
                         lastEnqueueButExpiredTime = System.currentTimeMillis();
                         lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
@@ -614,6 +619,8 @@ public class TimerMessageStore {
                         holdMomentForUnknownError();
                         throw e;
                     }
+                } finally {
+                    perfs.endTick("enqueue_get");
                 }
                 //if broker role changes, ignore last enqueue
                 if (!isRunningEnqueue()) {
@@ -700,8 +707,10 @@ public class TimerMessageStore {
         try {
             //read the msg one by one
             while (currOffsetPy != -1) {
-                if (!isRunning())
+                if (!isRunning()) {
                     break;
+                }
+                perfs.startTick("warm_dequeue");
                 if (null == timeSbr || timeSbr.getStartOffset() > currOffsetPy) {
                     timeSbr = timerLog.getWholeBuffer(currOffsetPy);
                     if (null != timeSbr)
@@ -735,6 +744,7 @@ public class TimerMessageStore {
                     log.error("Unexpected error in warm", e);
                 } finally {
                     currOffsetPy = prevPos;
+                    perfs.endTick("warm_dequeue");
                 }
             }
             for (SelectMappedBufferResult sbr : sbrs) {
@@ -817,6 +827,7 @@ public class TimerMessageStore {
             SelectMappedBufferResult timeSbr = null;
             //read the timer log one by one
             while (currOffsetPy != -1) {
+                perfs.startTick("dequeue_read_timerlog");
                 if (null == timeSbr || timeSbr.getStartOffset() > currOffsetPy) {
                     timeSbr = timerLog.getWholeBuffer(currOffsetPy);
                     if (null != timeSbr)
@@ -846,6 +857,7 @@ public class TimerMessageStore {
                     log.error("Error in dequeue_read_timerlog", e);
                 } finally {
                     currOffsetPy = prevPos;
+                    perfs.endTick("dequeue_read_timerlog");
                 }
             }
             if (deleteMsgStack.size() == 0 && normalMsgStack.size() == 0) {
@@ -1223,12 +1235,14 @@ public class TimerMessageStore {
                         for (TimerRequest req : trs) {
                             req.setLatch(latch);
                             try {
+                                perfs.startTick("enqueue_put");
                                 if (isMaster() && req.getDelayTime() < currWriteTimeMs) {
                                     dequeuePutQueue.put(req);
                                 } else {
                                     boolean doEnqueueRes = doEnqueue(req.getOffsetPy(), req.getSizePy(), req.getDelayTime(), req.getMsg());
                                     req.idempotentRelease(doEnqueueRes || storeConfig.isTimerSkipUnknownError());
                                 }
+                                perfs.endTick("enqueue_put");
                             } catch (Throwable t) {
                                 log.error("Unknown error", t);
                                 if (storeConfig.isTimerSkipUnknownError()) {
@@ -1329,6 +1343,7 @@ public class TimerMessageStore {
                                 break;
                             }
                             try {
+                                perfs.startTick("dequeue_put");
                                 addMetric(tr.getMsg(), -1);
                                 MessageExtBrokerInner msg = convert(tr.getMsg(), tr.getEnqueueTime(), needRoll(tr.getMagic()));
                                 doRes = PUT_NEED_RETRY != doPut(msg, needRoll(tr.getMagic()));
@@ -1341,6 +1356,7 @@ public class TimerMessageStore {
                                     doRes = PUT_NEED_RETRY != doPut(msg, needRoll(tr.getMagic()));
                                     Thread.sleep(500 * precisionMs / 1000);
                                 }
+                                perfs.endTick("dequeue_put");
                             } catch (Throwable t) {
                                 log.info("Unknown error", t);
                                 if (storeConfig.isTimerSkipUnknownError()) {
@@ -1386,6 +1402,7 @@ public class TimerMessageStore {
                         TimerRequest tr = trs.get(i);
                         boolean doRes = false;
                         try {
+                            long start = System.currentTimeMillis();
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
@@ -1402,6 +1419,7 @@ public class TimerMessageStore {
                                     if (null != uniqkey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqkey)) {
                                         doRes = true;
                                         tr.idempotentRelease();
+                                        perfs.getCounter("dequeue_delete").flow(1);
                                     } else {
                                         tr.setMsg(msgExt);
                                         while (!isStopped() && !doRes) {
@@ -1409,10 +1427,12 @@ public class TimerMessageStore {
                                         }
                                     }
                                 }
+                                perfs.getCounter("dequeue_get_msg").flow(System.currentTimeMillis() - start);
                             } else {
                                 //the tr will never be processed afterwards, so idempotentRelease it
                                 tr.idempotentRelease();
                                 doRes = true;
+                                perfs.getCounter("dequeue_get_msg_miss").flow(System.currentTimeMillis() - start);
                             }
                         } catch (Throwable e) {
                             log.error("Unknown exception", e);
@@ -1553,6 +1573,14 @@ public class TimerMessageStore {
         ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(TIMER_TOPIC, 0);
         long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
         return maxOffsetInQueue - tmpQueueOffset;
+    }
+
+    public float getEnqueueTps() {
+        return perfs.getCounter("enqueue_put").getLastTps();
+    }
+
+    public float getDequeueTps() {
+        return perfs.getCounter("dequeue_put").getLastTps();
     }
 
     public void prepareTimerCheckPoint() {
