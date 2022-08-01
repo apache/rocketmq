@@ -539,7 +539,7 @@ public class BrokerController {
 
     protected void initializeBrokerScheduledTasks() {
         final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
-        final long period = 1000 * 60 * 60 * 24;
+        final long period = TimeUnit.DAYS.toMillis(1);
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
