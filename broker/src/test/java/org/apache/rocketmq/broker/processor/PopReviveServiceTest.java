@@ -17,211 +17,212 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.util.HookUtils;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.PopAckConstants;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
-import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Spy;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
-import java.io.File;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class PopReviveServiceTest {
-    @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
-        new NettyClientConfig(), new MessageStoreConfig());
-    private PopMessageProcessor popMessageProcessor;
-    private AckMessageProcessor ackMessageProcessor;
 
-    public static MessageStoreConfig storeConfig;
-    private DefaultMessageStore messageStore;
-    private String group = "FooBarGroup";
-    private String topic = "FooBar";
-    private String brokerName = "broker";
+    private static final String REVIVE_TOPIC = PopAckConstants.REVIVE_TOPIC + "test";
+    private static final int REVIVE_QUEUE_ID = 0;
+    private static final String GROUP = "group";
+    private static final String TOPIC = "topic";
+    private static final SocketAddress STORE_HOST = RemotingUtil.string2SocketAddress("127.0.0.1:8080");
+
+    @Mock
+    private MessageStore messageStore;
+    @Mock
+    private ConsumerOffsetManager consumerOffsetManager;
+    @Mock
+    private MessageStoreConfig messageStoreConfig;
+    @Mock
+    private TopicConfigManager topicConfigManager;
+    @Mock
+    private TimerMessageStore timerMessageStore;
+    @Mock
+    private SubscriptionGroupManager subscriptionGroupManager;
+    @Mock
+    private BrokerController brokerController;
+
+    private BrokerConfig brokerConfig;
+    private PopReviveService popReviveService;
 
     @Before
-    public void init() throws Exception {
-        // Create messageStore for saving Ck, Ack messages.
-        String baseDir = createBaseDir();
-        storeConfig = new MessageStoreConfig();
-        storeConfig.setMappedFileSizeCommitLog(1024 * 1024 * 1024);
-        storeConfig.setMappedFileSizeTimerLog(1024 * 1024 * 1024);
-        storeConfig.setMappedFileSizeConsumeQueue(10240);
-        storeConfig.setMaxHashSlotNum(10000);
-        storeConfig.setMaxIndexNum(100 * 1000);
-        storeConfig.setStorePathRootDir(baseDir);
-        storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
-        storeConfig.setTimerInterceptDelayLevel(true);
-        storeConfig.setTimerPrecisionMs(1000);
-        TimerCheckpoint timerCheckpoint = new TimerCheckpoint(
-            baseDir + File.separator + "config" + File.separator + "timercheck");
-        TimerMetrics timerMetrics = new TimerMetrics(
-            baseDir + File.separator + "config" + File.separator + "timermetrics");
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest", false),
-            new MyMessageArrivingListener(), new BrokerConfig());
-        TimerMessageStore timerMessageStore = new TimerMessageStore(messageStore, storeConfig, timerCheckpoint,
-            timerMetrics, null);
-        messageStore.setTimerMessageStore(timerMessageStore);
-        boolean load = messageStore.load();
-        load = load && timerMessageStore.load();
-        assertTrue(load);
+    public void before() {
+        brokerConfig = new BrokerConfig();
 
-        FieldUtils.writeField(brokerController.getBrokerConfig(), "enablePopBufferMerge", true, true);
-        brokerController.setMessageStore(messageStore);
-        brokerController.setTimerMessageStore(timerMessageStore);
-        brokerController.getMessageStore().start();
-        brokerController.getTimerMessageStore().start();
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
 
-        popMessageProcessor = new PopMessageProcessor(brokerController);
-        ackMessageProcessor = new AckMessageProcessor(brokerController);
-        ackMessageProcessor.startPopReviveService();
+        when(messageStore.getTimerMessageStore()).thenReturn(timerMessageStore);
+        when(timerMessageStore.getReadBehind()).thenReturn(0L);
+        when(timerMessageStore.getEnqueueBehind()).thenReturn(0L);
+
+        when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(new TopicConfig());
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(anyString())).thenReturn(new SubscriptionGroupConfig());
+
+        popReviveService = spy(new PopReviveService(brokerController, REVIVE_TOPIC, REVIVE_QUEUE_ID));
+        popReviveService.setShouldRunPopRevive(true);
     }
-
     @Test
-    public void testRevive() throws Exception {
-        PopBufferMergeService popBufferMergeService = new PopBufferMergeService(brokerController, popMessageProcessor);
-        popBufferMergeService.start();
-        PopCheckPoint ck = new PopCheckPoint();
-        ck.setBitMap(0);
-        int msgCnt = 1;
-        ck.setNum((byte) msgCnt);
-        long popTime = System.currentTimeMillis() - 1000;
-        ck.setPopTime(popTime);
-        int ckInvisibleTime = 8_000;
-        int ackInvisibleTime = 10_000;
-        ck.setInvisibleTime(ckInvisibleTime);
-        int offset = -1;
-        ck.setStartOffset(offset);
-        ck.setCId(group);
-        ck.setTopic(topic);
-        int queueId = 0;
-        ck.setQueueId((byte) queueId);
+    public void testWhenAckMoreThanCk() throws Throwable {
+        long maxReviveOffset = 4;
 
-        int reviveQid = 0;
-        long nextBeginOffset = 0L;
-        long ackOffset = offset;
-        AckMsg ackMsg = new AckMsg();
-        ackMsg.setAckOffset(ackOffset);
-        ackMsg.setStartOffset(offset);
-        ackMsg.setConsumerGroup(group);
-        ackMsg.setTopic(topic);
-        ackMsg.setQueueId(queueId);
-        ackMsg.setPopTime(popTime);
-        ackMsg.setBrokerName(brokerName);
-        try {
-            assertThat(popBufferMergeService.addCk(ck, reviveQid, ackOffset, nextBeginOffset)).isTrue();
-            for (PopBufferMergeService.PopCheckPointWrapper wrapper : popBufferMergeService.buffer.values()) {
-                assertThat(wrapper.isCkStored()).isFalse();
-                boolean putCkResult = putCkToStore(wrapper, ckInvisibleTime);
-                assertThat(putCkResult).isTrue();
-                assertThat(wrapper.isCkStored()).isTrue();
-                boolean putAckResult = putAckToStore(wrapper, ackMsg, reviveQid, ackInvisibleTime);
-                assertThat(putAckResult).isTrue();
+        when(consumerOffsetManager.queryOffset(PopAckConstants.REVIVE_GROUP, REVIVE_TOPIC, REVIVE_QUEUE_ID))
+                .thenReturn(0L);
+        List<MessageExt> reviveMessageExtList = new ArrayList<>();
+        long basePopTime = System.currentTimeMillis();
+        {
+            // put a pair of ck and ack
+            PopCheckPoint ck = buildPopCheckPoint(1, basePopTime, 1);
+            reviveMessageExtList.add(buildCkMsg(ck));
+            reviveMessageExtList.add(buildAckMsg(buildAckMsg(1, basePopTime), ck.getReviveTime(), 1, basePopTime));
+        }
+        {
+            for (int i = 2; i <= maxReviveOffset; i++) {
+                long popTime = basePopTime + i;
+                PopCheckPoint ck = buildPopCheckPoint(i, popTime, i);
+                reviveMessageExtList.add(buildAckMsg(buildAckMsg(i, popTime), ck.getReviveTime(), i, popTime));
             }
-            long offsetOld = brokerController.getConsumerOffsetManager().queryOffset(PopAckConstants.REVIVE_GROUP,
-                popMessageProcessor.reviveTopic, queueId);
-            assertThat(offsetOld).isEqualTo(-1L);
-
-            await().atMost(12, SECONDS).until((Callable) () -> {
-                long offsetNew = brokerController.getConsumerOffsetManager().queryOffset(
-                    PopAckConstants.REVIVE_GROUP,
-                    popMessageProcessor.reviveTopic, queueId);
-                return offsetNew == ackOffset + 1;
-
-            });
-        } catch (Exception e) {
-            System.out.printf("Error!" + e);
         }
+        AtomicBoolean firstCall = new AtomicBoolean(true);
+        doAnswer((Answer<List<MessageExt>>) mock -> {
+            if (firstCall.get()) {
+                firstCall.set(false);
+                return reviveMessageExtList;
+            }
+            return null;
+        }).when(popReviveService).getReviveMessage(anyLong(), anyInt());
+
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        popReviveService.consumeReviveMessage(consumeReviveObj);
+
+        assertEquals(1, consumeReviveObj.map.size());
+
+        AtomicLong committedOffset = new AtomicLong(-1);
+        doAnswer(mock -> {
+            committedOffset.set(mock.getArgument(4));
+            return null;
+        }).when(consumerOffsetManager).commitOffset(anyString(), anyString(), anyString(), anyInt(), anyLong());
+        popReviveService.mergeAndRevive(consumeReviveObj);
+
+        assertEquals(1, committedOffset.get());
     }
 
-    public static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + File.separator + "unitteststore-" + UUID.randomUUID();
-        final File file = new File(baseDir);
-        if (file.exists()) {
-            System.exit(1);
-        }
-        return baseDir;
+    public static PopCheckPoint buildPopCheckPoint(long startOffset, long popTime, long reviveOffset) {
+        PopCheckPoint ck = new PopCheckPoint();
+        ck.setStartOffset(startOffset);
+        ck.setPopTime(popTime);
+        ck.setQueueId((byte) 0);
+        ck.setCId(GROUP);
+        ck.setTopic(TOPIC);
+        ck.setNum((byte) 1);
+        ck.setBitMap(0);
+        ck.setReviveOffset(reviveOffset);
+        ck.setInvisibleTime(1000);
+        return ck;
     }
 
-    private class MyMessageArrivingListener implements MessageArrivingListener {
-        @Override
-        public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-            byte[] filterBitMap, Map<String, String> properties) {
-        }
+    public static AckMsg buildAckMsg(long offset, long popTime) {
+        AckMsg ackMsg = new AckMsg();
+        ackMsg.setAckOffset(offset);
+        ackMsg.setStartOffset(offset);
+        ackMsg.setConsumerGroup(GROUP);
+        ackMsg.setTopic(TOPIC);
+        ackMsg.setQueueId(0);
+        ackMsg.setPopTime(popTime);
+
+        return ackMsg;
     }
 
-    private boolean putCkToStore(final PopBufferMergeService.PopCheckPointWrapper pointWrapper,
-        final long invisibleTime) {
-        if (pointWrapper.getReviveQueueOffset() >= 0) {
-            return false;
-        }
-        MessageExtBrokerInner msgInner = popMessageProcessor.buildCkMsg(pointWrapper.getCk(),
-            pointWrapper.getReviveQueueId());
-        msgInner.setDeliverTimeMs(System.currentTimeMillis() + invisibleTime);
-        HookUtils.handleScheduleMessage(brokerController, msgInner);
-        PutMessageResult putMessageResult = brokerController.getMessageStore().putMessage(msgInner);
-        if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
-            return false;
-        }
-        pointWrapper.setCkStored(true);
-        pointWrapper.setReviveQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
-        return true;
-    }
-
-    private boolean putAckToStore(PopBufferMergeService.PopCheckPointWrapper pointWrapper, AckMsg ackMsg, int rqId,
-        long invisible) {
+    public static MessageExtBrokerInner buildCkMsg(PopCheckPoint ck) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-        msgInner.setTopic(popMessageProcessor.reviveTopic);
+
+        msgInner.setTopic(REVIVE_TOPIC);
+        msgInner.setBody(JSON.toJSONString(ck).getBytes(DataConverter.charset));
+        msgInner.setQueueId(REVIVE_QUEUE_ID);
+        msgInner.setTags(PopAckConstants.CK_TAG);
+        msgInner.setBornTimestamp(System.currentTimeMillis());
+        msgInner.setBornHost(STORE_HOST);
+        msgInner.setStoreHost(STORE_HOST);
+        msgInner.setDeliverTimeMs(ck.getReviveTime() - PopAckConstants.ackTimeInterval);
+        msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genCkUniqueId(ck));
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        msgInner.setQueueOffset(ck.getReviveOffset());
+
+        return msgInner;
+    }
+
+    public static MessageExtBrokerInner buildAckMsg(AckMsg ackMsg, long deliverMs, long reviveOffset, long deliverTime) {
+        MessageExtBrokerInner messageExtBrokerInner = buildAckInnerMessage(
+                REVIVE_TOPIC,
+                ackMsg,
+                REVIVE_QUEUE_ID,
+                STORE_HOST,
+                deliverMs,
+                PopMessageProcessor.genAckUniqueId(ackMsg)
+        );
+        messageExtBrokerInner.setQueueOffset(reviveOffset);
+        messageExtBrokerInner.setDeliverTimeMs(deliverMs);
+        messageExtBrokerInner.setStoreTimestamp(deliverTime);
+        return messageExtBrokerInner;
+    }
+
+    public static MessageExtBrokerInner buildAckInnerMessage(String reviveTopic, AckMsg ackMsg, int reviveQid, SocketAddress host, long deliverMs, String ackUniqueId) {
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setTopic(reviveTopic);
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.charset));
-        // msgInner.setQueueId(Integer.valueOf(extraInfo[3]));
-        msgInner.setQueueId(rqId);
+        msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.ACK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
-        msgInner.setBornHost(this.brokerController.getStoreHost());
-        msgInner.setStoreHost(this.brokerController.getStoreHost());
-        msgInner.setDeliverTimeMs(System.currentTimeMillis() + invisible);
-        msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX,
-            PopMessageProcessor.genAckUniqueId(ackMsg));
+        msgInner.setBornHost(host);
+        msgInner.setStoreHost(host);
+        msgInner.setDeliverTimeMs(deliverMs);
+        msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, ackUniqueId);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        HookUtils.handleScheduleMessage(brokerController, msgInner);
 
-        PutMessageResult putMessageResult = brokerController.getMessageStore().putMessage(msgInner);
-        return putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK;
+        return msgInner;
     }
-
 }

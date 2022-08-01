@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
@@ -71,7 +70,6 @@ public class PopMessageProcessorTest {
     private ChannelHandlerContext handlerContext;
     @Mock
     private DefaultMessageStore messageStore;
-    private ScheduleMessageService scheduleMessageService;
     private ClientChannelInfo clientChannelInfo;
     private String group = "FooBarGroup";
     private String topic = "FooBar";
@@ -80,9 +78,6 @@ public class PopMessageProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        scheduleMessageService = new ScheduleMessageService(brokerController);
-        scheduleMessageService.parseDelayLevel();
-        when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         when(messageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));

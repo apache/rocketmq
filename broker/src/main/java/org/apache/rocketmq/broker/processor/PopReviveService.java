@@ -153,7 +153,7 @@ public class PopReviveService extends ServiceThread {
         }
     }
 
-    private List<MessageExt> getReviveMessage(long offset, int queueId) {
+    protected List<MessageExt> getReviveMessage(long offset, int queueId) {
         PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32);
         if (pullResult == null) {
             return null;
@@ -258,7 +258,7 @@ public class PopReviveService extends ServiceThread {
         return foundList;
     }
 
-    private void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
+    protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
         long startScanTime = System.currentTimeMillis();
         long endTime = 0;
@@ -277,8 +277,10 @@ public class PopReviveService extends ServiceThread {
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
+                long timerDelay = brokerController.getMessageStore().getTimerMessageStore().getReadBehind();
+                long commitLogDelay = brokerController.getMessageStore().getTimerMessageStore().getEnqueueBehind();
                 // move endTime
-                if (endTime != 0 && ((System.currentTimeMillis() - endTime) > (3 * PopAckConstants.SECOND))) {
+                if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
                     endTime = System.currentTimeMillis();
                 }
                 POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
@@ -345,7 +347,7 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.endTime = endTime;
     }
 
-    private void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
+    protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
         POP_LOGGER.info("reviveQueueId={},ck listSize={}", queueId, sortList.size());
         if (sortList.size() != 0) {
