@@ -37,9 +37,9 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -81,8 +81,7 @@ public class ReplicasManager {
         this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
-        final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = brokerConfig.getControllerAddr();
+        final String controllerPaths = this.brokerConfig.getControllerAddr();
         final String[] controllers = controllerPaths.split(";");
         assert controllers.length > 0;
         this.controllerAddresses = new ArrayList<>(Arrays.asList(controllers));
@@ -102,16 +101,18 @@ public class ReplicasManager {
         if (!startBasicService()) {
             LOGGER.error("Failed to start replicasManager");
             this.executorService.submit(() -> {
-                int tryTimes = 1;
-                while (!startBasicService()) {
-                    tryTimes++;
-                    LOGGER.error("Failed to start replicasManager, try times:{}, current state:{}, try it again", tryTimes, this.state);
+                int retryTimes = 0;
+                do {
                     try {
-                        Thread.sleep(1000);
+                        TimeUnit.SECONDS.sleep(1);
                     } catch (InterruptedException ignored) {
+
                     }
-                }
-                LOGGER.info("Start replicasManager success, try times:{}", tryTimes);
+                    retryTimes++;
+                    LOGGER.warn("Failed to start replicasManager, retry times:{}, current state:{}, try it again", retryTimes, this.state);
+                } while (!startBasicService());
+
+                LOGGER.info("Start replicasManager success, retry times:{}", retryTimes);
             });
         }
     }
