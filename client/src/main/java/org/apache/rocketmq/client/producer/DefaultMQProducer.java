@@ -704,12 +704,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     @Override
     public void setMaxTopicLength(int maxLength) {
-        Validators.TOPIC_MAX_LENGTH = maxLength;
+        Validators.topicMaxLength = maxLength;
     }
 
     @Override
     public int getMaxTopicLength() {
-        return Validators.TOPIC_MAX_LENGTH;
+        return Validators.topicMaxLength;
     }
 
     /**

@@ -44,7 +44,6 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.consumer.RebalanceService;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageClientExt;
@@ -577,7 +576,7 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testMaxLengthOfConsumer(){
         DefaultLitePullConsumer consumer = new DefaultLitePullConsumer();
-        Assert.assertEquals(consumer.getMaxConsumerGroupLength(), Validators.CONSUMER_GROUP_MAX_LENGTH);
+        Assert.assertEquals(consumer.getMaxConsumerGroupLength(), Validators.consumerGroupMaxLength);
     }
 
     @Test

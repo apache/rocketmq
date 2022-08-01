@@ -1078,12 +1078,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void setMaxConsumerGroupLength(int maxLength) {
-        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+        Validators.consumerGroupMaxLength = maxLength;
     }
 
     @Override
     public int getMaxConsumerGroupLength() {
-        return Validators.CONSUMER_GROUP_MAX_LENGTH;
+        return Validators.consumerGroupMaxLength;
     }
 
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,

@@ -75,8 +75,8 @@ public class ValidatorsTest {
 
     @Test
     public void testCheckTopic_TooLongTopic() {
-        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.TOPIC_MAX_LENGTH + 1, "_");
-        assertThat(tooLongTopic.length()).isGreaterThan(Validators.TOPIC_MAX_LENGTH);
+        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.topicMaxLength + 1, "_");
+        assertThat(tooLongTopic.length()).isGreaterThan(Validators.topicMaxLength);
         try {
             Validators.checkTopic(tooLongTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);

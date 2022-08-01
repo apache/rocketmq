@@ -439,12 +439,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void setMaxConsumerGroupLength(int maxLength) {
-        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+        Validators.consumerGroupMaxLength = maxLength;
     }
 
     @Override
     public int getMaxConsumerGroupLength() {
-        return Validators.CONSUMER_GROUP_MAX_LENGTH;
+        return Validators.consumerGroupMaxLength;
     }
 
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)

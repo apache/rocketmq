@@ -1432,12 +1432,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public void setMaxConsumerGroupLength(int maxLength) {
-        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+        Validators.consumerGroupMaxLength = maxLength;
     }
 
     @Override
     public int getMaxConsumerGroupLength() {
-        return Validators.CONSUMER_GROUP_MAX_LENGTH;
+        return Validators.consumerGroupMaxLength;
     }
 
     public MQClientInstance getmQClientFactory() {

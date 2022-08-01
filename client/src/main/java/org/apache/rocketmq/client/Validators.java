@@ -36,9 +36,9 @@ public class Validators {
     public static final int DEFAULT_TOPIC_MAX_LENGTH = 192;
     public static final int DEFAULT_CONSUMER_GROUP_MAX_LENGTH = 255;
     // not thread safe
-    public static int CONSUMER_GROUP_MAX_LENGTH = DEFAULT_CONSUMER_GROUP_MAX_LENGTH;
+    public static int consumerGroupMaxLength = DEFAULT_CONSUMER_GROUP_MAX_LENGTH;
     // not thread safe
-    public static int TOPIC_MAX_LENGTH =  DEFAULT_TOPIC_MAX_LENGTH;
+    public static int topicMaxLength =  DEFAULT_TOPIC_MAX_LENGTH;
 
     /**
      * Validate group
@@ -48,7 +48,7 @@ public class Validators {
             throw new MQClientException("the specified group is blank", null);
         }
 
-        if (group.length() > CONSUMER_GROUP_MAX_LENGTH) {
+        if (group.length() > consumerGroupMaxLength) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
 
@@ -88,9 +88,9 @@ public class Validators {
             throw new MQClientException("The specified topic is blank", null);
         }
 
-        if (topic.length() > TOPIC_MAX_LENGTH) {
+        if (topic.length() > topicMaxLength) {
             throw new MQClientException(
-                String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
+                String.format("The specified topic is longer than topic max length %d.", topicMaxLength), null);
         }
 
         if (isTopicOrGroupIllegal(topic)) {
