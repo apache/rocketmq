@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
@@ -50,6 +51,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -456,6 +458,20 @@ public class DefaultMQProducerTest {
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void testMaxLengthOfTopic(){
+        DefaultMQProducer producer = new DefaultMQProducer();
+        Assert.assertEquals(producer.getMaxTopicLength(), Validators.DEFAULT_TOPIC_MAX_LENGTH);
+    }
+
+    @Test
+    public void testMaxLengthOfTopicUpdated(){
+        int n = 20000;
+        DefaultMQProducer producer = new DefaultMQProducer();
+        producer.setMaxTopicLength(n);
+        Assert.assertEquals(producer.getMaxTopicLength(), n);
     }
 
     public static TopicRouteData createTopicRoute() {

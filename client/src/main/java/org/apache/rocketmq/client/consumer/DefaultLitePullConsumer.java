@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -340,6 +341,16 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
         this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
+    }
+
+    @Override
+    public void setMaxConsumerGroupLength(int maxLength) {
+        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+    }
+
+    @Override
+    public int getMaxConsumerGroupLength() {
+        return Validators.CONSUMER_GROUP_MAX_LENGTH;
     }
 
     @Override

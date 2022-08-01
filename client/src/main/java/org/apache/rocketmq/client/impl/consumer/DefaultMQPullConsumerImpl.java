@@ -437,6 +437,16 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return info;
     }
 
+    @Override
+    public void setMaxConsumerGroupLength(int maxLength) {
+        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+    }
+
+    @Override
+    public int getMaxConsumerGroupLength() {
+        return Validators.CONSUMER_GROUP_MAX_LENGTH;
+    }
+
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
         pull(mq, subExpression, offset, maxNums, pullCallback, this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());

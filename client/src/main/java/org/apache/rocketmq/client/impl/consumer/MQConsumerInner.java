@@ -49,4 +49,16 @@ public interface MQConsumerInner {
     boolean isUnitMode();
 
     ConsumerRunningInfo consumerRunningInfo();
+
+    /**
+     * update max length of consumer group
+     * @param maxLength max length in characters
+     */
+    void setMaxConsumerGroupLength(int maxLength);
+
+    /**
+     * get max length of consumer group
+     * @return max length
+     */
+    int getMaxConsumerGroupLength();
 }

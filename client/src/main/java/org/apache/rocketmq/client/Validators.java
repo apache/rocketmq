@@ -33,8 +33,12 @@ import org.apache.rocketmq.common.topic.TopicValidator;
  * Common Validator
  */
 public class Validators {
-    public static final int CHARACTER_MAX_LENGTH = 255;
-    public static final int TOPIC_MAX_LENGTH = 127;
+    public static final int DEFAULT_TOPIC_MAX_LENGTH = 192;
+    public static final int DEFAULT_CONSUMER_GROUP_MAX_LENGTH = 255;
+    // not thread safe
+    public static int CONSUMER_GROUP_MAX_LENGTH = DEFAULT_CONSUMER_GROUP_MAX_LENGTH;
+    // not thread safe
+    public static int TOPIC_MAX_LENGTH =  DEFAULT_TOPIC_MAX_LENGTH;
 
     /**
      * Validate group
@@ -44,7 +48,7 @@ public class Validators {
             throw new MQClientException("the specified group is blank", null);
         }
 
-        if (group.length() > CHARACTER_MAX_LENGTH) {
+        if (group.length() > CONSUMER_GROUP_MAX_LENGTH) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
 

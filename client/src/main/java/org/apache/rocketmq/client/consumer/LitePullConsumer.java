@@ -206,4 +206,17 @@ public interface LitePullConsumer {
      * @param messageQueue
      */
     void seekToEnd(MessageQueue messageQueue)throws MQClientException;
+
+    /**
+     * update max length of consumer group， should be set before client started and can't be updated on runtime
+     * and not thread-safe
+     * @param maxLength max length in characters
+     */
+    void setMaxConsumerGroupLength(int maxLength);
+
+    /**
+     * get max length of consumer group
+     * @return max length
+     */
+    int getMaxConsumerGroupLength();
 }

@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
@@ -43,6 +44,7 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.consumer.RebalanceService;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageClientExt;
@@ -52,6 +54,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -569,6 +572,20 @@ public class DefaultLitePullConsumerTest {
         litePullConsumer.commit(set, true);
 
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0);
+    }
+
+    @Test
+    public void testMaxLengthOfConsumer(){
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer();
+        Assert.assertEquals(consumer.getMaxConsumerGroupLength(), Validators.CONSUMER_GROUP_MAX_LENGTH);
+    }
+
+    @Test
+    public void testMaxLengthOfConsumerUpdated(){
+        int n = 20000;
+        DefaultLitePullConsumer producer = new DefaultLitePullConsumer();
+        producer.setMaxConsumerGroupLength(n);
+        Assert.assertEquals(producer.getMaxConsumerGroupLength(), n);
     }
 
     static class AsyncConsumer {

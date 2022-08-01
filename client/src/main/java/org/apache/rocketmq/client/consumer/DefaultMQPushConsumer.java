@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -724,6 +725,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
+    }
+
+    @Override
+    public void setMaxConsumerGroupLength(int maxLength) {
+        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+    }
+
+    @Override
+    public int getMaxConsumerGroupLength() {
+        return Validators.CONSUMER_GROUP_MAX_LENGTH;
     }
 
     /**

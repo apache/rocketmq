@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -291,6 +292,16 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
+    }
+
+    @Override
+    public void setMaxConsumerGroupLength(int maxLength) {
+        Validators.CONSUMER_GROUP_MAX_LENGTH = maxLength;
+    }
+
+    @Override
+    public int getMaxConsumerGroupLength() {
+        return Validators.CONSUMER_GROUP_MAX_LENGTH;
     }
 
     @Override

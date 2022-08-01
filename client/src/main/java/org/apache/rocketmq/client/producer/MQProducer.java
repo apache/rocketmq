@@ -133,4 +133,17 @@ public interface MQProducer extends MQAdmin {
 
     void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
+
+    /**
+     * update max length of topic, should be set before client started and can't be updated on runtime
+     * and not thread-safe
+     * @param maxLength max length in characters
+     */
+    void setMaxTopicLength(int maxLength);
+
+    /**
+     * get max length of topic
+     * @return max length
+     */
+    int getMaxTopicLength();
 }

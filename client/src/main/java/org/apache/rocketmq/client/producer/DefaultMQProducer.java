@@ -702,6 +702,16 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
 
+    @Override
+    public void setMaxTopicLength(int maxLength) {
+        Validators.TOPIC_MAX_LENGTH = maxLength;
+    }
+
+    @Override
+    public int getMaxTopicLength() {
+        return Validators.TOPIC_MAX_LENGTH;
+    }
+
     /**
      * Same to {@link #sendOneway(Message)} with message queue selector specified.
      *
