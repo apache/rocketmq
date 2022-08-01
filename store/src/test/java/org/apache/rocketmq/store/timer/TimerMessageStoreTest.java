@@ -64,8 +64,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-//// Timer unit tests are very unstable, ignore these temporarily
-//@Ignore
 public class TimerMessageStoreTest {
     private final byte[] msgBody = new byte[1024];
     private static MessageStore messageStore;
@@ -173,7 +171,7 @@ public class TimerMessageStoreTest {
 
         final TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delayMs = curr + 3000;
@@ -219,7 +217,7 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerCongestNumEachSlot(100);
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         // Make sure delayMs won't be over.
@@ -264,7 +262,7 @@ public class TimerMessageStoreTest {
 
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long delayMs = System.currentTimeMillis() - 2 * precisionMs;
         for (int i = 0; i < 10; i++) {
@@ -288,7 +286,7 @@ public class TimerMessageStoreTest {
 
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delayMs = curr + 1000;
@@ -325,7 +323,7 @@ public class TimerMessageStoreTest {
 
         final TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         final long delayMs = curr + 1000;
@@ -371,7 +369,7 @@ public class TimerMessageStoreTest {
         String base = StoreTestUtils.createBaseDir();
         final TimerMessageStore first = createTimerMessageStore(base);
         first.load();
-        first.start();
+        first.start(true);
 
         final int msgNum = 250;
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
@@ -420,7 +418,7 @@ public class TimerMessageStoreTest {
         assertEquals(second.getCommitQueueOffset(), second.getQueueOffset());
         assertEquals(second.getCurrReadTimeMs(), second.getCommitReadTimeMs());
         assertEquals(first.getCommitReadTimeMs(), second.getCommitReadTimeMs());
-        second.start();
+        second.start(true);
 
         // Wait until all messages have wrote back to commitLog and consumeQueue.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
@@ -443,7 +441,7 @@ public class TimerMessageStoreTest {
 
         TimerMessageStore first = createTimerMessageStore(null);
         first.load();
-        first.start();
+        first.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delaySec = storeConfig.getTimerMaxDelaySec() + 20;
@@ -465,7 +463,7 @@ public class TimerMessageStoreTest {
 
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
         timerMessageStore.load();
-        timerMessageStore.start();
+        timerMessageStore.start(true);
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delayMs = curr + 4 * precisionMs;
