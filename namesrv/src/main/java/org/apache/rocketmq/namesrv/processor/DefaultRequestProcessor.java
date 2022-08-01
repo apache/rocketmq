@@ -349,8 +349,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         if (!this.namesrvController.getRouteInfoManager().submitUnRegisterBrokerRequest(requestHeader)) {
             log.warn("Couldn't submit the unregister broker request to handler, broker info: {}", requestHeader);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(null);
+            return response;
         }
-
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
