@@ -62,16 +62,14 @@ public class BatchUnRegisterService extends ServiceThread {
     public void run() {
         while (!this.isStopped()) {
             try {
-                final UnRegisterBrokerRequestHeader request = unRegisterQueue.poll(3, TimeUnit.SECONDS);
-                if (request != null) {
-                    Set<UnRegisterBrokerRequestHeader> unRegisterRequests = new HashSet<>();
-                    unRegisterQueue.drainTo(unRegisterRequests);
+                final UnRegisterBrokerRequestHeader request = unRegisterQueue.take();
+                Set<UnRegisterBrokerRequestHeader> unRegisterRequests = new HashSet<>();
+                unRegisterQueue.drainTo(unRegisterRequests);
 
-                    // Add polled request
-                    unRegisterRequests.add(request);
+                // Add polled request
+                unRegisterRequests.add(request);
 
-                    this.routeInfoManager.unRegisterBroker(unRegisterRequests);
-                }
+                this.routeInfoManager.unRegisterBroker(unRegisterRequests);
             } catch (Throwable e) {
                 log.error("Handle unregister broker request failed", e);
             }
