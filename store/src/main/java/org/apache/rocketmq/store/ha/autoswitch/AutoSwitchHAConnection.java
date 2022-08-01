@@ -243,9 +243,12 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         private void pushCommitLogDataToSlave0() {
             currentTransferBuffer = haService.getDefaultMessageStore().getCommitLogData(currentTransferOffset.get());
-
             int size = this.getNextTransferDataSize();
-            if (size <= 0) {
+            if (size == 0) {
+                if (currentTransferOffset.get() == currentTransferEpochEntry.getEndOffset()) {
+                    long currentEpoch = currentTransferEpochEntry.getEpoch();
+                    currentTransferEpochEntry = epochStore.findCeilingEntryByEpoch(currentEpoch);
+                }
                 doNettyTransferData(0);
                 this.releaseData();
                 this.waitForRunning(100);
@@ -279,7 +282,6 @@ public class AutoSwitchHAConnection implements HAConnection {
             pushCommitLogData.setEpochStartOffset(currentTransferEpochEntry.getStartOffset());
             pushCommitLogData.setConfirmOffset(haService.computeConfirmOffset());
             pushCommitLogData.setStartOffset(currentTransferOffset.get());
-
             haMessage.appendBody(pushCommitLogData.encode());
 
             if (maxTransferSize > 0) {
