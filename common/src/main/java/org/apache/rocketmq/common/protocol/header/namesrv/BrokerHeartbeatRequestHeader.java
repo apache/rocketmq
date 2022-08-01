@@ -29,7 +29,8 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

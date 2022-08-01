@@ -824,21 +824,25 @@ public class BrokerController {
         List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
 
         putMessageHookList.add(new PutMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "checkBeforePutMessage";
             }
 
-            @Override public PutMessageResult executeBeforePutMessage(MessageExt msg) {
+            @Override
+            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
                 return HookUtils.checkBeforePutMessage(BrokerController.this, msg);
             }
         });
 
         putMessageHookList.add(new PutMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "innerBatchChecker";
             }
 
-            @Override public PutMessageResult executeBeforePutMessage(MessageExt msg) {
+            @Override
+            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
                 if (msg instanceof MessageExtBrokerInner) {
                     return HookUtils.checkInnerBatch(BrokerController.this, msg);
                 }
@@ -847,11 +851,13 @@ public class BrokerController {
         });
 
         putMessageHookList.add(new PutMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "handleScheduleMessage";
             }
 
-            @Override public PutMessageResult executeBeforePutMessage(MessageExt msg) {
+            @Override
+            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
                 if (msg instanceof MessageExtBrokerInner) {
                     return HookUtils.handleScheduleMessage(BrokerController.this, (MessageExtBrokerInner) msg);
                 }
@@ -1523,7 +1529,8 @@ public class BrokerController {
             scheduleSendHeartbeat();
 
             scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override public void run2() {
+                @Override
+                public void run2() {
                     try {
                         BrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {

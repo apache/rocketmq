@@ -188,19 +188,23 @@ public class DefaultHAService implements HAService {
         return false;
     }
 
-    @Override public void putGroupConnectionStateRequest(HAConnectionStateNotificationRequest request) {
+    @Override
+    public void putGroupConnectionStateRequest(HAConnectionStateNotificationRequest request) {
         this.haConnectionStateNotificationService.setRequest(request);
     }
 
-    @Override public List<HAConnection> getConnectionList() {
+    @Override
+    public List<HAConnection> getConnectionList() {
         return connectionList;
     }
 
-    @Override public HAClient getHAClient() {
+    @Override
+    public HAClient getHAClient() {
         return this.haClient;
     }
 
-    @Override public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
+    @Override
+    public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
         HARuntimeInfo info = new HARuntimeInfo();
 
         if (BrokerRole.SLAVE.equals(this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole())) {
@@ -247,11 +251,13 @@ public class DefaultHAService implements HAService {
             super(port);
         }
 
-        @Override protected HAConnection createConnection(SocketChannel sc) throws IOException {
+        @Override
+        protected HAConnection createConnection(SocketChannel sc) throws IOException {
             return new DefaultHAConnection(DefaultHAService.this, sc);
         }
 
-        @Override public String getServiceName() {
+        @Override
+        public String getServiceName() {
             if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
                 return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
             }

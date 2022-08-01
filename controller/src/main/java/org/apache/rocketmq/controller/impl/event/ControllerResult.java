@@ -78,7 +78,8 @@ public class ControllerResult<T> {
         this.events.add(event);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ControllerResult{" +
             "events=" + events +
             ", response=" + response +

@@ -188,7 +188,8 @@ public class TimerMessageStoreTest {
 
         // Wait until messages have been wrote to TimerLog but the slot (delayMs) hasn't expired.
         await().atMost(2000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
-            @Override public Boolean call() {
+            @Override
+            public Boolean call() {
                 return timerMessageStore.getCommitQueueOffset() == 10 * 5;
             }
         });
@@ -343,7 +344,8 @@ public class TimerMessageStoreTest {
 
         // Wait until currReadTimeMs catches up current time and delayMs is over.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
-            @Override public Boolean call() {
+            @Override
+            public Boolean call() {
                 long curr = System.currentTimeMillis() / precisionMs * precisionMs;
                 return curr >= delayMs
                         && (timerMessageStore.getCurrReadTimeMs() == curr || timerMessageStore.getCurrReadTimeMs() == curr + precisionMs);
@@ -386,7 +388,8 @@ public class TimerMessageStoreTest {
 
         // Wait until messages have wrote to TimerLog and currReadTimeMs catches up current time.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
-            @Override public Boolean call() {
+            @Override
+            public Boolean call() {
                 long curr = System.currentTimeMillis() / precisionMs * precisionMs;
                 long CQOffset = first.getCommitQueueOffset();
                 return first.getCommitQueueOffset() == msgNum
@@ -424,7 +427,8 @@ public class TimerMessageStoreTest {
 
         // Wait until all messages have wrote back to commitLog and consumeQueue.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
-            @Override public Boolean call() {
+            @Override
+            public Boolean call() {
                 ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(topic, 0);
                 return cq != null && cq.getMaxOffsetInQueue() >= msgNum - 1;
             }

@@ -114,7 +114,8 @@ public class InSyncStateData extends RemotingSerializable  {
             this.brokerId = brokerId;
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return "InSyncMember{" +
                 "address='" + address + '\'' +
                 ", brokerId=" + brokerId +

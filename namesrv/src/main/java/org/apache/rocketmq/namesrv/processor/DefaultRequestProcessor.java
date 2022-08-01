@@ -139,7 +139,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 

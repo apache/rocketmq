@@ -44,7 +44,8 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
     private String groupPerms;
     
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

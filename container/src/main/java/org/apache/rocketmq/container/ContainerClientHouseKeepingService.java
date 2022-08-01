@@ -29,19 +29,23 @@ public class ContainerClientHouseKeepingService implements ChannelEventListener 
         this.brokerContainer = brokerContainer;
     }
 
-    @Override public void onChannelConnect(String remoteAddr, Channel channel) {
+    @Override
+    public void onChannelConnect(String remoteAddr, Channel channel) {
         onChannelOperation(CallbackCode.CONNECT, remoteAddr, channel);
     }
 
-    @Override public void onChannelClose(String remoteAddr, Channel channel) {
+    @Override
+    public void onChannelClose(String remoteAddr, Channel channel) {
         onChannelOperation(CallbackCode.CLOSE, remoteAddr, channel);
     }
 
-    @Override public void onChannelException(String remoteAddr, Channel channel) {
+    @Override
+    public void onChannelException(String remoteAddr, Channel channel) {
         onChannelOperation(CallbackCode.EXCEPTION, remoteAddr, channel);
     }
 
-    @Override public void onChannelIdle(String remoteAddr, Channel channel) {
+    @Override
+    public void onChannelIdle(String remoteAddr, Channel channel) {
         onChannelOperation(CallbackCode.IDLE, remoteAddr, channel);
     }
 
