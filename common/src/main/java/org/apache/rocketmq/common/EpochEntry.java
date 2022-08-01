@@ -24,7 +24,7 @@ public class EpochEntry extends RemotingSerializable {
 
     private long epoch;
     private long startOffset;
-    private long endOffset = Long.MAX_VALUE;
+    private long endOffset;
 
     public EpochEntry(EpochEntry entry) {
         this.epoch = entry.getEpoch();
@@ -35,6 +35,7 @@ public class EpochEntry extends RemotingSerializable {
     public EpochEntry(long epoch, long startOffset) {
         this.epoch = epoch;
         this.startOffset = startOffset;
+        this.endOffset = Long.MAX_VALUE;
     }
 
     public long getEpoch() {
