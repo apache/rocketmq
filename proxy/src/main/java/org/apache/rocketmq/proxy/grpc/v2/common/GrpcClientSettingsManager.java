@@ -99,7 +99,7 @@ public class GrpcClientSettingsManager {
         // Construct metric according to the proxy config
         final ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         final MetricCollectorMode metricCollectorMode =
-            MetricCollectorMode.getEnumByOrdinal(proxyConfig.getMetricCollectorMode());
+            MetricCollectorMode.getEnumByString(proxyConfig.getMetricCollectorMode());
         final String metricCollectorAddress = proxyConfig.getMetricCollectorAddress();
         final Metric.Builder metricBuilder = Metric.newBuilder();
         switch (metricCollectorMode) {
