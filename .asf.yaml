@@ -14,7 +14,7 @@
 # limitations under the License.
 
 github:
-  description: "Apache RocketMQ is a cloud native messaging and streaming platform,  making it easy to build  event-driven applications."
+  description: "Apache RocketMQ is a cloud native messaging and streaming platform, making it simple to build event-driven applications."
   homepage: https://rocketmq.apache.org/
   labels:
     - messaging
