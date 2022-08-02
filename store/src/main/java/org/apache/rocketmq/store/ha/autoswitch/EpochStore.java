@@ -91,12 +91,12 @@ public interface EpochStore {
     void truncatePrefixByOffset(final long truncateOffset);
 
     /**
-     * Remove epochEntries with epoch >= truncateEpoch.
+     * Remove epochEntries with epoch > truncateEpoch.
      */
     void truncateSuffixByEpoch(final long truncateEpoch);
 
     /**
-     * Remove epochEntries with startOffset >= truncateOffset.
+     * Remove epochEntries with startOffset > truncateOffset.
      */
     void truncateSuffixByOffset(final long truncateOffset);
 }

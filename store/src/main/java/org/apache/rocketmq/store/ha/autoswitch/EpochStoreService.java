@@ -247,7 +247,7 @@ public class EpochStoreService implements EpochStore {
 
     @Override
     public void truncateSuffixByEpoch(final long truncateEpoch) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getEpoch() >= truncateEpoch;
+        Predicate<EpochEntry> predict = (entry) -> entry.getEpoch() > truncateEpoch;
         doTruncateSuffix(predict);
     }
 
