@@ -91,6 +91,12 @@ public class ControllerManager {
             }
         };
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
+        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
+            throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+        }
+        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
+            throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
+        }
         this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
             this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
 
