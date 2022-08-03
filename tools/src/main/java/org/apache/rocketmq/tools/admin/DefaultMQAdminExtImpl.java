@@ -273,8 +273,24 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mqClientInstance.getMQClientAPIImpl().createPlainAccessConfig(addr, config, timeoutMillis);
     }
 
-    @Override
-    public void deletePlainAccessConfig(String addr,
+    @Override public void updateAclAccount(String addr,
+        PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().updateAclAccount(addr, plainAccessConfig, timeoutMillis);
+    }
+
+    @Override public void updateAclResourcePerms(String addr,
+        PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().updateAclResourcePerms(addr, plainAccessConfig, operation, timeoutMillis);
+    }
+
+    @Override public void updateAclNamespacePerms(String addr,
+        PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().updateAclNamespacePerms(addr, plainAccessConfig, operation, timeoutMillis);
+    }
+
+    @Override public void deletePlainAccessConfig(String addr,
         String accessKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().deleteAccessConfig(addr, accessKey, timeoutMillis);
     }
@@ -304,8 +320,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterConfig(addr, timeoutMillis);
     }
 
-    @Override
-    public void createAndUpdateSubscriptionGroupConfig(String addr,
+    @Override public PlainAccessConfig examineBrokerClusterAccesskeyConfig(
+        final String addr, final String accesskey) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterAccesskeyConfig(addr, accesskey, timeoutMillis);
+    }
+
+    @Override public void createAndUpdateSubscriptionGroupConfig(String addr,
         SubscriptionGroupConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroup(addr, config, timeoutMillis);
     }

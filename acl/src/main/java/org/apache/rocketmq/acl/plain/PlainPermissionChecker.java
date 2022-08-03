@@ -20,6 +20,7 @@ package org.apache.rocketmq.acl.plain;
 import java.util.Map;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.PermissionChecker;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.Permission;
 
@@ -30,36 +31,82 @@ public class PlainPermissionChecker implements PermissionChecker {
         if (Permission.needAdminPerm(checkedPlainAccess.getRequestCode()) && !ownedPlainAccess.isAdmin()) {
             throw new AclException(String.format("Need admin permission for request code=%d, but accessKey=%s is not", checkedPlainAccess.getRequestCode(), ownedPlainAccess.getAccessKey()));
         }
-        Map<String, Byte> needCheckedPermMap = checkedPlainAccess.getResourcePermMap();
-        Map<String, Byte> ownedPermMap = ownedPlainAccess.getResourcePermMap();
+        Map<String, Byte> needCheckedResourcePermMap = checkedPlainAccess.getResourcePermMap();
+        Map<String, Byte> ownedResourcePermMap = ownedPlainAccess.getResourcePermMap();
+        Map<String, Map<String, Byte>> ownedNamespacePermMap = ownedPlainAccess.getNamespacePermMap();
 
-        if (needCheckedPermMap == null) {
+        if (needCheckedResourcePermMap == null) {
             // If the needCheckedPermMap is null,then return
             return;
         }
 
-        if (ownedPermMap == null && ownedPlainAccess.isAdmin()) {
+        if (ownedResourcePermMap == null && ownedPlainAccess.isAdmin()) {
             // If the ownedPermMap is null and it is an admin user, then return
             return;
         }
 
-        for (Map.Entry<String, Byte> needCheckedEntry : needCheckedPermMap.entrySet()) {
+        for (Map.Entry<String, Byte> needCheckedEntry : needCheckedResourcePermMap.entrySet()) {
             String resource = needCheckedEntry.getKey();
             Byte neededPerm = needCheckedEntry.getValue();
             boolean isGroup = PlainAccessResource.isRetryTopic(resource);
+            boolean isResourceContainsNamespace = PlainAccessResource.isContainNamespace(resource);
 
-            if (ownedPermMap == null || !ownedPermMap.containsKey(resource)) {
-                // Check the default perm
-                byte ownedPerm = isGroup ? ownedPlainAccess.getDefaultGroupPerm() :
-                    ownedPlainAccess.getDefaultTopicPerm();
-                if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+            //the resource perm that ak owned is null or doesn't contain the resource
+            if (ownedResourcePermMap == null || !ownedResourcePermMap.containsKey(resource)) {
+                //check the namespace perm and the default perm
+                if (isMatchNamespaceAndDeafultPerm(isResourceContainsNamespace, resource, ownedNamespacePermMap, isGroup, neededPerm, ownedPlainAccess)) {
+                    continue;
+                } else {
                     throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
+                }
+            } else {
+                //check whether the resource perm that the ak owned is match the needed
+                if (!Permission.checkPermission(neededPerm, ownedResourcePermMap.get(resource))) {
+                    //check the namespace perm and the default perm
+                    if (isMatchNamespaceAndDeafultPerm(isResourceContainsNamespace, resource, ownedNamespacePermMap, isGroup, neededPerm, ownedPlainAccess)) {
+                        continue;
+                    } else {
+                        throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
+                    }
                 }
                 continue;
             }
-            if (!Permission.checkPermission(neededPerm, ownedPermMap.get(resource))) {
-                throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
-            }
         }
     }
+
+    public boolean isMatchNamespaceAndDeafultPerm(boolean isResourceContainsNamespace, String resource, Map<String, Map<String, Byte>> ownedNamespacePermMap,
+        boolean isGroup, byte neededPerm, PlainAccessResource ownedPlainAccess) {
+        if (isResourceContainsNamespace) {
+            String namespace = PlainAccessResource.getResourceNamespace(resource);
+            if (ownedNamespacePermMap.containsKey(namespace)) {
+                Map<String, Byte> defaultPermMap = ownedNamespacePermMap.get(namespace);
+                byte ownedPerm = isGroup ? defaultPermMap.get(AclConstants.CONFIG_GROUP_PERM) : defaultPermMap.get(AclConstants.CONFIG_TOPIC_PERM);
+                if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+                    //check the defaultTopicPerm or defaultGroupPerm according to the type of the resource
+                    ownedPerm = isGroup ? ownedPlainAccess.getDefaultGroupPerm() : ownedPlainAccess.getDefaultTopicPerm();
+                    if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+                        return false;
+                    }
+                    return true;
+                }
+                return true;
+            } else {
+                //the ownedNamespacePermMap doesn't have the namespace
+                //check the defaultTopicPerm or defaultGroupPerm according to the type of the resource
+                byte ownedPerm = isGroup ? ownedPlainAccess.getDefaultGroupPerm() : ownedPlainAccess.getDefaultTopicPerm();
+                if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+                    return false;
+                }
+                return true;
+            }
+        } else {
+            //check the defaultTopicPerm or defaultGroupPerm according to the type of the resource
+            byte ownedPerm = isGroup ? ownedPlainAccess.getDefaultGroupPerm() : ownedPlainAccess.getDefaultTopicPerm();
+            if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+                return false;
+            }
+            return true;
+        }
+    }
+
 }

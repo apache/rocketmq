@@ -24,7 +24,10 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.NamespaceAndPerm;
+import org.apache.rocketmq.common.OperationType;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.ResourceAndPerm;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PlainAccessValidator implements AccessValidator {
@@ -53,6 +56,26 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
         return aclPlugEngine.updateAccessConfig(plainAccessConfig);
+    }
+
+    @Override
+    public boolean updateAclAccount(PlainAccessConfig plainAccessConfig) {
+        return aclPlugEngine.updateAclAccount(plainAccessConfig);
+    }
+
+    @Override
+    public boolean updateAclResourcePerms(String accesskey, ResourceAndPerm resourceAndPerm, OperationType operationType) {
+        return aclPlugEngine.updateAclResourcePerms(accesskey, resourceAndPerm, operationType);
+    }
+
+    @Override
+    public boolean updateAclNamespacePerms(String accesskey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType) {
+        return aclPlugEngine.updateAclNamespacePerms(accesskey, namespaceAndPerms, operationType);
+    }
+
+    @Override
+    public PlainAccessConfig getAccesskeyConfg(String accesskey) {
+        return aclPlugEngine.getAccesskeyConfg(accesskey);
     }
 
     @Override

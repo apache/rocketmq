@@ -14,12 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
 
-import java.util.List;
+package org.apache.rocketmq.common.protocol.header;
 
-public class PlainAccessConfig {
+import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+public class UpdateAclAccountRequestHeader implements CommandCustomHeader {
+    @CFNotNull
     private String accessKey;
 
     private String secretKey;
@@ -32,15 +36,9 @@ public class PlainAccessConfig {
 
     private String defaultGroupPerm;
 
-    @Deprecated
-    private List<String> topicPerms;
+    @Override public void checkFields() throws RemotingCommandException {
 
-    @Deprecated
-    private List<String> groupPerms;
-
-    private List<ResourceAndPerm> resourcePerms;
-
-    private List<NamespaceAndPerm> namespacePerms;
+    }
 
     public String getAccessKey() {
         return accessKey;
@@ -90,50 +88,15 @@ public class PlainAccessConfig {
         this.defaultGroupPerm = defaultGroupPerm;
     }
 
-    public List<String> getTopicPerms() {
-        return topicPerms;
-    }
-
-    public void setTopicPerms(List<String> topicPerms) {
-        this.topicPerms = topicPerms;
-    }
-
-    public List<String> getGroupPerms() {
-        return groupPerms;
-    }
-
-    public void setGroupPerms(List<String> groupPerms) {
-        this.groupPerms = groupPerms;
-    }
-
-    public List<ResourceAndPerm> getResourcePerms() {
-        return resourcePerms;
-    }
-
-    public void setResourcePerms(List<ResourceAndPerm> resourcePerms) {
-        this.resourcePerms = resourcePerms;
-    }
-
-    public List<NamespaceAndPerm> getNamespacePerms() {
-        return namespacePerms;
-    }
-
-    public void setNamespacePerms(List<NamespaceAndPerm> namespacePerms) {
-        this.namespacePerms = namespacePerms;
-    }
-
     @Override
     public String toString() {
-        return "PlainAccessConfig{" +
-            "accessKey='" + accessKey + '\'' +
-            ", whiteRemoteAddress='" + whiteRemoteAddress + '\'' +
-            ", admin=" + admin +
-            ", defaultTopicPerm='" + defaultTopicPerm + '\'' +
-            ", defaultGroupPerm='" + defaultGroupPerm + '\'' +
-            ", topicPerms=" + topicPerms +
-            ", groupPerms=" + groupPerms +
-            ", resourcePerms=" + resourcePerms +
-            ", namespacePerms=" + namespacePerms +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("accessKey", accessKey)
+            .add("secretKey", secretKey)
+            .add("whiteRemoteAddress", whiteRemoteAddress)
+            .add("admin", admin)
+            .add("defaultTopicPerm", defaultTopicPerm)
+            .add("defaultGroupPerm", defaultGroupPerm)
+            .toString();
     }
 }

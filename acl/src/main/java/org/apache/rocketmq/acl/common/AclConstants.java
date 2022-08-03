@@ -57,4 +57,12 @@ public class AclConstants {
     public static final int ACCESS_KEY_MIN_LENGTH = 6;
 
     public static final int SECRET_KEY_MIN_LENGTH = 6;
+
+    public static final String CONFIG_TOPIC_PERM = "topicPerm";
+
+    public static final String CONFIG_GROUP_PERM = "groupPerm";
+
+    public static final String CONFIG_RESOURCE_PERMS = "resourcePerms";
+
+    public static final String CONFIG_NAMESPACE_PERMS = "namespacePerms";
 }

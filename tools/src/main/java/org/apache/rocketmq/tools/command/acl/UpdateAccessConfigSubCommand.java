@@ -16,18 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.acl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -88,98 +81,19 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("p", "namespace", true, "set namespace corresponding to accessKey topic and group");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
     @Override
     public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
-
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-
-        try {
-            PlainAccessConfig accessConfig = new PlainAccessConfig();
-            accessConfig.setAccessKey(commandLine.getOptionValue('a').trim());
-            // Secretkey
-            if (commandLine.hasOption('s')) {
-                accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
-            }
-
-            // Admin
-            if (commandLine.hasOption('m')) {
-                accessConfig.setAdmin(Boolean.parseBoolean(commandLine.getOptionValue('m').trim()));
-            }
-
-            // DefaultTopicPerm
-            if (commandLine.hasOption('i')) {
-                accessConfig.setDefaultTopicPerm(commandLine.getOptionValue('i').trim());
-            }
-
-            // DefaultGroupPerm
-            if (commandLine.hasOption('u')) {
-                accessConfig.setDefaultGroupPerm(commandLine.getOptionValue('u').trim());
-            }
-
-            // WhiteRemoteAddress
-            if (commandLine.hasOption('w')) {
-                accessConfig.setWhiteRemoteAddress(commandLine.getOptionValue('w').trim());
-            }
-
-            // TopicPerms list value
-            if (commandLine.hasOption('t')) {
-                String[] topicPerms = commandLine.getOptionValue('t').trim().split(",");
-                List<String> topicPermList = new ArrayList<>();
-                if (topicPerms != null) {
-                    for (String topicPerm : topicPerms) {
-                        topicPermList.add(topicPerm);
-                    }
-                }
-                accessConfig.setTopicPerms(topicPermList);
-            }
-
-            // GroupPerms list value
-            if (commandLine.hasOption('g')) {
-                String[] groupPerms = commandLine.getOptionValue('g').trim().split(",");
-                List<String> groupPermList = new ArrayList<>();
-                if (groupPerms != null) {
-                    for (String groupPerm : groupPerms) {
-                        groupPermList.add(groupPerm);
-                    }
-                }
-                accessConfig.setGroupPerms(groupPermList);
-            }
-
-            if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
-
-                defaultMQAdminExt.start();
-                defaultMQAdminExt.createAndUpdatePlainAccessConfig(addr, accessConfig);
-
-                System.out.printf("create or update plain access config to %s success.%n", addr);
-                System.out.printf("%s", accessConfig);
-                return;
-
-            } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
-
-                defaultMQAdminExt.start();
-                Set<String> brokerAddrSet =
-                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.createAndUpdatePlainAccessConfig(addr, accessConfig);
-                    System.out.printf("create or update plain access config to %s success.%n", addr);
-                }
-
-                System.out.printf("%s", accessConfig);
-                return;
-            }
-
-            ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
-        } catch (Exception e) {
-            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
-        } finally {
-            defaultMQAdminExt.shutdown();
-        }
+        System.out.printf("updateAclConfig command will be deprecated. If you want to update secretKey whiteRemoteAddress " +
+            "admin defaultTopicPerm and defaultGroupPerm, updateAclAccount command is recommended. If you want to update resource perm," +
+            "updateAclResourcePerms command is recommended. If you want to update namespace perm, updateAclNamespacePerms command" +
+            "is recommended.");
     }
 }

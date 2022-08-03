@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.acl;
 
 import java.util.Set;
@@ -21,49 +22,59 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import static org.apache.rocketmq.common.protocol.NamespaceUtil.NAMESPACE_SEPARATOR;
 
-public class DeleteAccessConfigSubCommand implements SubCommand {
-
+public class UpdateAclAccountSubCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "deleteAclConfig";
-    }
-
-    @Override
-    public String commandAlias() {
-        return "deleteAccessConfig";
+        return "updateAclAccount";
     }
 
     @Override
     public String commandDesc() {
-        return "Delete Acl Config Account in broker";
+        return "Update ak's secretKey whiteRemoteAddress admin defaultTopicPerm and defaultGroupPerm in broker";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "delete acl config account from which broker");
+        Option opt = new Option("b", "brokerAddr", true, "update acl account to which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "delete acl config account from which cluster");
+        opt = new Option("c", "clusterName", true, "update acl account to which cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
-        opt = new Option("a", "accessKey", true, "set accessKey in acl config file for deleting which account");
+        opt = new Option("a", "accessKey", true, "set accessKey in acl config file");
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("p", "namespace", true, "set namespace corresponding to accessKey");
+        opt = new Option("s", "secretKey", true, "set secretKey in acl config file");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("i", "defaultTopicPerm", true, "set default topicPerm in acl config file");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("u", "defaultGroupPerm", true, "set default GroupPerm in acl config file");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "admin", true, "set admin flag in acl config file");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -78,41 +89,57 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            boolean flag = commandLine.hasOption('p');
-            String accessKey = new String();
-            if (flag) {
-                accessKey = commandLine.getOptionValue('p').trim() + NAMESPACE_SEPARATOR + commandLine.getOptionValue('a').trim();
-            } else {
-                accessKey = commandLine.getOptionValue('a').trim();
+            PlainAccessConfig accessConfig = new PlainAccessConfig();
+            //accessKey
+            accessConfig.setAccessKey(commandLine.getOptionValue('a').trim());
+            // Secretkey
+            if (commandLine.hasOption('s')) {
+                accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
+            }
+            // Admin
+            if (commandLine.hasOption('m')) {
+                accessConfig.setAdmin(Boolean.parseBoolean(commandLine.getOptionValue('m').trim()));
+            }
+            // DefaultTopicPerm
+            if (commandLine.hasOption('i')) {
+                accessConfig.setDefaultTopicPerm(commandLine.getOptionValue('i').trim());
+            }
+            // DefaultGroupPerm
+            if (commandLine.hasOption('u')) {
+                accessConfig.setDefaultGroupPerm(commandLine.getOptionValue('u').trim());
+            }
+            // WhiteRemoteAddress
+            if (commandLine.hasOption('w')) {
+                accessConfig.setWhiteRemoteAddress(commandLine.getOptionValue('w').trim());
             }
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
+                defaultMQAdminExt.updateAclAccount(addr, accessConfig);
 
-                System.out.printf("delete plain access config account from %s success.%n", addr);
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("create or update plain access config to %s success.%n", addr);
+                System.out.printf("%s", accessConfig);
                 return;
 
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
-
                 Set<String> brokerAddrSet =
                     CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
-                    System.out.printf("delete plain access config account from %s success.%n", addr);
+                    defaultMQAdminExt.updateAclAccount(addr, accessConfig);
+                    System.out.printf("create or update plain access config to %s success.%n", addr);
                 }
 
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("%s", accessConfig);
                 return;
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
+
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

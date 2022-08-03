@@ -23,7 +23,10 @@ import java.util.Map;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.NamespaceAndPerm;
+import org.apache.rocketmq.common.OperationType;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.ResourceAndPerm;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface AccessValidator {
@@ -59,6 +62,38 @@ public interface AccessValidator {
      * @return
      */
     boolean updateAccessConfig(PlainAccessConfig plainAccessConfig);
+
+    /**
+     * Update the accessKey's secretKey whiteRemoteAddress admin defaultTopicPerm and defaultGroupPerm
+     * @param plainAccessConfig
+     * @return
+     */
+    boolean updateAclAccount(PlainAccessConfig plainAccessConfig);
+
+    /**
+     * update the accessKey's resourcePerms
+      * @param accesskey
+     * @param resourceAndPerm
+     * @param operationType
+     * @return
+     */
+    boolean updateAclResourcePerms(String accesskey, ResourceAndPerm resourceAndPerm, OperationType operationType);
+
+    /**
+     * update the accessKey's namespacePerms
+     * @param accesskey
+     * @param namespaceAndPerms
+     * @param operationType
+     * @return
+     */
+    boolean updateAclNamespacePerms(String accesskey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType);
+
+    /**
+     * get the accessKey's config
+     * @param accesskey
+     * @return
+     */
+    PlainAccessConfig getAccesskeyConfg(String accesskey);
 
     /**
      * Delete the access resource config

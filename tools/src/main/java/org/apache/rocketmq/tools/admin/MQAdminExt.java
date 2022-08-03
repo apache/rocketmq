@@ -93,6 +93,18 @@ public interface MQAdminExt extends MQAdmin {
         final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void updateAclAccount(final String addr,
+        final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
+    void updateAclResourcePerms(final String addr,
+        final PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
+    void updateAclNamespacePerms(final String addr,
+        final PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
     void deletePlainAccessConfig(final String addr, final String accessKey) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
@@ -109,6 +121,9 @@ public interface MQAdminExt extends MQAdmin {
         InterruptedException, MQClientException;
 
     AclConfig examineBrokerClusterAclConfig(final String addr) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
+    PlainAccessConfig examineBrokerClusterAccesskeyConfig(final String addr, final String accesskey) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,

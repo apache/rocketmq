@@ -47,9 +47,18 @@ import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.common.NamespaceAndPerm;
+import org.apache.rocketmq.common.OperationType;
+import org.apache.rocketmq.common.ResourceAndPerm;
+import org.apache.rocketmq.common.ResourceType;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAccesskeyConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAccesskeyConfigResponseBody;
+import org.apache.rocketmq.common.protocol.header.UpdateAclAccountRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateAclNamespacePermsRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateAclResourcePermsRequestHeader;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
@@ -317,6 +326,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
+            case RequestCode.UPDATE_ACL_ACCOUNT:
+                return this.updateAclAccount(ctx, request);
+            case RequestCode.UPDATE_ACL_RESOURCE_PERMS:
+                return this.updateAclResourcePerms(ctx, request);
+            case RequestCode.UPDATE_ACL_NAMESPACE_PERMS:
+                return this.updateAclNamespacePerms(ctx, request);
+            case RequestCode.GET_ACCESSKEY_CONFIG:
+                return this.getAccesskeyConfig(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -553,6 +570,193 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    private synchronized RemotingCommand updateAclAccount(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final UpdateAclAccountRequestHeader requestHeader =
+            (UpdateAclAccountRequestHeader)request.decodeCommandCustomHeader(UpdateAclAccountRequestHeader.class);
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey(requestHeader.getAccessKey());
+        plainAccessConfig.setSecretKey(requestHeader.getSecretKey());
+        plainAccessConfig.setAdmin(requestHeader.isAdmin());
+        plainAccessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
+        plainAccessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
+        plainAccessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
+
+        try {
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            if (accessValidator.updateAclAccount(plainAccessConfig)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
+                LOGGER.warn(errorMsg);
+                response.setCode(ResponseCode.UPDATE_ACL_ACCOUNT_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to generate a proper update accessvalidator response", e);
+            response.setCode(ResponseCode.UPDATE_ACL_ACCOUNT_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return null;
+    }
+
+    private synchronized RemotingCommand updateAclResourcePerms(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final UpdateAclResourcePermsRequestHeader requestHeader =
+            (UpdateAclResourcePermsRequestHeader)request.decodeCommandCustomHeader(UpdateAclResourcePermsRequestHeader.class);
+
+        String accessKey = requestHeader.getAccessKey();
+        String operation = requestHeader.getOperation();
+        OperationType operationType = OperationType.ADD;
+        if (operation.equalsIgnoreCase(OperationType.ADD.toString())) {
+            operationType = OperationType.ADD;
+        } else if (operation.equalsIgnoreCase(OperationType.UPDATE.toString())) {
+            operationType = OperationType.UPDATE;
+        } else {
+            operationType = OperationType.DELETE;
+        }
+        ResourceAndPerm resourceAndPerm = new ResourceAndPerm();
+        resourceAndPerm.setResource(requestHeader.getResource());
+        if (requestHeader.getType().equalsIgnoreCase(ResourceType.GROUP.toString())) {
+            resourceAndPerm.setType(ResourceType.GROUP);
+        } else if (requestHeader.getType().equalsIgnoreCase(ResourceType.TOPIC.toString())) {
+            resourceAndPerm.setType(ResourceType.TOPIC);
+        }
+        if (requestHeader.getNamespace() != null && !requestHeader.getNamespace().isEmpty()) {
+            resourceAndPerm.setNamespace(requestHeader.getNamespace());
+        }
+        if (requestHeader.getPerm() != null && !requestHeader.getPerm().isEmpty()) {
+            resourceAndPerm.setPerm(requestHeader.getPerm());
+        }
+
+        AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+        try {
+            if (accessValidator.updateAclResourcePerms(accessKey, resourceAndPerm, operationType)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to resourcePerms has been " + operationType + " failed.";
+                LOGGER.warn(errorMsg);
+                response.setCode(ResponseCode.UPDATE_ACL_RESOURCE_PERMS_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to generate a proper response for updateAclResourcePerms", e);
+            response.setCode(ResponseCode.UPDATE_ACL_RESOURCE_PERMS_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return null;
+    }
+
+    private synchronized RemotingCommand updateAclNamespacePerms(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final UpdateAclNamespacePermsRequestHeader requestHeader =
+            (UpdateAclNamespacePermsRequestHeader)request.decodeCommandCustomHeader(UpdateAclNamespacePermsRequestHeader.class);
+
+        String accessKey = requestHeader.getAccessKey();
+        String operation = requestHeader.getOperation();
+        OperationType operationType = OperationType.ADD;
+        if (operation.equalsIgnoreCase(OperationType.ADD.toString())) {
+            operationType = OperationType.ADD;
+        } else if (operation.equalsIgnoreCase(OperationType.UPDATE.toString())) {
+            operationType = OperationType.UPDATE;
+        } else {
+            operationType = OperationType.DELETE;
+        }
+
+        String topicPerm = new String();
+        String groupPerm = new String();
+        if (requestHeader.getTopicPerm() != null && !requestHeader.getTopicPerm().isEmpty()) {
+            topicPerm = requestHeader.getTopicPerm();
+        }
+        if (requestHeader.getGroupPerm() != null && !requestHeader.getGroupPerm().isEmpty()) {
+            groupPerm = requestHeader.getGroupPerm();
+        }
+
+        String namespaceStr = requestHeader.getNamespaceStr();
+        String[] namespaces = namespaceStr.split(",");
+        List<NamespaceAndPerm> namespaceAndPerms = new ArrayList<>();
+        for (String namespace : namespaces) {
+            NamespaceAndPerm namespaceAndPerm = new NamespaceAndPerm();
+            namespaceAndPerm.setNamespace(namespace);
+            if (topicPerm != null && !topicPerm.isEmpty()) {
+                namespaceAndPerm.setTopicPerm(topicPerm);
+            }
+            if (groupPerm != null && !groupPerm.isEmpty()) {
+                namespaceAndPerm.setGroupPerm(groupPerm);
+            }
+            namespaceAndPerms.add(namespaceAndPerm);
+        }
+
+        AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+        try {
+            if (accessValidator.updateAclNamespacePerms(accessKey, namespaceAndPerms, operationType)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to namespacePerms has been " + operationType + " failed.";
+                LOGGER.warn(errorMsg);
+                response.setCode(ResponseCode.UPDATE_ACL_NAMESPACE_PERMS_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to generate a proper response for updateAclResourcePerms", e);
+            response.setCode(ResponseCode.UPDATE_ACL_NAMESPACE_PERMS_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return  null;
+    }
+
+    private RemotingCommand getAccesskeyConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAccesskeyConfigRequestHeader.class);
+
+        final GetBrokerClusterAccesskeyConfigRequestHeader requestHeader =
+            (GetBrokerClusterAccesskeyConfigRequestHeader)request.decodeCommandCustomHeader(GetBrokerClusterAccesskeyConfigRequestHeader.class);
+        String accesskey = requestHeader.getAccessKey();
+
+        try {
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            PlainAccessConfig plainAccessConfig = accessValidator.getAccesskeyConfg(accesskey);
+            GetBrokerClusterAccesskeyConfigResponseBody body = new GetBrokerClusterAccesskeyConfigResponseBody();
+            body.setPlainAccessConfig(plainAccessConfig);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(body.encode());
+            response.setRemark(null);
+            return response;
+        } catch (Exception e) {
+            LOGGER.error("Failed to generate a proper getAccesskeyConfig response", e);
+        }
+
+        return null;
+    }
+
     private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -631,6 +835,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
 
+            responseHeader.setAllAclFileVersion(JSON.toJSONString(accessValidator.getAllAclConfigVersion()));
             responseHeader.setVersion(accessValidator.getAclConfigVersion());
             responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
             responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());

@@ -30,6 +30,26 @@ ACL客户端可以参考：**org.apache.rocketmq.example.simple**包下面的**A
 | defaultGroupPerm | DENY;PUB;SUB;PUB\|SUB | 默认的ConsumerGroup权限 |
 | topicPerms | topic=权限 | 各个Topic的权限 |
 | groupPerms | group=权限 | 各个ConsumerGroup的权限 |
+| resourcePerms |  | 各个Topic、ConsumerGroup的权限 |
+| namespacePerms |  | 各个Namespace的权限 |
+
+resourcePerms配置项含义：
+
+| 字段 | 取值 | 含义 |
+| --- | --- | --- |
+| resource | 字符串 | topic或者consumerGroup的名称 |
+| type | TOPIC;GROUP | 资源的类型，TOPIC表示当前权限设置的资源类型是Topic;GROUP表示当前权限设置的资源类型是ConsumerGroup; |
+| namespace | 字符串 | 资源所属的Namespace |
+| perm | DENY;PUB;SUB;PUB\|SUB | Topic或者ConsumerGroup的权限 |
+
+namespacePerms配置项含义：
+
+| 字段 | 取值 | 含义 |
+| --- | --- | --- |
+| namespace | 字符串 | Namespace名称 |
+| topicPerm | DENY;PUB;SUB;PUB\|SUB | 默认的Topic权限，作用于当前Namespace |
+| groupPerm | DENY;PUB;SUB;PUB\|SUB | 默认的ConsumerGroup权限，作用于当前Namespace |
+
 
 具体可以参考**distribution/conf/plain_acl.yml**配置文件
 
@@ -70,7 +90,7 @@ Broker端对权限的校验逻辑主要分为以下几步：
 （4）对用户请求所需的权限 和 用户所拥有的权限进行校验；不通过，抛出异常； 
 用户所需权限的校验需要注意已下内容：
 （1）特殊的请求例如 UPDATE_AND_CREATE_TOPIC 等，只能由 admin 账户进行操作；
-（2）对于某个资源，如果有显性配置权限，则采用配置的权限；如果没有显性配置权限，则采用默认的权限；
+（2）对于某个资源，如果有显性配置权限，则采用配置的权限；如果没有显性配置权限，判断该资源是否属于某个namespace，然后判断是否符合namespace中对资源的权限设置，如果该资源不属于任何namespace，则判断是否符合全局默认的topic权限或者group权限
 
 ## 5. 热加载修改后权限控制定义
 RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可以动态修改权限控制定义的属性，而不需重新启动Broker服务节点。
@@ -91,8 +111,14 @@ RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可
 sh mqadmin updateAclConfig -n 192.168.1.2:9876 -b 192.168.12.134:10911 -a RocketMQ -s 1234567809123 
 -t topicA=DENY,topicD=SUB -g groupD=DENY,groupB=SUB
 
-说明：如果不存在则会在ACL Config YAML配置文件中创建；若存在，则会更新对应的“accounts”的属性值;
-如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+说明：为了兼容老版本在新版本中不会取消该命令，而是在用户执行完命令后反馈以下信息
+```
+updateAclConfig command will be deprecated. If you want to update secretKey whiteRemoteAddress 
+admin defaultTopicPerm and defaultGroupPerm, updateAclAccount command is recommended. If you want to update resource perm,
+updateAclResourcePerms command is recommended. If you want to update namespace perm, updateAclNamespacePerms command
+is recommended.
+```
+
 
 | 参数 | 取值 | 含义 |
 | --- | --- | --- |
@@ -164,6 +190,169 @@ sh mqadmin getAclConfig -n 192.168.1.2:9876 -c DefaultCluster
 | n | eg:192.168.1.2:9876 | namesrv地址(必填) |
 | c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
 | b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+
+### 7.6 更新AK的SK、用户IP白名单、管理员账户、默认Topic权限和默认consumerGroup权限
+该命令的示例如下：
+
+(1) 修改用户的SK
+
+sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:10911
+--accessKey RocketMQ --secretKey 1234567890
+
+(2) 修改用户的admin属性
+
+sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:10911
+--accessKey RocketMQ --admin true
+
+(4) 修改（全覆盖）用户IP白名单
+
+sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:10911
+--accessKey RocketMQ --whiteRemoteAddress 10.10.154.1
+
+(5) 修改全局默认权限
+
+sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:10911
+--accessKey RocketMQ --defaultTopicPerm DENY
+
+sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:10911
+--accessKey RocketMQ --defaultGroupPerm DENY
+
+注意：如果用户不存在则会创建该用户
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
+| clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| accessKey | eg:RocketMQ | Access Key值(必填) |
+| secretKey | eg:1234567809123 | Secret Key值(可选) |
+| admin | eg:true | 是否管理员账户(可选) |
+| whiteRemoteAddress | eg:192.168.0.* | whiteRemoteAddress,用户IP白名单(可选) |
+| defaultTopicPerm | eg:DENY;PUB;SUB;PUB\|SUB | defaultTopicPerm,默认Topic权限(可选)，作用域是所有的namespace |
+| defaultGroupPerm | eg:DENY;PUB;SUB;PUB\|SUB | defaultGroupPerm,默认ConsumerGroup权限(可选)，作用域是所有的namespace |
+
+### 7.7 更新AK的resourcePerms
+该命令的示例如下：
+
+(1) 新增topicA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation ADD --resource topicA --type TOPIC --namespace namespace1
+--perm SUB
+
+(2) 修改topicA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation UPDATE --resource topicA --type TOPIC --namespace namespace1
+--perm PUB|SUB
+
+(3) 删除topicA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation DELETE --resource topicA --type TOPIC --namespace namespace1
+
+(4) 新增groupA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation ADD --resource groupA --type GROUP --namespace namespace1
+--perm PUB
+
+(5) 修改groupA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation UPDATE --resource groupA --type GROUP --namespace namespace1
+--perm PUB|SUB
+
+(6) 删除groupA的权限
+
+sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation DELETE --resource groupA --type GROUP --namespace namespace1
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
+| clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| accessKey | eg:RocketMQ | Access Key值(必填) |
+| operation | eg:ADD;UPDATE;DELETE | 对resourcePerms的操作类型（必填） |
+| resource | eg:topic1;group1 | 指定topic名称或者ConsumerGroup名称（必填） |
+| type | eg:TOPIC;GROUP | 当操作对象是resource时，指定是topic还是ConsumerGroup（必填） |
+| namespace | eg:namespace1 | 指定namespace名称（可选） |
+| perm | eg:DENY;PUB;SUB;PUB\|SUB | resourcePerms中topic或者ConsumerGroup的权限（可选） |
+
+### 7.8 更新AK的namespacePerms
+该命令的示例如下：
+
+(1) 新增namespace1的权限
+
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation ADD --namespace namespace1 --topicPerm SUB --groupPerm PUB
+
+(2) 修改namespace1的权限
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation UPDATE --namespace namespace1 --topicPerm DENY 
+--groupPerm PUB
+
+(3) 删除namespace1的权限
+
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation DELETE --namespace namespace1
+
+(4) 批量增加(新增namespace2和namespace3的权限，其topicPerm均为SUB，groupPerm均为PUB)
+
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation ADD --namespace namespace2，namespace3 --topicPerm SUB 
+--groupPerm PUB
+
+(5) 批量修改(将namespace2和namespace3的topicPerm和groupPerm修改为DENY)
+
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation UPDATE --namespace namespace2，namespace3 --topicPerm DENY 
+--groupPerm DENY
+
+(6) 批量删除
+
+sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--operation DELETE --namespace namespace2，namespace3
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
+| clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| accessKey | eg:RocketMQ | Access Key值(必填) |
+| operation | eg:ADD;UPDATE;DELETE | 对namespacePerms的操作类型（必填） |
+| namespace | eg:namespace1 | 指定namespace名称（必填），如果是批量操作则使用逗号分割 |
+| topicPerm | eg:DENY;PUB;SUB;PUB\|SUB | topicPerm，各个namespace默认的topic权限（可选） |
+| groupPerm | eg:DENY;PUB;SUB;PUB\|SUB | groupPerm，各个namespace默认的ConsumerGroup权限（可选） |
+
+### 7.9 根据accesskey获取其权限配置信息
+该命令的使用示例如下：
+
+(1) 获取RocketMQ的权限配置
+
+sh mqadmin getAccesskeyConfig --namesrv 127.0.0.1:9876 
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
+| clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| accessKey | eg:RocketMQ | Access Key值(必填) |
+
 
 **特别注意**开启Acl鉴权认证后导致Master/Slave和Dledger模式下Broker同步数据异常的问题，
 在社区[4.5.1]版本中已经修复，具体的PR链接为：#1149。

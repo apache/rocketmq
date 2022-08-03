@@ -18,10 +18,14 @@ package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -256,6 +260,10 @@ public class AclUtils {
 
     public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
         Yaml yaml = new Yaml();
+        if (new File(path).exists()) {
+            String pathBak = path + ".bak";
+            copyFile(path, pathBak);
+        }
         try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
             String dumpAsMap = yaml.dumpAsMap(dataMap);
             pw.print(dumpAsMap);
@@ -304,5 +312,33 @@ public class AclUtils {
         }
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
     }
+
+    public static boolean copyFile(String from, String to) {
+        FileChannel input = null;
+        FileChannel output = null;
+        try {
+            input = new FileInputStream(new File(from)).getChannel();
+            output = new FileOutputStream(new File(to)).getChannel();
+            output.transferFrom(input, 0, input.size());
+            return true;
+        } catch (Exception e) {
+            log.error("file copy error. from={}, to={}", from, to, e);
+        } finally {
+            closeFileChannel(input);
+            closeFileChannel(output);
+        }
+        return false;
+    }
+
+    private static void closeFileChannel(FileChannel fileChannel) {
+        if (fileChannel != null) {
+            try {
+                fileChannel.close();
+            } catch (IOException e) {
+                log.error("Close file channel error.", e);
+            }
+        }
+    }
+
 
 }

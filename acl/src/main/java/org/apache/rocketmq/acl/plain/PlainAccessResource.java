@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.rocketmq.acl.AccessResource;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
@@ -44,7 +45,10 @@ import org.apache.rocketmq.acl.common.AuthorizationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.NamespaceAndPerm;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.ResourceAndPerm;
+import org.apache.rocketmq.common.ResourceType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -56,6 +60,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import static org.apache.rocketmq.common.protocol.NamespaceUtil.NAMESPACE_SEPARATOR;
 
 public class PlainAccessResource implements AccessResource {
 
@@ -73,6 +78,8 @@ public class PlainAccessResource implements AccessResource {
     private byte defaultGroupPerm = 1;
 
     private Map<String, Byte> resourcePermMap;
+
+    private Map<String, Map<String, Byte>> namespacePermMap;
 
     private RemoteAddressStrategy remoteAddressStrategy;
 
@@ -109,12 +116,24 @@ public class PlainAccessResource implements AccessResource {
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
         accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
 
+        String namespace = new String();
+        String resource = new String();
         try {
             switch (request.getCode()) {
                 case RequestCode.SEND_MESSAGE:
                     final String topic = request.getExtFields().get("topic");
                     if (PlainAccessResource.isRetryTopic(topic)) {
-                        accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("group")), Permission.SUB);
+                        String group = request.getExtFields().get("group");
+                        if (group != null && group.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                            namespace = group.substring(0, group.indexOf(NAMESPACE_SEPARATOR));
+                            group = group.substring(group.indexOf(NAMESPACE_SEPARATOR) + 1);
+                        }
+                        if (!namespace.isEmpty()) {
+                            resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + group;
+                        } else {
+                            resource = getRetryTopic(group);
+                        }
+                        accessResource.addResourceAndPerm(resource, Permission.SUB);
                     } else {
                         accessResource.addResourceAndPerm(topic, Permission.PUB);
                     }
@@ -122,17 +141,49 @@ public class PlainAccessResource implements AccessResource {
                 case RequestCode.SEND_MESSAGE_V2:
                     final String topicV2 = request.getExtFields().get("b");
                     if (PlainAccessResource.isRetryTopic(topicV2)) {
-                        accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("a")), Permission.SUB);
+                        String str = request.getExtFields().get("a");
+                        if (str != null && str.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                            namespace = str.substring(0, str.indexOf(NAMESPACE_SEPARATOR));
+                            str = str.substring(str.indexOf(NAMESPACE_SEPARATOR) + 1);
+                        }
+                        if (!namespace.isEmpty()) {
+                            resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str;
+                        } else {
+                            resource = getRetryTopic(str);
+                        }
+                        accessResource.addResourceAndPerm(resource, Permission.SUB);
                     } else {
                         accessResource.addResourceAndPerm(topicV2, Permission.PUB);
                     }
                     break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
-                    accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("group")), Permission.SUB);
+                    String group = request.getExtFields().get("group");
+                    if (group != null && group.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                        namespace = group.substring(0, group.indexOf(NAMESPACE_SEPARATOR));
+                        group = group.substring(group.indexOf(NAMESPACE_SEPARATOR) + 1);
+                    }
+                    if (!namespace.isEmpty()) {
+                        resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + group;
+                    } else {
+                        resource = getRetryTopic(group);
+                    }
+                    accessResource.addResourceAndPerm(resource, Permission.SUB);
+                    accessResource.addResourceAndPerm(request.getExtFields().get("originTopic"), Permission.PUB);
                     break;
                 case RequestCode.PULL_MESSAGE:
-                    accessResource.addResourceAndPerm(request.getExtFields().get("topic"), Permission.SUB);
-                    accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("consumerGroup")), Permission.SUB);
+                    String str1  = request.getExtFields().get("topic");
+                    String str2 = request.getExtFields().get("consumerGroup");
+                    if (str2 != null && str2.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                        namespace = str2.substring(0, str2.indexOf(NAMESPACE_SEPARATOR));
+                        str2 = str2.substring(str2.indexOf(NAMESPACE_SEPARATOR) + 1);
+                    }
+                    if (!namespace.isEmpty()) {
+                        resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str2;
+                    } else {
+                        resource = getRetryTopic(str2);
+                    }
+                    accessResource.addResourceAndPerm(str1, Permission.SUB);
+                    accessResource.addResourceAndPerm(resource, Permission.SUB);
                     break;
                 case RequestCode.QUERY_MESSAGE:
                     accessResource.addResourceAndPerm(request.getExtFields().get("topic"), Permission.SUB);
@@ -140,7 +191,17 @@ public class PlainAccessResource implements AccessResource {
                 case RequestCode.HEART_BEAT:
                     HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
                     for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-                        accessResource.addResourceAndPerm(getRetryTopic(data.getGroupName()), Permission.SUB);
+                        String str4 = data.getGroupName();
+                        if (str4 != null && str4.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                            namespace = str4.substring(0, str4.indexOf(NAMESPACE_SEPARATOR));
+                            str4 = str4.substring(str4.indexOf(NAMESPACE_SEPARATOR) + 1);
+                        }
+                        if (!namespace.isEmpty()) {
+                            resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str4;
+                        } else {
+                            resource = getRetryTopic(str4);
+                        }
+                        accessResource.addResourceAndPerm(resource, Permission.SUB);
                         for (SubscriptionData subscriptionData : data.getSubscriptionDataSet()) {
                             accessResource.addResourceAndPerm(subscriptionData.getTopic(), Permission.SUB);
                         }
@@ -150,20 +211,58 @@ public class PlainAccessResource implements AccessResource {
                     final UnregisterClientRequestHeader unregisterClientRequestHeader =
                         (UnregisterClientRequestHeader) request
                             .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
-                    accessResource.addResourceAndPerm(getRetryTopic(unregisterClientRequestHeader.getConsumerGroup()), Permission.SUB);
+                    String str5 = unregisterClientRequestHeader.getConsumerGroup();
+                    if (str5 != null && str5.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                        namespace = str5.substring(0, str5.indexOf(NAMESPACE_SEPARATOR));
+                        str5 = str5.substring(str5.indexOf(NAMESPACE_SEPARATOR) + 1);
+                    }
+                    if (!namespace.isEmpty()) {
+                        resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str5;
+                    } else {
+                        resource = getRetryTopic(str5);
+                    }
+                    accessResource.addResourceAndPerm(resource, Permission.SUB);
                     break;
                 case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                     final GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader =
                         (GetConsumerListByGroupRequestHeader) request
                             .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
-                    accessResource.addResourceAndPerm(getRetryTopic(getConsumerListByGroupRequestHeader.getConsumerGroup()), Permission.SUB);
+                    String str6 = getConsumerListByGroupRequestHeader.getConsumerGroup();
+                    if (str6 != null && str6.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                        namespace = str6.substring(0, str6.indexOf(NAMESPACE_SEPARATOR));
+                        str6 = str6.substring(str6.indexOf(NAMESPACE_SEPARATOR) + 1);
+                    }
+                    if (!namespace.isEmpty()) {
+                        resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str6;
+                    } else {
+                        resource = getRetryTopic(str6);
+                    }
+                    accessResource.addResourceAndPerm(resource, Permission.SUB);
                     break;
                 case RequestCode.UPDATE_CONSUMER_OFFSET:
                     final UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader =
                         (UpdateConsumerOffsetRequestHeader) request
                             .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
-                    accessResource.addResourceAndPerm(getRetryTopic(updateConsumerOffsetRequestHeader.getConsumerGroup()), Permission.SUB);
-                    accessResource.addResourceAndPerm(updateConsumerOffsetRequestHeader.getTopic(), Permission.SUB);
+                    String str7 = updateConsumerOffsetRequestHeader.getConsumerGroup();
+                    String str8 = updateConsumerOffsetRequestHeader.getTopic();
+                    /*
+                    if (str8.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        str8.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                    } else if (str8.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                        str8.substring(MixAll.DLQ_GROUP_TOPIC_PREFIX.length());
+                    }
+                     */
+                    if (str7.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                        namespace = str7.substring(0, str7.indexOf(NAMESPACE_SEPARATOR));
+                        str7 = str7.substring(str7.indexOf(NAMESPACE_SEPARATOR) + 1);
+                    }
+                    if (!namespace.isEmpty()) {
+                        resource = MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + str7;
+                    } else {
+                        resource = getRetryTopic(str7);
+                    }
+                    accessResource.addResourceAndPerm(resource, Permission.SUB);
+                    accessResource.addResourceAndPerm(str8, Permission.SUB);
                     break;
                 default:
                     break;
@@ -281,12 +380,85 @@ public class PlainAccessResource implements AccessResource {
         Permission.parseResourcePerms(plainAccessResource, false, plainAccessConfig.getGroupPerms());
         Permission.parseResourcePerms(plainAccessResource, true, plainAccessConfig.getTopicPerms());
 
+        List<ResourceAndPerm> resourcePerms = plainAccessConfig.getResourcePerms();
+        if (resourcePerms != null && !resourcePerms.isEmpty()) {
+            for (ResourceAndPerm resource : resourcePerms) {
+                String resourceName = resource.getResource();
+                ResourceType type = resource.getType();
+                String namespace = resource.getNamespace();
+                String perm = resource.getPerm();
+                if (type == ResourceType.GROUP) {
+                    String key = namespace == null ? PlainAccessResource.getRetryTopic(resourceName) :
+                        MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + resourceName;
+                    plainAccessResource.addResourceAndPerm(key, Permission.parsePermFromString(perm));
+                } else if (type == ResourceType.TOPIC) {
+                    String key = namespace == null ? resourceName : namespace + NAMESPACE_SEPARATOR + resourceName;
+                    plainAccessResource.addResourceAndPerm(key, Permission.parsePermFromString(perm));
+                }
+            }
+        }
+
+        List<NamespaceAndPerm> namespacePerms = plainAccessConfig.getNamespacePerms();
+        if (namespacePerms != null && !namespacePerms.isEmpty()) {
+            Map<String, Map<String, Byte>> namespacePermMap = new HashMap<>();
+            for (NamespaceAndPerm namespace : namespacePerms) {
+                String namespaceName = namespace.getNamespace();
+                String topicPerm = namespace.getTopicPerm();
+                String groupPerm = namespace.getGroupPerm();
+                Map<String, Byte> permMap = new HashMap<>(2);
+                if (topicPerm != null && !topicPerm.isEmpty()) {
+                    permMap.put(AclConstants.CONFIG_TOPIC_PERM, Permission.parsePermFromString(topicPerm));
+                }
+                if (groupPerm != null && !groupPerm.isEmpty()) {
+                    permMap.put(AclConstants.CONFIG_GROUP_PERM, Permission.parsePermFromString(groupPerm));
+                }
+                namespacePermMap.put(namespaceName, permMap);
+            }
+            plainAccessResource.setNamespacePermMap(namespacePermMap);
+        }
+
         plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategy);
         return plainAccessResource;
     }
 
     public static boolean isRetryTopic(String topic) {
         return null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+    }
+
+    public static boolean isContainNamespace(String resource) {
+        if (resource == null || resource.isEmpty())
+            return false;
+        //resource's type is group
+        if (resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            if (resource.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length()).contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return true;
+            }
+        } else { //resource's type is topic
+            if (resource.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String getResourceNamespace(String resource) {
+        if (resource == null || resource.isEmpty())
+            return null;
+        //resource's type is group
+        if (resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            String str = resource.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+            if (str.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return str.substring(0, str.indexOf(NAMESPACE_SEPARATOR));
+            } else {
+                return null;
+            }
+        } else { //resource's type is topic
+            if (resource.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return resource.substring(0, resource.indexOf(NAMESPACE_SEPARATOR));
+            } else {
+                return null;
+            }
+        }
     }
 
     public static String printStr(String resource, boolean isGroup) {
@@ -427,5 +599,14 @@ public class PlainAccessResource implements AccessResource {
 
     public void setContent(byte[] content) {
         this.content = content;
+    }
+
+    public Map<String, Map<String, Byte>> getNamespacePermMap() {
+        return namespacePermMap;
+    }
+
+    public void setNamespacePermMap(
+        Map<String, Map<String, Byte>> namespacePermMap) {
+        this.namespacePermMap = namespacePermMap;
     }
 }

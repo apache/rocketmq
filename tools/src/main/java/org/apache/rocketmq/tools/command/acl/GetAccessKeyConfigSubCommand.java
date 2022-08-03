@@ -14,86 +14,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.acl;
 
+import java.lang.reflect.Field;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import static org.apache.rocketmq.common.protocol.NamespaceUtil.NAMESPACE_SEPARATOR;
 
-public class DeleteAccessConfigSubCommand implements SubCommand {
-
-    @Override
-    public String commandName() {
-        return "deleteAclConfig";
+public class GetAccessKeyConfigSubCommand implements SubCommand {
+    @Override public String commandName() {
+        return "getAccesskeyConfig";
     }
 
-    @Override
-    public String commandAlias() {
-        return "deleteAccessConfig";
+    @Override public String commandAlias() {
+        return "getAccesskeyConfigSubCommand";
     }
 
-    @Override
-    public String commandDesc() {
-        return "Delete Acl Config Account in broker";
+    @Override public String commandDesc() {
+        return "Query the specified accesskey's config information in cluster";
     }
 
-    @Override
-    public Options buildCommandlineOptions(Options options) {
+    @Override public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "delete acl config account from which broker");
+        Option opt = new Option("b", "brokerAddr", true, "query acl config version for which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "delete acl config account from which cluster");
+        opt = new Option("c", "clusterName", true, "query acl config version for specified cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
-        opt = new Option("a", "accessKey", true, "set accessKey in acl config file for deleting which account");
+        opt = new Option("a", "accessKey", true, "set the accessKey for querying acl config file");
         opt.setRequired(true);
-        options.addOption(opt);
-
-        opt = new Option("p", "namespace", true, "set namespace corresponding to accessKey");
-        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
     }
 
-    @Override
-    public void execute(CommandLine commandLine, Options options,
+    @Override public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            boolean flag = commandLine.hasOption('p');
-            String accessKey = new String();
-            if (flag) {
-                accessKey = commandLine.getOptionValue('p').trim() + NAMESPACE_SEPARATOR + commandLine.getOptionValue('a').trim();
-            } else {
-                accessKey = commandLine.getOptionValue('a').trim();
-            }
+            String accesskey = commandLine.getOptionValue('a').trim();
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
-
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
-
-                System.out.printf("delete plain access config account from %s success.%n", addr);
-                System.out.printf("account's accesskey is:%s", accessKey);
+                printClusterBaseInfo(defaultMQAdminExt, addr, accesskey);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -101,14 +86,11 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
                 defaultMQAdminExt.start();
 
-                Set<String> brokerAddrSet =
-                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
-                    System.out.printf("delete plain access config account from %s success.%n", addr);
+                Set<String> masterSet =
+                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    printClusterBaseInfo(defaultMQAdminExt, addr, accesskey);
                 }
-
-                System.out.printf("account's accesskey is:%s", accessKey);
                 return;
             }
 
@@ -117,6 +99,26 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
+        }
+    }
+
+    private void printClusterBaseInfo(
+        final DefaultMQAdminExt defaultMQAdminExt, final String addr, final String accesskey) throws
+        InterruptedException, MQBrokerException, RemotingException, MQClientException, IllegalAccessException {
+        PlainAccessConfig plainAccessConfig = defaultMQAdminExt.examineBrokerClusterAccesskeyConfig(addr, accesskey);
+        System.out.printf("\n");
+        System.out.printf("accounts:\n");
+        if (plainAccessConfig != null) {
+            Field[] fields = plainAccessConfig.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                field.setAccessible(true);
+                if (field.get(plainAccessConfig) != null) {
+                    System.out.printf("%-1s %-18s: %s\n", "", field.getName(), field.get(plainAccessConfig).toString());
+                } else {
+                    System.out.printf("%-1s %-18s: %s\n", "", field.getName(), "");
+                }
+            }
+            System.out.printf("\n");
         }
     }
 }

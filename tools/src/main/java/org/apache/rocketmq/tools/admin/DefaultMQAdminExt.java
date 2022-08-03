@@ -196,7 +196,24 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void deletePlainAccessConfig(String addr,
+    public void updateAclAccount(String addr,
+        PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.updateAclAccount(addr, plainAccessConfig);
+    }
+
+    @Override
+    public void updateAclResourcePerms(String addr,
+        PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.updateAclResourcePerms(addr, plainAccessConfig, operation);
+    }
+
+    @Override
+    public void updateAclNamespacePerms(String addr,
+        PlainAccessConfig plainAccessConfig, String operation) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.updateAclNamespacePerms(addr, plainAccessConfig, operation);
+    }
+
+    @Override public void deletePlainAccessConfig(String addr,
         String accessKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.deletePlainAccessConfig(addr, accessKey);
     }
@@ -224,6 +241,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public AclConfig examineBrokerClusterAclConfig(
         String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return defaultMQAdminExtImpl.examineBrokerClusterAclConfig(addr);
+    }
+
+    @Override public PlainAccessConfig examineBrokerClusterAccesskeyConfig(
+        final String addr, final String accesskey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.examineBrokerClusterAccesskeyConfig(addr, accesskey);
     }
 
     @Override

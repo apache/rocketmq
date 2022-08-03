@@ -58,7 +58,9 @@ import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.NamespaceAndPerm;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.ResourceType;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
@@ -127,6 +129,8 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAccesskeyConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAccesskeyConfigResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
@@ -169,6 +173,9 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateAclAccountRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateAclNamespacePermsRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateAclResourcePermsRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGroupForbiddenRequestHeader;
@@ -430,6 +437,101 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    public void updateAclAccount(final String addr, final PlainAccessConfig plainAccessConfig,
+        final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
+        UpdateAclAccountRequestHeader requestHeader = new UpdateAclAccountRequestHeader();
+        requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
+        requestHeader.setAdmin(plainAccessConfig.isAdmin());
+        requestHeader.setDefaultTopicPerm(plainAccessConfig.getDefaultTopicPerm());
+        requestHeader.setDefaultGroupPerm(plainAccessConfig.getDefaultGroupPerm());
+        requestHeader.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL_ACCOUNT, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void updateAclResourcePerms(final String addr, final PlainAccessConfig plainAccessConfig,
+        final String operation, final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
+        UpdateAclResourcePermsRequestHeader requestHeader = new UpdateAclResourcePermsRequestHeader();
+        requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setOperation(operation);
+        requestHeader.setResource(plainAccessConfig.getResourcePerms().get(0).getResource());
+        if (plainAccessConfig.getResourcePerms().get(0).getType() == ResourceType.GROUP) {
+            requestHeader.setType(ResourceType.GROUP.toString());
+        } else {
+            requestHeader.setType(ResourceType.TOPIC.toString());
+        }
+        if (plainAccessConfig.getResourcePerms().get(0).getNamespace() != null && !plainAccessConfig.getResourcePerms().get(0).getNamespace().isEmpty()) {
+            requestHeader.setNamespace(plainAccessConfig.getResourcePerms().get(0).getNamespace());
+        }
+        if (plainAccessConfig.getResourcePerms().get(0).getPerm() != null && !plainAccessConfig.getResourcePerms().get(0).getPerm().isEmpty()) {
+            requestHeader.setPerm(plainAccessConfig.getResourcePerms().get(0).getPerm());
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL_RESOURCE_PERMS, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void updateAclNamespacePerms(final String addr, final PlainAccessConfig plainAccessConfig,
+        final String operation, final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
+        UpdateAclNamespacePermsRequestHeader requestHeader = new UpdateAclNamespacePermsRequestHeader();
+        requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setOperation(operation);
+        List<NamespaceAndPerm> namespaceAndPerms = plainAccessConfig.getNamespacePerms();
+        requestHeader.setTopicPerm(namespaceAndPerms.get(0).getTopicPerm());
+        requestHeader.setGroupPerm(namespaceAndPerms.get(0).getGroupPerm());
+        String namespaceStr = new String();
+        for (NamespaceAndPerm namespaceAndPerm : namespaceAndPerms) {
+            namespaceStr += namespaceAndPerm.getNamespace();
+            namespaceStr += ",";
+        }
+        requestHeader.setNamespaceStr(namespaceStr.substring(0, namespaceStr.length() - 1));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL_NAMESPACE_PERMS, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
     public void deleteAccessConfig(final String addr, final String accessKey, final long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
         DeleteAccessConfigRequestHeader requestHeader = new DeleteAccessConfigRequestHeader();
@@ -523,6 +625,31 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     aclConfig.setGlobalWhiteAddrs(body.getGlobalWhiteAddrs());
                     aclConfig.setPlainAccessConfigs(body.getPlainAccessConfigs());
                     return aclConfig;
+                }
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+
+    }
+
+    public PlainAccessConfig getBrokerClusterAccesskeyConfig(final String addr,
+        final String accesskey, final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        GetBrokerClusterAccesskeyConfigRequestHeader requestHeader = new GetBrokerClusterAccesskeyConfigRequestHeader();
+        requestHeader.setAccessKey(accesskey);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ACCESSKEY_CONFIG, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (response.getBody() != null) {
+                    GetBrokerClusterAccesskeyConfigResponseBody body =
+                        GetBrokerClusterAccesskeyConfigResponseBody.decode(response.getBody(), GetBrokerClusterAccesskeyConfigResponseBody.class);
+                    PlainAccessConfig plainAccessConfig = body.getPlainAccessConfig();
+                    return plainAccessConfig;
                 }
             }
             default:
