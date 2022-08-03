@@ -80,8 +80,9 @@ public class HandshakeSlave {
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +
             ", brokerId=" + brokerId +
-            ", brokerAppVersion='" + brokerAppVersion + '\'' +
-            ", haProtocolVersion='" + haProtocolVersion + '\'' +
+            ", brokerAddr='" + brokerAddr + '\'' +
+            ", brokerAppVersion=" + brokerAppVersion +
+            ", haProtocolVersion=" + haProtocolVersion +
             ", languageCode=" + languageCode +
             '}';
     }

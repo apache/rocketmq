@@ -4,9 +4,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HAMessage {
+public class TransferMessage {
 
-    private HAMessageType type;
+    private TransferType type;
 
     private long epoch;
 
@@ -14,27 +14,17 @@ public class HAMessage {
 
     private final List<ByteBuffer> byteBufferList;
 
-    public HAMessage(HAMessageType type, long epoch) {
+    public TransferMessage(TransferType type, long epoch) {
         this.type = type;
         this.epoch = epoch;
         this.byteBufferList = new ArrayList<>(2);
     }
 
-    public HAMessage(HAMessageType type, long epoch, byte[] bytes) {
-        this(type, epoch);
-        this.appendBody(bytes);
-    }
-
-    public HAMessage(HAMessageType type, long epoch, ByteBuffer byteBuffer) {
-        this(type, epoch);
-        this.appendBody(byteBuffer);
-    }
-
-    public HAMessageType getType() {
+    public TransferType getType() {
         return type;
     }
 
-    public void setType(HAMessageType type) {
+    public void setType(TransferType type) {
         this.type = type;
     }
 
@@ -55,7 +45,7 @@ public class HAMessage {
     }
 
     public ByteBuffer getByteBuffer() {
-        return byteBufferList != null && byteBufferList.size() > 0 ? byteBufferList.get(0) : null;
+        return byteBufferList.size() > 0 ? byteBufferList.get(0) : null;
     }
 
     public List<ByteBuffer> getByteBufferList() {

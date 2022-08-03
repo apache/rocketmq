@@ -2,9 +2,14 @@ package org.apache.rocketmq.store.ha.protocol;
 
 public class PushCommitLogAck {
 
-    private long confirmOffset = 0L;
+    private long confirmOffset;
 
-    private boolean isReadOnly = false;
+    private boolean slaveAsyncLearner;
+
+    public PushCommitLogAck(long confirmOffset, boolean slaveAsyncLearner) {
+        this.confirmOffset = confirmOffset;
+        this.slaveAsyncLearner = slaveAsyncLearner;
+    }
 
     public long getConfirmOffset() {
         return confirmOffset;
@@ -14,19 +19,19 @@ public class PushCommitLogAck {
         this.confirmOffset = confirmOffset;
     }
 
-    public boolean isReadOnly() {
-        return isReadOnly;
+    public boolean isSlaveAsyncLearner() {
+        return slaveAsyncLearner;
     }
 
-    public void setReadOnly(boolean readOnly) {
-        isReadOnly = readOnly;
+    public void setSlaveAsyncLearner(boolean slaveAsyncLearner) {
+        this.slaveAsyncLearner = slaveAsyncLearner;
     }
 
     @Override
     public String toString() {
         return "PushCommitLogAck{" +
             "confirmOffset=" + confirmOffset +
-            ", isReadOnly=" + isReadOnly +
+            ", slaveAsyncLearner=" + slaveAsyncLearner +
             '}';
     }
 }

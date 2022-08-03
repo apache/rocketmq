@@ -107,10 +107,12 @@ public class DefaultHAConnection implements HAConnection {
         return slaveAckOffset;
     }
 
+    @Override
     public long getTransferredByteInSecond() {
         return this.flowMonitor.getTransferredByteInSecond();
     }
 
+    @Override
     public long getTransferFromWhere() {
         return writeSocketService.getNextTransferFromWhere();
     }

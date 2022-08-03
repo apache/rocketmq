@@ -66,9 +66,11 @@ import org.apache.rocketmq.store.ha.HAConnectionStateNotificationRequest;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.WaitNotifyObject;
-import org.apache.rocketmq.store.ha.netty.NettyHADecoder;
-import org.apache.rocketmq.store.ha.netty.NettyHAEncoder;
-import org.apache.rocketmq.store.ha.netty.NettyHAServerHandler;
+import org.apache.rocketmq.store.ha.netty.NettyTransferDecoder;
+import org.apache.rocketmq.store.ha.netty.NettyTransferEncoder;
+import org.apache.rocketmq.store.ha.netty.NettyTransferServerHandler;
+import org.apache.rocketmq.store.ha.netty.TransferMessage;
+import org.apache.rocketmq.store.ha.netty.TransferType;
 import org.apache.rocketmq.store.ha.protocol.ConfirmTruncate;
 import org.apache.rocketmq.store.ha.protocol.HandshakeMaster;
 import org.apache.rocketmq.store.ha.protocol.HandshakeResult;
@@ -86,18 +88,19 @@ public class AutoSwitchHAService implements HAService {
     protected static final int WRITE_MAX_BUFFER_SIZE = 1024 * 1024;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor(
-        new ThreadFactoryImpl("NettyHAService_Executor_"));
-    private final Map<Channel, HAConnection> connectionMap = new ConcurrentHashMap<>();
-    private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
-    private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
+        new ThreadFactoryImpl("TransferServiceExecutor"));
 
-    private EpochStore epochStore;
     private long currentMasterEpoch = -1L;
     private long confirmOffset = -1L;
     private String localAddress;
+    private EpochStore epochStore;
     private DefaultMessageStore defaultMessageStore;
     private GroupTransferService groupTransferService;
+
+    private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
+    private final Map<Channel, HAConnection> connectionMap = new ConcurrentHashMap<>();
     private CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
+    private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private HAConnectionStateNotificationService haConnectionStateNotificationService;
 
     private EventLoopGroup bossEventLoopGroup;
@@ -121,6 +124,7 @@ public class AutoSwitchHAService implements HAService {
     public void start() throws Exception {
         this.groupTransferService.start();
         startNettyServer(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        this.haConnectionStateNotificationService.start();
     }
 
     @Override
@@ -134,12 +138,11 @@ public class AutoSwitchHAService implements HAService {
     }
 
     public void startNettyServer(int port) {
+        AutoSwitchHAService haService = this;
         bossEventLoopGroup = new NioEventLoopGroup(2);
         workerEventLoopGroup = new NioEventLoopGroup(2);
-
-        AutoSwitchHAService haService = this;
-        ServerBootstrap bootstrap = new ServerBootstrap();
-        bootstrap.group(bossEventLoopGroup, workerEventLoopGroup).channel(NioServerSocketChannel.class)
+        ServerBootstrap bootstrap = new ServerBootstrap()
+            .group(bossEventLoopGroup, workerEventLoopGroup).channel(NioServerSocketChannel.class)
             .option(ChannelOption.SO_BACKLOG, 128)
             .childOption(ChannelOption.SO_KEEPALIVE, true)
             .childOption(ChannelOption.SO_SNDBUF, WRITE_MAX_BUFFER_SIZE)
@@ -149,22 +152,23 @@ public class AutoSwitchHAService implements HAService {
                 protected void initChannel(SocketChannel channel) {
                     channel.pipeline()
                         .addLast(new IdleStateHandler(15, 15, 0))
-                        .addLast(new NettyHADecoder())
-                        .addLast(new NettyHAEncoder())
-                        .addLast(new NettyHAServerHandler(haService));
+                        .addLast(new NettyTransferDecoder(haService))
+                        .addLast(new NettyTransferEncoder(haService))
+                        .addLast(new NettyTransferServerHandler(haService));
                 }
             });
 
         try {
             bootstrap.bind(port).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
-                    LOGGER.info("HaService start listen at port: {} success", port);
+                    LOGGER.info("NettyTransferService start listen at port: {}", port);
                 } else {
-                    LOGGER.info("HaService start listen at port: {} failed", port);
+                    LOGGER.info("NettyTransferService start listen at port: {} failed", port);
                 }
             }).sync();
-        } catch (InterruptedException e) {
-            throw new RuntimeException("HaService start InterruptedException", e);
+        } catch (Exception e) {
+            LOGGER.error("NettyTransferService start exception, port: {} failed", port, e);
+            throw new RuntimeException("NettyTransferService start exception", e);
         }
     }
 
@@ -304,7 +308,6 @@ public class AutoSwitchHAService implements HAService {
             this.haClient.init();
             this.haClient.updateSlaveId(slaveId);
             this.haClient.updateHaMasterAddress(newMasterAddr);
-            this.haClient.setCurrentMasterEpoch(newMasterEpoch);
             this.haClient.start();
 
             LOGGER.info("Broker change to slave success, newMasterEpoch:{}, newMasterAddress:{}, brokerId:{}",
@@ -315,6 +318,10 @@ public class AutoSwitchHAService implements HAService {
                 newMasterAddr, newMasterEpoch, slaveId, e);
         }
         return false;
+    }
+
+    public boolean isSlaveEpochMatchMaster(long epoch) {
+        return this.currentMasterEpoch == epoch;
     }
 
     public long getCurrentMasterEpoch() {
@@ -455,7 +462,7 @@ public class AutoSwitchHAService implements HAService {
             this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
         for (HAConnection haConnection : this.connectionMap.values()) {
             final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
-            final String slaveAddress = connection.getSlaveBrokerAddress();
+            final String slaveAddress = connection.getClientAddress();
             final boolean firstInit = connection.getSlaveAckOffset() < 0;
             final boolean asyncLearner = connection.isSlaveAsyncLearner();
             final boolean slaveNotCatchup =
@@ -478,7 +485,7 @@ public class AutoSwitchHAService implements HAService {
         AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
 
         final Set<String> currentSyncStateSet = getSyncStateSet();
-        String brokerAddr = connection.getSlaveBrokerAddress();
+        String brokerAddr = connection.getClientAddress();
         if (brokerAddr == null || currentSyncStateSet.contains(brokerAddr)) {
             return;
         }
@@ -505,9 +512,8 @@ public class AutoSwitchHAService implements HAService {
     public long computeConfirmOffset() {
         final Set<String> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
-
         for (HAConnection connection : this.connectionMap.values()) {
-            final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveBrokerAddress();
+            final String slaveAddress = connection.getClientAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
                 confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
             }
@@ -616,11 +622,11 @@ public class AutoSwitchHAService implements HAService {
     public void pushCommitLogDataAck(Channel channel, PushCommitLogAck pushCommitLogAck) {
         AutoSwitchHAConnection haConnection = (AutoSwitchHAConnection) this.connectionMap.get(channel);
         if (haConnection != null) {
-            long offset = pushCommitLogAck.getConfirmOffset();
-            haConnection.setSlaveAsyncLearner(pushCommitLogAck.isReadOnly());
-            haConnection.updateSlaveTransferProgress(offset);
-            if (!pushCommitLogAck.isReadOnly()) {
-                maybeExpandInSyncStateSet(haConnection, offset);
+            haConnection.setSlaveAsyncLearner(pushCommitLogAck.isSlaveAsyncLearner());
+            haConnection.updateSlaveTransferProgress(pushCommitLogAck.getConfirmOffset());
+
+            if (!pushCommitLogAck.isSlaveAsyncLearner()) {
+                maybeExpandInSyncStateSet(haConnection, pushCommitLogAck.getConfirmOffset());
                 notifyTransferSome();
             }
         }
@@ -629,7 +635,7 @@ public class AutoSwitchHAService implements HAService {
     public void tryAcceptNewSlave(Channel channel, HandshakeSlave handshakeSlave) {
         AutoSwitchHAConnection haConnection = new AutoSwitchHAConnection(this, channel, epochStore);
         haConnection.setSlaveBrokerId(handshakeSlave.getBrokerId());
-        haConnection.setSlaveBrokerAddress(handshakeSlave.getBrokerAddr());
+        haConnection.setClientAddress(handshakeSlave.getBrokerAddr());
         haConnection.start();
         this.addConnection(channel, haConnection);
     }
@@ -643,6 +649,10 @@ public class AutoSwitchHAService implements HAService {
         if (haConnection != null) {
             haConnection.shutdown();
         }
+    }
+
+    public TransferMessage buildMessage(TransferType messageType) {
+        return new TransferMessage(messageType, this.currentMasterEpoch);
     }
 
     public EpochStore getEpochStore() {

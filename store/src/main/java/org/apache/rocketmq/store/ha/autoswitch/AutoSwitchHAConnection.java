@@ -30,29 +30,30 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionState;
-import org.apache.rocketmq.store.ha.netty.HAMessage;
-import org.apache.rocketmq.store.ha.netty.HAMessageType;
+import org.apache.rocketmq.store.ha.netty.TransferMessage;
+import org.apache.rocketmq.store.ha.netty.TransferType;
 import org.apache.rocketmq.store.ha.protocol.PushCommitLogData;
 
 public class AutoSwitchHAConnection implements HAConnection {
 
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private final AutoSwitchHAService haService;
     private final EpochStore epochStore;
-    private final FlowMonitor flowMonitor;
-    private final AtomicLong currentTransferOffset = new AtomicLong(-1L);
+    private final AutoSwitchHAService haService;
     private final NettyTransferService transferService;
+
     private final Channel channel;
+    private final FlowMonitor flowMonitor;
     private EpochEntry currentTransferEpochEntry;
     private SelectMappedBufferResult currentTransferBuffer;
+    private final AtomicLong currentTransferOffset = new AtomicLong(-1L);
 
-    private volatile HAConnectionState currentState = HAConnectionState.READY;
-    private volatile long slaveBrokerId = -1L;
     private volatile long slaveAckOffset = -1L;
     private volatile long slaveAckTimestamp = 0L;
-    private volatile String slaveBrokerAddress;
+    private volatile long slaveBrokerId = -1L;
+    private volatile String clientAddress;
     private volatile boolean slaveAsyncLearner = false;
+    private volatile HAConnectionState currentState = HAConnectionState.READY;
 
     public AutoSwitchHAConnection(AutoSwitchHAService haService, Channel channel, EpochStore epochStore) {
         this.haService = haService;
@@ -80,14 +81,14 @@ public class AutoSwitchHAConnection implements HAConnection {
     public void close() {
         try {
             channel.disconnect().sync();
+            channel.close();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOGGER.warn("TransferService shutdown exception", e);
         }
-        channel.close();
     }
 
     public void changeCurrentState(HAConnectionState connectionState) {
-        LOGGER.info("change state to {}", connectionState);
+        LOGGER.info("Change connection state from {} to {}", this.currentState, connectionState);
         this.currentState = connectionState;
     }
 
@@ -127,12 +128,8 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.slaveAsyncLearner = slaveAsyncLearner;
     }
 
-    public String getSlaveBrokerAddress() {
-        return slaveBrokerAddress;
-    }
-
-    public void setSlaveBrokerAddress(String slaveBrokerAddress) {
-        this.slaveBrokerAddress = slaveBrokerAddress;
+    public void setClientAddress(String clientAddress) {
+        this.clientAddress = clientAddress;
     }
 
     @Override
@@ -147,7 +144,7 @@ public class AutoSwitchHAConnection implements HAConnection {
 
     @Override
     public String getClientAddress() {
-        return slaveBrokerAddress;
+        return clientAddress;
     }
 
     @Override
@@ -199,7 +196,6 @@ public class AutoSwitchHAConnection implements HAConnection {
                             if (this.pushCommitLogDataToSlave()) {
                                 this.waitForRunning(10);
                             } else {
-                                System.out.println("server exit");
                                 close();
                             }
                             continue;
@@ -208,9 +204,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                             break;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
                     LOGGER.error(this.getServiceName() + " service has exception.", e);
-                    break;
                 }
             }
         }
@@ -224,7 +218,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             if (currentTransferEpochEntry == null) {
                 currentTransferEpochEntry = epochStore.findEpochEntryByOffset(currentTransferOffset.get());
                 if (currentTransferEpochEntry == null) {
-                    LOGGER.error("Failed to find an epochEntry to match slaveRequestOffset {}", currentTransferOffset);
+                    LOGGER.error("Failed to find an epochEntry to match request offset {}", currentTransferOffset);
                     return false;
                 }
             }
@@ -276,25 +270,25 @@ public class AutoSwitchHAConnection implements HAConnection {
         }
 
         private void doNettyTransferData(int maxTransferSize) {
-            HAMessage haMessage = new HAMessage(HAMessageType.PUSH_DATA, haService.getCurrentMasterEpoch());
             PushCommitLogData pushCommitLogData = new PushCommitLogData();
             pushCommitLogData.setEpoch(currentTransferEpochEntry.getEpoch());
             pushCommitLogData.setEpochStartOffset(currentTransferEpochEntry.getStartOffset());
             pushCommitLogData.setConfirmOffset(haService.computeConfirmOffset());
-            pushCommitLogData.setStartOffset(currentTransferOffset.get());
-            haMessage.appendBody(pushCommitLogData.encode());
+            pushCommitLogData.setBlockStartOffset(currentTransferOffset.get());
 
+            TransferMessage transferMessage = haService.buildMessage(TransferType.TRANSFER_DATA);
+            transferMessage.appendBody(pushCommitLogData.encode());
             if (maxTransferSize > 0) {
-                haMessage.appendBody(currentTransferBuffer.getByteBuffer());
+                transferMessage.appendBody(currentTransferBuffer.getByteBuffer());
             }
 
             try {
-                channel.writeAndFlush(haMessage).sync();
+                channel.writeAndFlush(transferMessage).sync();
                 if (maxTransferSize > 0) {
                     releaseData();
                 }
             } catch (InterruptedException e) {
-                LOGGER.error("Netty transfer data error", e);
+                LOGGER.error("NettyTransferService transfer data error", e);
                 waitForRunning(100);
             }
         }

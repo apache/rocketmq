@@ -50,11 +50,11 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
-import org.apache.rocketmq.store.ha.netty.HAMessage;
-import org.apache.rocketmq.store.ha.netty.HAMessageType;
-import org.apache.rocketmq.store.ha.netty.NettyHAClientHandler;
-import org.apache.rocketmq.store.ha.netty.NettyHADecoder;
-import org.apache.rocketmq.store.ha.netty.NettyHAEncoder;
+import org.apache.rocketmq.store.ha.netty.TransferMessage;
+import org.apache.rocketmq.store.ha.netty.TransferType;
+import org.apache.rocketmq.store.ha.netty.NettyTransferClientHandler;
+import org.apache.rocketmq.store.ha.netty.NettyTransferDecoder;
+import org.apache.rocketmq.store.ha.netty.NettyTransferEncoder;
 import org.apache.rocketmq.store.ha.protocol.ConfirmTruncate;
 import org.apache.rocketmq.store.ha.protocol.HandshakeMaster;
 import org.apache.rocketmq.store.ha.protocol.HandshakeResult;
@@ -77,7 +77,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     public Bootstrap bootstrap;
     private FlowMonitor flowMonitor;
     private volatile HAConnectionState currentState = HAConnectionState.SHUTDOWN;
-    private volatile long currentMasterEpoch = -1L;
     private volatile long currentReceivedEpoch = -1L;
     private volatile long currentTransferOffset = -1L;
     private volatile long lastReadTimestamp;
@@ -97,7 +96,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
 
         // init offset
-        this.currentMasterEpoch = -1L;
         this.currentReceivedEpoch = -1L;
         this.currentTransferOffset = -1L;
 
@@ -129,11 +127,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     public long getCurrentMasterEpoch() {
-        return currentMasterEpoch;
-    }
-
-    public void setCurrentMasterEpoch(long currentMasterEpoch) {
-        this.currentMasterEpoch = currentMasterEpoch;
+        return this.haService.getCurrentMasterEpoch();
     }
 
     @Override
@@ -225,11 +219,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         handshakeSlave.setLanguageCode(LanguageCode.JAVA);
         handshakeSlave.setHaProtocolVersion(2);
 
-        HAMessage haMessage = new HAMessage(HAMessageType.SLAVE_HANDSHAKE, currentMasterEpoch,
-            RemotingSerializable.encode(handshakeSlave));
+        TransferMessage transferMessage = this.haService.buildMessage(TransferType.HANDSHAKE_SLAVE);
+        transferMessage.appendBody(RemotingSerializable.encode(handshakeSlave));
 
         this.lastWriteTimestamp = System.currentTimeMillis();
-        channel.writeAndFlush(haMessage);
+        channel.writeAndFlush(transferMessage);
     }
 
     public synchronized void startNettyClient() {
@@ -246,9 +240,9 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 public void initChannel(SocketChannel ch) {
                     ch.pipeline()
                         .addLast(new IdleStateHandler(15, 15, 0))
-                        .addLast(new NettyHADecoder())
-                        .addLast(new NettyHAEncoder())
-                        .addLast(new NettyHAClientHandler(haClient));
+                        .addLast(new NettyTransferDecoder(haService))
+                        .addLast(new NettyTransferEncoder(haService))
+                        .addLast(new NettyTransferClientHandler(haClient));
                 }
             });
     }
@@ -304,8 +298,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     private boolean isTimeToReportOffset() {
         long interval = this.defaultMessageStore.now() - this.lastWriteTimestamp;
-        //return interval > this.messageStore.getMessageStoreConfig().getHaSendHeartbeatInterval();
-        return interval > 10 * 1000L;
+        return interval > this.defaultMessageStore.getMessageStoreConfig().getHaSendHeartbeatInterval();
     }
 
     private boolean checkConnectionTimeout() {
@@ -328,10 +321,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     private boolean queryMasterEpoch() throws InterruptedException {
         try {
-            HAMessage haMessage = new HAMessage(HAMessageType.QUERY_EPOCH, currentMasterEpoch);
+            TransferMessage transferMessage = haService.buildMessage(TransferType.QUERY_EPOCH);
             channelPromise = new DefaultChannelPromise(future.channel());
             this.lastWriteTimestamp = System.currentTimeMillis();
-            future.channel().writeAndFlush(haMessage);
+            future.channel().writeAndFlush(transferMessage);
             channelPromise.await(5000);
             if (channelPromise.isSuccess()) {
                 channelPromise = null;
@@ -371,20 +364,19 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private void sendConfirmTruncateToMaster(long startOffset) {
         boolean syncFromLastFile = this.defaultMessageStore.getMessageStoreConfig().isSyncFromLastFile();
         ConfirmTruncate confirmTruncate = new ConfirmTruncate(syncFromLastFile, startOffset);
-        HAMessage haMessage = new HAMessage(HAMessageType.CONFIRM_TRUNCATE, currentMasterEpoch,
-            RemotingSerializable.encode(confirmTruncate));
+        TransferMessage transferMessage = this.haService.buildMessage(TransferType.CONFIRM_TRUNCATE);
+        transferMessage.appendBody(RemotingSerializable.encode(confirmTruncate));
         this.lastWriteTimestamp = System.currentTimeMillis();
-        future.channel().writeAndFlush(haMessage);
+        future.channel().writeAndFlush(transferMessage);
     }
 
     public synchronized void sendPushCommitLogAck() {
-        PushCommitLogAck pushCommitLogAck = new PushCommitLogAck();
-        pushCommitLogAck.setConfirmOffset(this.currentTransferOffset);
-        pushCommitLogAck.setReadOnly(defaultMessageStore.getMessageStoreConfig().isAsyncLearner());
-        HAMessage haMessage = new HAMessage(HAMessageType.PUSH_ACK, currentMasterEpoch,
-            RemotingSerializable.encode(pushCommitLogAck));
+        boolean asyncLearner = defaultMessageStore.getMessageStoreConfig().isAsyncLearner();
+        PushCommitLogAck pushCommitLogAck = new PushCommitLogAck(this.currentTransferOffset, asyncLearner);
+        TransferMessage transferMessage = this.haService.buildMessage(TransferType.TRANSFER_ACK);
+        transferMessage.appendBody(RemotingSerializable.encode(pushCommitLogAck));
         this.lastWriteTimestamp = System.currentTimeMillis();
-        future.channel().writeAndFlush(haMessage);
+        future.channel().writeAndFlush(transferMessage);
     }
 
     @Override
@@ -473,7 +465,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     public void doPutCommitLog(PushCommitLogData pushCommitLogData, ByteBuffer byteBuffer) {
         long currentBlockEpoch = pushCommitLogData.getEpoch();
-        long currentBlockStartOffset = pushCommitLogData.getStartOffset();
+        long currentBlockStartOffset = pushCommitLogData.getBlockStartOffset();
         long currentEpochStartOffset = pushCommitLogData.getEpochStartOffset();
         long replicaConfirmOffset = pushCommitLogData.getConfirmOffset();
 

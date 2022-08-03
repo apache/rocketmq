@@ -10,7 +10,7 @@ public class PushCommitLogData {
 
     private long confirmOffset;
 
-    private long startOffset;
+    private long blockStartOffset;
 
     public long getEpoch() {
         return epoch;
@@ -36,20 +36,20 @@ public class PushCommitLogData {
         this.confirmOffset = confirmOffset;
     }
 
-    public long getStartOffset() {
-        return startOffset;
+    public long getBlockStartOffset() {
+        return blockStartOffset;
     }
 
-    public void setStartOffset(long startOffset) {
-        this.startOffset = startOffset;
+    public void setBlockStartOffset(long blockStartOffset) {
+        this.blockStartOffset = blockStartOffset;
     }
 
     public ByteBuffer encode() {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(32);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4 * 8);
         byteBuffer.putLong(epoch);
         byteBuffer.putLong(epochStartOffset);
         byteBuffer.putLong(confirmOffset);
-        byteBuffer.putLong(startOffset);
+        byteBuffer.putLong(blockStartOffset);
         byteBuffer.flip();
         return byteBuffer;
     }
@@ -60,7 +60,7 @@ public class PushCommitLogData {
             "epoch=" + epoch +
             ", epochStartOffset=" + epochStartOffset +
             ", confirmOffset=" + confirmOffset +
-            ", startOffset=" + startOffset +
+            ", blockStartOffset=" + blockStartOffset +
             '}';
     }
 }
