@@ -118,18 +118,11 @@ public class GetBrokerEpochCommand implements SubCommand {
             final EpochEntryCache epochCache = defaultMQAdminExt.getBrokerEpochCache(entry.getValue());
             final List<EpochEntry> epochList = epochCache.getEpochList();
             StringBuilder epochString = new StringBuilder();
-            for (int i = 0; i < epochList.size(); i++) {
-                final EpochEntry epochEntry = epochList.get(i);
-                if (i == epochList.size() - 1) {
-                    epochEntry.setEndOffset(epochCache.getMaxOffset());
-                } else {
-                    epochEntry.setEndOffset(epochList.get(i + 1).getStartOffset());
-                }
-                epochString.append(String.format("(%d-%d)", epochEntry.getEpoch(), epochEntry.getStartOffset()));
-                epochString.append(i == epochList.size() - 1 ? "" : ", ");
+            for (EpochEntry epochEntry : epochList) {
+                epochString.append(String.format("(%d-%d), ", epochEntry.getEpoch(), epochEntry.getStartOffset()));
             }
-            System.out.printf("brokerId: %d, brokerAddr: %s, epoch: %s\n",
-                entry.getKey(), entry.getValue(), epochString);
+            System.out.printf("brokerId: %d, brokerAddr: %s, epoch: %s%d\n",
+                entry.getKey(), entry.getValue(), epochString, epochCache.getMaxOffset());
         }
     }
 

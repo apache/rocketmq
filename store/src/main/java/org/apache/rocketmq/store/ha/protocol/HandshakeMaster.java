@@ -2,7 +2,7 @@ package org.apache.rocketmq.store.ha.protocol;
 
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
-public class HandshakeMaster implements HAProtocolSerialize<HandshakeMaster> {
+public class HandshakeMaster {
 
     private String clusterName;
 
@@ -87,15 +87,5 @@ public class HandshakeMaster implements HAProtocolSerialize<HandshakeMaster> {
             ", languageCode=" + languageCode +
             ", handshakeResult=" + handshakeResult +
             '}';
-    }
-
-    @Override
-    public byte[] encode() {
-        return new byte[0];
-    }
-
-    @Override
-    public HandshakeMaster decode() {
-        return null;
     }
 }

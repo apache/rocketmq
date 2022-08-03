@@ -240,10 +240,19 @@ public class AutoSwitchHAService implements HAService {
         return reputFromOffset;
     }
 
+    private void doWaitMessageStoreDispatch() {
+        while (defaultMessageStore.dispatchBehindBytes() > 0) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception ignored) {
+                // ignored
+            }
+        }
+    }
+
     @Override
     public boolean changeToMaster(int masterEpoch) {
         if (masterEpoch < this.epochStore.getLastEpoch()) {
-            System.out.println("failed");
             LOGGER.error("Broker change to master failed, not allow elect unclean master, oldEpoch:{}, newEpoch:{}",
                 masterEpoch, this.epochStore.getLastEpoch());
             return false;
@@ -254,37 +263,27 @@ public class AutoSwitchHAService implements HAService {
             this.haClient.shutdown();
         }
 
+        final long truncateOffset = truncateInvalidMsg();
         final long maxPhyOffset = this.defaultMessageStore.getMaxPhyOffset();
         final long minPhyOffset = this.defaultMessageStore.getMinPhyOffset();
-        final long truncateOffset = truncateInvalidMsg();
-        LOGGER.info("Broker truncate msg file, store minPhyOffset:{}, maxPhyOffset:{}, " +
-            "newMasterEpoch:{}, truncate offset:{}", minPhyOffset, maxPhyOffset, masterEpoch, truncateOffset);
+        LOGGER.info("Broker truncate message file, newMasterEpoch:{}, storeOffset: {}-{}, truncateOffset:{}",
+            minPhyOffset, maxPhyOffset, masterEpoch, truncateOffset);
 
+        // When broker change to master, accept uncommitted message in store
         updateConfirmOffset(computeConfirmOffset());
 
-        // Correct epoch store
         this.epochStore.truncateSuffixByEpoch(masterEpoch);
         this.epochStore.truncateSuffixByOffset(maxPhyOffset);
         this.epochStore.tryAppendEpochEntry(new EpochEntry(masterEpoch, maxPhyOffset));
 
         this.currentMasterEpoch = masterEpoch;
-        while (defaultMessageStore.dispatchBehindBytes() > 0) {
-            try {
-                TimeUnit.MILLISECONDS.sleep(100);
-            } catch (Exception ignored) {
-                // ignored
-            }
-        }
-        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}",
-            truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
-
-        // Rollback index
+        this.doWaitMessageStoreDispatch();
         this.defaultMessageStore.recoverTopicQueueTable();
 
-        setSyncStateSet(new HashSet<>(Collections.singletonList(this.localAddress)));
+        this.setSyncStateSet(new HashSet<>(Collections.singletonList(this.localAddress)));
         notifySyncStateSetChanged(syncStateSet);
 
-        LOGGER.info("Broker change to master success, newMasterEpoch:{}, startPhyOffset:{}", masterEpoch, maxPhyOffset);
+        LOGGER.info("Broker change to master success, newMasterEpoch:{}", masterEpoch);
         return true;
     }
 
@@ -308,11 +307,12 @@ public class AutoSwitchHAService implements HAService {
             this.haClient.setCurrentMasterEpoch(newMasterEpoch);
             this.haClient.start();
 
-            LOGGER.info("Broker change to slave success, newMasterAddress:{}, newMasterEpoch:{}, " +
-                "self brokerId:{}", newMasterAddr, newMasterEpoch, slaveId);
+            LOGGER.info("Broker change to slave success, newMasterEpoch:{}, newMasterAddress:{}, brokerId:{}",
+                newMasterAddr, newMasterEpoch, slaveId);
             return true;
         } catch (Exception e) {
-            LOGGER.error("Error happen when change ha to slave", e);
+            LOGGER.error("Broker change to slave failed, newMasterEpoch:{}, newMasterAddress:{}, brokerId:{}",
+                newMasterAddr, newMasterEpoch, slaveId, e);
         }
         return false;
     }
@@ -349,7 +349,32 @@ public class AutoSwitchHAService implements HAService {
 
     @Override
     public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
-        return null;
+        HARuntimeInfo info = new HARuntimeInfo();
+        if (BrokerRole.SLAVE.equals(this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole())) {
+            info.setMaster(false);
+            info.getHaClientRuntimeInfo().setMasterAddr(this.haClient.getHaMasterAddress());
+            info.getHaClientRuntimeInfo().setMaxOffset(this.getDefaultMessageStore().getMaxPhyOffset());
+            info.getHaClientRuntimeInfo().setLastReadTimestamp(this.haClient.getLastReadTimestamp());
+            info.getHaClientRuntimeInfo().setLastWriteTimestamp(this.haClient.getLastWriteTimestamp());
+            info.getHaClientRuntimeInfo().setTransferredByteInSecond(this.haClient.getTransferredByteInSecond());
+            info.getHaClientRuntimeInfo().setMasterFlushOffset(this.defaultMessageStore.getMasterFlushedOffset());
+        } else {
+            info.setMaster(true);
+            info.setMasterCommitLogMaxOffset(masterPutWhere);
+            for (HAConnection conn : this.connectionMap.values()) {
+                HARuntimeInfo.HAConnectionRuntimeInfo cInfo = new HARuntimeInfo.HAConnectionRuntimeInfo();
+                long slaveAckOffset = conn.getSlaveAckOffset();
+                cInfo.setSlaveAckOffset(slaveAckOffset);
+                cInfo.setDiff(masterPutWhere - slaveAckOffset);
+                cInfo.setAddr(conn.getClientAddress().substring(1));
+                cInfo.setTransferredByteInSecond(conn.getTransferredByteInSecond());
+                cInfo.setTransferFromWhere(conn.getTransferFromWhere());
+                cInfo.setInSync(syncStateSet.contains(conn.getClientAddress()));
+                info.getHaConnectionInfo().add(cInfo);
+            }
+            info.setInSyncSlaveNums(syncStateSet.size() - 1);
+        }
+        return info;
     }
 
     @Override
@@ -359,7 +384,20 @@ public class AutoSwitchHAService implements HAService {
 
     @Override
     public boolean isSlaveOK(long masterPutWhere) {
-        return false;
+        boolean result = false;
+        try {
+            result = this.getConnectionCount().get() > 0;
+            long maxConfirmOffset = 0;
+            for (HAConnection haConnection : connectionMap.values()) {
+                if (syncStateSet.contains(haConnection.getClientAddress())) {
+                    maxConfirmOffset = Math.max(maxConfirmOffset, haConnection.getSlaveAckOffset());
+                }
+            }
+            result &= (maxConfirmOffset < this.defaultMessageStore.getMessageStoreConfig().getHaMaxGapNotInSync());
+        } catch (Exception e) {
+            LOGGER.error("Check slave status error, masterPutOffset:{}", masterPutWhere, e);
+        }
+        return result;
     }
 
     @Override
@@ -452,7 +490,8 @@ public class AutoSwitchHAService implements HAService {
             setSyncStateSet(currentSyncStateSet);
             // Notify the upper layer that syncStateSet changed.
             notifySyncStateSetChanged(currentSyncStateSet);
-            LOGGER.info("expand in sync state set {}, slaveAckOffset {}", currentSyncStateSet, slaveAckOffset);
+            LOGGER.info("Expanding in sync state set for broker:{}, current syncStateSet:{}, slaveAckOffset:{}",
+                haConnection.getClientAddress(), currentSyncStateSet, slaveAckOffset);
         }
     }
 
