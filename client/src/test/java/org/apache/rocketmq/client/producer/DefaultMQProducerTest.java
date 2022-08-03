@@ -462,14 +462,14 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testMaxLengthOfTopic(){
-        DefaultMQProducer producer = new DefaultMQProducer();
-        Assert.assertEquals(producer.getMaxTopicLength(), Validators.DEFAULT_TOPIC_MAX_LENGTH);
+        int n = 30000;
+        producer.setMaxTopicLength(n);
+        Assert.assertEquals(producer.getMaxTopicLength(), n);
     }
 
     @Test
     public void testMaxLengthOfTopicUpdated(){
         int n = 20000;
-        DefaultMQProducer producer = new DefaultMQProducer();
         producer.setMaxTopicLength(n);
         Assert.assertEquals(producer.getMaxTopicLength(), n);
     }
