@@ -17,12 +17,15 @@
 package org.apache.rocketmq.tools.command.broker;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.EpochEntry;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -98,25 +101,45 @@ public class GetBrokerEpochCommand implements SubCommand {
             printData(brokers, defaultMQAdminExt);
         } else if (commandLine.hasOption('c')) {
             String clusterName = commandLine.getOptionValue('c').trim();
-            Set<String> brokers = CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
-            printData(brokers, defaultMQAdminExt);
+            Set<String> brokers = CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
+            for (String brokerName : brokers) {
+                System.out.printf("clusterName: %s, brokerName: %s\n", clusterName, brokers);
+                ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+                final BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+                print(brokerData, defaultMQAdminExt);
+            }
         } else {
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
+        }
+    }
+
+    private void print(BrokerData brokerData, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+        for (Map.Entry<Long, String> entry : brokerData.getBrokerAddrs().entrySet()) {
+            final EpochEntryCache epochCache = defaultMQAdminExt.getBrokerEpochCache(entry.getValue());
+            final List<EpochEntry> epochList = epochCache.getEpochList();
+            StringBuilder epochString = new StringBuilder();
+            for (EpochEntry epochEntry : epochList) {
+                epochString.append(String.format("(%d-%d), ", epochEntry.getEpoch(), epochEntry.getStartOffset()));
+            }
+            System.out.printf("brokerId: %d, brokerAddr: %s, epoch: %s%d\n",
+                entry.getKey(), entry.getValue(), epochString, epochCache.getMaxOffset());
         }
     }
 
     private void printData(Set<String> brokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         for (String brokerAddr : brokers) {
             final EpochEntryCache epochCache = defaultMQAdminExt.getBrokerEpochCache(brokerAddr);
-            System.out.printf("\n#clusterName\t%s\n#brokerName\t%s\n#brokerAddr\t%s\n#brokerId\t%d",
+            System.out.printf("\n#clusterName\t%s\n#brokerName\t%s\n#brokerAddr\t%s\n#brokerId\t%d\n",
                 epochCache.getClusterName(), epochCache.getBrokerName(), brokerAddr, epochCache.getBrokerId());
             final List<EpochEntry> epochList = epochCache.getEpochList();
             for (int i = 0; i < epochList.size(); i++) {
                 final EpochEntry epochEntry = epochList.get(i);
                 if (i == epochList.size() - 1) {
                     epochEntry.setEndOffset(epochCache.getMaxOffset());
+                } else {
+                    epochEntry.setEndOffset(epochList.get(i + 1).getStartOffset());
                 }
-                System.out.printf("\n#Epoch: %s\n", epochEntry.toString());
+                System.out.printf("#Epoch: %s\n", epochEntry);
             }
         }
     }

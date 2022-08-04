@@ -776,6 +776,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.getBrokerEpochCache(brokerAddr);
     }
 
+    @Override
     public GetMetaDataResponseHeader getControllerMetaData(
         String controllerAddr) throws RemotingException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.getControllerMetaData(controllerAddr);
@@ -797,6 +798,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return defaultMQAdminExtImpl;
     }
 
+    @Override
     public GroupForbidden updateAndGetGroupReadForbidden(String brokerAddr, //
         String groupName, //
         String topicName, //
