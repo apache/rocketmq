@@ -33,7 +33,8 @@ public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "AlterSyncStateSetResponseHeader{" +
             "newSyncStateSetEpoch=" + newSyncStateSetEpoch +
             '}';

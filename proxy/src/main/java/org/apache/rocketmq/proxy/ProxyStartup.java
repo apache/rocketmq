@@ -20,6 +20,8 @@ package org.apache.rocketmq.proxy;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+import io.grpc.protobuf.services.ChannelzService;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import java.util.Date;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +72,8 @@ public class ProxyStartup {
             // create grpcServer
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
                 .addService(createServiceProcessor(messagingProcessor))
+                .addService(ChannelzService.newInstance(100))
+                .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);

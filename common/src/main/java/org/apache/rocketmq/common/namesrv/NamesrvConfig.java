@@ -73,6 +73,11 @@ public class NamesrvConfig {
 
     private volatile boolean notifyMinBrokerIdChanged = false;
 
+    /**
+     * Is startup the controller in this name-srv
+     */
+    private boolean enableControllerInNamesrv = false;
+
 
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
@@ -208,5 +213,13 @@ public class NamesrvConfig {
 
     public void setNotifyMinBrokerIdChanged(boolean notifyMinBrokerIdChanged) {
         this.notifyMinBrokerIdChanged = notifyMinBrokerIdChanged;
+    }
+
+    public boolean isEnableControllerInNamesrv() {
+        return enableControllerInNamesrv;
+    }
+
+    public void setEnableControllerInNamesrv(boolean enableControllerInNamesrv) {
+        this.enableControllerInNamesrv = enableControllerInNamesrv;
     }
 }

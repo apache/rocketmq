@@ -150,7 +150,8 @@ public class TransactionMQProducerWithTraceTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicReference<EndTransactionContext> context = new AtomicReference<EndTransactionContext>();
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 context.set((EndTransactionContext) mock.getArgument(0));
                 return null;
             }

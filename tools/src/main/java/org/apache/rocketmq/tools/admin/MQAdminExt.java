@@ -79,7 +79,7 @@ public interface MQAdminExt extends MQAdmin {
         long brokerId) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     void updateBrokerConfig(final String brokerAddr, final Properties properties) throws RemotingConnectException,
-        RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+        RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException, MQClientException;
 
     Properties getBrokerConfig(final String brokerAddr) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
@@ -99,7 +99,7 @@ public interface MQAdminExt extends MQAdmin {
         final String globalWhiteAddrs) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
-    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath)throws RemotingException, MQBrokerException,
+    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(

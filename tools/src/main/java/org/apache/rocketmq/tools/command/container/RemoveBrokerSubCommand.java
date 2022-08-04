@@ -26,15 +26,18 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class RemoveBrokerSubCommand implements SubCommand {
-    @Override public String commandName() {
+    @Override
+    public String commandName() {
         return "removeBroker";
     }
 
-    @Override public String commandDesc() {
+    @Override
+    public String commandDesc() {
         return "Remove a broker from specified container";
     }
 
-    @Override public Options buildCommandlineOptions(Options options) {
+    @Override
+    public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("c", "brokerContainerAddr", true, "Broker container address");
         opt.setRequired(true);
         options.addOption(opt);
@@ -46,7 +49,8 @@ public class RemoveBrokerSubCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));

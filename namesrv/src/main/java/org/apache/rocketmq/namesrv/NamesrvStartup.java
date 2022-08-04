@@ -58,7 +58,7 @@ public class NamesrvStartup {
         try {
             parseCommandlineAndConfigFile(args);
             createAndStartNamesrvController();
-            if (controllerConfig.isEnableControllerInNamesrv()) {
+            if (namesrvConfig.isEnableControllerInNamesrv()) {
                 createAndStartControllerManager();
             }
         } catch (Throwable e) {

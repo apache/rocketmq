@@ -489,7 +489,6 @@ public class RouteInfoManager {
     }
 
     private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
-        Set<String> changedTopics = new HashSet<>();
         int topicCnt = 0;
 
         Iterator<Entry<String, Map<String, QueueData>>> itTopic = this.topicQueueTable.entrySet().iterator();
@@ -993,7 +992,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getSystemTopicList Exception", e);
         }
 
         return topicList;
@@ -1022,7 +1021,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getTopicsByCluster Exception", e);
         }
 
         return topicList;
@@ -1048,7 +1047,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getUnitTopics Exception", e);
         }
 
         return topicList;
@@ -1074,7 +1073,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubTopicList Exception", e);
         }
 
         return topicList;
@@ -1101,7 +1100,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubUnUnitTopicList Exception", e);
         }
 
         return topicList;
