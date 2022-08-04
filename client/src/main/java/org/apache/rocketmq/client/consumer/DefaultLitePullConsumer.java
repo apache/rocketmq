@@ -272,6 +272,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
+    public void setSubExpression4Assgin(final String subExpresion) {
+        defaultLitePullConsumerImpl.setSubExpression4Assgin(subExpresion);
+    }
+
+    @Override
     public List<MessageExt> poll() {
         return defaultLitePullConsumerImpl.poll(this.getPollTimeoutMillis());
     }

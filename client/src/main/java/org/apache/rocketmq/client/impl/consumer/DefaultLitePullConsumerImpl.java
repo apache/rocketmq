@@ -121,6 +121,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private static final long PULL_TIME_DELAY_MILLS_ON_EXCEPTION = 3 * 1000;
 
+    private String subExpression4Assign = SubscriptionData.SUB_ALL;
+
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
@@ -531,6 +533,17 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public synchronized void setSubExpression4Assgin(final String subExpression) {
+        if (subExpression == null || "".equals(subExpression)) {
+            throw new IllegalArgumentException("subExpression can not be null or empty.");
+        }
+        if (serviceState != ServiceState.CREATE_JUST) {
+            throw new IllegalStateException("setAssignTag only can be called before start.");
+        }
+        setSubscriptionType(SubscriptionType.ASSIGN);
+        subExpression4Assign = subExpression;
+    }
+
     private void maybeAutoCommit() {
         long now = System.currentTimeMillis();
         if (now >= nextAutoCommitDeadline) {
@@ -862,7 +875,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } else {
-                        subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                        subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression4Assign);
                     }
 
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
