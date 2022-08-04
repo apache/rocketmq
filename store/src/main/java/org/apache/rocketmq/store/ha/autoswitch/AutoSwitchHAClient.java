@@ -134,7 +134,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     public void updateMasterAddress(String newAddress) {
         String currentAddr = this.masterAddress.get();
         if (!StringUtils.equals(newAddress, currentAddr) && masterAddress.compareAndSet(currentAddr, newAddress)) {
-            LOGGER.info("update master address, OLD: " + currentAddr + " NEW: " + newAddress);
+            LOGGER.info("Update master address, OLD: " + currentAddr + " NEW: " + newAddress);
         }
     }
 
@@ -142,7 +142,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     public void updateHaMasterAddress(String newAddress) {
         String currentAddr = this.masterHaAddress.get();
         if (!StringUtils.equals(newAddress, currentAddr) && masterHaAddress.compareAndSet(currentAddr, newAddress)) {
-            LOGGER.info("update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
+            LOGGER.info("Update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
             wakeup();
         }
     }
@@ -155,6 +155,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     @Override
     public String getHaMasterAddress() {
         return this.masterHaAddress.get();
+    }
+
+    public void setLastReadTimestamp(long lastReadTimestamp) {
+        this.lastReadTimestamp = lastReadTimestamp;
     }
 
     @Override
@@ -259,7 +263,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         SocketAddress socketAddress = RemotingUtil.string2SocketAddress(this.masterHaAddress.get());
         future = bootstrap.connect(socketAddress).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                LOGGER.info("client connect to server successfully!");
+                LOGGER.info("Client connect to server successfully!");
             } else {
                 LOGGER.info("Failed to connect to server, try connect after 1000 ms");
             }
@@ -296,14 +300,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return false;
     }
 
-    private boolean isTimeToReportOffset() {
-        long interval = this.defaultMessageStore.now() - this.lastWriteTimestamp;
-        return interval > this.defaultMessageStore.getMessageStoreConfig().getHaSendHeartbeatInterval();
-    }
-
     private boolean checkConnectionTimeout() {
-        if (isTimeToReportOffset()) {
-            LOGGER.info("schedule to report slave offset: {}", this.currentTransferOffset);
+        long interval = this.defaultMessageStore.now() - this.lastReadTimestamp;
+        if (interval > this.defaultMessageStore.getMessageStoreConfig().getHaHousekeepingInterval()) {
+            LOGGER.warn("NettyHAClient housekeeping, found this connection {} expired, interval={}",
+                this.masterHaAddress, interval);
             return false;
         }
         return true;
@@ -401,7 +402,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         continue;
                     case TRANSFER:
                     case SUSPEND:
-                        // only do flow control and housekeeping monitor
                         if (!checkConnectionTimeout()) {
                             closeMaster();
                             break;
@@ -411,14 +411,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     case SHUTDOWN:
                     default:
                         waitForRunning(1000);
-                        continue;
-                }
-                long interval = this.defaultMessageStore.now() - this.lastReadTimestamp;
-                if (interval > this.defaultMessageStore.getMessageStoreConfig().getHaHousekeepingInterval()) {
-                    LOGGER.warn("NettyHAClient housekeeping, found this connection {} expired, interval={}",
-                        this.masterHaAddress, interval);
-                    closeMaster();
-                    LOGGER.warn("NettyHAClient, master not response some time, so close connection");
                 }
             } catch (Exception e) {
                 LOGGER.warn(this.getServiceName() + " service has exception. ", e);

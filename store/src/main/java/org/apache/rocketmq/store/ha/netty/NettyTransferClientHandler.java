@@ -23,7 +23,7 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if (cause != null) {
-            System.out.println("exception: cause" + cause);
+            log.error("Client channel exception", cause);
         }
         super.exceptionCaught(ctx, cause);
     }
@@ -64,7 +64,6 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         pushCommitLogData.setEpochStartOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setConfirmOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setBlockStartOffset(message.getByteBuffer().getLong());
-
         autoSwitchHAClient.doPutCommitLog(pushCommitLogData, message.getByteBuffer());
         autoSwitchHAClient.sendPushCommitLogAck();
     }
@@ -79,7 +78,7 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         TransferMessage request = (TransferMessage) msg;
 
         if (ctx != null) {
-            log.debug("receive request, {} {} {}", request.getType(),
+            log.debug("Receive request, {} {} {}", request.getType(),
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), request);
         }
 
@@ -87,6 +86,8 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
             log.error("Epoch not match, connection epoch:{}", request.getEpoch());
             autoSwitchHAClient.closeMaster();
             return;
+        } else {
+            autoSwitchHAClient.setLastReadTimestamp(System.currentTimeMillis());
         }
 
         switch (request.getType()) {
@@ -94,10 +95,10 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
                 this.masterHandshake(ctx, request);
                 break;
             case RETURN_EPOCH:
-                returnEpoch(ctx, request);
+                this.returnEpoch(ctx, request);
                 break;
             case TRANSFER_DATA:
-                pushData(ctx, request);
+                this.pushData(ctx, request);
                 break;
             default:
                 log.error("receive request type {} not supported", request.getType());
