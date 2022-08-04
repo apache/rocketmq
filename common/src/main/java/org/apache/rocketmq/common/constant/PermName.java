@@ -57,6 +57,14 @@ public class PermName {
         return (perm & PERM_INHERIT) == PERM_INHERIT;
     }
 
+    public static boolean isValid(final String perm) {
+        return isValid(Integer.parseInt(perm));
+    }
+
+    public static boolean isValid(final int perm) {
+        return perm >= PERM_INHERIT && perm < PERM_PRIORITY;
+    }
+    
     public static boolean isPriority(final int perm) {
         return (perm & PERM_PRIORITY) == PERM_PRIORITY;
     }

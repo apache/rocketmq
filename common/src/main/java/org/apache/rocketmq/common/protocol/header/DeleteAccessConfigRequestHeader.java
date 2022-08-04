@@ -26,7 +26,8 @@ public class DeleteAccessConfigRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String accessKey;
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

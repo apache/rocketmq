@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
@@ -76,7 +77,7 @@ public class DLedgerController implements Controller {
     private final DLedgerControllerStateMachine statemachine;
     // Usr for checking whether the broker is alive
     private BiPredicate<String, String> brokerAlivePredicate;
-    private volatile boolean isScheduling = false;
+    private AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
         this(config, brokerAlivePredicate, null, null, null);
@@ -119,18 +120,16 @@ public class DLedgerController implements Controller {
 
     @Override
     public void startScheduling() {
-        if (!this.isScheduling) {
+        if (this.isScheduling.compareAndSet(false, true)) {
             log.info("Start scheduling controller events");
-            this.isScheduling = true;
             this.scheduler.start();
         }
     }
 
     @Override
     public void stopScheduling() {
-        if (this.isScheduling) {
+        if (this.isScheduling.compareAndSet(true, false)) {
             log.info("Stop scheduling controller events");
-            this.isScheduling = false;
             this.scheduler.shutdown(true);
         }
     }

@@ -61,7 +61,8 @@ public class RegisterBrokerToControllerResponseHeader implements CommandCustomHe
         this.brokerId = brokerId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "RegisterBrokerResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +

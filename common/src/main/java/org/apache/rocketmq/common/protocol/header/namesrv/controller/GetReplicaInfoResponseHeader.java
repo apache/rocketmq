@@ -52,7 +52,8 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
         this.brokerId = brokerId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "GetReplicaInfoResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +

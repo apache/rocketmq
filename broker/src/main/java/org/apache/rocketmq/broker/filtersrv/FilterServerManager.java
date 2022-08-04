@@ -54,7 +54,8 @@ public class FilterServerManager {
     public void start() {
 
         this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
-            @Override public void run2() {
+            @Override
+            public void run2() {
                 try {
                     FilterServerManager.this.createFilterServer();
                 } catch (Exception e) {

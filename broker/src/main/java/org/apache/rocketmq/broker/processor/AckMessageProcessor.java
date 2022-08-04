@@ -93,7 +93,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 

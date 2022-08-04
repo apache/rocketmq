@@ -26,7 +26,8 @@ public class MQRedirectException extends MQBrokerException {
     }
 
     // This exception class is used as a flow control item, so stack trace is useless and performance killer.
-    @Override public synchronized Throwable fillInStackTrace() {
+    @Override
+    public synchronized Throwable fillInStackTrace() {
         this.setStackTrace(UNASSIGNED_STACK);
         return this;
     }

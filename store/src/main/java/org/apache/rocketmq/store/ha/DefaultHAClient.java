@@ -360,11 +360,13 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
         return lastReadTimestamp;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return currentState;
     }
 
-    @Override public long getTransferredByteInSecond() {
+    @Override
+    public long getTransferredByteInSecond() {
         return flowMonitor.getTransferredByteInSecond();
     }
 
