@@ -31,13 +31,17 @@ public class LitePullConsumerAssignWithSubExpression {
     public static void main(String[] args) throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("please_rename_unique_group_name");
         litePullConsumer.setAutoCommit(false);
-        litePullConsumer.setSubExpression4Assgin("TagA");
-        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        litePullConsumer.setSubExpression4Assgin("TopicTest", "TagA");
         litePullConsumer.start();
         Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("TopicTest");
         List<MessageQueue> list = new ArrayList<>(mqSet);
         List<MessageQueue> assignList = new ArrayList<>();
-        for (int i = 0; i < list.size() / 2; i++) {
+        for (int i = 0; i < list.size(); i++) {
+            assignList.add(list.get(i));
+        }
+        mqSet = litePullConsumer.fetchMessageQueues("TopicTest1");
+        list = new ArrayList<>(mqSet);
+        for (int i = 0; i < list.size(); i++) {
             assignList.add(list.get(i));
         }
         litePullConsumer.assign(assignList);

@@ -121,7 +121,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private static final long PULL_TIME_DELAY_MILLS_ON_EXCEPTION = 3 * 1000;
 
-    private String subExpression4Assign = SubscriptionData.SUB_ALL;
+    private ConcurrentHashMap<String/* topic */, String/* subExpression */> topic2SubExpression = new ConcurrentHashMap<>();
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
@@ -533,7 +533,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void setSubExpression4Assgin(final String subExpression) {
+    public synchronized void setSubExpression4Assgin(final String topic, final String subExpression) {
         if (subExpression == null || "".equals(subExpression)) {
             throw new IllegalArgumentException("subExpression can not be null or empty.");
         }
@@ -541,7 +541,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new IllegalStateException("setAssignTag only can be called before start.");
         }
         setSubscriptionType(SubscriptionType.ASSIGN);
-        subExpression4Assign = subExpression;
+        topic2SubExpression.put(topic, subExpression);
     }
 
     private void maybeAutoCommit() {
@@ -875,6 +875,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } else {
+                        String subExpression4Assign = topic2SubExpression.get(topic);
+                        subExpression4Assign = subExpression4Assign == null ? SubscriptionData.SUB_ALL : subExpression4Assign;
                         subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression4Assign);
                     }
 
