@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ReplyMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.UpdateTopicRouteRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -86,9 +87,28 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
                 return this.receiveReplyMessage(ctx, request);
+
+            case RequestCode.NOTIFY_CLIENT_TOPIC_ROUTE_CHANGED:
+                return this.notifyClientTopicRouteChanged(request);
             default:
                 break;
         }
+        return null;
+    }
+
+    /**
+     * update local topic route info
+     *
+     * @param request   protocol request, include topic name
+     * @return  null, the rpc scene is one way
+     * @throws RemotingCommandException exception
+     */
+    private RemotingCommand notifyClientTopicRouteChanged(RemotingCommand request) throws RemotingCommandException {
+        UpdateTopicRouteRequestHeader requestHeader = (UpdateTopicRouteRequestHeader) request
+                .decodeCommandCustomHeader(UpdateTopicRouteRequestHeader.class);
+        String topic = requestHeader.getTopic();
+        // update local topic route info
+        mqClientFactory.updateTopicRouteInfoFromNameServer(topic);
         return null;
     }
 

@@ -79,6 +79,9 @@ public class ClientConfig {
      */
     protected boolean enableStreamRequestType = false;
 
+    /** the expire time of topic route */
+    private long topicRouteExpireTime = 300 * 1000;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -377,6 +380,10 @@ public class ClientConfig {
         this.enableStreamRequestType = enableStreamRequestType;
     }
 
+    public long getTopicRouteExpireTime() {
+        return topicRouteExpireTime;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr
@@ -391,6 +398,6 @@ public class ClientConfig {
             + ", socksProxyConfig=" + socksProxyConfig + ", language=" + language.name()
             + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
             + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
-            + ", enableStreamRequestType=" + enableStreamRequestType + "]";
+            + ", enableStreamRequestType=" + enableStreamRequestType + ", topicRouteExpireTime=" + topicRouteExpireTime + "]";
     }
 }

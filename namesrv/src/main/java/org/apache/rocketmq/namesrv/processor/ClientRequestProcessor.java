@@ -74,7 +74,8 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             }
         }
 
-        TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
+        TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager()
+                .pickupTopicRouteData(requestHeader.getTopic(), ctx.channel());
 
         if (topicRouteData != null) {
             //topic route info register success ,so disable namesrvReady check

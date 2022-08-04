@@ -21,7 +21,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -297,6 +299,28 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     @Override
     public Set<String> getPublishTopicList() {
         return new HashSet<>(this.topicPublishInfoTable.keySet());
+    }
+
+    @Override
+    public Set<String> getTopicListAndRemoveExpired() {
+        Set<String> topicList = new HashSet<>();
+        Iterator<Map.Entry<String, TopicPublishInfo>> iterator = topicPublishInfoTable.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, TopicPublishInfo> entry = iterator.next();
+            String topic = entry.getKey();
+            TopicPublishInfo publishInfo = entry.getValue();
+            if (isTopicExpired(publishInfo)) {
+                iterator.remove();
+            } else {
+                topicList.add(topic);
+            }
+        }
+        return topicList;
+    }
+
+    private boolean isTopicExpired(TopicPublishInfo publishInfo) {
+        long expiredTime = System.currentTimeMillis() - publishInfo.getLastUpdateTime();
+        return expiredTime > mQClientFactory.getClientConfig().getTopicRouteExpireTime();
     }
 
     @Override
@@ -730,19 +754,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
+
+        // topic route info not in local cache, then make a request to nameServer
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
-        if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
-            return topicPublishInfo;
-        } else {
+        // topic not exist, then try to use default config if auto create topic enable
+        if (!topicPublishInfo.isHaveTopicRouterInfo() && !topicPublishInfo.ok()) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
-            return topicPublishInfo;
         }
+
+        topicPublishInfo.setLastUpdateTime(System.currentTimeMillis());
+        return topicPublishInfo;
     }
 
     private SendResult sendKernelImpl(final Message msg,

@@ -351,7 +351,7 @@ public class MQClientInstance {
             for (Entry<String, MQProducerInner> entry : this.producerTable.entrySet()) {
                 MQProducerInner impl = entry.getValue();
                 if (impl != null) {
-                    Set<String> lst = impl.getPublishTopicList();
+                    Set<String> lst = impl.getTopicListAndRemoveExpired();
                     topicList.addAll(lst);
                 }
             }

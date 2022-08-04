@@ -38,4 +38,12 @@ public interface MQProducerInner {
     void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
 
     boolean isUnitMode();
+
+    /**
+     * return all valid topics, and remove expired topics if exist
+     *
+     * @return  invalid topics
+     */
+    Set<String> getTopicListAndRemoveExpired();
+
 }

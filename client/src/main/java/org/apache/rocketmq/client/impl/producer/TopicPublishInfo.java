@@ -29,6 +29,7 @@ public class TopicPublishInfo {
     private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
+    private long lastUpdateTime = System.currentTimeMillis();
 
     public boolean isOrderTopic() {
         return orderTopic;
@@ -112,5 +113,13 @@ public class TopicPublishInfo {
 
     public void setTopicRouteData(final TopicRouteData topicRouteData) {
         this.topicRouteData = topicRouteData;
+    }
+
+    public long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    public void setLastUpdateTime(long lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
     }
 }

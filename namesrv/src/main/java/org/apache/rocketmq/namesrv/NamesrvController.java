@@ -41,6 +41,7 @@ import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import org.apache.rocketmq.namesrv.route.ZoneRouteRPCHook;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
+import org.apache.rocketmq.namesrv.routeinfo.TopicRouteNotifier;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -62,7 +63,7 @@ public class NamesrvController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
 
-    private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
+    private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(2,
             new BasicThreadFactory.Builder().namingPattern("NSScheduledThread").daemon(true).build());
 
     private final ScheduledExecutorService scanExecutorService = new ScheduledThreadPoolExecutor(1,
@@ -84,6 +85,8 @@ public class NamesrvController {
 
     private final Configuration configuration;
     private FileWatchService fileWatchService;
+
+    private TopicRouteNotifier topicRouteNotifier;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this(namesrvConfig, nettyServerConfig, new NettyClientConfig());
@@ -129,6 +132,9 @@ public class NamesrvController {
                 LOGGER.error("printWaterMark error.", e);
             }
         }, 10, 1, TimeUnit.SECONDS);
+
+        topicRouteNotifier = new TopicRouteNotifier(remotingServer, routeInfoManager);
+        this.scheduledExecutorService.scheduleAtFixedRate(topicRouteNotifier::notifyClients, 5, 1, TimeUnit.SECONDS);
     }
 
     private void initiateNetworkComponents() {

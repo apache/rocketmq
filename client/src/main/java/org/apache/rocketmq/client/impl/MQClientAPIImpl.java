@@ -265,6 +265,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(RequestCode.NOTIFY_CLIENT_TOPIC_ROUTE_CHANGED, this.clientRemotingProcessor, null);
     }
 
     public List<String> getNameServerAddressList() {

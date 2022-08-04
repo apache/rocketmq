@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -53,6 +54,7 @@ import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -60,6 +62,8 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -68,11 +72,30 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
+
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
+    /** store the changed topic info. key is topic, value is brokerName set */
+    private final Set<String> changedTopicSet;
+    private final Map<String, Set<Channel>> topicAndClientChannelMap;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
     private final Map<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final Map<BrokerAddrInfo/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
@@ -90,6 +113,8 @@ public class RouteInfoManager {
         this.clusterAddrTable = new ConcurrentHashMap<>(32);
         this.brokerLiveTable = new ConcurrentHashMap<>(256);
         this.filterServerTable = new ConcurrentHashMap<>(256);
+        this.changedTopicSet = new ConcurrentSkipListSet<>();
+        this.topicAndClientChannelMap = new ConcurrentHashMap<>();
         this.topicQueueMappingInfoTable = new ConcurrentHashMap<>(1024);
         this.unRegisterService = new BatchUnregistrationService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
@@ -153,6 +178,7 @@ public class RouteInfoManager {
         try {
             this.lock.writeLock().lockInterruptibly();
             this.topicQueueTable.remove(topic);
+            changedTopicSet.add(topic);
         } catch (Exception e) {
             log.error("deleteTopic Exception", e);
         } finally {
@@ -173,6 +199,7 @@ public class RouteInfoManager {
             if (queueDataMap != null) {
                 for (String brokerName : brokerNames) {
                     final QueueData removedQD = queueDataMap.remove(brokerName);
+                    changedTopicSet.add(topic);
                     if (removedQD != null) {
                         log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic, removedQD);
                     }
@@ -441,7 +468,8 @@ public class RouteInfoManager {
         queueData.setPerm(topicConfig.getPerm());
         queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
 
-        Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topicConfig.getTopicName());
+        String topic = topicConfig.getTopicName();
+        Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
         if (null == queueDataMap) {
             queueDataMap = new HashMap<>();
             queueDataMap.put(brokerName, queueData);
@@ -455,6 +483,7 @@ public class RouteInfoManager {
                 log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), existedQD,
                     queueData);
                 queueDataMap.put(brokerName, queueData);
+                changedTopicSet.add(topic);
             }
         }
     }
@@ -508,6 +537,7 @@ public class RouteInfoManager {
                     break;
             }
             qd.setPerm(perm);
+            changedTopicSet.add(entry.getKey());
             topicCnt++;
         }
         return topicCnt;
@@ -657,6 +687,10 @@ public class RouteInfoManager {
     }
 
     public TopicRouteData pickupTopicRouteData(final String topic) {
+        return pickupTopicRouteData(topic, null);
+    }
+
+    public TopicRouteData pickupTopicRouteData(final String topic, Channel channel) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
@@ -707,6 +741,10 @@ public class RouteInfoManager {
         log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
 
         if (foundBrokerData && foundQueueData) {
+            if (channel != null) {
+                Set<Channel> channelSet = topicAndClientChannelMap.computeIfAbsent(topic, k -> new ConcurrentSkipListSet<>());
+                channelSet.add(channel);
+            }
 
             topicRouteData.setTopicQueueMappingByBroker(this.topicQueueMappingInfoTable.get(topic));
 
@@ -1073,6 +1111,41 @@ public class RouteInfoManager {
 
         return topicList;
     }
+
+    /**
+     * get changed topics info
+     *
+     * @return  key is topic name; val is channel set
+     */
+    public Map<String, Set<Channel>> getAndResetChangedTopicMap() {
+        if (CollectionUtils.isEmpty(changedTopicSet)) {
+            return null;
+        }
+        try {
+            lock.writeLock().lockInterruptibly();
+            Map<String, Set<Channel>> result = assembleTopicData();
+            changedTopicSet.clear();
+            return result;
+        } catch (Exception e) {
+            log.error("getAndResetChangedTopicMap error", e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+        return null;
+    }
+
+    private Map<String, Set<Channel>> assembleTopicData() {
+        Map<String, Set<Channel>> result = new HashMap<>();
+        for (String topic : changedTopicSet) {
+            Set<Channel> channelSet = topicAndClientChannelMap.get(topic);
+            if (CollectionUtils.isNotEmpty(channelSet)) {
+                channelSet.removeIf(c -> !c.isActive());
+                result.put(topic, channelSet);
+            }
+        }
+        return result;
+    }
+
 }
 
 class BrokerLiveInfo {
