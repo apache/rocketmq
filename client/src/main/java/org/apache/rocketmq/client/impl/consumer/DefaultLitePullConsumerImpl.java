@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
@@ -534,7 +535,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void setSubExpression4Assgin(final String topic, final String subExpression) {
-        if (subExpression == null || "".equals(subExpression)) {
+        if (StringUtils.isBlank(subExpression)) {
             throw new IllegalArgumentException("subExpression can not be null or empty.");
         }
         if (serviceState != ServiceState.CREATE_JUST) {
