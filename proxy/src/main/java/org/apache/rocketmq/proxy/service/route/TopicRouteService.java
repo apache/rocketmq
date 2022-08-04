@@ -73,7 +73,20 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             refreshAfterWrite(config.getTopicRouteServiceCacheExpiredInSeconds(), TimeUnit.SECONDS).
             executor(cacheRefreshExecutor).build(new CacheLoader<String, MessageQueueView>() {
                 @Override public @Nullable MessageQueueView load(String topic) throws Exception {
-                    return topicRouteCacheLoader.load(topic);
+                    try {
+                        TopicRouteData topicRouteData = topicRouteCacheLoader.loadTopicRouteData(topic);
+                        if (isTopicRouteValid(topicRouteData)) {
+                            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
+                            log.info("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
+                            return tmp;
+                        }
+                        return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+                    } catch (Exception e) {
+                        if (TopicRouteHelper.isTopicNotExistError(e)) {
+                            return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+                        }
+                        throw e;
+                    }
                 }
             });
 
