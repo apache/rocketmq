@@ -365,6 +365,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final BrokerHeartbeatRequestHeader requestHeader =
             (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
 
+
         this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
 
         response.setCode(ResponseCode.SUCCESS);
