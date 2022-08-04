@@ -1,0 +1,33 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field msgId : private java.lang.String null
+Field queueId : private java.lang.Integer null
+Field queueOffset : private java.lang.Long null
+Field transactionId : private java.lang.String null
+Method checkFields() : public throws (void)
+Method decode(java.util.HashMap) : public throws (void)
+Method encode(io.netty.buffer.ByteBuf) : public throws (void)
+Method getMsgId() : public throws (java.lang.String)
+Method getQueueId() : public throws (java.lang.Integer)
+Method getQueueOffset() : public throws (java.lang.Long)
+Method getTransactionId() : public throws (java.lang.String)
+Method setMsgId(java.lang.String) : public throws (void)
+Method setQueueId(java.lang.Integer) : public throws (void)
+Method setQueueOffset(java.lang.Long) : public throws (void)
+Method setTransactionId(java.lang.String) : public throws (void)

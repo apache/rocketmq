@@ -97,7 +97,8 @@ public class ThreadPoolWrapper {
         this.statusPrinters = statusPrinters;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -106,11 +107,13 @@ public class ThreadPoolWrapper {
         return Objects.equal(name, wrapper.name) && Objects.equal(threadPoolExecutor, wrapper.threadPoolExecutor) && Objects.equal(statusPrinters, wrapper.statusPrinters);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(name, threadPoolExecutor, statusPrinters);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
             .add("threadPoolExecutor", threadPoolExecutor)

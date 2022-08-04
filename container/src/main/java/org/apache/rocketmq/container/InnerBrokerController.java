@@ -90,7 +90,8 @@ public class InnerBrokerController extends BrokerController {
             scheduleSendHeartbeat();
 
             scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override public void run2() {
+                @Override
+                public void run2() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {

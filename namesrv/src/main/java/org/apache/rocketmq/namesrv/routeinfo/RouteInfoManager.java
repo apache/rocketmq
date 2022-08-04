@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -248,7 +249,7 @@ public class RouteInfoManager {
                 }
 
                 boolean isOldVersionBroker = enableActingMaster == null;
-                brokerData.setEnableActingMaster(!isOldVersionBroker && enableActingMaster);
+                brokerData.setEnableActingMaster(isOldVersionBroker ? false : enableActingMaster);
 
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
 
@@ -286,7 +287,7 @@ public class RouteInfoManager {
                 }
 
                 String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
-                registerFirst = registerFirst || (null == oldAddr);
+                registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
                 boolean isMaster = MixAll.MASTER_ID == brokerId;
                 boolean isPrimeSlave = !isOldVersionBroker && !isMaster
@@ -488,7 +489,6 @@ public class RouteInfoManager {
     }
 
     private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
-        Set<String> changedTopics = new HashSet<>();
         int topicCnt = 0;
 
         Iterator<Entry<String, Map<String, QueueData>>> itTopic = this.topicQueueTable.entrySet().iterator();
@@ -992,7 +992,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getSystemTopicList Exception", e);
         }
 
         return topicList;
@@ -1021,7 +1021,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getTopicsByCluster Exception", e);
         }
 
         return topicList;
@@ -1047,7 +1047,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getUnitTopics Exception", e);
         }
 
         return topicList;
@@ -1073,7 +1073,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubTopicList Exception", e);
         }
 
         return topicList;
@@ -1100,7 +1100,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubUnUnitTopicList Exception", e);
         }
 
         return topicList;

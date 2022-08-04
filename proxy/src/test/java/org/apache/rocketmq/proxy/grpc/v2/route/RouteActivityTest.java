@@ -22,6 +22,7 @@ import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
+import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.Permission;
 import apache.rocketmq.v2.QueryAssignmentRequest;
@@ -33,16 +34,20 @@ import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.metadata.LocalMetadataService;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -93,6 +98,9 @@ public class RouteActivityTest extends BaseActivityTest {
         ArgumentCaptor<List<org.apache.rocketmq.proxy.common.Address>> addressListCaptor = ArgumentCaptor.forClass(List.class);
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), addressListCaptor.capture(), anyString()))
             .thenReturn(createProxyTopicRouteData(2, 2, 6));
+        MetadataService metadataService = Mockito.mock(LocalMetadataService.class);
+        when(this.messagingProcessor.getMetadataService()).thenReturn(metadataService);
+        when(metadataService.getTopicMessageType(anyString())).thenReturn(TopicMessageType.NORMAL);
 
         QueryRouteResponse response = this.routeActivity.queryRoute(
             createContext(),
@@ -199,40 +207,45 @@ public class RouteActivityTest extends BaseActivityTest {
     public void testGenPartitionFromQueueData() throws Exception {
         // test queueData with 8 read queues, 8 write queues, and rw permission, expect 8 rw queues.
         QueueData queueDataWith8R8WPermRW = createQueueData(8, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermRW, GRPC_TOPIC, GRPC_BROKER);
+        List<MessageQueue> partitionWith8R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermRW, GRPC_TOPIC, TopicMessageType.NORMAL, GRPC_BROKER);
         assertEquals(8, partitionWith8R8WPermRW.size());
+        assertEquals(8, partitionWith8R8WPermRW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.NORMAL.getNumber()).count());
         assertEquals(8, partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
         assertEquals(0, partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
 
         // test queueData with 8 read queues, 8 write queues, and read only permission, expect 8 read only queues.
         QueueData queueDataWith8R8WPermR = createQueueData(8, 8, PermName.PERM_READ);
-        List<MessageQueue> partitionWith8R8WPermR = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermR, GRPC_TOPIC, GRPC_BROKER);
+        List<MessageQueue> partitionWith8R8WPermR = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermR, GRPC_TOPIC, TopicMessageType.FIFO, GRPC_BROKER);
         assertEquals(8, partitionWith8R8WPermR.size());
+        assertEquals(8, partitionWith8R8WPermR.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.FIFO.getNumber()).count());
         assertEquals(8, partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ).count());
         assertEquals(0, partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
 
         // test queueData with 8 read queues, 8 write queues, and write only permission, expect 8 write only queues.
         QueueData queueDataWith8R8WPermW = createQueueData(8, 8, PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R8WPermW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermW, GRPC_TOPIC, GRPC_BROKER);
+        List<MessageQueue> partitionWith8R8WPermW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R8WPermW, GRPC_TOPIC, TopicMessageType.TRANSACTION, GRPC_BROKER);
         assertEquals(8, partitionWith8R8WPermW.size());
+        assertEquals(8, partitionWith8R8WPermW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.TRANSACTION.getNumber()).count());
         assertEquals(8, partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(0, partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.READ).count());
 
         // test queueData with 8 read queues, 0 write queues, and rw permission, expect 8 read only queues.
         QueueData queueDataWith8R0WPermRW = createQueueData(8, 0, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R0WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R0WPermRW, GRPC_TOPIC, GRPC_BROKER);
+        List<MessageQueue> partitionWith8R0WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R0WPermRW, GRPC_TOPIC, TopicMessageType.DELAY, GRPC_BROKER);
         assertEquals(8, partitionWith8R0WPermRW.size());
+        assertEquals(8, partitionWith8R0WPermRW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.DELAY.getNumber()).count());
         assertEquals(8, partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
         assertEquals(0, partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
 
         // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and  4 write only queues.
         QueueData queueDataWith4R8WPermRW = createQueueData(4, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith4R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, GRPC_TOPIC, GRPC_BROKER);
+        List<MessageQueue> partitionWith4R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
         assertEquals(8, partitionWith4R8WPermRW.size());
+        assertEquals(8, partitionWith4R8WPermRW.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());

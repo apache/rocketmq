@@ -99,14 +99,16 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.flowMonitor = new FlowMonitor(haService.getDefaultMessageStore().getMessageStoreConfig());
     }
 
-    @Override public void start() {
+    @Override
+    public void start() {
         changeCurrentState(HAConnectionState.HANDSHAKE);
         this.flowMonitor.start();
         this.readSocketService.start();
         this.writeSocketService.start();
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
         changeCurrentState(HAConnectionState.SHUTDOWN);
         this.flowMonitor.shutdown(true);
         this.writeSocketService.shutdown(true);
@@ -114,7 +116,8 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.close();
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         if (this.socketChannel != null) {
             try {
                 this.socketChannel.close();
@@ -137,27 +140,33 @@ public class AutoSwitchHAConnection implements HAConnection {
         return slaveAddress;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return currentState;
     }
 
-    @Override public SocketChannel getSocketChannel() {
+    @Override
+    public SocketChannel getSocketChannel() {
         return socketChannel;
     }
 
-    @Override public String getClientAddress() {
+    @Override
+    public String getClientAddress() {
         return clientAddress;
     }
 
-    @Override public long getSlaveAckOffset() {
+    @Override
+    public long getSlaveAckOffset() {
         return slaveAckOffset;
     }
 
-    @Override public long getTransferredByteInSecond() {
+    @Override
+    public long getTransferredByteInSecond() {
         return flowMonitor.getTransferredByteInSecond();
     }
 
-    @Override public long getTransferFromWhere() {
+    @Override
+    public long getTransferFromWhere() {
         return this.writeSocketService.getNextTransferFromWhere();
     }
 
@@ -597,7 +606,8 @@ public class AutoSwitchHAConnection implements HAConnection {
             }
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             AutoSwitchHAConnection.LOGGER.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {

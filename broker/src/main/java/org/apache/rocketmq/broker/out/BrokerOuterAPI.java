@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.out;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -111,6 +112,8 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMetrics;
 
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
@@ -449,7 +452,8 @@ public class BrokerOuterAPI {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(brokerIdentity) {
-                    @Override public void run2() {
+                    @Override
+                    public void run2() {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
                             if (result != null) {
@@ -531,7 +535,7 @@ public class BrokerOuterAPI {
                     this.unregisterBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId);
                     LOGGER.info("unregisterBroker OK, NamesrvAddr: {}", namesrvAddr);
                 } catch (Exception e) {
-                    LOGGER.warn("unregisterBroker Exception, {}", namesrvAddr, e);
+                    LOGGER.warn("unregisterBroker Exception, NamesrvAddr: {}", namesrvAddr, e);
                 }
             }
         }
@@ -557,6 +561,9 @@ public class BrokerOuterAPI {
             case ResponseCode.SUCCESS: {
                 return;
             }
+            case ResponseCode.SYSTEM_ERROR: {
+                throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
+            }
             default:
                 break;
         }
@@ -578,7 +585,8 @@ public class BrokerOuterAPI {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
-                    @Override public void run2() {
+                    @Override
+                    public void run2() {
                         try {
                             QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
                             requestHeader.setBrokerAddr(brokerAddr);
@@ -639,6 +647,42 @@ public class BrokerOuterAPI {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigAndMappingSerializeWrapper.class);
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public TimerCheckpoint getTimerCheckPoint(
+        final String addr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TIMER_CHECK_POINT, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(true, addr), request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return TimerCheckpoint.decode(ByteBuffer.wrap(response.getBody()));
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(),addr);
+    }
+
+    public TimerMetrics.TimerMetricsSerializeWrapper getTimerMetrics(
+        final String addr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TIMER_METRICS, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(true, addr), request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return TimerMetrics.TimerMetricsSerializeWrapper.decode(response.getBody(), TimerMetrics.TimerMetricsSerializeWrapper.class);
             }
             default:
                 break;

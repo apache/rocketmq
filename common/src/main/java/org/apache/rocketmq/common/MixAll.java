@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -370,6 +371,10 @@ public class MixAll {
 
     public static boolean isPropertiesEqual(final Properties p1, final Properties p2) {
         return p1.equals(p2);
+    }
+
+    public static boolean isPropertyValid(Properties props, String key, Predicate<String> validator) {
+        return validator.test(props.getProperty(key));
     }
 
     public static List<String> getLocalInetAddress() {

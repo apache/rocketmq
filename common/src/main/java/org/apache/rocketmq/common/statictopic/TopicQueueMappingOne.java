@@ -55,7 +55,8 @@ public class TopicQueueMappingOne extends RemotingSerializable {
         return mappingDetail;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (!(o instanceof TopicQueueMappingOne))
@@ -74,7 +75,8 @@ public class TopicQueueMappingOne extends RemotingSerializable {
         return mappingDetail != null ? mappingDetail.equals(that.mappingDetail) : that.mappingDetail == null;
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         int result = topic != null ? topic.hashCode() : 0;
         result = 31 * result + (bname != null ? bname.hashCode() : 0);
         result = 31 * result + (globalId != null ? globalId.hashCode() : 0);

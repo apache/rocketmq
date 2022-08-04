@@ -2603,15 +2603,18 @@ public class DefaultMessageStore implements MessageStore {
         return putMessageHookList;
     }
 
-    @Override public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
+    @Override
+    public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
         this.sendMessageBackHook = sendMessageBackHook;
     }
 
-    @Override public SendMessageBackHook getSendMessageBackHook() {
+    @Override
+    public SendMessageBackHook getSendMessageBackHook() {
         return sendMessageBackHook;
     }
 
-    @Override public boolean isShutdown() {
+    @Override
+    public boolean isShutdown() {
         return shutdown;
     }
 }

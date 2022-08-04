@@ -19,9 +19,12 @@ package org.apache.rocketmq.client;
 
 import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
 
+import java.util.Properties;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -107,4 +110,19 @@ public class Validators {
         }
     }
 
+    public static void checkTopicConfig(final TopicConfig topicConfig) throws MQClientException {
+        if (!PermName.isValid(topicConfig.getPerm())) {
+            throw new MQClientException(ResponseCode.NO_PERMISSION,
+                String.format("topicPermission value: %s is invalid.", topicConfig.getPerm()));
+        }
+    }
+
+    public static void checkBrokerConfig(final Properties brokerConfig) throws MQClientException {
+        // TODO: use MixAll.isPropertyValid() when jdk upgrade to 1.8
+        if (brokerConfig.containsKey("brokerPermission")
+            && !PermName.isValid(brokerConfig.getProperty("brokerPermission"))) {
+            throw new MQClientException(ResponseCode.NO_PERMISSION,
+                String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
+        }
+    }
 }

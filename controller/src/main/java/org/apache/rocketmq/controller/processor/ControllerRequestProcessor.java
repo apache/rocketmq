@@ -127,6 +127,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                         }
                     }
                 }
+                break;
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";

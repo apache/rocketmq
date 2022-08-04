@@ -46,7 +46,8 @@ public class AlterSyncStateSetEvent implements EventMessage {
         return new HashSet<>(newSyncStateSet);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "AlterSyncStateSetEvent{" +
             "brokerName='" + brokerName + '\'' +
             ", newSyncStateSet=" + newSyncStateSet +

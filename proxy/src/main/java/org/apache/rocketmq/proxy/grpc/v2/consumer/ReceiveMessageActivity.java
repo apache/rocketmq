@@ -24,7 +24,6 @@ import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
-import java.time.Duration;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -65,16 +64,13 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
+            int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
             ProxyConfig config = ConfigurationManager.getProxyConfig();
 
             Long timeRemaining = ctx.getRemainingMs();
-            if (timeRemaining == null) {
-                timeRemaining = Duration.ofSeconds(20).toMillis();
-            }
-            long pollTime = timeRemaining - config.getLongPollingReserveTimeInMillis();
-            if (pollTime <= 0) {
-                writer.writeAndComplete(ctx, Code.BAD_REQUEST, "time remaining is too small");
-                return;
+            long pollTime = timeRemaining - Durations.toMillis(settings.getRequestTimeout()) / 2;
+            if (pollTime < 0) {
+                pollTime = 0;
             }
             if (pollTime > config.getGrpcClientConsumerLongPollingTimeoutMillis()) {
                 pollTime = config.getGrpcClientConsumerLongPollingTimeoutMillis();
@@ -116,7 +112,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 ConsumeInitMode.MAX,
                 subscriptionData,
                 fifo,
-                new PopMessageResultFilterImpl(grpcClientSettingsManager),
+                new PopMessageResultFilterImpl(maxAttempts),
                 timeRemaining
             ).thenAccept(popResult -> {
                 if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {

@@ -29,6 +29,7 @@ import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -72,6 +73,41 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         super.before();
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
             grpcClientSettingsManager, grpcChannelManager);
+    }
+
+    @Test
+    public void testReceiveMessagePollingTime() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        ArgumentCaptor<Long> pollTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder()
+            .setRequestTimeout(Durations.fromSeconds(3))
+            .build());
+        when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
+            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
+
+
+        ProxyContext context = createContext();
+        context.setRemainingMs(1L);
+        this.receiveMessageActivity.receiveMessage(
+            context,
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+        assertEquals(0L, pollTimeCaptor.getValue().longValue());
     }
 
     @Test

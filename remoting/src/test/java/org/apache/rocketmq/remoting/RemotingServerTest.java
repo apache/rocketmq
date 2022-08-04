@@ -50,7 +50,8 @@ public class RemotingServerTest {
                 return request;
             }
 
-            @Override public boolean rejectRequest() {
+            @Override
+            public boolean rejectRequest() {
                 return false;
             }
         }, Executors.newCachedThreadPool());

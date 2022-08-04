@@ -142,7 +142,21 @@ public class ProducerProcessor extends AbstractProcessor {
         requestHeader.setDefaultTopicQueueNums(4);
         requestHeader.setQueueId(queueId);
         requestHeader.setSysFlag(sysFlag);
-        requestHeader.setBornTimestamp(System.currentTimeMillis());
+        /*
+        In RocketMQ 4.0, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader.bornTimestamp
+        represents the timestamp when the message was born. In RocketMQ 5.0, the bornTimestamp of the message
+        is a message attribute, that is, the timestamp when message was constructed, and there is no
+        bornTimestamp in the SendMessageRequest of RocketMQ 5.0.
+        Note: When using grpc sendMessage to send multiple messages, the bornTimestamp in the requestHeader
+        is set to the bornTimestamp of the first message, which may not be accurate. When a bornTimestamp is
+        required, the bornTimestamp of the message property should be used.
+        * */
+        try {
+            requestHeader.setBornTimestamp(Long.parseLong(message.getProperty(MessageConst.PROPERTY_BORN_TIMESTAMP)));
+        } catch (Exception e) {
+            log.warn("parse born time error, with value:{}", message.getProperty(MessageConst.PROPERTY_BORN_TIMESTAMP));
+            requestHeader.setBornTimestamp(System.currentTimeMillis());
+        }
         requestHeader.setFlag(message.getFlag());
         requestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
         requestHeader.setReconsumeTimes(0);

@@ -157,6 +157,7 @@ public class AdminBrokerProcessorTest {
         topic = "FooBar" + System.nanoTime();
 
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
+        brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
     }
 
     @Test
@@ -513,7 +514,6 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
-
 
     @Test
     public void testGetTopicConfig() throws Exception {

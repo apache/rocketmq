@@ -51,7 +51,8 @@ public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
         this.brokerAddress = brokerAddress;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "GetReplicaInfoRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +
