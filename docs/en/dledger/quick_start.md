@@ -10,9 +10,9 @@ Build phase contains two parts, first, build DLedger, then build RocketMQ.
 
 #### 1.1 Build DLedger
 
-`git clone https://github.com/openmessaging/openmessaging-storage-dledger.git`
+`git clone https://github.com/openmessaging/dledger.git`
 
-`cd openmessaging-storage-dledger`
+`cd dledger`
 
 `mvn clean install -DskipTests`
 

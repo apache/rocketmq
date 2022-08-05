@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -67,5 +68,15 @@ public class CloneGroupOffsetRequestHeader implements CommandCustomHeader {
 
     public void setOffline(boolean offline) {
         this.offline = offline;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("srcGroup", srcGroup)
+            .add("destGroup", destGroup)
+            .add("topic", topic)
+            .add("offline", offline)
+            .toString();
     }
 }
