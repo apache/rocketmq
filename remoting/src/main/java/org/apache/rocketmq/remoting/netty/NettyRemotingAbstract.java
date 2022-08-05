@@ -110,7 +110,7 @@ public abstract class NettyRemotingAbstract {
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
      * @param permitsOneway Number of permits for one-way requests.
-     * @param permitsAsync Number of permits for asynchronous requests.
+     * @param permitsAsync  Number of permits for asynchronous requests.
      */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
@@ -210,8 +210,7 @@ public abstract class NettyRemotingAbstract {
                         if (exception == null) {
                             response = pair.getObject1().processRequest(ctx, cmd);
                         } else {
-                            response = RemotingCommand.createResponseCommand(null);
-                            response.setCode(RemotingSysResponseCode.SYSTEM_ERROR);
+                            response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, null);
                         }
 
                         try {

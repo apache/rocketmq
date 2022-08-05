@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -38,6 +40,7 @@ public class TimerCheckpoint {
     private volatile long lastTimerLogFlushPos = 0;
     private volatile long lastTimerQueueOffset = 0;
     private volatile long masterTimerQueueOffset = 0; // read from master
+    private final DataVersion dataVersion = new DataVersion();
 
     public TimerCheckpoint() {
         this.randomAccessFile = null;
@@ -60,12 +63,21 @@ public class TimerCheckpoint {
             this.lastTimerLogFlushPos = this.mappedByteBuffer.getLong(8);
             this.lastTimerQueueOffset = this.mappedByteBuffer.getLong(16);
             this.masterTimerQueueOffset = this.mappedByteBuffer.getLong(24);
+            // new add to record dataVersion
+            if (this.mappedByteBuffer.hasRemaining()) {
+                dataVersion.setStateVersion(this.mappedByteBuffer.getLong(32));
+                dataVersion.setTimestamp(this.mappedByteBuffer.getLong(40));
+                dataVersion.setCounter(new AtomicLong(this.mappedByteBuffer.getLong(48)));
+            }
 
             log.info("timer checkpoint file lastReadTimeMs " + this.lastReadTimeMs + ", "
                 + UtilAll.timeMillisToHumanString(this.lastReadTimeMs));
             log.info("timer checkpoint file lastTimerLogFlushPos " + this.lastTimerLogFlushPos);
             log.info("timer checkpoint file lastTimerQueueOffset " + this.lastTimerQueueOffset);
             log.info("timer checkpoint file masterTimerQueueOffset " + this.masterTimerQueueOffset);
+            log.info("timer checkpoint file data version state version " + this.dataVersion.getStateVersion());
+            log.info("timer checkpoint file data version timestamp " + this.dataVersion.getTimestamp());
+            log.info("timer checkpoint file data version counter " + this.dataVersion.getCounter());
         } else {
             log.info("timer checkpoint file not exists, " + scpPath);
         }
@@ -96,6 +108,10 @@ public class TimerCheckpoint {
         this.mappedByteBuffer.putLong(8, this.lastTimerLogFlushPos);
         this.mappedByteBuffer.putLong(16, this.lastTimerQueueOffset);
         this.mappedByteBuffer.putLong(24, this.masterTimerQueueOffset);
+        // new add to record dataVersion
+        this.mappedByteBuffer.putLong(32, this.dataVersion.getStateVersion());
+        this.mappedByteBuffer.putLong(40, this.dataVersion.getTimestamp());
+        this.mappedByteBuffer.putLong(48, this.dataVersion.getCounter().get());
         this.mappedByteBuffer.force();
     }
 
@@ -104,11 +120,15 @@ public class TimerCheckpoint {
     }
 
     public static ByteBuffer encode(TimerCheckpoint another) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(32);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(56);
         byteBuffer.putLong(another.getLastReadTimeMs());
         byteBuffer.putLong(another.getLastTimerLogFlushPos());
         byteBuffer.putLong(another.getLastTimerQueueOffset());
         byteBuffer.putLong(another.getMasterTimerQueueOffset());
+        // new add to record dataVersion
+        byteBuffer.putLong(another.getDataVersion().getStateVersion());
+        byteBuffer.putLong(another.getDataVersion().getTimestamp());
+        byteBuffer.putLong(another.getDataVersion().getCounter().get());
         byteBuffer.flip();
         return byteBuffer;
     }
@@ -119,6 +139,12 @@ public class TimerCheckpoint {
         tmp.setLastTimerLogFlushPos(byteBuffer.getLong());
         tmp.setLastTimerQueueOffset(byteBuffer.getLong());
         tmp.setMasterTimerQueueOffset(byteBuffer.getLong());
+        // new add to record dataVersion
+        if (byteBuffer.hasRemaining()) {
+            tmp.getDataVersion().setStateVersion(byteBuffer.getLong());
+            tmp.getDataVersion().setTimestamp(byteBuffer.getLong());
+            tmp.getDataVersion().setCounter(new AtomicLong(byteBuffer.getLong()));
+        }
         return tmp;
     }
 
@@ -148,5 +174,13 @@ public class TimerCheckpoint {
 
     public void setMasterTimerQueueOffset(final long masterTimerQueueOffset) {
         this.masterTimerQueueOffset = masterTimerQueueOffset;
+    }
+
+    public void updateDateVersion(long stateVersion) {
+        dataVersion.nextVersion(stateVersion);
+    }
+
+    public DataVersion getDataVersion() {
+        return dataVersion;
     }
 }
