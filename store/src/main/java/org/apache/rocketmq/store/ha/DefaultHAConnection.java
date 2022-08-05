@@ -95,15 +95,18 @@ public class DefaultHAConnection implements HAConnection {
         this.currentState = currentState;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return currentState;
     }
 
-    @Override public String getClientAddress() {
+    @Override
+    public String getClientAddress() {
         return this.clientAddress;
     }
 
-    @Override public long getSlaveAckOffset() {
+    @Override
+    public long getSlaveAckOffset() {
         return slaveAckOffset;
     }
 

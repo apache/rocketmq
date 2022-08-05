@@ -68,7 +68,8 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
         this.brokerId = brokerId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "NotifyBrokerRoleChangedRequestHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
@@ -77,7 +78,8 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
             '}';
     }
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 }

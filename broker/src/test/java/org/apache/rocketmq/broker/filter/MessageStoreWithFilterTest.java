@@ -353,7 +353,8 @@ public class MessageStoreWithFilterTest {
         putMsg(master, topicCount, msgPerTopic);
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
-            @Override public void run() throws Throwable {
+            @Override
+            public void run() throws Throwable {
                 for (int i = 0; i < topicCount; i++) {
                     final String realTopic = topic + i;
                     GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,

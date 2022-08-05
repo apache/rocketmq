@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.broker.schedule.DelayOffsetSerializeWrapper;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationRequest;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
 
 public class BrokerPreOnlineService extends ServiceThread {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -159,6 +160,8 @@ public class BrokerPreOnlineService extends ServiceThread {
 
             ConsumerOffsetSerializeWrapper consumerOffsetSerializeWrapper = this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(brokerAddr);
 
+            TimerCheckpoint timerCheckpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(brokerAddr);
+
             if (null != consumerOffsetSerializeWrapper && brokerController.getConsumerOffsetManager().getDataVersion().compare(consumerOffsetSerializeWrapper.getDataVersion()) <= 0) {
                 LOGGER.info("{}'s consumerOffset data version is larger than master broker, {}'s consumerOffset will be used.", brokerAddr, brokerAddr);
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
@@ -178,6 +181,14 @@ public class BrokerPreOnlineService extends ServiceThread {
                 } catch (IOException e) {
                     LOGGER.error("Persist file Exception, {}", fileName, e);
                 }
+            }
+
+            if (null != this.brokerController.getTimerCheckpoint() && this.brokerController.getTimerCheckpoint().getDataVersion().compare(timerCheckpoint.getDataVersion()) <= 0) {
+                LOGGER.info("{}'s timerCheckpoint data version is larger than master broker, {}'s timerCheckpoint will be used.", brokerAddr, brokerAddr);
+                this.brokerController.getTimerCheckpoint().setLastReadTimeMs(timerCheckpoint.getLastReadTimeMs());
+                this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(timerCheckpoint.getMasterTimerQueueOffset());
+                this.brokerController.getTimerCheckpoint().getDataVersion().assignNewOne(timerCheckpoint.getDataVersion());
+                this.brokerController.getTimerCheckpoint().flush();
             }
 
             for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {

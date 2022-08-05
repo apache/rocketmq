@@ -16,21 +16,26 @@
  */
 package org.apache.rocketmq.proxy.service.mqclient;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final ProducerManager producerManager;
 
     public ProxyClientRemotingProcessor(ProducerManager producerManager) {
@@ -59,7 +64,12 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
                     (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                 request.writeCustomHeader(requestHeader);
                 request.addExtField(ProxyUtils.BROKER_ADDR, RemotingUtil.socketAddress2String(ctx.channel().remoteAddress()));
-                this.producerManager.getAvailableChannel(group).writeAndFlush(request);
+                Channel channel = this.producerManager.getAvailableChannel(group);
+                if (channel != null) {
+                    channel.writeAndFlush(request);
+                } else {
+                    log.warn("check transaction failed, channel is empty. groupId={}, requestHeader:{}", group, requestHeader);
+                }
             }
         }
         return null;

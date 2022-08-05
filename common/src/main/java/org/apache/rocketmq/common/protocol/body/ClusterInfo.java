@@ -64,7 +64,8 @@ public class ClusterInfo extends RemotingSerializable {
         return clusterAddrTable.keySet().toArray(new String[] {});
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -73,7 +74,8 @@ public class ClusterInfo extends RemotingSerializable {
         return Objects.equal(brokerAddrTable, info.brokerAddrTable) && Objects.equal(clusterAddrTable, info.clusterAddrTable);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(brokerAddrTable, clusterAddrTable);
     }
 }

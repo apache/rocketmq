@@ -67,7 +67,8 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 
