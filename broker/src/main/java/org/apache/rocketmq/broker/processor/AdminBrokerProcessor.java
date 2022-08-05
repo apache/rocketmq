@@ -2334,7 +2334,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(requestHeader.getTopic());
         if (topicConfig == null) {
             LOGGER.error("No topic in this broker, client: {} topic: {}", ctx.channel().remoteAddress(), requestHeader.getTopic());
-            //be care of the response code, should set "not-exist" explictly
+            //be care of the response code, should set "not-exist" explicitly
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("No topic in this broker. topic: " + requestHeader.getTopic());
             return response;

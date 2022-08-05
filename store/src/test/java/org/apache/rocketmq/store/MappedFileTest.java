@@ -53,7 +53,7 @@ public class MappedFileTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File("target/unit_test_store");
         UtilAll.deleteFile(file);
     }

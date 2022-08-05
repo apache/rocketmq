@@ -60,7 +60,7 @@ public class BatchPutMessageTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         messageStore.shutdown();
         messageStore.destroy();
 
