@@ -445,7 +445,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath, final long timeoutMillis)
+    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath,
+        final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
         requestHeader.setGlobalWhiteAddrs(globalWhiteAddrs);
@@ -1175,7 +1176,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
-    public long searchOffset(final String addr, final MessageQueue messageQueue, final long timestamp, final long timeoutMillis)
+    public long searchOffset(final String addr, final MessageQueue messageQueue, final long timestamp,
+        final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(messageQueue.getTopic());
@@ -1597,14 +1599,14 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public ProducerTableInfo getAllProducerInfo(final String addr, final long timeoutMillis)
-            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
-            MQBrokerException {
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
+        MQBrokerException {
         GetAllProducerInfoRequestHeader requestHeader = new GetAllProducerInfoRequestHeader();
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_PRODUCER_INFO, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-                request, timeoutMillis);
+            request, timeoutMillis);
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return ProducerTableInfo.decode(response.getBody(), ProducerTableInfo.class);
@@ -2921,7 +2923,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public GetMetaDataResponseHeader getControllerMetaData(final String controllerAddress) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException, MQBrokerException {
+    public GetMetaDataResponseHeader getControllerMetaData(
+        final String controllerAddress) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException, MQBrokerException {
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_METADATA_INFO, null);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
@@ -2954,7 +2957,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public EpochEntryCache getBrokerEpochCache(String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+    public EpochEntryCache getBrokerEpochCache(
+        String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_EPOCH_CACHE, null);
         final RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
         assert response != null;
@@ -2966,5 +2970,60 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 break;
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public Map<String, Properties> getControllerConfig(final List<String> controllerServers,
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException, UnsupportedEncodingException {
+        List<String> invokeControllerServers = (controllerServers == null || controllerServers.isEmpty()) ?
+            this.remotingClient.getNameServerAddressList() : controllerServers;
+        if (invokeControllerServers == null || invokeControllerServers.isEmpty()) {
+            return null;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONTROLLER_CONFIG, null);
+
+        Map<String, Properties> configMap = new HashMap<String, Properties>(4);
+        for (String controller : invokeControllerServers) {
+            RemotingCommand response = this.remotingClient.invokeSync(controller, request, timeoutMillis);
+
+            assert response != null;
+
+            if (ResponseCode.SUCCESS == response.getCode()) {
+                configMap.put(controller, MixAll.string2Properties(new String(response.getBody(), MixAll.DEFAULT_CHARSET)));
+            } else {
+                throw new MQClientException(response.getCode(), response.getRemark());
+            }
+        }
+        return configMap;
+    }
+
+    public void updateControllerConfig(final Properties properties, final List<String> controllers,
+        final long timeoutMillis) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+        RemotingSendRequestException, RemotingTimeoutException, MQClientException {
+        String str = MixAll.properties2String(properties);
+        if (str.length() < 1 || controllers == null || controllers.isEmpty()) {
+            return;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONTROLLER_CONFIG, null);
+        request.setBody(str.getBytes(MixAll.DEFAULT_CHARSET));
+
+        RemotingCommand errResponse = null;
+        for (String controller : controllers) {
+            RemotingCommand response = this.remotingClient.invokeSync(controller, request, timeoutMillis);
+            assert response != null;
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+            }
+        }
+
+        if (errResponse != null) {
+            throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+        }
     }
 }

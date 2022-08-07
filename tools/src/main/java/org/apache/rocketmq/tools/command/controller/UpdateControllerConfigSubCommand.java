@@ -14,55 +14,79 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.apache.rocketmq.tools.command.controller;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetControllerMetaDataCommand implements SubCommand {
+public class UpdateControllerConfigSubCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "getControllerMetaData";
+        return "updateControllerConfig";
     }
 
     @Override
     public String commandDesc() {
-        return "get controller cluster's metadata";
+        return "Update controller config.";
     }
 
     @Override
-    public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("a", "controllerAddress", true, "the address of controller");
+    public Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("a", "controllerAddress", true, "Controller address list, eg: 192.168.0.1:9878;192.168.0.2:9878");
         opt.setRequired(true);
         options.addOption(opt);
+
+        opt = new Option("k", "key", true, "config key");
+        opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("v", "value", true, "config value");
+        opt.setRequired(true);
+        options.addOption(opt);
+
         return options;
     }
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
+    public void execute(final CommandLine commandLine, final Options options,
+        final RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        String controllerAddress = commandLine.getOptionValue('a').trim();
         try {
-            defaultMQAdminExt.start();
-            final GetMetaDataResponseHeader metaData = defaultMQAdminExt.getControllerMetaData(controllerAddress);
-            System.out.printf("\n#ControllerGroup\t%s", metaData.getGroup());
-            System.out.printf("\n#ControllerLeaderId\t%s", metaData.getControllerLeaderId());
-            System.out.printf("\n#ControllerLeaderAddress\t%s", metaData.getControllerLeaderAddress());
-            final String peers = metaData.getPeers();
-            if (StringUtils.isNotEmpty(peers)) {
-                final String[] peerList = peers.split(";");
-                for (String peer : peerList) {
-                    System.out.printf("\n#Peer:\t%s", peer);
+            // key name
+            String key = commandLine.getOptionValue('k').trim();
+            // key name
+            String value = commandLine.getOptionValue('v').trim();
+            Properties properties = new Properties();
+            properties.put(key, value);
+
+            // servers
+            String servers = commandLine.getOptionValue('a');
+            List<String> serverList = null;
+            if (servers != null && servers.length() > 0) {
+                String[] serverArray = servers.trim().split(";");
+
+                if (serverArray.length > 0) {
+                    serverList = Arrays.asList(serverArray);
                 }
             }
+
+            defaultMQAdminExt.start();
+
+            defaultMQAdminExt.updateControllerConfig(properties, serverList);
+
+            System.out.printf("update controller config success!%s\n%s : %s\n",
+                serverList == null ? "" : serverList, key, value);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
