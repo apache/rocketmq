@@ -211,8 +211,10 @@ public class ReplicasInfoManager {
                 response.setNewMasterAddress(candidate);
                 response.setMasterEpoch(masterEpoch + 1);
                 response.setSyncStateSetEpoch(syncStateSetEpoch);
-                response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
-
+                BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
+                if (null != brokerMemberGroup) {
+                    result.setBody(brokerMemberGroup.encode());
+                }
                 final ElectMasterEvent event = new ElectMasterEvent(brokerName, candidate);
                 result.addEvent(event);
                 return true;
