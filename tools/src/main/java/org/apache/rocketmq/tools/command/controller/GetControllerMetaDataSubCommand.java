@@ -63,6 +63,7 @@ public class GetControllerMetaDataSubCommand implements SubCommand {
                     System.out.printf("\n#Peer:\t%s", peer);
                 }
             }
+            System.out.printf("\n");
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
