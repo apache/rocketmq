@@ -30,7 +30,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetBrokerEpochCommand implements SubCommand {
+public class GetBrokerEpochSubCommand implements SubCommand {
     @Override
     public String commandName() {
         return "getBrokerEpoch";

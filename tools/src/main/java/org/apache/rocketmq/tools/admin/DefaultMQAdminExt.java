@@ -787,6 +787,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         this.defaultMQAdminExtImpl.resetMasterFlushOffset(brokerAddr, masterFlushOffset);
     }
 
+
     public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
 
@@ -804,5 +805,18 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         throws RemotingException,
         InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.updateAndGetGroupReadForbidden(brokerAddr, groupName, topicName, readable);
+    }
+
+    @Override
+    public Map<String, Properties> getControllerConfig(List<String> controllerServers) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException,
+        UnsupportedEncodingException {
+        return this.defaultMQAdminExtImpl.getControllerConfig(controllerServers);
+    }
+
+    @Override
+    public void updateControllerConfig(Properties properties,
+        List<String> controllers) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+        this.defaultMQAdminExtImpl.updateControllerConfig(properties, controllers);
     }
 }

@@ -412,4 +412,25 @@ public interface MQAdminExt extends MQAdmin {
      */
     void resetMasterFlushOffset(String brokerAddr, long masterFlushOffset)
         throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+
+    /**
+     * Get controller config.
+     * <br>
+     * Command Code : RequestCode.GET_CONTROLLER_CONFIG
+     *
+     * @return The fetched controller config
+     */
+    Map<String, Properties> getControllerConfig(List<String> controllerServers) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException, UnsupportedEncodingException;
+
+    /**
+     * Update controller config.
+     * <br>
+     * Command Code : RequestCode.UPDATE_CONTROLLER_CONFIG
+     */
+    void updateControllerConfig(final Properties properties,
+        final List<String> controllers) throws InterruptedException, RemotingConnectException,
+        UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException;
+
 }
