@@ -349,7 +349,9 @@ public class ConsumeQueueStore {
             return;
         }
         ConsumeQueueInterface consumerQueue = this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0);
-        timerMessageStore.reviseQueueOffset(consumerQueue.getMaxOffsetInQueue());
+        if (timerMessageStore.getQueueOffset() > consumerQueue.getMaxOffsetInQueue()) {
+            timerMessageStore.setQueueOffset(consumerQueue.getMaxOffsetInQueue());
+        }
     }
 
     public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {

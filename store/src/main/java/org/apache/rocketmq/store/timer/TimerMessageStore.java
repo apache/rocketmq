@@ -1697,7 +1697,7 @@ public class TimerMessageStore {
         return currQueueOffset;
     }
 
-    public void reviseQueueOffset(Long revisedQueueOffset) {
+    public void setQueueOffset(Long revisedQueueOffset) {
         this.currQueueOffset = revisedQueueOffset;
     }
 
