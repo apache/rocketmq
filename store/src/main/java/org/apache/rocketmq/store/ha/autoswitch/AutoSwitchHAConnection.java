@@ -245,7 +245,6 @@ public class AutoSwitchHAConnection implements HAConnection {
                 }
                 doNettyTransferData(0);
                 this.releaseData();
-                this.waitForRunning(100);
                 return;
             }
 
