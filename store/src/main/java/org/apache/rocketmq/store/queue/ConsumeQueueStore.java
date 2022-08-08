@@ -343,50 +343,6 @@ public class ConsumeQueueStore {
         }
     }
 
-    public void truncateTimerConsumerOffset(TimerMessageStore timerMessageStore) {
-        if (this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC) == null
-            || this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0) == null) {
-            return;
-        }
-        ConsumeQueueInterface consumerQueue = this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0);
-        if (timerMessageStore.getQueueOffset() > consumerQueue.getMaxOffsetInQueue()) {
-            timerMessageStore.setQueueOffset(consumerQueue.getMaxOffsetInQueue());
-        }
-    }
-
-    public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
-        Iterator<Map.Entry<String, ConcurrentMap<Integer, Long>>> iterator = offsetTable.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ConcurrentMap<Integer, Long>> entry = iterator.next();
-            String topicAtGroup = entry.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            String topic;
-            if (arrays.length == 2) {
-                topic = arrays[0];
-            } else {
-                continue;
-            }
-            ConcurrentMap<Integer, ConsumeQueueInterface> queueIdConsumerQueueMap = this.consumeQueueTable.get(topic);
-            if (queueIdConsumerQueueMap == null) {
-                continue;
-            }
-            ConcurrentMap<Integer, Long> topicGroupOffsetTable = entry.getValue();
-            Iterator<Map.Entry<Integer, Long>> iterator1 = topicGroupOffsetTable.entrySet().iterator();
-            while (iterator1.hasNext()) {
-                Map.Entry<Integer, Long> entry1 = iterator1.next();
-                ConsumeQueueInterface consumerQueue = queueIdConsumerQueueMap.get(entry1.getKey());
-                if (consumerQueue == null) {
-                    continue;
-                }
-                long cqMaxOffset = consumerQueue.getMaxOffsetInQueue();
-                if (entry1.getValue() > cqMaxOffset) {
-                    // correct consumer offset
-                    topicGroupOffsetTable.put(entry1.getKey(), cqMaxOffset);
-                }
-            }
-        }
-    }
-
     public void recoverOffsetTable(long minPhyOffset) {
         ConcurrentMap<String, Long> cqOffsetTable = new ConcurrentHashMap<>(1024);
         ConcurrentMap<String, Long> bcqOffsetTable = new ConcurrentHashMap<>(1024);

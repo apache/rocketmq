@@ -34,6 +34,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -53,6 +55,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+        this.brokerController.getMessageStore().setTruncateFilesHook(this::truncateConsumerOffsetTable);
     }
 
     public void cleanOffset(String group) {
@@ -319,6 +322,39 @@ public class ConsumerOffsetManager extends ConfigManager {
             }
         }
 
+    }
+
+    public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable) {
+        Iterator<Map.Entry<String, ConcurrentMap<Integer, Long>>> iterator = offsetTable.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentMap<Integer, Long>> entry = iterator.next();
+            String topicAtGroup = entry.getKey();
+            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            String topic;
+            if (arrays.length == 2) {
+                topic = arrays[0];
+            } else {
+                continue;
+            }
+            ConcurrentMap<Integer, ConsumeQueueInterface> queueIdConsumerQueueMap = consumeQueueTable.get(topic);
+            if (queueIdConsumerQueueMap == null) {
+                continue;
+            }
+            ConcurrentMap<Integer, Long> topicGroupOffsetTable = entry.getValue();
+            Iterator<Map.Entry<Integer, Long>> iterator1 = topicGroupOffsetTable.entrySet().iterator();
+            while (iterator1.hasNext()) {
+                Map.Entry<Integer, Long> entry1 = iterator1.next();
+                ConsumeQueueInterface consumerQueue = queueIdConsumerQueueMap.get(entry1.getKey());
+                if (consumerQueue == null) {
+                    continue;
+                }
+                long cqMaxOffset = consumerQueue.getMaxOffsetInQueue();
+                if (entry1.getValue() > cqMaxOffset) {
+                    // correct consumer offset
+                    topicGroupOffsetTable.put(entry1.getKey(), cqMaxOffset);
+                }
+            }
+        }
     }
 
 }

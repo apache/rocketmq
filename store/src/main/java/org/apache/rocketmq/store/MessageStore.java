@@ -827,4 +827,11 @@ public interface MessageStore {
      */
     boolean isShutdown();
 
+    /**
+     * Register ResetOffsetCallback
+     *
+     * @param truncateFilesHook callback
+     */
+    void setTruncateFilesHook(TruncateFilesHook truncateFilesHook);
+
 }

@@ -168,7 +168,7 @@ public class DefaultMessageStore implements MessageStore {
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
-    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable;
+    private TruncateFilesHook truncateFilesHook = null;
 
     private int maxDelayLevel;
 
@@ -649,9 +649,9 @@ public class DefaultMessageStore implements MessageStore {
         recoverTopicQueueTable();
 
         // truncate consumer offset
-        truncateConsumerOffsetTable(this.offsetTable);
+        this.truncateFilesHook.truncateOffset(this.consumeQueueStore.getConsumeQueueTable());
 
-        truncateTimerConsumerOffset();
+        this.timerMessageStore.truncateTimerConsumerOffset();
 
         this.reputMessageService = new ReputMessageService();
         this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
@@ -1681,14 +1681,6 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore.recoverOffsetTable(minPhyOffset);
     }
 
-    public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
-        this.consumeQueueStore.truncateConsumerOffsetTable(offsetTable);
-    }
-
-    public void truncateTimerConsumerOffset() {
-        this.consumeQueueStore.truncateTimerConsumerOffset(timerMessageStore);
-    }
-
     @Override
     public AllocateMappedFileService getAllocateMappedFileService() {
         return allocateMappedFileService;
@@ -1858,10 +1850,6 @@ public class DefaultMessageStore implements MessageStore {
 
     public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
         this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
-    }
-
-    public void setConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
-        this.offsetTable = offsetTable;
     }
 
     public BrokerIdentity getBrokerIdentity() {
@@ -2635,5 +2623,10 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean isShutdown() {
         return shutdown;
+    }
+
+    @Override
+    public void setTruncateFilesHook(TruncateFilesHook truncateFilesHook) {
+        this.truncateFilesHook = truncateFilesHook;
     }
 }

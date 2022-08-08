@@ -42,6 +42,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import java.io.File;
@@ -81,7 +82,7 @@ public class TimerMessageStore {
     public static final int DAY_SECS = 24 * 3600;
     // The total days in the timer wheel when precision is 1000ms.
     // If the broker shutdown last more than the configured days, will cause message loss
-    public static final int TIMER_WHEEL_TTL_DAY = 7;
+    public static final int TIMER_WHELL_TTL_DAY = 7;
     public static final int TIMER_BLANK_SLOTS = 60;
     public static final int MAGIC_DEFAULT = 1;
     public static final int MAGIC_ROLL = 1 << 1;
@@ -153,7 +154,7 @@ public class TimerMessageStore {
         this.timerLogFileSize = storeConfig.getMappedFileSizeTimerLog();
         this.precisionMs = storeConfig.getTimerPrecisionMs();
         // TimerWheel contains the fixed number of slots regardless of precision.
-        this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
+        this.slotsTotal = TIMER_WHELL_TTL_DAY * DAY_SECS;
         this.timerWheel = new TimerWheel(getTimerWheelPath(storeConfig.getStorePathRootDir()),
             this.slotsTotal, precisionMs);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize);
@@ -294,6 +295,16 @@ public class TimerMessageStore {
         commitQueueOffset = currQueueOffset;
 
         prepareTimerCheckPoint();
+    }
+
+    public void truncateTimerConsumerOffset() {
+        ConsumeQueue cq = (ConsumeQueue) this.messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+        if (cq == null) {
+            return;
+        }
+        if (currQueueOffset > cq.getMaxOffsetInQueue()) {
+            currQueueOffset = cq.getMaxOffsetInQueue();
+        }
     }
 
     public long reviseQueueOffset(long processOffset) {
