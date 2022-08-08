@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class TagFilterConsumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
+    public static void main(String[] args) throws MQClientException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
