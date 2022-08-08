@@ -224,4 +224,8 @@ public class Message implements Serializable {
     public void setDeliverTimeMs(long timeMs) {
         this.putProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(timeMs));
     }
+
+    public long getDeliverTimeMs() {
+        return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+    }
 }

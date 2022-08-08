@@ -1186,6 +1186,10 @@ public class BrokerController {
         return timerMessageStore;
     }
 
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        this.timerMessageStore = timerMessageStore;
+    }
+
     public AckMessageProcessor getAckMessageProcessor() {
         return ackMessageProcessor;
     }
