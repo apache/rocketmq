@@ -81,7 +81,7 @@ public class TimerMessageStore {
     public static final int DAY_SECS = 24 * 3600;
     // The total days in the timer wheel when precision is 1000ms.
     // If the broker shutdown last more than the configured days, will cause message loss
-    public static final int TIMER_WHELL_TTL_DAY = 7;
+    public static final int TIMER_WHEEL_TTL_DAY = 7;
     public static final int TIMER_BLANK_SLOTS = 60;
     public static final int MAGIC_DEFAULT = 1;
     public static final int MAGIC_ROLL = 1 << 1;
@@ -153,7 +153,7 @@ public class TimerMessageStore {
         this.timerLogFileSize = storeConfig.getMappedFileSizeTimerLog();
         this.precisionMs = storeConfig.getTimerPrecisionMs();
         // TimerWheel contains the fixed number of slots regardless of precision.
-        this.slotsTotal = TIMER_WHELL_TTL_DAY * DAY_SECS;
+        this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
         this.timerWheel = new TimerWheel(getTimerWheelPath(storeConfig.getStorePathRootDir()),
             this.slotsTotal, precisionMs);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize);
@@ -619,6 +619,9 @@ public class TimerMessageStore {
         if (currQueueOffset < cq.getMinOffsetInQueue()) {
             LOGGER.warn("Timer currQueueOffset:{} is smaller than minOffsetInQueue:{}", currQueueOffset, cq.getMinOffsetInQueue());
             currQueueOffset = cq.getMinOffsetInQueue();
+        } else if (currQueueOffset > cq.getMaxOffsetInQueue()) {
+            LOGGER.warn("Timer currQueueOffset:{} is greater than maxOffsetInQueue:{}", currQueueOffset, cq.getMaxOffsetInQueue());
+            currQueueOffset = cq.getMaxOffsetInQueue();
         }
         long offset = currQueueOffset;
         SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(offset);
@@ -1692,6 +1695,10 @@ public class TimerMessageStore {
 
     public long getQueueOffset() {
         return currQueueOffset;
+    }
+
+    public void reviseQueueOffset(Long revisedQueueOffset) {
+        this.currQueueOffset = revisedQueueOffset;
     }
 
     public long getCommitQueueOffset() {

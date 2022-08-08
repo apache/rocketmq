@@ -33,6 +33,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import java.io.File;
 import java.util.Iterator;
@@ -48,6 +49,7 @@ import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePat
 
 public class ConsumeQueueStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final String TOPIC_GROUP_SEPARATOR = "@";
 
     protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;
@@ -338,6 +340,47 @@ public class ConsumeQueueStore {
             this.consumeQueueTable.put(topic, map);
         } else {
             map.put(queueId, consumeQueue);
+        }
+    }
+
+    public void truncateTimerConsumerOffset(TimerMessageStore timerMessageStore) {
+        if (this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC) == null) {
+            return;
+        }
+        ConsumeQueueInterface consumerQueue = this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0);
+        timerMessageStore.reviseQueueOffset(consumerQueue.getMaxOffsetInQueue());
+    }
+
+    public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
+        Iterator<Map.Entry<String, ConcurrentMap<Integer, Long>>> iterator = offsetTable.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentMap<Integer, Long>> entry = iterator.next();
+            String topicAtGroup = entry.getKey();
+            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            String topic;
+            if (arrays.length == 2) {
+                topic = arrays[0];
+            } else {
+                continue;
+            }
+            ConcurrentMap<Integer, ConsumeQueueInterface> queueIdConsumerQueueMap = this.consumeQueueTable.get(topic);
+            if (queueIdConsumerQueueMap == null) {
+                continue;
+            }
+            ConcurrentMap<Integer, Long> topicGroupOffsetTable = entry.getValue();
+            Iterator<Map.Entry<Integer, Long>> iterator1 = topicGroupOffsetTable.entrySet().iterator();
+            while (iterator1.hasNext()) {
+                Map.Entry<Integer, Long> entry1 = iterator1.next();
+                ConsumeQueueInterface consumerQueue = queueIdConsumerQueueMap.get(entry1.getKey());
+                if (consumerQueue == null) {
+                    continue;
+                }
+                long cqMaxOffset = consumerQueue.getMaxOffsetInQueue();
+                if (entry1.getValue() > cqMaxOffset) {
+                    // correct consumer offset
+                    topicGroupOffsetTable.put(entry1.getKey(), cqMaxOffset);
+                }
+            }
         }
     }
 

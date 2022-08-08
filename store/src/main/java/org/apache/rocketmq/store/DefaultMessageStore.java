@@ -168,6 +168,8 @@ public class DefaultMessageStore implements MessageStore {
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
+    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable;
+
     private int maxDelayLevel;
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
@@ -645,6 +647,10 @@ public class DefaultMessageStore implements MessageStore {
         this.truncateDirtyLogicFiles(offsetToTruncate);
 
         recoverTopicQueueTable();
+
+        truncateConsumerOffsetTable(this.offsetTable);
+
+        truncateTimerConsumerOffset();
 
         this.reputMessageService = new ReputMessageService();
         this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
@@ -1674,6 +1680,14 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore.recoverOffsetTable(minPhyOffset);
     }
 
+    public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
+        this.consumeQueueStore.truncateConsumerOffsetTable(offsetTable);
+    }
+
+    public void truncateTimerConsumerOffset() {
+        this.consumeQueueStore.truncateTimerConsumerOffset(timerMessageStore);
+    }
+
     @Override
     public AllocateMappedFileService getAllocateMappedFileService() {
         return allocateMappedFileService;
@@ -1843,6 +1857,10 @@ public class DefaultMessageStore implements MessageStore {
 
     public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
         this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
+    }
+
+    public void setConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
+        this.offsetTable = offsetTable;
     }
 
     public BrokerIdentity getBrokerIdentity() {
