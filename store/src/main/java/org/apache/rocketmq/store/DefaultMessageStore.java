@@ -648,6 +648,7 @@ public class DefaultMessageStore implements MessageStore {
 
         recoverTopicQueueTable();
 
+        // truncate consumer offset
         truncateConsumerOffsetTable(this.offsetTable);
 
         truncateTimerConsumerOffset();
