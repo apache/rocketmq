@@ -344,7 +344,8 @@ public class ConsumeQueueStore {
     }
 
     public void truncateTimerConsumerOffset(TimerMessageStore timerMessageStore) {
-        if (this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC) == null) {
+        if (this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC) == null
+            || this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0) == null) {
             return;
         }
         ConsumeQueueInterface consumerQueue = this.consumeQueueTable.get(TimerMessageStore.TIMER_TOPIC).get(0);
