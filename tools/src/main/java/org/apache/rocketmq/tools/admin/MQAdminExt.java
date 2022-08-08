@@ -79,7 +79,7 @@ public interface MQAdminExt extends MQAdmin {
         long brokerId) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     void updateBrokerConfig(final String brokerAddr, final Properties properties) throws RemotingConnectException,
-        RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+        RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException, MQClientException;
 
     Properties getBrokerConfig(final String brokerAddr) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
@@ -99,7 +99,7 @@ public interface MQAdminExt extends MQAdmin {
         final String globalWhiteAddrs) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
-    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath)throws RemotingException, MQBrokerException,
+    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
@@ -412,4 +412,25 @@ public interface MQAdminExt extends MQAdmin {
      */
     void resetMasterFlushOffset(String brokerAddr, long masterFlushOffset)
         throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+
+    /**
+     * Get controller config.
+     * <br>
+     * Command Code : RequestCode.GET_CONTROLLER_CONFIG
+     *
+     * @return The fetched controller config
+     */
+    Map<String, Properties> getControllerConfig(List<String> controllerServers) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException, UnsupportedEncodingException;
+
+    /**
+     * Update controller config.
+     * <br>
+     * Command Code : RequestCode.UPDATE_CONTROLLER_CONFIG
+     */
+    void updateControllerConfig(final Properties properties,
+        final List<String> controllers) throws InterruptedException, RemotingConnectException,
+        UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException;
+
 }

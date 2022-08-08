@@ -24,11 +24,6 @@ public class ControllerConfig {
     private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
 
     /**
-     * Is startup the controller in this name-srv
-     */
-    private boolean enableControllerInNamesrv = false;
-
-    /**
      * Interval of periodic scanning for non-active broker;
      */
     private long scanNotActiveBrokerInterval = 5 * 1000;
@@ -78,14 +73,6 @@ public class ControllerConfig {
 
     public void setConfigStorePath(String configStorePath) {
         this.configStorePath = configStorePath;
-    }
-
-    public boolean isEnableControllerInNamesrv() {
-        return enableControllerInNamesrv;
-    }
-
-    public void setEnableControllerInNamesrv(boolean enableControllerInNamesrv) {
-        this.enableControllerInNamesrv = enableControllerInNamesrv;
     }
 
     public long getScanNotActiveBrokerInterval() {

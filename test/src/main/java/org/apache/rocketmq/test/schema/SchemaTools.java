@@ -164,13 +164,15 @@ public class SchemaTools {
             }
             Class<?>[] parameterTypes = method.getParameterTypes();
             Arrays.sort(parameterTypes, new Comparator<Class<?>>() {
-                @Override public int compare(Class<?> o1, Class<?> o2) {
+                @Override
+                public int compare(Class<?> o1, Class<?> o2) {
                     return o1.getName().compareTo(o2.getName());
                 }
             });
             Class<?>[] exceptionTypes = method.getExceptionTypes();
             Arrays.sort(exceptionTypes, new Comparator<Class<?>>() {
-                @Override public int compare(Class<?> o1, Class<?> o2) {
+                @Override
+                public int compare(Class<?> o1, Class<?> o2) {
                     return o1.getName().compareTo(o2.getName());
                 }
             });

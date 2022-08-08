@@ -187,7 +187,8 @@ public class MQClientInstance {
             ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
             info.getMessageQueueList().addAll(mqEndPoints.keySet());
             Collections.sort(info.getMessageQueueList(), new Comparator<MessageQueue>() {
-                @Override public int compare(MessageQueue o1, MessageQueue o2) {
+                @Override
+                public int compare(MessageQueue o1, MessageQueue o2) {
                     return MixAll.compareInteger(o1.getQueueId(), o2.getQueueId());
                 }
             });
@@ -1324,4 +1325,6 @@ public class MQClientInstance {
         }
         return data;
     }
+
+
 }

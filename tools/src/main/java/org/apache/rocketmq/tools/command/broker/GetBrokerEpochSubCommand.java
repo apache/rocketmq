@@ -30,16 +30,19 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetBrokerEpochCommand implements SubCommand {
-    @Override public String commandName() {
+public class GetBrokerEpochSubCommand implements SubCommand {
+    @Override
+    public String commandName() {
         return "getBrokerEpoch";
     }
 
-    @Override public String commandDesc() {
+    @Override
+    public String commandDesc() {
         return "Fetch broker epoch entries";
     }
 
-    @Override public Options buildCommandlineOptions(Options options) {
+    @Override
+    public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("c", "clusterName", true, "which cluster");
         opt.setRequired(false);
         options.addOption(opt);
@@ -55,7 +58,8 @@ public class GetBrokerEpochCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));

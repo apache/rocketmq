@@ -45,7 +45,7 @@ public class IOTinyUtilsTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File(testRootDir);
         UtilAll.deleteFile(file);
     }

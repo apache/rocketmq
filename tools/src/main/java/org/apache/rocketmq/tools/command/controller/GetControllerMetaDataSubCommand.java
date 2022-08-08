@@ -26,23 +26,27 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetControllerMetaDataCommand implements SubCommand {
-    @Override public String commandName() {
+public class GetControllerMetaDataSubCommand implements SubCommand {
+    @Override
+    public String commandName() {
         return "getControllerMetaData";
     }
 
-    @Override public String commandDesc() {
+    @Override
+    public String commandDesc() {
         return "get controller cluster's metadata";
     }
 
-    @Override public Options buildCommandlineOptions(Options options) {
+    @Override
+    public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("a", "controllerAddress", true, "the address of controller");
         opt.setRequired(true);
         options.addOption(opt);
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
+    @Override
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String controllerAddress = commandLine.getOptionValue('a').trim();
@@ -59,6 +63,7 @@ public class GetControllerMetaDataCommand implements SubCommand {
                     System.out.printf("\n#Peer:\t%s", peer);
                 }
             }
+            System.out.printf("\n");
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

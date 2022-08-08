@@ -17,9 +17,12 @@
 package org.apache.rocketmq.controller.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
@@ -30,7 +33,6 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBro
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -46,6 +48,8 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_MET
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
+import static org.apache.rocketmq.common.protocol.RequestCode.GET_CONTROLLER_CONFIG;
+import static org.apache.rocketmq.common.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
  * Processor for controller request
@@ -53,11 +57,11 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTE
 public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final int WAIT_TIMEOUT_OUT = 5;
-    private final Controller controller;
+    private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
 
     public ControllerRequestProcessor(final ControllerManager controllerManager) {
-        this.controller = controllerManager.getController();
+        this.controllerManager = controllerManager;
         this.heartbeatManager = controllerManager.getHeartbeatManager();
     }
 
@@ -73,7 +77,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
                 final AlterSyncStateSetRequestHeader controllerRequest = (AlterSyncStateSetRequestHeader) request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
                 final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
-                final CompletableFuture<RemotingCommand> future = this.controller.alterSyncStateSet(controllerRequest, syncStateSet);
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().alterSyncStateSet(controllerRequest, syncStateSet);
                 if (future != null) {
                     return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
@@ -81,7 +85,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case CONTROLLER_ELECT_MASTER: {
                 final ElectMasterRequestHeader controllerRequest = (ElectMasterRequestHeader) request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controller.electMaster(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().electMaster(controllerRequest);
                 if (future != null) {
                     return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
@@ -89,7 +93,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case CONTROLLER_REGISTER_BROKER: {
                 final RegisterBrokerToControllerRequestHeader controllerRequest = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controller.registerBroker(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(controllerRequest);
                 if (future != null) {
                     final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                     final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
@@ -103,14 +107,14 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case CONTROLLER_GET_REPLICA_INFO: {
                 final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controller.getReplicaInfo(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
                 if (future != null) {
                     return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
                 break;
             }
             case CONTROLLER_GET_METADATA_INFO: {
-                return this.controller.getControllerMetadata();
+                return this.controllerManager.getController().getControllerMetadata();
             }
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
@@ -121,13 +125,18 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 if (request.getBody() != null) {
                     final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
                     if (brokerNames != null && brokerNames.size() > 0) {
-                        final CompletableFuture<RemotingCommand> future = this.controller.getSyncStateData(brokerNames);
+                        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getSyncStateData(brokerNames);
                         if (future != null) {
                             return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                         }
                     }
                 }
+                break;
             }
+            case UPDATE_CONTROLLER_CONFIG:
+                return this.updateControllerConfig(ctx, request);
+            case GET_CONTROLLER_CONFIG:
+                return this.getControllerConfig(ctx, request);
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
@@ -139,5 +148,60 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     @Override
     public boolean rejectRequest() {
         return false;
+    }
+
+    private RemotingCommand updateControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        if (ctx != null) {
+            log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        }
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            String bodyStr;
+            try {
+                bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
+            } catch (UnsupportedEncodingException e) {
+                log.error("updateConfig byte array to string error: ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+
+            Properties properties = MixAll.string2Properties(bodyStr);
+            if (properties == null) {
+                log.error("updateConfig MixAll.string2Properties error {}", bodyStr);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("string2Properties error");
+                return response;
+            }
+
+            this.controllerManager.getConfiguration().update(properties);
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content = this.controllerManager.getConfiguration().getAllConfigsFormatString();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                log.error("getConfig error, ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

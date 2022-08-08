@@ -91,6 +91,12 @@ public class ControllerManager {
             }
         };
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
+        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
+            throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+        }
+        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
+            throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
+        }
         this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
             this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
 
@@ -175,6 +181,8 @@ public class ControllerManager {
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.BROKER_HEARTBEAT, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.UPDATE_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.GET_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {

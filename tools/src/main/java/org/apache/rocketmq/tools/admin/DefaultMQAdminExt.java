@@ -162,7 +162,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         defaultMQAdminExtImpl.addBrokerToContainer(brokerContainerAddr, brokerConfig);
     }
 
-    @Override public void removeBrokerFromContainer(String brokerContainerAddr, String clusterName, String brokerName,
+    @Override
+    public void removeBrokerFromContainer(String brokerContainerAddr, String clusterName, String brokerName,
         long brokerId) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException {
         defaultMQAdminExtImpl.removeBrokerFromContainer(brokerContainerAddr, clusterName, brokerName, brokerId);
@@ -171,7 +172,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public void updateBrokerConfig(String brokerAddr,
         Properties properties) throws RemotingConnectException, RemotingSendRequestException,
-        RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException, MQClientException {
         defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);
     }
 
@@ -193,27 +194,32 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         defaultMQAdminExtImpl.createAndUpdatePlainAccessConfig(addr, config);
     }
 
-    @Override public void deletePlainAccessConfig(String addr,
+    @Override
+    public void deletePlainAccessConfig(String addr,
         String accessKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.deletePlainAccessConfig(addr, accessKey);
     }
 
-    @Override public void updateGlobalWhiteAddrConfig(String addr,
+    @Override
+    public void updateGlobalWhiteAddrConfig(String addr,
         String globalWhiteAddrs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.updateGlobalWhiteAddrConfig(addr, globalWhiteAddrs);
     }
 
-    @Override public void updateGlobalWhiteAddrConfig(String addr,
+    @Override
+    public void updateGlobalWhiteAddrConfig(String addr,
         String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.updateGlobalWhiteAddrConfig(addr, globalWhiteAddrs, aclFileFullPath);
     }
 
-    @Override public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
+    @Override
+    public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return defaultMQAdminExtImpl.examineBrokerClusterAclVersionInfo(addr);
     }
 
-    @Override public AclConfig examineBrokerClusterAclConfig(
+    @Override
+    public AclConfig examineBrokerClusterAclConfig(
         String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return defaultMQAdminExtImpl.examineBrokerClusterAclConfig(addr);
     }
@@ -331,7 +337,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return defaultMQAdminExtImpl.getAllProducerInfo(brokerAddr);
     }
 
-    @Override public void deleteTopicInNameServer(Set<String> addrs, String clusterName,
+    @Override
+    public void deleteTopicInNameServer(Set<String> addrs, String clusterName,
         String topic) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, clusterName, topic);
     }
@@ -763,7 +770,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.getInSyncStateData(controllerAddress, brokers);
     }
 
-    @Override public EpochEntryCache getBrokerEpochCache(
+    @Override
+    public EpochEntryCache getBrokerEpochCache(
         String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.getBrokerEpochCache(brokerAddr);
     }
@@ -778,6 +786,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException {
         this.defaultMQAdminExtImpl.resetMasterFlushOffset(brokerAddr, masterFlushOffset);
     }
+
 
     public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
@@ -796,5 +805,18 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         throws RemotingException,
         InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.updateAndGetGroupReadForbidden(brokerAddr, groupName, topicName, readable);
+    }
+
+    @Override
+    public Map<String, Properties> getControllerConfig(List<String> controllerServers) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException,
+        UnsupportedEncodingException {
+        return this.defaultMQAdminExtImpl.getControllerConfig(controllerServers);
+    }
+
+    @Override
+    public void updateControllerConfig(Properties properties,
+        List<String> controllers) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+        this.defaultMQAdminExtImpl.updateControllerConfig(properties, controllers);
     }
 }

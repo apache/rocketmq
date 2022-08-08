@@ -31,7 +31,8 @@ public class TopicQueueId {
         this.hash = Objects.hashCode(topic, queueId);
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -40,11 +41,13 @@ public class TopicQueueId {
         return queueId == broker.queueId && Objects.equal(topic, broker.topic);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return hash;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         final StringBuilder sb = new StringBuilder("MessageQueueInBroker{");
         sb.append("topic='").append(topic).append('\'');
         sb.append(", queueId=").append(queueId);

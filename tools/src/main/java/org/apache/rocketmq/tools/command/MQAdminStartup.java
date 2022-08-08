@@ -43,7 +43,7 @@ import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
-import org.apache.rocketmq.tools.command.broker.GetBrokerEpochCommand;
+import org.apache.rocketmq.tools.command.broker.GetBrokerEpochSubCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
@@ -60,7 +60,9 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
-import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
+import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
@@ -257,8 +259,11 @@ public class MQAdminStartup {
         initCommand(new HAStatusSubCommand());
 
         initCommand(new GetSyncStateSetSubCommand());
-        initCommand(new GetBrokerEpochCommand());
-        initCommand(new GetControllerMetaDataCommand());
+        initCommand(new GetBrokerEpochSubCommand());
+        initCommand(new GetControllerMetaDataSubCommand());
+
+        initCommand(new GetControllerConfigSubCommand());
+        initCommand(new UpdateControllerConfigSubCommand());
     }
 
     private static void initLogback() throws JoranException {
@@ -278,7 +283,7 @@ public class MQAdminStartup {
         System.out.printf("The most commonly used mqadmin commands are:%n");
 
         for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-20s %s%n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-25s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.%n");

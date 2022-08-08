@@ -48,7 +48,8 @@ public class ApplyBrokerIdEvent implements EventMessage {
         return newBrokerId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ApplyBrokerIdEvent{" +
             "brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +

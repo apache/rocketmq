@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.junit.Before;
@@ -77,6 +79,39 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         assertEquals(TimeUnit.SECONDS.toMillis(3), invisibleTimeArgumentCaptor.getValue().longValue());
         assertEquals(newHandle, response.getReceiptHandle());
     }
+
+    @Test
+    public void testChangeInvisibleDurationActivityWhenHasMappingHandle() throws Throwable {
+        String newHandle = "newHandle";
+        ArgumentCaptor<Long> invisibleTimeArgumentCaptor = ArgumentCaptor.forClass(Long.class);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandle);
+        ackResult.setStatus(AckStatus.OK);
+        String savedHandleStr = buildReceiptHandle("topic", System.currentTimeMillis(),3000);
+        ArgumentCaptor<ReceiptHandle> receiptHandleCaptor = ArgumentCaptor.forClass(ReceiptHandle.class);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(receiptHandleProcessor.removeReceiptHandle(anyString(), anyString(), anyString(), anyString()))
+            .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0, 3000));
+
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromSeconds(3))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId("msgId")
+                .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000))
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(TimeUnit.SECONDS.toMillis(3), invisibleTimeArgumentCaptor.getValue().longValue());
+        assertEquals(savedHandleStr, receiptHandleCaptor.getValue().getReceiptHandle());
+        assertEquals(newHandle, response.getReceiptHandle());
+    }
+
 
     @Test
     public void testChangeInvisibleDurationActivityFailed() throws Throwable {

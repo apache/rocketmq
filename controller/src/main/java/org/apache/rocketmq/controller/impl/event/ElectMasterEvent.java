@@ -63,7 +63,8 @@ public class ElectMasterEvent implements EventMessage {
         return clusterName;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ElectMasterEvent{" +
             "isNewMasterElected=" + newMasterElected +
             ", brokerName='" + brokerName + '\'' +

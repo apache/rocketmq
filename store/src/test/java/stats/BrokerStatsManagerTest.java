@@ -52,7 +52,7 @@ public class BrokerStatsManagerTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         brokerStatsManager.shutdown();
     }
 
