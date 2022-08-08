@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.example.filter;
 
-import java.io.IOException;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
