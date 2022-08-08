@@ -21,8 +21,9 @@ import com.google.common.base.Objects;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class BrokerMemberGroup {
+public class BrokerMemberGroup extends RemotingSerializable {
     private String cluster;
     private String brokerName;
     private Map<Long/* brokerId */, String/* broker address */> brokerAddrs;
