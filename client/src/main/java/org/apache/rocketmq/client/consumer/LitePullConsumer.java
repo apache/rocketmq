@@ -82,7 +82,7 @@ public interface LitePullConsumer {
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
      *      * null or * expression,meaning subscribe all
      */
-    void setSubExpression4Assgin(final String topic, final String subExpression);
+    void setSubExpression4Assign(final String topic, final String subExpression);
 
     /**
      * Fetch data for the topics or partitions specified using assign API

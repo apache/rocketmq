@@ -534,7 +534,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void setSubExpression4Assgin(final String topic, final String subExpression) {
+    public synchronized void setSubExpression4Assign(final String topic, final String subExpression) {
         if (StringUtils.isBlank(subExpression)) {
             throw new IllegalArgumentException("subExpression can not be null or empty.");
         }
