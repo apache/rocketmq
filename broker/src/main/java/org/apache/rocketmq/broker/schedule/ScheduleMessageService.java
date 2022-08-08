@@ -401,8 +401,8 @@ public class ScheduleMessageService extends ConfigManager {
                 try {
                     // Wait for a period of time if an error has occurred.
                     TimeUnit.MILLISECONDS.sleep(DELAY_FOR_A_PERIOD);
-                } catch (InterruptedException ignored) {
-                    // ignored
+                } catch (InterruptedException ex) {
+                    log.error("ScheduleMessageService, an error occurred while waiting", ex);
                 }
             }
         }
