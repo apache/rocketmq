@@ -131,7 +131,7 @@ public class ServiceProvider {
                 LOG.warn("No resource file with name [{}] found.", name);
             }
         } catch (Exception e) {
-            LOG.error("Error occured when looking for resource file " + name, e);
+            LOG.error("Error occurred when looking for resource file " + name, e);
         }
         return services;
     }

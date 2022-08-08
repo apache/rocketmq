@@ -47,7 +47,7 @@ public class BaseBroadCastIT extends BaseConf {
         return consumer;
     }
 
-    public void printSeperator() {
+    public void printSeparator() {
         for (int i = 0; i < 3; i++) {
             logger.info(
                 "<<<<<<<<================================================================================>>>>>>>>");

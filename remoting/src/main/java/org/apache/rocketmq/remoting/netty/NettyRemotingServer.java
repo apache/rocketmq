@@ -80,7 +80,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     /**
-     * NettyRemotingServer may holds multiple SubRemotingServer, each server will be stored in this container wih a
+     * NettyRemotingServer may holds multiple SubRemotingServer, each server will be stored in this container with a
      * ListenPort key.
      */
     private ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<Integer, NettyRemotingAbstract>();

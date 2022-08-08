@@ -338,7 +338,7 @@ public class BrokerContainerTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         for (File file : TMP_FILE_LIST) {
             UtilAll.deleteFile(file);
         }
