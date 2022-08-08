@@ -94,7 +94,6 @@ public class PopReviveServiceTest {
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
-
         when(messageStore.getTimerMessageStore()).thenReturn(timerMessageStore);
         when(timerMessageStore.getReadBehind()).thenReturn(0L);
         when(timerMessageStore.getEnqueueBehind()).thenReturn(0L);
