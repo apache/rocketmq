@@ -403,6 +403,7 @@ public class ScheduleMessageService extends ConfigManager {
                     TimeUnit.MILLISECONDS.sleep(DELAY_FOR_A_PERIOD);
                 } catch (InterruptedException ex) {
                     log.error("ScheduleMessageService, an error occurred while waiting", ex);
+                    Thread.currentThread().interrupt();
                 }
             }
         }
