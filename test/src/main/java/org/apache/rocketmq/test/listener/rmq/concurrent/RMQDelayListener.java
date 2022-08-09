@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
-import java.util.Collection;
-import java.util.List;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -28,10 +26,13 @@ import org.apache.rocketmq.test.util.RandomUtil;
 import org.apache.rocketmq.test.util.data.collect.DataCollector;
 import org.apache.rocketmq.test.util.data.collect.DataCollectorManager;
 
-public class RMQDelayListner extends AbstractListener implements MessageListenerConcurrently {
+import java.util.Collection;
+import java.util.List;
+
+public class RMQDelayListener extends AbstractListener implements MessageListenerConcurrently {
     private DataCollector msgDelayTimes = null;
 
-    public RMQDelayListner() {
+    public RMQDelayListener() {
         msgDelayTimes = DataCollectorManager.getInstance()
             .fetchDataCollector(RandomUtil.getStringByUUID());
     }
