@@ -325,7 +325,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void truncateConsumerOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable) {
-        Iterator<Map.Entry<String, ConcurrentMap<Integer, Long>>> iterator = offsetTable.entrySet().iterator();
+        Iterator<Map.Entry<String, ConcurrentMap<Integer, Long>>> iterator = this.offsetTable.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, ConcurrentMap<Integer, Long>> entry = iterator.next();
             String topicAtGroup = entry.getKey();
