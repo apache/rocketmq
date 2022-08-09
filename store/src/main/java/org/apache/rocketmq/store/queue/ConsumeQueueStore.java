@@ -33,7 +33,6 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import java.io.File;
 import java.util.Iterator;
@@ -49,7 +48,6 @@ import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePat
 
 public class ConsumeQueueStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static final String TOPIC_GROUP_SEPARATOR = "@";
 
     protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;

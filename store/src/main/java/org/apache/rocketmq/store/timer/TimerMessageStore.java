@@ -42,7 +42,6 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import java.io.File;
@@ -1706,10 +1705,6 @@ public class TimerMessageStore {
 
     public long getQueueOffset() {
         return currQueueOffset;
-    }
-
-    public void setQueueOffset(Long revisedQueueOffset) {
-        this.currQueueOffset = revisedQueueOffset;
     }
 
     public long getCommitQueueOffset() {
