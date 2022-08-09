@@ -58,7 +58,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "size", true, "message size | default 128 Byte");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("c", "cluster", true, "cluster name | default display all cluster");
@@ -98,7 +98,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
             Set<String> clusterNames = null;
 
-            long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
+            long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
                 .getOptionValue('a').trim());
 
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine

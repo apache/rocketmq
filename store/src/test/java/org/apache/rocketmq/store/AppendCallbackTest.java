@@ -58,7 +58,7 @@ public class AppendCallbackTest {
         //too much reference
         DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
         CommitLog commitLog = new CommitLog(messageStore);
-        callback = commitLog.new DefaultAppendMessageCallback(1024);
+        callback = commitLog.new DefaultAppendMessageCallback();
     }
 
     @After

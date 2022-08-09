@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -464,7 +465,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
-        putResultFuture.thenAccept((result) -> {
+        putResultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
@@ -492,7 +493,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> resultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
 
-        resultFuture.thenAccept((result) -> {
+        resultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
@@ -602,11 +603,7 @@ public class DefaultMessageStore implements MessageStore {
                 nextBeginOffset = nextOffsetCorrection(offset, offset);
             } else if (offset > maxOffset) {
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
-                if (0 == minOffset) {
-                    nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-                } else {
-                    nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
-                }
+                nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
             } else {
                 SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
                 if (bufferConsumeQueue != null) {
@@ -911,7 +908,10 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime() {
-        final long minPhyOffset = this.getMinPhyOffset();
+        long minPhyOffset = this.getMinPhyOffset();
+        if (this.getCommitLog() instanceof DLedgerCommitLog) {
+            minPhyOffset += DLedgerEntry.BODY_OFFSET;
+        }
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
@@ -1183,11 +1183,8 @@ public class DefaultMessageStore implements MessageStore {
             SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
             if (bufferConsumeQueue != null) {
                 try {
-                    for (int i = 0; i < bufferConsumeQueue.getSize(); ) {
-                        i += ConsumeQueue.CQ_STORE_UNIT_SIZE;
-                        long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                        return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
-                    }
+                    long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                    return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
                 } finally {
 
                     bufferConsumeQueue.release();
@@ -1554,7 +1551,7 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
-        if (prop == null && prop.isEmpty()) {
+        if (prop == null || prop.isEmpty()) {
             return false;
         }
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);

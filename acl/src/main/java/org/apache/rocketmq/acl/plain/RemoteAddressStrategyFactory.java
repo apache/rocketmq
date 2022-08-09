@@ -214,7 +214,7 @@ public class RemoteAddressStrategyFactory {
                     throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
-            return this.end > 0 ? true : false;
+            return this.end > 0;
         }
 
         private void setValue(int start, int end) {
@@ -237,18 +237,14 @@ public class RemoteAddressStrategyFactory {
                         value = netAddress.substring(this.head.length(), netAddress.lastIndexOf('.', netAddress.lastIndexOf('.') - 1));
                     }
                     Integer address = Integer.valueOf(value);
-                    if (address >= this.start && address <= this.end) {
-                        return true;
-                    }
+                    return address >= this.start && address <= this.end;
                 }
             } else if (validator.isValidInet6Address(netAddress)) {
                 netAddress = AclUtils.expandIP(netAddress, 8).toUpperCase();
                 if (netAddress.startsWith(this.head)) {
                     String value = netAddress.substring(5 * index, 5 * index + 4);
                     Integer address = Integer.parseInt(value, 16);
-                    if (address >= this.start && address <= this.end) {
-                        return true;
-                    }
+                    return address >= this.start && address <= this.end;
                 }
             }
             return false;

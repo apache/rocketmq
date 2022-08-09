@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.9.4-SNAPSHOT</version>
+        <version>4.9.4</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -39,6 +39,13 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-logging</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.9.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

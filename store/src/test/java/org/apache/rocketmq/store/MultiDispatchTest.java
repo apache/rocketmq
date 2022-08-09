@@ -19,8 +19,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -72,14 +71,14 @@ public class MultiDispatchTest {
 
     @Test
     public void wrapMultiDispatch() {
-        MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
-        when(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)).thenReturn(
-            "%LMQ%123,%LMQ%456");
-        when(messageExtBrokerInner.getTopic()).thenReturn("test");
-        when(messageExtBrokerInner.getBody()).thenReturn("aaa".getBytes(Charset.forName("UTF-8")));
-        when(messageExtBrokerInner.getBornHost()).thenReturn(new InetSocketAddress("127.0.0.1", 54270));
-        when(messageExtBrokerInner.getStoreHost()).thenReturn(new InetSocketAddress("127.0.0.1", 10911));
-        multiDispatch.wrapMultiDispatch(messageExtBrokerInner);
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic("test");
+        message.setBody("aaa".getBytes(StandardCharsets.UTF_8));
+        message.setBornHost(new InetSocketAddress("127.0.0.1", 54270));
+        message.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+        message.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+
+        multiDispatch.wrapMultiDispatch(message);
         assertTrue(commitLog.getLmqTopicQueueTable().size() == 2);
         assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%123-0") == 0L);
         assertTrue(commitLog.getLmqTopicQueueTable().get("%LMQ%456-0") == 0L);

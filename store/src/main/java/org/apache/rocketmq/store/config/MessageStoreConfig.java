@@ -31,8 +31,10 @@ public class MessageStoreConfig {
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = null;
+
+    @ImportantField
+    private String storePathDLedgerCommitLog = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -85,7 +87,7 @@ public class MessageStoreConfig {
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
+    // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
@@ -303,11 +305,22 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathCommitLog() {
+        if (storePathCommitLog == null) {
+            return storePathRootDir + File.separator + "commitlog";
+        }
         return storePathCommitLog;
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathDLedgerCommitLog() {
+        return storePathDLedgerCommitLog;
+    }
+
+    public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
+        this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
     }
 
     public String getDeleteWhen() {
