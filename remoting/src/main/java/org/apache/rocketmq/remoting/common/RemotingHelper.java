@@ -189,8 +189,22 @@ public class RemotingHelper {
         return "";
     }
 
+    public static String parseHostFromAddress(String address) {
+        if (address == null) {
+            return "";
+        }
+
+        String[] addressSplits = address.split(":");
+        if (addressSplits.length < 1) {
+            return "";
+        }
+
+        return addressSplits[0];
+    }
+
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
+            // Default toString of InetSocketAddress is "hostName/IP:port"
             final String addr = socketAddress.toString();
             int index = addr.lastIndexOf("/");
             return (index != -1) ? addr.substring(index + 1) : addr;
@@ -198,4 +212,29 @@ public class RemotingHelper {
         return "";
     }
 
+    public static int parseSocketAddressPort(SocketAddress socketAddress) {
+        if (socketAddress instanceof InetSocketAddress) {
+            return ((InetSocketAddress) socketAddress).getPort();
+        }
+        return -1;
+    }
+
+
+    public static int ipToInt(String ip) {
+        String[] ips = ip.split("\\.");
+        return (Integer.parseInt(ips[0]) << 24)
+            | (Integer.parseInt(ips[1]) << 16)
+            | (Integer.parseInt(ips[2]) << 8)
+            | Integer.parseInt(ips[3]);
+    }
+
+    public static boolean ipInCIDR(String ip, String cidr) {
+        int ipAddr = ipToInt(ip);
+        String[] cidrArr = cidr.split("/");
+        int netId = Integer.parseInt(cidrArr[1]);
+        int mask = 0xFFFFFFFF << (32 - netId);
+        int cidrIpAddr = ipToInt(cidrArr[0]);
+
+        return (ipAddr & mask) == (cidrIpAddr & mask);
+    }
 }

@@ -583,6 +583,26 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
   <td class=xl68 width=87 style='width:65pt'>cluster name</td>
  </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td rowspan=4 height=160 class=xl69 width=191 style='border-bottom:1.0pt;
+  height:120.0pt;border-top:none;width:143pt'>deleteExpiredCommitLog</td>
+  <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
+  border-top:none;width:65pt'>delete Broker's expired CommitLog files.</td>
+  <td class=xl67 width=87 style='width:65pt'>-n</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer Service address, format is ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
+  <td class=xl68 width=87 style='width:65pt'>print help info</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
+  <td class=xl68 width=87 style='width:65pt'>cluster name</td>
+ </tr>
  <tr height=88 style='mso-height-source:userset;height:66.0pt'>
   <td rowspan=4 height=191 class=xl69 width=191 style='border-bottom:1.0pt;
   height:143.0pt;border-top:none;width:143pt'>cleanUnusedTopic</td>

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.producer.selector;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Test;
 

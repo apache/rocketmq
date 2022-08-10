@@ -37,6 +37,13 @@ public class MQClientException extends Exception {
         this.errorMessage = errorMessage;
     }
 
+    public MQClientException(int responseCode, String errorMessage, Throwable cause) {
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilAll.responseCode2String(responseCode) + "  DESC: "
+            + errorMessage), cause);
+        this.responseCode = responseCode;
+        this.errorMessage = errorMessage;
+    }
+
     public int getResponseCode() {
         return responseCode;
     }

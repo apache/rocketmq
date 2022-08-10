@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -40,11 +41,10 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class ClientManageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+public class ClientManageProcessor implements NettyRequestProcessor {
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
 
     public ClientManageProcessor(final BrokerController brokerController) {
@@ -82,39 +82,54 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
             request.getVersion()
         );
 
-        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+        for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
+            //Reject the PullConsumer
+            if (brokerController.getBrokerConfig().isRejectPullConsumerEnable()) {
+                if (ConsumeType.CONSUME_ACTIVELY == consumerData.getConsumeType()) {
+                    continue;
+                }
+            }
+
+            boolean hasOrderTopicSub = false;
+
+            for (final SubscriptionData subscriptionData : consumerData.getSubscriptionDataSet()) {
+                if (this.brokerController.getTopicConfigManager().isOrderTopic(subscriptionData.getTopic())) {
+                    hasOrderTopicSub = true;
+                    break;
+                }
+            }
+
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                    data.getGroupName());
+                    consumerData.getGroupName());
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
                 int topicSysFlag = 0;
-                if (data.isUnitMode()) {
+                if (consumerData.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
-                String newTopic = MixAll.getRetryTopic(data.getGroupName());
+                String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                     newTopic,
                     subscriptionGroupConfig.getRetryQueueNums(),
-                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                    PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
             }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
-                data.getGroupName(),
+                consumerData.getGroupName(),
                 clientChannelInfo,
-                data.getConsumeType(),
-                data.getMessageModel(),
-                data.getConsumeFromWhere(),
-                data.getSubscriptionDataSet(),
+                consumerData.getConsumeType(),
+                consumerData.getMessageModel(),
+                consumerData.getConsumeFromWhere(),
+                consumerData.getSubscriptionDataSet(),
                 isNotifyConsumerIdsChangedEnable
             );
 
             if (changed) {
-                log.info("registerConsumer info changed {} {}",
-                    data.toString(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())
-                );
+                LOGGER.info(
+                    "ClientManageProcessor: registerConsumer info changed, SDK address={}, consumerData={}",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), consumerData.toString());
             }
         }
 
@@ -190,7 +205,7 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
             try {
                 FilterFactory.INSTANCE.get(subscriptionData.getExpressionType()).compile(subscriptionData.getSubString());
             } catch (Exception e) {
-                log.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
+                LOGGER.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
                     requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage());
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark(e.getMessage());

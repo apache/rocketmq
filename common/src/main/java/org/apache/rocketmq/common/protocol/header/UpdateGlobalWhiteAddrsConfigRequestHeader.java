@@ -24,8 +24,11 @@ public class UpdateGlobalWhiteAddrsConfigRequestHeader implements CommandCustomH
 
     @CFNotNull
     private String globalWhiteAddrs;
+    @CFNotNull
+    private String aclFileFullPath;
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 
@@ -35,5 +38,13 @@ public class UpdateGlobalWhiteAddrsConfigRequestHeader implements CommandCustomH
 
     public void setGlobalWhiteAddrs(String globalWhiteAddrs) {
         this.globalWhiteAddrs = globalWhiteAddrs;
+    }
+
+    public String getAclFileFullPath() {
+        return aclFileFullPath;
+    }
+
+    public void setAclFileFullPath(String aclFileFullPath) {
+        this.aclFileFullPath = aclFileFullPath;
     }
 }

@@ -31,7 +31,7 @@ public class PushConsumerWithNamespace {
         defaultMQPushConsumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         defaultMQPushConsumer.subscribe(TOPIC, "*");
         defaultMQPushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
-            msgs.forEach((msg) -> System.out.printf("Msg topic is:%s, MsgId is:%s, reconsumeTimes is:%s%n", msg.getTopic(), msg.getMsgId(), msg.getReconsumeTimes()));
+            msgs.forEach(msg -> System.out.printf("Msg topic is:%s, MsgId is:%s, reconsumeTimes is:%s%n", msg.getTopic(), msg.getMsgId(), msg.getReconsumeTimes()));
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 

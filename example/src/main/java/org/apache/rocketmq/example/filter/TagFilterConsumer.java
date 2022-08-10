@@ -17,6 +17,7 @@
 package org.apache.rocketmq.example.filter;
 
 import java.io.IOException;
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -30,7 +31,6 @@ public class TagFilterConsumer {
     public static final String SUB_EXPRESSION = "TagA || TagC";
 
     public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
-
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
 
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
