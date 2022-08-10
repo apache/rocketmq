@@ -63,6 +63,7 @@ import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
 import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
+import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
@@ -264,6 +265,7 @@ public class MQAdminStartup {
 
         initCommand(new GetControllerConfigSubCommand());
         initCommand(new UpdateControllerConfigSubCommand());
+        initCommand(new ReElectMasterSubCommand());
     }
 
     private static void initLogback() throws JoranException {

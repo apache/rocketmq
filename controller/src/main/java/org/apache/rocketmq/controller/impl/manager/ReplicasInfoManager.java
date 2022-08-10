@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -67,8 +68,8 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
-        final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
-        final BiPredicate<String, String> brokerAlivePredicate) {
+            final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
+            final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
         final AlterSyncStateSetResponseHeader response = result.getResponse();
@@ -90,7 +91,7 @@ public class ReplicasInfoManager {
             // Check master
             if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
-                    syncStateInfo.getMasterAddress(), request.getMasterAddress());
+                        syncStateInfo.getMasterAddress(), request.getMasterAddress());
                 log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
                 return result;
@@ -99,7 +100,7 @@ public class ReplicasInfoManager {
             // Check master epoch
             if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
-                    syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
+                        syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
                 log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
                 return result;
@@ -108,7 +109,7 @@ public class ReplicasInfoManager {
             // Check syncStateSet epoch
             if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
-                    syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
+                        syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
                 log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
                 return result;
@@ -150,8 +151,9 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<ElectMasterResponseHeader> electMaster(
-        final ElectMasterRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
+            final ElectMasterRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
+        final String assignBrokerAddress = request.getBrokerAddress();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
         if (isContainsBroker(brokerName)) {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
@@ -160,16 +162,26 @@ public class ReplicasInfoManager {
             // First, check whether the master is still active
             final String oldMaster = syncStateInfo.getMasterAddress();
             if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), oldMaster)) {
-                String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
-                log.warn("{}", err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
-                return result;
+
+                if (StringUtils.isBlank(assignBrokerAddress)) {
+                    String err = String.format("The old master %s is still alive, no need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
+                    log.warn("{}", err);
+                    result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                    return result;
+                }
+
+                if (StringUtils.equals(oldMaster, assignBrokerAddress)) {
+                    String err = String.format("The Re-elect master is the same as the old master %s which is still alive, no need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
+                    log.warn("{}", err);
+                    result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                    return result;
+                }
             }
 
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
-                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
+                boolean electSuccess = tryElectMaster(result, brokerName, assignBrokerAddress, syncStateSet, candidate ->
+                        !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }
@@ -177,8 +189,8 @@ public class ReplicasInfoManager {
 
             // Try elect a master in lagging replicas if enableElectUncleanMaster = true
             if (controllerConfig.isEnableElectUncleanMaster()) {
-                boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
+                boolean electSuccess = tryElectMaster(result, brokerName, assignBrokerAddress, brokerInfo.getAllBroker(), candidate ->
+                        !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }
@@ -202,9 +214,28 @@ public class ReplicasInfoManager {
      * @return true if elect success
      */
     private boolean tryElectMaster(final ControllerResult<ElectMasterResponseHeader> result, final String brokerName,
-        final Set<String> candidates, final Predicate<String> filter) {
+                                   final String assignBrokerAddress, final Set<String> candidates, final Predicate<String> filter) {
         final int masterEpoch = this.syncStateSetInfoTable.get(brokerName).getMasterEpoch();
         final int syncStateSetEpoch = this.syncStateSetInfoTable.get(brokerName).getSyncStateSetEpoch();
+
+        //Re-elect the assigned broker as master
+        if (StringUtils.isNotBlank(assignBrokerAddress) && filter.test(assignBrokerAddress)) {
+            final ElectMasterResponseHeader response = result.getResponse();
+            response.setNewMasterAddress(assignBrokerAddress);
+            response.setMasterEpoch(masterEpoch + 1);
+            response.setSyncStateSetEpoch(syncStateSetEpoch);
+            BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
+            if (null != brokerMemberGroup) {
+                response.setBrokerMemberGroup(brokerMemberGroup);
+                result.setBody(brokerMemberGroup.encode());
+            }
+            final ElectMasterEvent event = new ElectMasterEvent(brokerName, assignBrokerAddress);
+            result.addEvent(event);
+            return true;
+        } else if (StringUtils.isNotBlank(assignBrokerAddress) && !filter.test(assignBrokerAddress)) {
+            return false;
+        }
+
         for (final String candidate : candidates) {
             if (filter.test(candidate)) {
                 final ElectMasterResponseHeader response = result.getResponse();
@@ -213,6 +244,7 @@ public class ReplicasInfoManager {
                 response.setSyncStateSetEpoch(syncStateSetEpoch);
                 BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
                 if (null != brokerMemberGroup) {
+                    response.setBrokerMemberGroup(brokerMemberGroup);
                     result.setBody(brokerMemberGroup.encode());
                 }
                 final ElectMasterEvent event = new ElectMasterEvent(brokerName, candidate);
@@ -237,7 +269,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
-        final RegisterBrokerToControllerRequestHeader request) {
+            final RegisterBrokerToControllerRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
         final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
