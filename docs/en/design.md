@@ -5,7 +5,7 @@
 ![](../cn/image/rocketmq_design_1.png)
 
 
-#### 1.1 The Architecure of Message Store
+#### 1.1 The Architecture of Message Store
 
 #### 1.2 PageCache and Memory-Map(Mmap)
 

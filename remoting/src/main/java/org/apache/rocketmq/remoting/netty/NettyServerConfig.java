@@ -33,7 +33,7 @@ public class NettyServerConfig implements Cloneable {
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
-     * make make install
+     * make install
      *
      *
      * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \

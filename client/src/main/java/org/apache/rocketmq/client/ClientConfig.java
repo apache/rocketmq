@@ -28,12 +28,15 @@ import org.apache.rocketmq.common.utils.NameServerAddressUtils;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.RequestType;
 
 /**
  * Client Common configuration
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
+    public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
+    public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
@@ -57,6 +60,8 @@ public class ClientConfig {
     private long pullTimeDelayMillsWhenException = 1000;
     private boolean unitMode = false;
     private String unitName;
+    private boolean decodeReadBody = Boolean.parseBoolean(System.getProperty(DECODE_READ_BODY, "true"));
+    private boolean decodeDecompressBody = Boolean.parseBoolean(System.getProperty(DECODE_DECOMPRESS_BODY, "true"));
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
@@ -64,6 +69,12 @@ public class ClientConfig {
     private int mqClientApiTimeout = 3 * 1000;
 
     private LanguageCode language = LanguageCode.JAVA;
+
+    /**
+     * Enable stream request type will inject a RPCHook to add corresponding request type to remoting layer.
+     * And it will also generate a different client id to prevent unexpected reuses of MQClientInstance.
+     */
+    protected boolean enableStreamRequestType = false;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -74,6 +85,11 @@ public class ClientConfig {
         if (!UtilAll.isBlank(this.unitName)) {
             sb.append("@");
             sb.append(this.unitName);
+        }
+
+        if (enableStreamRequestType) {
+            sb.append("@");
+            sb.append(RequestType.STREAM);
         }
 
         return sb.toString();
@@ -160,6 +176,9 @@ public class ClientConfig {
         this.namespace = cc.namespace;
         this.language = cc.language;
         this.mqClientApiTimeout = cc.mqClientApiTimeout;
+        this.decodeReadBody = cc.decodeReadBody;
+        this.decodeDecompressBody = cc.decodeDecompressBody;
+        this.enableStreamRequestType = cc.enableStreamRequestType;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -179,6 +198,9 @@ public class ClientConfig {
         cc.namespace = namespace;
         cc.language = language;
         cc.mqClientApiTimeout = mqClientApiTimeout;
+        cc.decodeReadBody = decodeReadBody;
+        cc.decodeDecompressBody = decodeDecompressBody;
+        cc.enableStreamRequestType = enableStreamRequestType;
         return cc;
     }
 
@@ -279,6 +301,22 @@ public class ClientConfig {
         this.language = language;
     }
 
+    public boolean isDecodeReadBody() {
+        return decodeReadBody;
+    }
+
+    public void setDecodeReadBody(boolean decodeReadBody) {
+        this.decodeReadBody = decodeReadBody;
+    }
+
+    public boolean isDecodeDecompressBody() {
+        return decodeDecompressBody;
+    }
+
+    public void setDecodeDecompressBody(boolean decodeDecompressBody) {
+        this.decodeDecompressBody = decodeDecompressBody;
+    }
+
     public String getNamespace() {
         if (namespaceInitialized) {
             return namespace;
@@ -318,12 +356,22 @@ public class ClientConfig {
         this.mqClientApiTimeout = mqClientApiTimeout;
     }
 
+    public boolean isEnableStreamRequestType() {
+        return enableStreamRequestType;
+    }
+
+    public void setEnableStreamRequestType(boolean enableStreamRequestType) {
+        this.enableStreamRequestType = enableStreamRequestType;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
+            + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
+            + ", enableStreamRequestType=" + enableStreamRequestType + "]";
     }
 }

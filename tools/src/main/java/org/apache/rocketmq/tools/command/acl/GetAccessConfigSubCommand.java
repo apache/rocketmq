@@ -37,15 +37,23 @@ import java.util.List;
 import java.util.Set;
 
 public class GetAccessConfigSubCommand implements SubCommand {
-    @Override public String commandName() {
+    @Override
+    public String commandName() {
+        return "getAclConfig";
+    }
+
+    @Override
+    public String commandAlias() {
         return "getAccessConfigSubCommand";
     }
 
-    @Override public String commandDesc() {
+    @Override
+    public String commandDesc() {
         return "List all of acl config information in cluster";
     }
 
-    @Override public Options buildCommandlineOptions(Options options) {
+    @Override
+    public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
         Option opt = new Option("b", "brokerAddr", true, "query acl config version for which broker");
@@ -60,7 +68,8 @@ public class GetAccessConfigSubCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
                                   RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);

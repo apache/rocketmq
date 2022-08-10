@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
+import org.apache.rocketmq.test.client.rmq.RMQPopConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQSqlConsumer;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
@@ -58,6 +59,15 @@ public class ConsumerFactory {
         AbstractListener listner) {
         RMQSqlConsumer consumer = new RMQSqlConsumer(nsAddr, topic, selector,
             consumerGroup, listner);
+        consumer.create();
+        consumer.start();
+        return consumer;
+    }
+    public static RMQPopConsumer getRMQPopConsumer(String nsAddr, String consumerGroup,
+        String topic, String subExpression,
+        AbstractListener listener) {
+        RMQPopConsumer consumer = new RMQPopConsumer(nsAddr, topic, subExpression,
+            consumerGroup, listener);
         consumer.create();
         consumer.start();
         return consumer;

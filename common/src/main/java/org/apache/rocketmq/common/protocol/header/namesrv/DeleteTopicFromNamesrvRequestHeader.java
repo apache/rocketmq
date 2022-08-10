@@ -24,6 +24,8 @@ public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader 
     @CFNotNull
     private String topic;
 
+    private String clusterName;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -34,5 +36,13 @@ public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader 
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 }

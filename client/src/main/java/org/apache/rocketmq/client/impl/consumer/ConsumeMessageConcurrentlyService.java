@@ -29,7 +29,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -72,7 +71,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         String consumeThreadPrefix = null;
         if (consumerGroup.length() > 100) {
-            consumeThreadPrefix = new StringBuilder("ConsumeMessageThread_").append(consumerGroup.substring(0, 100)).append("_").toString();
+            consumeThreadPrefix = new StringBuilder("ConsumeMessageThread_").append(consumerGroup, 0, 100).append("_").toString();
         } else {
             consumeThreadPrefix = new StringBuilder("ConsumeMessageThread_").append(consumerGroup).append("_").toString();
         }
@@ -139,6 +138,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         result.setOrder(false);
         result.setAutoCommit(true);
 
+        msg.setBrokerName(brokerName);
         List<MessageExt> msgs = new ArrayList<MessageExt>();
         msgs.add(msg);
         MessageQueue mq = new MessageQueue();
@@ -227,6 +227,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
     }
 
+    @Override
+    public void submitPopConsumeRequest(final List<MessageExt> msgs,
+        final PopProcessQueue processQueue,
+        final MessageQueue messageQueue) {
+        throw new UnsupportedOperationException();
+    }
 
     private void cleanExpireMsg() {
         Iterator<Map.Entry<MessageQueue, ProcessQueue>> it =
@@ -311,10 +317,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         // Wrap topic with namespace before sending back message.
         msg.setTopic(this.defaultMQPushConsumer.withNamespace(msg.getTopic()));
         try {
-            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, context.getMessageQueue().getBrokerName());
+            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, this.defaultMQPushConsumer.queueWithNamespace(context.getMessageQueue()));
             return true;
         } catch (Exception e) {
-            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
+            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg, e);
         }
 
         return false;
@@ -376,6 +382,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
+            defaultMQPushConsumerImpl.tryResetPopRetryTopic(msgs, consumerGroup);
             defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
 
             ConsumeMessageContext consumeMessageContext = null;

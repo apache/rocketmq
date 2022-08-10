@@ -53,7 +53,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 为了尽可能地减少用户业务系统使用RocketMQ消息轨迹特性的改造工作量，作者在设计时候采用对原来接口增加一个开关参数(**enableMsgTrace**)来实现消息轨迹是否开启；并新增一个自定义参数(**customizedTraceTopic**)来实现用户存储消息轨迹数据至自己创建的用户级Topic。
 
 ### 4.1 发送消息时开启消息轨迹
-```
+```java
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
         producer.setNamesrvAddr("XX.XX.XX.XX1");
         producer.start();
@@ -73,7 +73,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 ```
 
 ### 4.2 订阅消息时开启消息轨迹
-```
+```java
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
