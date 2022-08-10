@@ -91,6 +91,7 @@ public class ReplicasManager {
         this.haService.setLocalAddress(this.localAddress);
     }
 
+
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
@@ -280,7 +281,9 @@ public class ReplicasManager {
     private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
-            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
+            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
+                    this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
+                    this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -419,6 +422,10 @@ public class ReplicasManager {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
+    }
+
+    public int getLastEpoch() {
+        return this.haService.getLastEpoch();
     }
 
     public BrokerRole getBrokerRole() {

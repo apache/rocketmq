@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
@@ -48,10 +49,13 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.elect.ElectPolicy;
+import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -77,20 +81,25 @@ public class DLedgerController implements Controller {
     private final DLedgerControllerStateMachine statemachine;
     // Usr for checking whether the broker is alive
     private BiPredicate<String, String> brokerAlivePredicate;
+
+    private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
+
+
     private AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
-        this(config, brokerAlivePredicate, null, null, null);
+        this(config, brokerAlivePredicate, null, null, null, null);
     }
 
     public DLedgerController(final ControllerConfig controllerConfig,
         final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener) {
+        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
+                             BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
         this.controllerConfig = controllerConfig;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
         this.brokerAlivePredicate = brokerAlivePredicate;
-
+        this.additionalInfoGetter = additionalInfoGetter;
         this.dLedgerConfig = new DLedgerConfig();
         this.dLedgerConfig.setGroup(controllerConfig.getControllerDLegerGroup());
         this.dLedgerConfig.setPeers(controllerConfig.getControllerDLegerPeers());
@@ -153,7 +162,7 @@ public class DLedgerController implements Controller {
     @Override
     public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         return this.scheduler.appendEvent("electMaster",
-            () -> this.replicasInfoManager.electMaster(request, this.brokerAlivePredicate), true);
+            () -> this.replicasInfoManager.electMaster(request, new DefaultElectPolicy(this.brokerAlivePredicate, this.additionalInfoGetter)), true);
     }
 
     @Override

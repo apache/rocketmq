@@ -28,7 +28,10 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     private String brokerAddr;
     @CFNotNull
     private String brokerName;
-
+    @CFNotNull
+    private int epoch;
+    @CFNotNull
+    private long maxOffset;
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -56,5 +59,21 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public int getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(int epoch) {
+        this.epoch = epoch;
+    }
+
+    public long getMaxOffset() {
+        return maxOffset;
+    }
+
+    public void setMaxOffset(long maxOffset) {
+        this.maxOffset = maxOffset;
     }
 }

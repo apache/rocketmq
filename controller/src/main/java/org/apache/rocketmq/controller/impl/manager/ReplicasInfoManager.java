@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller.impl.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,8 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.controller.elect.ElectPolicy;
+import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
@@ -150,40 +153,41 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<ElectMasterResponseHeader> electMaster(
-        final ElectMasterRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
+            final ElectMasterRequestHeader request, final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
         if (isContainsBroker(brokerName)) {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
-            // First, check whether the master is still active
             final String oldMaster = syncStateInfo.getMasterAddress();
-            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), oldMaster)) {
+            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.getAllBroker() : null;
+
+            // elect by policy
+            String newMaster = electPolicy.elect(brokerInfo.getClusterName(), syncStateSet, allReplicaBrokers, oldMaster);
+            if (StringUtils.isNotEmpty(newMaster) && newMaster.equals(oldMaster)) {
+                // old master still valid, change nothing
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
                 log.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
                 return result;
             }
-
-            // Try elect a master in syncStateSet
-            if (syncStateSet.size() > 1) {
-                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
-                if (electSuccess) {
-                    return result;
+            // a new master is elected
+            if (StringUtils.isNotEmpty(newMaster)) {
+                final int masterEpoch = this.syncStateSetInfoTable.get(brokerName).getMasterEpoch();
+                final int syncStateSetEpoch = this.syncStateSetInfoTable.get(brokerName).getSyncStateSetEpoch();
+                final ElectMasterResponseHeader response = result.getResponse();
+                response.setNewMasterAddress(newMaster);
+                response.setMasterEpoch(masterEpoch + 1);
+                response.setSyncStateSetEpoch(syncStateSetEpoch);
+                BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
+                if (null != brokerMemberGroup) {
+                    result.setBody(brokerMemberGroup.encode());
                 }
+                final ElectMasterEvent event = new ElectMasterEvent(brokerName, newMaster);
+                result.addEvent(event);
+                return result;
             }
-
-            // Try elect a master in lagging replicas if enableElectUncleanMaster = true
-            if (controllerConfig.isEnableElectUncleanMaster()) {
-                boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), candidate ->
-                    !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
-                if (electSuccess) {
-                    return result;
-                }
-            }
-
             // If elect failed, we still need to apply an ElectMasterEvent to tell the statemachine
             // that the master was shutdown and no new master was elected.
             final ElectMasterEvent event = new ElectMasterEvent(false, brokerName);
@@ -201,6 +205,7 @@ public class ReplicasInfoManager {
      * @param filter return true if the candidate is available
      * @return true if elect success
      */
+    @Deprecated
     private boolean tryElectMaster(final ControllerResult<ElectMasterResponseHeader> result, final String brokerName,
         final Set<String> candidates, final Predicate<String> filter) {
         final int masterEpoch = this.syncStateSetInfoTable.get(brokerName).getMasterEpoch();

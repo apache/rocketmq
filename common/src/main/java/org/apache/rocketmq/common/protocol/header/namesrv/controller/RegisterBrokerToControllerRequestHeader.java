@@ -24,6 +24,8 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
+    private int epoch;
+    private long maxOffset;
     @CFNullable
     private Long heartbeatTimeoutMillis;
 
@@ -35,6 +37,14 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+    }
+
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int epoch, long maxOffset) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
+        this.epoch = epoch;
+        this.maxOffset = maxOffset;
     }
 
     public String getClusterName() {
@@ -71,11 +81,30 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     @Override
     public String toString() {
-        return "RegisterBrokerRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            '}';
+        return "RegisterBrokerToControllerRequestHeader{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerAddress='" + brokerAddress + '\'' +
+                ", epoch=" + epoch +
+                ", maxOffset=" + maxOffset +
+                ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+                '}';
+    }
+
+    public int getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(int epoch) {
+        this.epoch = epoch;
+    }
+
+    public long getMaxOffset() {
+        return maxOffset;
+    }
+
+    public void setMaxOffset(long maxOffset) {
+        this.maxOffset = maxOffset;
     }
 
     @Override

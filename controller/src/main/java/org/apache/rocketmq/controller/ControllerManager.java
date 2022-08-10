@@ -97,8 +97,8 @@ public class ControllerManager {
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
         }
-        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
-            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
+        this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
+            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService, this.heartbeatManager::getBrokerLiveInfo);
 
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {

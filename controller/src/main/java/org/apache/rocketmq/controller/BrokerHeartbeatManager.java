@@ -17,13 +17,14 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
 
 public interface BrokerHeartbeatManager {
 
     /**
      * Broker new heartbeat.
      */
-    void onBrokerHeartbeat(final String clusterName, final String brokerAddr);
+    void onBrokerHeartbeat(final String clusterName, final String brokerAddr, final int epoch, final long maxOffset);
 
     /**
      * Change the metadata(brokerId ..) for a broker.
@@ -49,12 +50,17 @@ public interface BrokerHeartbeatManager {
      * Register new broker to heartManager.
      */
     void registerBroker(final String clusterName, final String brokerName, final String brokerAddr, final long brokerId,
-        final Long timeoutMillis, final Channel channel);
+                        final Long timeoutMillis, final Channel channel, final int epoch, final long maxOffset);
 
     /**
      * Broker channel close
      */
     void onBrokerChannelClose(final Channel channel);
+
+    /**
+     * Get broker live information by clusterName and brokerAddr
+     */
+    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerAddr);
 
     /**
      * Check whether broker active
