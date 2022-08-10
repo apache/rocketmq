@@ -286,6 +286,12 @@ public class RouteInfoManager {
                     }
                 }
 
+                if (!brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
+                    log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
+                            topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
+                    return null;
+                }
+
                 String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 

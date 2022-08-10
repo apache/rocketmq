@@ -245,6 +245,13 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             ctx.channel()
         );
 
+        if (result == null) {
+            // Register single topic route info should be after the broker completes the first registration.
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("register broker failed");
+            return response;
+        }
+
         responseHeader.setHaServerAddr(result.getHaServerAddr());
         responseHeader.setMasterAddr(result.getMasterAddr());
 
