@@ -1209,7 +1209,7 @@ public class LoggingBuilder {
             sb.append(" ");
             sb.append(event.getLoggerName());
             sb.append(" - ");
-            sb.append(event.getMessage());
+            sb.append(event.getRenderedMessage());
             String[] throwableStr = event.getThrowableStr();
             if (throwableStr != null) {
                 sb.append("\r\n");

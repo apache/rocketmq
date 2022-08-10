@@ -13,12 +13,16 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.8.0</version>
+        <version>5.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-acl</artifactId>
     <name>rocketmq-acl ${project.version}</name>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-proto</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-remoting</artifactId>
@@ -61,6 +65,10 @@
         <dependency>
             <groupId>commons-validator</groupId>
             <artifactId>commons-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
         </dependency>
 
     </dependencies>

@@ -87,7 +87,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
                             break;
                         }
                     }
-                    long offset = consumeStats.getOffsetTable().get(mq).getBrokerOffset();
+                    long offset = consumeStats.getOffsetTable().get(mq).getConsumerOffset();
                     if (offset >= 0) {
                         defaultMQAdminExt.updateConsumeOffset(addr, destGroup, mq, offset);
                     }

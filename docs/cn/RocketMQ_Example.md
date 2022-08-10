@@ -54,7 +54,7 @@
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-client</artifactId>
-    <version>4.3.0</version>
+    <version>4.9.1</version>
 </dependency>
 ```
 `gradle`
@@ -120,13 +120,15 @@ public class AsyncProducer {
                 producer.send(msg, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
+                        countDownLatch.countDown();
                         System.out.printf("%-10d OK %s %n", index,
                             sendResult.getMsgId());
                     }
                     @Override
                     public void onException(Throwable e) {
-      	              System.out.printf("%-10d Exception %s %n", index, e);
-      	              e.printStackTrace();
+                        countDownLatch.countDown();
+      	                System.out.printf("%-10d Exception %s %n", index, e);
+      	                e.printStackTrace();
                     }
             	});
     	}
@@ -438,6 +440,8 @@ public class ScheduledMessageConsumer {
    public static void main(String[] args) throws Exception {
       // 实例化消费者
       DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ExampleConsumer");
+      // 设置NameServer的地址
+      consumer.setNamesrvAddr("localhost:9876");
       // 订阅Topics
       consumer.subscribe("TestTopic", "*");
       // 注册消息监听者
@@ -446,7 +450,7 @@ public class ScheduledMessageConsumer {
           public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> messages, ConsumeConcurrentlyContext context) {
               for (MessageExt message : messages) {
                   // Print approximate delay time period
-                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getStoreTimestamp()) + "ms later");
+                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getBornTimestamp()) + "ms later");
               }
               return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
           }
@@ -469,6 +473,8 @@ public class ScheduledMessageProducer {
    public static void main(String[] args) throws Exception {
       // 实例化一个生产者来产生延时消息
       DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
+      // 设置NameServer的地址
+      producer.setNamesrvAddr("localhost:9876");
       // 启动生产者
       producer.start();
       int totalMessagesToSend = 100;
@@ -539,10 +545,12 @@ public class ListSplitter implements Iterator<List<Message>> {
     public ListSplitter(List<Message> messages) { 
         this.messages = messages;
     }
-    @Override public boolean hasNext() {
+    @Override 
+    public boolean hasNext() {
         return currIndex < messages.size(); 
     }
-    @Override public List<Message> next() { 
+    @Override 
+    public List<Message> next() { 
         int startIndex = getStartIndex();
         int nextIndex = startIndex;
         int totalSize = 0;
@@ -564,13 +572,13 @@ public class ListSplitter implements Iterator<List<Message>> {
         int tmpSize = calcMessageSize(currMessage); 
         while(tmpSize > SIZE_LIMIT) {
             currIndex += 1;
-            Message message = messages.get(curIndex); 
+            Message message = messages.get(currIndex); 
             tmpSize = calcMessageSize(message);
         }
         return currIndex; 
     }
     private int calcMessageSize(Message message) {
-        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
         Map<String, String> properties = message.getProperties();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 
@@ -859,50 +867,52 @@ import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
+
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 
 public class SimpleProducer {
     public static void main(String[] args) {
-       final MessagingAccessPoint messagingAccessPoint =
-           OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
-       final Producer producer = messagingAccessPoint.createProducer();
-       messagingAccessPoint.startup();
-       System.out.printf("MessagingAccessPoint startup OK%n");
-       producer.startup();
-       System.out.printf("Producer startup OK%n");
-       {
-           Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
-           SendResult sendResult = producer.send(message);
-           //final Void aVoid = result.get(3000L);
-           System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
-       }
-       final CountDownLatch countDownLatch = new CountDownLatch(1);
-       {
-           final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
-           result.addListener(new FutureListener<SendResult>() {
-               @Override
-               public void operationComplete(Future<SendResult> future) {
-                   if (future.getThrowable() != null) {
-                       System.out.printf("Send async message Failed, error: %s%n", future.getThrowable().getMessage());
-                   } else {
-                       System.out.printf("Send async message OK, msgId: %s%n", future.get().messageId());
-                   }
-                   countDownLatch.countDown();
-               }
-           });
-       }
-       {
-           producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
-           System.out.printf("Send oneway message OK%n");
-       }
-       try {
-           countDownLatch.await();
-           Thread.sleep(500); // 等一些时间来发送消息
-       } catch (InterruptedException ignore) {
-       }
-       producer.shutdown();
-   }
+        final MessagingAccessPoint messagingAccessPoint =
+                OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
+        final Producer producer = messagingAccessPoint.createProducer();
+        messagingAccessPoint.startup();
+        System.out.printf("MessagingAccessPoint startup OK%n");
+        producer.startup();
+        System.out.printf("Producer startup OK%n");
+        {
+            Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8));
+            SendResult sendResult = producer.send(message);
+            //final Void aVoid = result.get(3000L);
+            System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
+        }
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        {
+            final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
+            result.addListener(new FutureListener<SendResult>() {
+                @Override
+                public void operationComplete(Future<SendResult> future) {
+                    if (future.getThrowable() != null) {
+                        System.out.printf("Send async message Failed, error: %s%n", future.getThrowable().getMessage());
+                    } else {
+                        System.out.printf("Send async message OK, msgId: %s%n", future.get().messageId());
+                    }
+                    countDownLatch.countDown();
+                }
+            });
+        }
+        {
+            producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
+            System.out.printf("Send oneway message OK%n");
+        }
+        try {
+            countDownLatch.await();
+            Thread.sleep(500); // 等一些时间来发送消息
+        } catch (InterruptedException ignore) {
+        }
+        producer.shutdown();
+    }
 }
 ```
 

@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -33,14 +34,18 @@ import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class DLedgerCommitlogTest extends MessageStoreTestBase {
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 
+import static org.apache.rocketmq.store.StoreTestUtil.releaseMmapFilesOnWindows;
+
+public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testTruncateCQ() throws Exception {
@@ -63,6 +68,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
             doGetMessages(messageStore, topic, 0, 2000, 0);
             messageStore.shutdown();
+            releaseMmapFilesOnWindows(dLedgerMmapFileStore.getDataFileList().getMappedFiles());
         }
 
         {
@@ -79,6 +85,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
             doGetMessages(messageStore, topic, 0, 1700, 0);
             messageStore.shutdown();
+            releaseMmapFilesOnWindows(dLedgerMmapFileStore.getDataFileList().getMappedFiles());
         }
         {
             //Abnormal recover, left none commitlogs
@@ -157,7 +164,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(500);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -321,7 +328,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
-        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
+        Assert.assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, putMessageResult.getPutMessageStatus());
 
         Thread.sleep(1000);
 
@@ -330,10 +337,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
         DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
-        Thread.sleep(2000);
+        await().atMost(10, SECONDS).until(followerCatchesUp(followerStore, topic));
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
-        Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertTrue(leaderStore.getCommitLog().getMaxOffset() > 0);
 
 
@@ -355,7 +361,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
-        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
+        Assert.assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, putMessageResult.getPutMessageStatus());
 
         Thread.sleep(1000);
 
@@ -364,10 +370,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
         DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
-        Thread.sleep(2000);
+        await().atMost(10, SECONDS).until(followerCatchesUp(followerStore, topic));
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
-        Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertTrue(leaderStore.getCommitLog().getMaxOffset() > 0);
 
 
@@ -378,5 +383,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         followerStore.shutdown();
     }
 
-
+    private Callable<Boolean> followerCatchesUp(DefaultMessageStore followerStore, String topic) {
+        return () -> followerStore.getMaxOffsetInQueue(topic, 0) == 1;
+    }
 }

@@ -30,7 +30,7 @@
     </appender>
 
     <appender name="TOTAL" class="org.apache.log4j.RollingFileAppender">
-        <param name="File" value="it_test.log"/>
+        <param name="File" value="target/it_test.log"/>
         <param name="append" value="false"/>
         <param name="MaxFileSize" value="10240000"/>
         <param name="MaxBackupIndex" value="10"/>

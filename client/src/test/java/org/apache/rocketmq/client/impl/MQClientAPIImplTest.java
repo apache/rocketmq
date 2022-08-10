@@ -16,8 +16,18 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.consumer.AckCallback;
+import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.AckStatus;
+import org.apache.rocketmq.client.consumer.PopCallback;
+import org.apache.rocketmq.client.consumer.PopResult;
+import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
@@ -26,12 +36,42 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
+import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseBody;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
+import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -39,6 +79,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +88,8 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+
+import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -67,9 +110,11 @@ public class MQClientAPIImplTest {
 
     private String brokerAddr = "127.0.0.1";
     private String brokerName = "DefaultBroker";
+    private String clusterName = "DefaultCluster";
     private static String group = "FooBarGroup";
     private static String topic = "FooBar";
     private Message msg = new Message("FooBar", new byte[] {});
+    private static String clientId = "127.0.0.2@UnitTest";
 
     @Before
     public void init() throws Exception {
@@ -113,7 +158,7 @@ public class MQClientAPIImplTest {
             @Override
             public Object answer(InvocationOnMock mock) throws Throwable {
                 RemotingCommand request = mock.getArgument(1);
-                return createSuccessResponse(request);
+                return createSendMessageSuccessResponse(request);
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
@@ -166,7 +211,7 @@ public class MQClientAPIImplTest {
                 InvokeCallback callback = mock.getArgument(3);
                 RemotingCommand request = mock.getArgument(1);
                 ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-                responseFuture.setResponseCommand(createSuccessResponse(request));
+                responseFuture.setResponseCommand(createSendMessageSuccessResponse(request));
                 callback.operationComplete(responseFuture);
                 return null;
             }
@@ -194,23 +239,31 @@ public class MQClientAPIImplTest {
     public void testSendMessageAsync_WithException() throws RemotingException, InterruptedException, MQBrokerException {
         doThrow(new RemotingTimeoutException("Remoting Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        try {
-            mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-                3 * 1000, CommunicationMode.ASYNC, new SendMessageContext(), defaultMQProducerImpl);
-            failBecauseExceptionWasNotThrown(RemotingException.class);
-        } catch (RemotingException e) {
-            assertThat(e).hasMessage("Remoting Exception in Test");
-        }
+        SendMessageContext sendMessageContext = new SendMessageContext();
+        sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
+        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(), 3 * 1000, CommunicationMode.ASYNC,
+                new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                    }
+                    @Override
+                    public void onException(Throwable e) {
+                        assertThat(e).hasMessage("Remoting Exception in Test");
+                    }
+                }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
 
         doThrow(new InterruptedException("Interrupted Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        try {
-            mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-                3 * 1000, CommunicationMode.ASYNC, new SendMessageContext(), defaultMQProducerImpl);
-            failBecauseExceptionWasNotThrown(InterruptedException.class);
-        } catch (InterruptedException e) {
-            assertThat(e).hasMessage("Interrupted Exception in Test");
-        }
+        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(), 3 * 1000, CommunicationMode.ASYNC,
+                new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                    }
+                    @Override
+                    public void onException(Throwable e) {
+                        assertThat(e).hasMessage("Interrupted Exception in Test");
+                    }
+                }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
     }
 
     @Test
@@ -332,7 +385,7 @@ public class MQClientAPIImplTest {
                 InvokeCallback callback = mock.getArgument(3);
                 RemotingCommand request = mock.getArgument(1);
                 ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-                responseFuture.setResponseCommand(createSuccessResponse(request));
+                responseFuture.setResponseCommand(createSendMessageSuccessResponse(request));
                 callback.operationComplete(responseFuture);
                 return null;
             }
@@ -356,6 +409,426 @@ public class MQClientAPIImplTest {
             }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
     }
 
+    @Test
+    public void testQueryAssignment_Success() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(null);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                QueryAssignmentResponseBody b = new QueryAssignmentResponseBody();
+                b.setMessageQueueAssignments(Collections.singleton(new MessageQueueAssignment()));
+                response.setBody(b.encode());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+        Set<MessageQueueAssignment> assignments = mqClientAPI.queryAssignment(brokerAddr, topic, group, clientId, null, MessageModel.CLUSTERING, 10 * 1000);
+        assertThat(assignments).size().isEqualTo(1);
+    }
+
+    @Test
+    public void testPopMessageAsync_Success() throws Exception {
+        final long popTime = System.currentTimeMillis();
+        final int invisibleTime = 10 * 1000;
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock mock) throws Throwable {
+                InvokeCallback callback = mock.getArgument(3);
+                RemotingCommand request = mock.getArgument(1);
+                ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+                RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+
+                PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
+                responseHeader.setInvisibleTime(invisibleTime);
+                responseHeader.setPopTime(popTime);
+                responseHeader.setReviveQid(0);
+                responseHeader.setRestNum(1);
+                StringBuilder startOffsetInfo = new StringBuilder(64);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, false, 0, 0L);
+                responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
+                StringBuilder msgOffsetInfo = new StringBuilder(64);
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, false, 0, Collections.singletonList(0L));
+                responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
+                response.setRemark("FOUND");
+                response.makeCustomHeaderToNet();
+
+                MessageExt message = new MessageExt();
+                message.setQueueId(0);
+                message.setFlag(12);
+                message.setQueueOffset(0L);
+                message.setCommitLogOffset(100L);
+                message.setSysFlag(0);
+                message.setBornTimestamp(System.currentTimeMillis());
+                message.setBornHost(new InetSocketAddress("127.0.0.1", 10));
+                message.setStoreTimestamp(System.currentTimeMillis());
+                message.setStoreHost(new InetSocketAddress("127.0.0.1", 11));
+                message.setBody("body".getBytes());
+                message.setTopic(topic);
+                message.putUserProperty("key", "value");
+                response.setBody(MessageDecoder.encode(message, false));
+                responseFuture.setResponseCommand(response);
+                callback.operationComplete(responseFuture);
+                return null;
+            }
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        final CountDownLatch done = new CountDownLatch(1);
+        mqClientAPI.popMessageAsync(brokerName, brokerAddr, new PopMessageRequestHeader(), 10 * 1000, new PopCallback() {
+            @Override
+            public void onSuccess(PopResult popResult) {
+                assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
+                assertThat(popResult.getRestNum()).isEqualTo(1);
+                assertThat(popResult.getInvisibleTime()).isEqualTo(invisibleTime);
+                assertThat(popResult.getPopTime()).isEqualTo(popTime);
+                assertThat(popResult.getMsgFoundList()).size().isEqualTo(1);
+                done.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                Assertions.fail("want no exception but got one", e);
+                done.countDown();
+            }
+        });
+        done.await();
+    }
+
+    @Test
+    public void testAckMessageAsync_Success() throws Exception {
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock mock) throws Throwable {
+                InvokeCallback callback = mock.getArgument(3);
+                RemotingCommand request = mock.getArgument(1);
+                ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+                RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+                response.setOpaque(request.getOpaque());
+                response.setCode(ResponseCode.SUCCESS);
+                responseFuture.setResponseCommand(response);
+                callback.operationComplete(responseFuture);
+                return null;
+            }
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+
+        final CountDownLatch done = new CountDownLatch(1);
+        mqClientAPI.ackMessageAsync(brokerAddr, 10 * 1000, new AckCallback() {
+            @Override
+            public void onSuccess(AckResult ackResult) {
+                assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
+                done.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                Assertions.fail("want no exception but got one", e);
+                done.countDown();
+            }
+        }, new AckMessageRequestHeader());
+        done.await();
+    }
+
+    @Test
+    public void testChangeInvisibleTimeAsync_Success() throws Exception {
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock mock) throws Throwable {
+                InvokeCallback callback = mock.getArgument(3);
+                RemotingCommand request = mock.getArgument(1);
+                ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+                RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
+                response.setOpaque(request.getOpaque());
+                response.setCode(ResponseCode.SUCCESS);
+                ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) response.readCustomHeader();
+                responseHeader.setPopTime(System.currentTimeMillis());
+                responseHeader.setInvisibleTime(10 * 1000L);
+                responseFuture.setResponseCommand(response);
+                callback.operationComplete(responseFuture);
+                return null;
+            }
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+
+        final CountDownLatch done = new CountDownLatch(1);
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(0);
+        requestHeader.setOffset(0L);
+        requestHeader.setInvisibleTime(10 * 1000L);
+        mqClientAPI.changeInvisibleTimeAsync(brokerName, brokerAddr, requestHeader, 10 * 1000, new AckCallback() {
+            @Override
+            public void onSuccess(AckResult ackResult) {
+                assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
+                done.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                Assertions.fail("want no exception but got one", e);
+                done.countDown();
+            }
+        });
+        done.await();
+    }
+
+    @Test
+    public void testSetMessageRequestMode_Success() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(null);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        mqClientAPI.setMessageRequestMode(brokerAddr, topic, group, MessageRequestMode.POP, 8, 10 * 1000L);
+    }
+
+    @Test
+    public void testCreateSubscriptionGroup_Success() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(null);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        mqClientAPI.createSubscriptionGroup(brokerAddr, new SubscriptionGroupConfig(), 10000);
+    }
+
+    @Test
+    public void testCreateTopic_Success() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(null);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        mqClientAPI.createTopic(brokerAddr, topic, new TopicConfig(), 10000);
+    }
+
+    @Test
+    public void testGetBrokerClusterConfig() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAclConfigResponseHeader.class);
+                GetBrokerClusterAclConfigResponseBody body = new GetBrokerClusterAclConfigResponseBody();
+                body.setGlobalWhiteAddrs(Collections.singletonList("1.1.1.1"));
+                body.setPlainAccessConfigs(Collections.singletonList(new PlainAccessConfig()));
+                response.setBody(body.encode());
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        AclConfig aclConfig = mqClientAPI.getBrokerClusterConfig(brokerAddr, 10000);
+        assertThat(aclConfig.getPlainAccessConfigs()).size().isGreaterThan(0);
+        assertThat(aclConfig.getGlobalWhiteAddrs()).size().isGreaterThan(0);
+    }
+
+    @Test
+    public void testViewMessage() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) throws Exception {
+                RemotingCommand request = mock.getArgument(1);
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(null);
+                MessageExt message = new MessageExt();
+                message.setQueueId(0);
+                message.setFlag(12);
+                message.setQueueOffset(0L);
+                message.setCommitLogOffset(100L);
+                message.setSysFlag(0);
+                message.setBornTimestamp(System.currentTimeMillis());
+                message.setBornHost(new InetSocketAddress("127.0.0.1", 10));
+                message.setStoreTimestamp(System.currentTimeMillis());
+                message.setStoreHost(new InetSocketAddress("127.0.0.1", 11));
+                message.setBody("body".getBytes());
+                message.setTopic(topic);
+                message.putUserProperty("key", "value");
+                response.setBody(MessageDecoder.encode(message, false));
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        MessageExt messageExt = mqClientAPI.viewMessage(brokerAddr, 100L, 10000);
+        assertThat(messageExt.getTopic()).isEqualTo(topic);
+    }
+
+    @Test
+    public void testSearchOffset() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
+                final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+                responseHeader.setOffset(100L);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long offset = mqClientAPI.searchOffset(brokerAddr, topic, 0, System.currentTimeMillis() - 1000, 10000);
+        assertThat(offset).isEqualTo(100L);
+    }
+
+    @Test
+    public void testGetMaxOffset() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
+                final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
+                responseHeader.setOffset(100L);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long offset = mqClientAPI.getMaxOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
+        assertThat(offset).isEqualTo(100L);
+    }
+
+    @Test
+    public void testGetMinOffset() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
+                final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.readCustomHeader();
+                responseHeader.setOffset(100L);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long offset = mqClientAPI.getMinOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
+        assertThat(offset).isEqualTo(100L);
+    }
+
+    @Test
+    public void testGetEarliestMsgStoretime() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response = RemotingCommand.createResponseCommand(GetEarliestMsgStoretimeResponseHeader.class);
+                final GetEarliestMsgStoretimeResponseHeader responseHeader = (GetEarliestMsgStoretimeResponseHeader) response.readCustomHeader();
+                responseHeader.setTimestamp(100L);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long t = mqClientAPI.getEarliestMsgStoretime(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
+        assertThat(t).isEqualTo(100L);
+    }
+
+    @Test
+    public void testQueryConsumerOffset() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response =
+                    RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
+                final QueryConsumerOffsetResponseHeader responseHeader =
+                    (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+                responseHeader.setOffset(100L);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long t = mqClientAPI.queryConsumerOffset(brokerAddr, new QueryConsumerOffsetRequestHeader(), 1000);
+        assertThat(t).isEqualTo(100L);
+    }
+
+    @Test
+    public void testUpdateConsumerOffset() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response =
+                    RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        mqClientAPI.updateConsumerOffset(brokerAddr, new UpdateConsumerOffsetRequestHeader(), 1000);
+    }
+
+    @Test
+    public void testGetConsumerIdListByGroup() throws Exception {
+        doAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+
+                final RemotingCommand response =
+                    RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
+                GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
+                body.setConsumerIdList(Collections.singletonList("consumer1"));
+                response.setBody(body.encode());
+                response.makeCustomHeaderToNet();
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+        List<String> consumerIdList = mqClientAPI.getConsumerIdListByGroup(brokerAddr, group, 10000);
+        assertThat(consumerIdList).size().isGreaterThan(0);
+    }
+
     private RemotingCommand createResumeSuccessResponse(RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
@@ -363,7 +836,7 @@ public class MQClientAPIImplTest {
         return response;
     }
 
-    private RemotingCommand createSuccessResponse(RemotingCommand request) {
+    private RemotingCommand createSendMessageSuccessResponse(RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
         response.setOpaque(request.getOpaque());
@@ -441,5 +914,28 @@ public class MQClientAPIImplTest {
         requestHeader.setQueueId(1);
         requestHeader.setMaxReconsumeTimes(10);
         return requestHeader;
+    }
+
+    @Test
+    public void testAddWritePermOfBroker() throws Exception {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                RemotingCommand request = invocationOnMock.getArgument(1);
+                if (request.getCode() != RequestCode.ADD_WRITE_PERM_OF_BROKER) {
+                    return null;
+                }
+
+                RemotingCommand response = RemotingCommand.createResponseCommand(AddWritePermOfBrokerResponseHeader.class);
+                AddWritePermOfBrokerResponseHeader responseHeader = (AddWritePermOfBrokerResponseHeader) response.readCustomHeader();
+                response.setCode(ResponseCode.SUCCESS);
+                responseHeader.setAddTopicCount(7);
+                response.addExtField("addTopicCount", String.valueOf(responseHeader.getAddTopicCount()));
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        int topicCnt = mqClientAPI.addWritePermOfBroker("127.0.0.1", "default-broker", 1000);
+        assertThat(topicCnt).isEqualTo(7);
     }
 }

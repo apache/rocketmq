@@ -17,6 +17,9 @@
 package org.apache.rocketmq.remoting.common;
 
 import io.netty.channel.Channel;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -24,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -34,17 +38,18 @@ public class RemotingHelper {
     public static final String DEFAULT_CHARSET = "UTF-8";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
 
     public static String exceptionSimpleDesc(final Throwable e) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (e != null) {
             sb.append(e.toString());
 
             StackTraceElement[] stackTrace = e.getStackTrace();
             if (stackTrace != null && stackTrace.length > 0) {
-                StackTraceElement elment = stackTrace[0];
+                StackTraceElement element = stackTrace[0];
                 sb.append(", ");
-                sb.append(elment.toString());
+                sb.append(element.toString());
             }
         }
 
@@ -61,7 +66,7 @@ public class RemotingHelper {
 
     public static RemotingCommand invokeSync(final String addr, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
-        RemotingSendRequestException, RemotingTimeoutException {
+        RemotingSendRequestException, RemotingTimeoutException, RemotingCommandException {
         long beginTime = System.currentTimeMillis();
         SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
         SocketChannel socketChannel = RemotingUtil.connect(socketAddress);
@@ -155,6 +160,20 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
+        Attribute<String> att = channel.attr(REMOTE_ADDR_KEY);
+        if (att == null) {
+            // mocked in unit test
+            return parseChannelRemoteAddr0(channel);
+        }
+        String addr = att.get();
+        if (addr == null) {
+            addr = parseChannelRemoteAddr0(channel);
+            att.set(addr);
+        }
+        return addr;
+    }
+
+    private static String parseChannelRemoteAddr0(final Channel channel) {
         SocketAddress remote = channel.remoteAddress();
         final String addr = remote != null ? remote.toString() : "";
 
@@ -170,15 +189,52 @@ public class RemotingHelper {
         return "";
     }
 
+    public static String parseHostFromAddress(String address) {
+        if (address == null) {
+            return "";
+        }
+
+        String[] addressSplits = address.split(":");
+        if (addressSplits.length < 1) {
+            return "";
+        }
+
+        return addressSplits[0];
+    }
+
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
+            // Default toString of InetSocketAddress is "hostName/IP:port"
             final String addr = socketAddress.toString();
-
-            if (addr.length() > 0) {
-                return addr.substring(1);
-            }
+            int index = addr.lastIndexOf("/");
+            return (index != -1) ? addr.substring(index + 1) : addr;
         }
         return "";
     }
 
+    public static int parseSocketAddressPort(SocketAddress socketAddress) {
+        if (socketAddress instanceof InetSocketAddress) {
+            return ((InetSocketAddress) socketAddress).getPort();
+        }
+        return -1;
+    }
+
+
+    public static int ipToInt(String ip) {
+        String[] ips = ip.split("\\.");
+        return (Integer.parseInt(ips[0]) << 24)
+            | (Integer.parseInt(ips[1]) << 16)
+            | (Integer.parseInt(ips[2]) << 8)
+            | Integer.parseInt(ips[3]);
+    }
+
+    public static boolean ipInCIDR(String ip, String cidr) {
+        int ipAddr = ipToInt(ip);
+        String[] cidrArr = cidr.split("/");
+        int netId = Integer.parseInt(cidrArr[1]);
+        int mask = 0xFFFFFFFF << (32 - netId);
+        int cidrIpAddr = ipToInt(cidrArr[0]);
+
+        return (ipAddr & mask) == (cidrIpAddr & mask);
+    }
 }

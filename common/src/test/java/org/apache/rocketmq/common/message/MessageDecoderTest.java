@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -25,7 +27,10 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import static org.apache.rocketmq.common.message.MessageDecoder.NAME_VALUE_SEPARATOR;
+import static org.apache.rocketmq.common.message.MessageDecoder.PROPERTY_SEPARATOR;
 import static org.apache.rocketmq.common.message.MessageDecoder.createMessageId;
+import static org.apache.rocketmq.common.message.MessageDecoder.decodeMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MessageDecoderTest {
@@ -160,6 +165,8 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
+        messageExt.setBodyCRC(UtilAll.crc32(messageExt.getBody()));
+
         byte[] msgBytes = new byte[0];
         try {
             msgBytes = MessageDecoder.encode(messageExt, false);
@@ -171,7 +178,7 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.clear();
+        byteBuffer.flip();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();
@@ -219,6 +226,8 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
+        messageExt.setBodyCRC(UtilAll.crc32(messageExt.getBody()));
+
         byte[] msgBytes = new byte[0];
         try {
             msgBytes = MessageDecoder.encode(messageExt, false);
@@ -230,14 +239,15 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.clear();
+        byteBuffer.flip();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();
         assertThat(1).isEqualTo(decodedMsg.getQueueId());
         assertThat(123456L).isEqualTo(decodedMsg.getCommitLogOffset());
         assertThat("hello!q!".getBytes()).isEqualTo(decodedMsg.getBody());
-        assertThat(48).isEqualTo(decodedMsg.getSysFlag());
+        // assertThat(48).isEqualTo(decodedMsg.getSysFlag());
+        assertThat(MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.STOREHOSTADDRESS_V6_FLAG)).isTrue();
 
         int msgIDLength = 16 + 4 + 8;
         ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
@@ -265,4 +275,134 @@ public class MessageDecoderTest {
         }
     }
 
+    @Test
+    public void testString2messageProperties() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append("v1");
+        Map<String,String> m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k1")).isEqualTo("v1");
+
+        m = MessageDecoder.string2messageProperties("");
+        assertThat(m).size().isEqualTo(0);
+
+        m = MessageDecoder.string2messageProperties(" ");
+        assertThat(m).size().isEqualTo(0);
+
+        m = MessageDecoder.string2messageProperties("aaa");
+        assertThat(m).size().isEqualTo(0);
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR);
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(0);
+
+        sb.setLength(0);
+        sb.append(NAME_VALUE_SEPARATOR).append("v1");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(0);
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append("v1").append(PROPERTY_SEPARATOR);
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k1")).isEqualTo("v1");
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append("v1").append(PROPERTY_SEPARATOR)
+                .append("k2").append(NAME_VALUE_SEPARATOR).append("v2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(2);
+        assertThat(m.get("k1")).isEqualTo("v1");
+        assertThat(m.get("k2")).isEqualTo("v2");
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append("v1").append(PROPERTY_SEPARATOR)
+                .append(NAME_VALUE_SEPARATOR).append("v2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k1")).isEqualTo("v1");
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append("v1").append(PROPERTY_SEPARATOR)
+                .append("k2").append(NAME_VALUE_SEPARATOR);
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k1")).isEqualTo("v1");
+
+        sb.setLength(0);
+        sb.append(NAME_VALUE_SEPARATOR).append("v1").append(PROPERTY_SEPARATOR)
+                .append("k2").append(NAME_VALUE_SEPARATOR).append("v2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k2")).isEqualTo("v2");
+
+        sb.setLength(0);
+        sb.append("k1").append(NAME_VALUE_SEPARATOR).append(PROPERTY_SEPARATOR)
+                .append("k2").append(NAME_VALUE_SEPARATOR).append("v2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("k2")).isEqualTo("v2");
+
+        sb.setLength(0);
+        sb.append("1").append(NAME_VALUE_SEPARATOR).append("1").append(PROPERTY_SEPARATOR)
+                .append("2").append(NAME_VALUE_SEPARATOR).append("2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(2);
+        assertThat(m.get("1")).isEqualTo("1");
+        assertThat(m.get("2")).isEqualTo("2");
+
+        sb.setLength(0);
+        sb.append("1").append(NAME_VALUE_SEPARATOR).append(PROPERTY_SEPARATOR)
+                .append("2").append(NAME_VALUE_SEPARATOR).append("2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("2")).isEqualTo("2");
+
+        sb.setLength(0);
+        sb.append(NAME_VALUE_SEPARATOR).append("1").append(PROPERTY_SEPARATOR)
+                .append("2").append(NAME_VALUE_SEPARATOR).append("2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("2")).isEqualTo("2");
+
+        sb.setLength(0);
+        sb.append("1").append(NAME_VALUE_SEPARATOR).append("1").append(PROPERTY_SEPARATOR)
+                .append("2").append(NAME_VALUE_SEPARATOR);
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("1")).isEqualTo("1");
+
+        sb.setLength(0);
+        sb.append("1").append(NAME_VALUE_SEPARATOR).append("1").append(PROPERTY_SEPARATOR)
+                .append(NAME_VALUE_SEPARATOR).append("2");
+        m = MessageDecoder.string2messageProperties(sb.toString());
+        assertThat(m).size().isEqualTo(1);
+        assertThat(m.get("1")).isEqualTo("1");
+    }
+
+    @Test
+    public void testMessageId() throws Exception{
+        // ipv4 messageId test
+        MessageExt msgExt = new MessageExt();
+        msgExt.setStoreHost(new InetSocketAddress("127.0.0.1", 9103));
+        msgExt.setCommitLogOffset(123456);
+        verifyMessageId(msgExt);
+
+        // ipv6 messageId test
+        msgExt.setStoreHostAddressV6Flag();
+        msgExt.setStoreHost(new InetSocketAddress(InetAddress.getByName("::1"), 0));
+        verifyMessageId(msgExt);
+    }
+
+    private void verifyMessageId(MessageExt msgExt) throws UnknownHostException {
+        int storehostIPLength = (msgExt.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 : 16;
+        int msgIDLength = storehostIPLength + 4 + 8;
+        ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
+        String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+
+        MessageId messageId = decodeMessageId(msgId);
+        assertThat(messageId.getAddress()).isEqualTo(msgExt.getStoreHost());
+        assertThat(messageId.getOffset()).isEqualTo(msgExt.getCommitLogOffset());
+    }
 }

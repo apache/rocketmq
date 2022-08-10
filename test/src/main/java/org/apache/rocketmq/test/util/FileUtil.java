@@ -20,10 +20,11 @@ package org.apache.rocketmq.test.util;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 public class FileUtil {
-    private static String lineSeperator = System.getProperty("line.separator");
+    private static String lineSeparator = System.getProperty("line.separator");
 
     private String filePath = "";
     private String fileName = "";
@@ -33,7 +34,7 @@ public class FileUtil {
         this.fileName = fileName;
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         String filePath = FileUtil.class.getResource("/").getPath();
         String fileName = "test.txt";
         FileUtil fileUtil = new FileUtil(filePath, fileName);
@@ -52,7 +53,7 @@ public class FileUtil {
 
     public void appendFile(String content) {
         File file = openFile();
-        String newContent = lineSeperator + content;
+        String newContent = lineSeparator + content;
         writeFile(file, newContent, true);
     }
 
@@ -68,9 +69,9 @@ public class FileUtil {
 
     private String getPropertiesAsString(Properties properties) {
         StringBuilder sb = new StringBuilder();
-        for (Object key : properties.keySet()) {
-            sb.append(key).append("=").append(properties.getProperty((String) key))
-                .append(lineSeperator);
+        for (Entry<Object, Object> keyEnty : properties.entrySet()) {
+            sb.append(keyEnty.getKey()).append("=").append((String) keyEnty.getValue())
+                    .append(lineSeparator);
         }
         return sb.toString();
     }

@@ -53,6 +53,7 @@ public abstract class UnaryExpression implements Expression {
 
     public static Expression createNegate(Expression left) {
         return new UnaryExpression(left, UnaryType.NEGATE) {
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
                 Object rvalue = right.evaluate(context);
                 if (rvalue == null) {
@@ -64,6 +65,7 @@ public abstract class UnaryExpression implements Expression {
                 return null;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "-";
             }
@@ -85,6 +87,7 @@ public abstract class UnaryExpression implements Expression {
         final Collection inList = t;
 
         return new UnaryInExpression(right, UnaryType.IN, inList, not) {
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
 
                 Object rvalue = right.evaluate(context);
@@ -103,8 +106,9 @@ public abstract class UnaryExpression implements Expression {
 
             }
 
+            @Override
             public String toString() {
-                StringBuffer answer = new StringBuffer();
+                StringBuilder answer = new StringBuilder();
                 answer.append(right);
                 answer.append(" ");
                 answer.append(getExpressionSymbol());
@@ -124,6 +128,7 @@ public abstract class UnaryExpression implements Expression {
                 return answer.toString();
             }
 
+            @Override
             public String getExpressionSymbol() {
                 if (not) {
                     return "NOT IN";
@@ -139,6 +144,7 @@ public abstract class UnaryExpression implements Expression {
             super(left, unaryType);
         }
 
+        @Override
         public boolean matches(EvaluationContext context) throws Exception {
             Object object = evaluate(context);
             return object != null && object == Boolean.TRUE;
@@ -147,6 +153,7 @@ public abstract class UnaryExpression implements Expression {
 
     public static BooleanExpression createNOT(BooleanExpression left) {
         return new BooleanUnaryExpression(left, UnaryType.NOT) {
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
                 Boolean lvalue = (Boolean) right.evaluate(context);
                 if (lvalue == null) {
@@ -155,6 +162,7 @@ public abstract class UnaryExpression implements Expression {
                 return lvalue.booleanValue() ? Boolean.FALSE : Boolean.TRUE;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "NOT";
             }
@@ -163,6 +171,7 @@ public abstract class UnaryExpression implements Expression {
 
     public static BooleanExpression createBooleanCast(Expression left) {
         return new BooleanUnaryExpression(left, UnaryType.BOOLEANCAST) {
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
                 Object rvalue = right.evaluate(context);
                 if (rvalue == null) {
@@ -174,10 +183,12 @@ public abstract class UnaryExpression implements Expression {
                 return ((Boolean) rvalue).booleanValue() ? Boolean.TRUE : Boolean.FALSE;
             }
 
+            @Override
             public String toString() {
                 return right.toString();
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "";
             }
@@ -233,6 +244,7 @@ public abstract class UnaryExpression implements Expression {
     /**
      * @see Object#toString()
      */
+    @Override
     public String toString() {
         return "(" + getExpressionSymbol() + " " + right.toString() + ")";
     }
@@ -240,6 +252,7 @@ public abstract class UnaryExpression implements Expression {
     /**
      * @see Object#hashCode()
      */
+    @Override
     public int hashCode() {
         return toString().hashCode();
     }
@@ -247,6 +260,7 @@ public abstract class UnaryExpression implements Expression {
     /**
      * @see Object#equals(Object)
      */
+    @Override
     public boolean equals(Object o) {
 
         if (o == null || !this.getClass().equals(o.getClass())) {

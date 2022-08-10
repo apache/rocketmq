@@ -54,7 +54,7 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerName", true, "Broker Name");
+        Option opt = new Option("b", "brokerName", true, "Broker Name e.g. clusterName_brokerName as DefaultCluster_broker-a");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -85,7 +85,7 @@ public class SendMsgStatusCommand implements SubCommand {
             for (int i = 0; i < count; i++) {
                 long begin = System.currentTimeMillis();
                 SendResult result = producer.send(buildMessage(brokerName, messageSize));
-                System.out.printf("rt:" + (System.currentTimeMillis() - begin) + "ms, SendResult=%s", result);
+                System.out.printf("rt=%sms, SendResult=%s%n", System.currentTimeMillis() - begin, result);
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

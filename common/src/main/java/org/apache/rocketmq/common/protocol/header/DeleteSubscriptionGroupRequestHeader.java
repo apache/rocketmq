@@ -25,6 +25,8 @@ public class DeleteSubscriptionGroupRequestHeader implements CommandCustomHeader
     @CFNotNull
     private String groupName;
 
+    private boolean cleanOffset = false;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -35,5 +37,13 @@ public class DeleteSubscriptionGroupRequestHeader implements CommandCustomHeader
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
+    }
+
+    public boolean isCleanOffset() {
+        return cleanOffset;
+    }
+
+    public void setCleanOffset(boolean cleanOffset) {
+        this.cleanOffset = cleanOffset;
     }
 }

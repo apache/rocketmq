@@ -95,4 +95,16 @@ public class MixAllTest {
         assertThat(MixAll.LOCALHOST).isNotNull();
         assertThat(MixAll.getLocalhostByNetworkInterface()).isNotNull();
     }
+
+    @Test
+    public void testIsLmq() {
+        String testLmq = null;
+        assertThat(MixAll.isLmq(testLmq)).isFalse();
+        testLmq = "lmq";
+        assertThat(MixAll.isLmq(testLmq)).isFalse();
+        testLmq = "%LMQ%queue123";
+        assertThat(MixAll.isLmq(testLmq)).isTrue();
+        testLmq = "%LMQ%GID_TEST";
+        assertThat(MixAll.isLmq(testLmq)).isTrue();
+    }
 }

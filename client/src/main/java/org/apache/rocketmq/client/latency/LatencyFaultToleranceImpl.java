@@ -70,21 +70,16 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             final FaultItem faultItem = elements.nextElement();
             tmpList.add(faultItem);
         }
-
         if (!tmpList.isEmpty()) {
-            Collections.shuffle(tmpList);
-
             Collections.sort(tmpList);
-
             final int half = tmpList.size() / 2;
             if (half <= 0) {
                 return tmpList.get(0).getName();
             } else {
-                final int i = this.whichItemWorst.getAndIncrement() % half;
+                final int i = this.whichItemWorst.incrementAndGet() % half;
                 return tmpList.get(i).getName();
             }
         }
-
         return null;
     }
 

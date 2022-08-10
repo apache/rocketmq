@@ -45,7 +45,7 @@ public class IOTinyUtilsTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File(testRootDir);
         UtilAll.deleteFile(file);
     }
@@ -82,7 +82,7 @@ public class IOTinyUtilsTest {
 
     @Test
     public void testReadLines() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 10; i++) {
             sb.append("testReadLines").append("\n");
         }
@@ -95,7 +95,7 @@ public class IOTinyUtilsTest {
 
     @Test
     public void testToBufferedReader() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 10; i++) {
             sb.append("testToBufferedReader").append("\n");
         }

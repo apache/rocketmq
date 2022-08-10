@@ -19,8 +19,8 @@ package org.apache.rocketmq.client.latency;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class MQFaultStrategy {
     private final static InternalLogger log = ClientLogger.getLog();
@@ -58,7 +58,7 @@ public class MQFaultStrategy {
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {
             try {
-                int index = tpInfo.getSendWhichQueue().getAndIncrement();
+                int index = tpInfo.getSendWhichQueue().incrementAndGet();
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)
@@ -74,7 +74,7 @@ public class MQFaultStrategy {
                     final MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {
                         mq.setBrokerName(notBestBroker);
-                        mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
+                        mq.setQueueId(tpInfo.getSendWhichQueue().incrementAndGet() % writeQueueNums);
                     }
                     return mq;
                 } else {

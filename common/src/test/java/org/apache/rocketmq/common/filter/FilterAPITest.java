@@ -33,7 +33,7 @@ public class FilterAPITest {
     @Test
     public void testBuildSubscriptionData() throws Exception {
         SubscriptionData subscriptionData =
-                FilterAPI.buildSubscriptionData(group, topic, subString);
+                FilterAPI.buildSubscriptionData(topic, subString);
         assertThat(subscriptionData.getTopic()).isEqualTo(topic);
         assertThat(subscriptionData.getSubString()).isEqualTo(subString);
         String[] tags = subString.split("\\|\\|");
@@ -57,7 +57,7 @@ public class FilterAPITest {
             assertThat(ExpressionType.isTagType(subscriptionData.getExpressionType())).isTrue();
 
             assertThat(subscriptionData.getTagsSet()).isNotNull();
-            assertThat(subscriptionData.getTagsSet()).containsExactly("A", "B");
+            assertThat(subscriptionData.getTagsSet()).containsExactlyInAnyOrder("A", "B");
         } catch (Exception e) {
             e.printStackTrace();
             assertThat(Boolean.FALSE).isTrue();

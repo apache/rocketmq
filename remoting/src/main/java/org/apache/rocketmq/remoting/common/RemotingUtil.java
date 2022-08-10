@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.common;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Inet6Address;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
@@ -98,6 +100,10 @@ public class RemotingUtil {
             ArrayList<String> ipv6Result = new ArrayList<String>();
             while (enumeration.hasMoreElements()) {
                 final NetworkInterface networkInterface = enumeration.nextElement();
+                if (isBridge(networkInterface)) {
+                    continue;
+                }
+
                 final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
                 while (en.hasMoreElements()) {
                     final InetAddress address = en.nextElement();
@@ -160,6 +166,23 @@ public class RemotingUtil {
         return sb.toString();
     }
 
+    public static String convert2IpString(final String addr) {
+        return socketAddress2String(string2SocketAddress(addr));
+    }
+
+    private static boolean isBridge(NetworkInterface networkInterface) {
+        try {
+            if (isLinuxPlatform()) {
+                String interfaceName = networkInterface.getName();
+                File file = new File("/sys/class/net/" + interfaceName + "/bridge");
+                return file.exists();
+            }
+        } catch (SecurityException e) {
+            //Ignore
+        }
+        return false;
+    }
+
     public static SocketChannel connect(SocketAddress remote) {
         return connect(remote, 1000 * 5);
     }
@@ -171,8 +194,12 @@ public class RemotingUtil {
             sc.configureBlocking(true);
             sc.socket().setSoLinger(false, -1);
             sc.socket().setTcpNoDelay(true);
-            sc.socket().setReceiveBufferSize(1024 * 64);
-            sc.socket().setSendBufferSize(1024 * 64);
+            if (NettySystemConfig.socketSndbufSize > 0) {
+                sc.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+            }
+            if (NettySystemConfig.socketRcvbufSize > 0) {
+                sc.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+            }
             sc.socket().connect(remote, timeoutMillis);
             sc.configureBlocking(false);
             return sc;
@@ -191,13 +218,17 @@ public class RemotingUtil {
 
     public static void closeChannel(Channel channel) {
         final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
-        channel.close().addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
-                    future.isSuccess());
-            }
-        });
+        if ("".equals(addrRemote)) {
+            channel.close();
+        } else {
+            channel.close().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                        future.isSuccess());
+                }
+            });
+        }
     }
 
 }

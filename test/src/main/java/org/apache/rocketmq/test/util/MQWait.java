@@ -76,7 +76,7 @@ public class MQWait {
         }
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
 
         long start = System.currentTimeMillis();
         MQWait.setCondition(new Condition() {

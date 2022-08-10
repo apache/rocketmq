@@ -22,7 +22,7 @@ then
 fi
 
 BASE_DIR=$(dirname $0)/..
-CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
+CLASSPATH=.:${BASE_DIR}/conf:${BASE_DIR}/lib/*:${CLASSPATH}
 
 # The RAMDisk initializing size in MB on Darwin OS for gc-log
 DIR_SIZE_IN_MB=600
@@ -58,9 +58,9 @@ JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:${GC_LOG_DIR}/rmq_run_class_gc_%p_%t.l
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages"
 JAVA_OPT="${JAVA_OPT} -XX:+PerfDisableSharedMem"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
 
 if [ -z "$JAVA_HOME" ]; then
   JAVA_HOME=/usr/java

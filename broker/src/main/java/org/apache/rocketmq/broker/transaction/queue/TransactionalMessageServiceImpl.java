@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 
@@ -164,7 +164,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         break;
                     }
                     if (removeMap.containsKey(i)) {
-                        log.info("Half offset {} has been committed/rolled back", i);
+                        log.debug("Half offset {} has been committed/rolled back", i);
                         Long removedOpOffset = removeMap.remove(i);
                         doneOpOffset.add(removedOpOffset);
                     } else {
@@ -393,7 +393,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private Long getLong(String s) {
         long v = -1;
         try {
-            v = Long.valueOf(s);
+            v = Long.parseLong(s);
         } catch (Exception e) {
             log.error("GetLong error", e);
         }
@@ -404,7 +404,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private Integer getInt(String s) {
         int v = -1;
         try {
-            v = Integer.valueOf(s);
+            v = Integer.parseInt(s);
         } catch (Exception e) {
             log.error("GetInt error", e);
         }

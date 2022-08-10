@@ -17,6 +17,7 @@
 package org.apache.rocketmq.acl.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -164,5 +165,28 @@ public class PermissionTest {
         Assert.assertEquals(aclException.getCode(),10016);
         aclException.setStatus("netaddress examine scope Exception netaddress");
         Assert.assertEquals(aclException.getStatus(),"netaddress examine scope Exception netaddress");
+    }
+
+    @Test
+    public void checkResourcePermsNormalTest() {
+        Permission.checkResourcePerms(null);
+        Permission.checkResourcePerms(new ArrayList<>());
+        Permission.checkResourcePerms(Arrays.asList("topicA=PUB"));
+        Permission.checkResourcePerms(Arrays.asList("topicA=PUB", "topicB=SUB", "topicC=PUB|SUB"));
+    }
+
+    @Test(expected = AclException.class)
+    public void checkResourcePermsExceptionTest1() {
+        Permission.checkResourcePerms(Arrays.asList("topicA"));
+    }
+
+    @Test(expected = AclException.class)
+    public void checkResourcePermsExceptionTest2() {
+        Permission.checkResourcePerms(Arrays.asList("topicA="));
+    }
+
+    @Test(expected = AclException.class)
+    public void checkResourcePermsExceptionTest3() {
+        Permission.checkResourcePerms(Arrays.asList("topicA=DENY1"));
     }
 }

@@ -26,10 +26,12 @@ public class ListSplitter implements Iterator<List<Message>> {
     public ListSplitter(List<Message> messages) { 
         this.messages = messages;
     }
-    @Override public boolean hasNext() {
+    @Override 
+    public boolean hasNext() {
         return currIndex < messages.size(); 
     }
-    @Override public List<Message> next() { 
+    @Override 
+    public List<Message> next() { 
         int startIndex = getStartIndex();
         int nextIndex = startIndex;
         int totalSize = 0;
@@ -57,7 +59,7 @@ public class ListSplitter implements Iterator<List<Message>> {
         return currIndex; 
     }
     private int calcMessageSize(Message message) {
-        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
         Map<String, String> properties = message.getProperties();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 

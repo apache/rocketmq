@@ -19,11 +19,16 @@ package org.apache.rocketmq.common;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.Assert.assertEquals;
 
 public class UtilAllTest {
 
@@ -109,6 +114,16 @@ public class UtilAllTest {
         assertThat(UtilAll.ipToIPv6Str(nonInternal.getAddress()).toUpperCase()).isEqualTo("2408:4004:0180:8100:3FAA:1DDE:2B3F:898A");
     }
 
+    @Test
+    public void testJoin() {
+        List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
+        String comma = ",";
+        assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.join(list, comma));
+        assertEquals(null, UtilAll.join(null, comma));
+        List<String> objects = Collections.emptyList();
+        assertEquals("", UtilAll.join(objects, comma));
+    }
+
     static class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
@@ -156,5 +171,22 @@ public class UtilAllTest {
                 ", demoName='" + demoName + '\'' +
                 '}';
         }
+    }
+
+    @Test
+    public void testCleanBuffer() {
+        UtilAll.cleanBuffer(null);
+        UtilAll.cleanBuffer(ByteBuffer.allocate(10));
+        UtilAll.cleanBuffer(ByteBuffer.allocate(0));
+    }
+
+    @Test(expected = NoSuchMethodException.class)
+    public void testMethod() throws NoSuchMethodException {
+        UtilAll.method(new Object(), "noMethod", null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testInvoke() throws Exception {
+        UtilAll.invoke(new Object(), "noMethod");
     }
 }

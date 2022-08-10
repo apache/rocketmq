@@ -93,7 +93,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
         for (MessageExt msg : msgs) {
             try {
-                System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg.toString(),
+                System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg,
                     printBody ? new String(msg.getBody(), charsetName) : "NOT PRINT BODY");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();

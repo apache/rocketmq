@@ -34,7 +34,7 @@ public class WipeWritePermSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Wipe write perm of broker in all name server";
+        return "Wipe write perm of broker in all name server you defined in the -n param";
     }
 
     @Override

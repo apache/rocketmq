@@ -23,13 +23,18 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -130,7 +135,35 @@ public class ConsumeQueueTest {
 
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName()),
+            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
+            new MessageArrivingListener() {
+                @Override
+                public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
+                    long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+                }
+            }
+            , brokerConfig);
+
+        assertThat(master.load()).isTrue();
+
+        master.start();
+
+        return master;
+    }
+
+    protected DefaultMessageStore genForMultiQueue() throws Exception {
+        MessageStoreConfig messageStoreConfig = buildStoreConfig(
+            commitLogFileSize, cqFileSize, true, cqExtFileSize
+        );
+
+        messageStoreConfig.setEnableLmq(true);
+        messageStoreConfig.setEnableMultiDispatch(true);
+
+        BrokerConfig brokerConfig = new BrokerConfig();
+
+        DefaultMessageStore master = new DefaultMessageStore(
+            messageStoreConfig,
+            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
@@ -156,6 +189,33 @@ public class ConsumeQueueTest {
                 master.putMessage(buildIPv6HostMessage());
             }
         }
+    }
+
+    protected void putMsgMultiQueue(DefaultMessageStore master) throws Exception {
+        for (long i = 0; i < 1; i++) {
+            master.putMessage(buildMessageMultiQueue());
+        }
+    }
+
+    private MessageExtBrokerInner buildMessageMultiQueue() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic(topic);
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(msgBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(queueId);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+        for (int i = 0; i < 1; i++) {
+            msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+            msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
+        }
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+        return msg;
     }
 
     protected void deleteDirectory(String rootPath) {
@@ -188,7 +248,7 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
 
             assertThat(method).isNotNull();
@@ -215,6 +275,89 @@ public class ConsumeQueueTest {
             deleteDirectory(storePath);
         }
 
+    }
+
+    @Test
+    public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+        DefaultMessageStore messageStore = null;
+        try {
+            messageStore = genForMultiQueue();
+
+
+            int totalMessages = 10;
+
+            for (int i = 0; i < totalMessages; i++) {
+                putMsgMultiQueue(messageStore);
+            }
+            Thread.sleep(5);
+
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
+
+            assertThat(method).isNotNull();
+
+            method.setAccessible(true);
+
+            SelectMappedBufferResult result = messageStore.getCommitLog().getData(0);
+            assertThat(result != null).isTrue();
+
+            DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(result.getByteBuffer(), false, false);
+
+            assertThat(cq).isNotNull();
+
+            Object dispatchResult = method.invoke(cq,  dispatchRequest);
+
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+
+            assertThat(lmqCq1).isNotNull();
+
+            assertThat(lmqCq2).isNotNull();
+
+        } finally {
+            if (messageStore != null) {
+                messageStore.shutdown();
+                messageStore.destroy();
+            }
+            deleteDirectory(storePath);
+        }
+
+    }
+
+    @Test
+    public void testPutMessagePositionInfoMultiQueue() throws Exception {
+        DefaultMessageStore messageStore = null;
+        try {
+
+            messageStore = genForMultiQueue();
+
+            int totalMessages = 10;
+
+            for (int i = 0; i < totalMessages; i++) {
+                putMsgMultiQueue(messageStore);
+            }
+            Thread.sleep(5);
+
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+
+            assertThat(cq).isNotNull();
+
+            assertThat(lmqCq1).isNotNull();
+
+            assertThat(lmqCq2).isNotNull();
+
+        } finally {
+            if (messageStore != null) {
+                messageStore.shutdown();
+                messageStore.destroy();
+            }
+            deleteDirectory(storePath);
+        }
     }
 
     @Test
@@ -246,46 +389,40 @@ public class ConsumeQueueTest {
                 assertThat(Boolean.FALSE).isTrue();
             }
 
-            ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = master.getConsumeQueueTable().get(topic).get(queueId);
 
             assertThat(cq).isNotNull();
 
-            long index = 0;
+            ReferredIterator<CqUnit> bufferResult = cq.iterateFrom(0);
 
-            while (index < cq.getMaxOffsetInQueue()) {
-                SelectMappedBufferResult bufferResult = cq.getIndexBuffer(index);
+            assertThat(bufferResult).isNotNull();
 
-                assertThat(bufferResult).isNotNull();
+            Assert.assertTrue(bufferResult.hasNext());
 
-                ByteBuffer buffer = bufferResult.getByteBuffer();
+            try {
+                while (bufferResult.hasNext()) {
+                    CqUnit cqUnit = bufferResult.next();
+                    Assert.assertNotNull(cqUnit);
+                    long phyOffset = cqUnit.getPos();
+                    int size = cqUnit.getSize();
+                    long tagsCode = cqUnit.getTagsCode();
 
-                assertThat(buffer).isNotNull();
-                try {
-                    ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                    for (int i = 0; i < bufferResult.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                        long phyOffset = buffer.getLong();
-                        int size = buffer.getInt();
-                        long tagsCode = buffer.getLong();
+                    assertThat(phyOffset).isGreaterThanOrEqualTo(0);
+                    assertThat(size).isGreaterThan(0);
+                    assertThat(tagsCode).isGreaterThan(0);
 
-                        assertThat(phyOffset).isGreaterThanOrEqualTo(0);
-                        assertThat(size).isGreaterThan(0);
-                        assertThat(tagsCode).isLessThan(0);
-
-                        boolean ret = cq.getExt(tagsCode, cqExtUnit);
-
-                        assertThat(ret).isTrue();
-                        assertThat(cqExtUnit).isNotNull();
-                        assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
-                        assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
-                        assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
-                    }
-
-                } finally {
-                    bufferResult.release();
+                    ConsumeQueueExt.CqExtUnit cqExtUnit = cqUnit.getCqExtUnit();
+                    assertThat(cqExtUnit).isNotNull();
+                    assertThat(tagsCode).isEqualTo(cqExtUnit.getTagsCode());
+                    assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
+                    assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
+                    assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
                 }
 
-                index += cqFileSize / ConsumeQueue.CQ_STORE_UNIT_SIZE;
+            } finally {
+                bufferResult.release();
             }
+
         } finally {
             master.shutdown();
             master.destroy();

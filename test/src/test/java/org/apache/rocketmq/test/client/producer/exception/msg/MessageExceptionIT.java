@@ -59,7 +59,7 @@ public class MessageExceptionIT extends BaseConf {
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
     }
 
-    @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
+    @Test(expected = java.lang.NullPointerException.class)
     public void testSynSendNullMessage() throws Exception {
         producer.send((Message) null);
     }

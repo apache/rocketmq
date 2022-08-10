@@ -26,9 +26,11 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -58,7 +60,7 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
 
     private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
         TopicConfig topicConfig = this.getBrokerController().getTopicConfigManager().createTopicOfTranCheckMaxTime(TCMT_QUEUE_NUMS, PermName.PERM_READ | PermName.PERM_WRITE);
-        int queueId = Math.abs(random.nextInt() % 99999999) % TCMT_QUEUE_NUMS;
+        int queueId = ThreadLocalRandom.current().nextInt(99999999) % TCMT_QUEUE_NUMS;
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
         inner.setTopic(topicConfig.getTopicName());
         inner.setBody(msgExt.getBody());
