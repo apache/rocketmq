@@ -25,7 +25,7 @@ RocketMQ架构上主要分为四部分，如上图所示:
 
 ![](image/rocketmq_architecture_3.png)
 
-
+dasd
 ### RocketMQ 网络部署特点
 
 - NameServer是一个几乎无状态节点，可集群部署，节点之间无任何信息同步。
