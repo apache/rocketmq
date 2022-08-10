@@ -16,7 +16,7 @@
   limitations under the License.
   -->
 
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/broker_default.log</file>
@@ -257,10 +257,34 @@
         </triggeringPolicy>
     </appender>
 
+    <appender name="RocketmqPopAppender_inner"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/pop.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/pop.%i.log
+            </fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>20</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>128MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="RocketmqPopAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqPopAppender_inner"/>
+    </appender>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
@@ -328,6 +352,11 @@
     <logger name="RocketmqConsole" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="RocketmqPop" additivity="false">
+        <level value="INFO" />
+        <appender-ref ref="RocketmqPopAppender" />
     </logger>
 
     <root>

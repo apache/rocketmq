@@ -210,13 +210,13 @@ public class ExportMetricsCommand implements SubCommand {
         double normalInTps = 0;
         double normalOutTps = 0;
         String putTps = kvTable.getTable().get("putTps");
-        String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+        String getTransferredTps = kvTable.getTable().get("getTransferredTps");
         String[] inTpss = putTps.split(" ");
         if (inTpss.length > 0) {
             normalInTps = Double.parseDouble(inTpss[0]);
         }
 
-        String[] outTpss = getTransferedTps.split(" ");
+        String[] outTpss = getTransferredTps.split(" ");
         if (outTpss.length > 0) {
             normalOutTps = Double.parseDouble(outTpss[0]);
         }

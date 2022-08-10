@@ -53,7 +53,7 @@ public class Producer {
 |int|retryTimesWhenSendFailed|同步模式下内部尝试发送消息的最大次数|
 |int|retryTimesWhenSendAsyncFailed|异步模式下内部尝试发送消息的最大次数|
 |boolean|retryAnotherBrokerWhenNotStoreOK|是否在内部发送失败时重试另一个broker|
-|int|maxMessageSize|消息的最大长度|
+|int|maxMessageSize|消息体的最大长度|
 |TraceDispatcher|traceDispatcher|基于RPCHooK实现的消息轨迹插件|
 
 ### 构造方法摘要
@@ -196,7 +196,7 @@ public class Producer {
 
 	`private int maxMessageSize = 1024 * 1024 * 4`
 
-	消息的最大大小。当消息题的字节数超过maxMessageSize就发送失败。
+	消息体的最大大小。当消息体的字节数超过maxMessageSize就发送失败。
 
 	默认值：1024 * 1024 * 4，单位：字节
 
