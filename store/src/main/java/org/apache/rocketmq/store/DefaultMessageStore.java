@@ -649,9 +649,13 @@ public class DefaultMessageStore implements MessageStore {
         recoverTopicQueueTable();
 
         // truncate consumer offset
-        this.truncateFilesHook.truncateOffset(this.consumeQueueStore.getConsumeQueueTable());
+        if (this.truncateFilesHook != null) {
+            this.truncateFilesHook.truncateOffset(this.consumeQueueStore.getConsumeQueueTable());
+        }
 
-        this.timerMessageStore.truncateTimerConsumerOffset();
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.truncateTimerConsumerOffset();
+        }
 
         this.reputMessageService = new ReputMessageService();
         this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
