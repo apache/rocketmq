@@ -79,6 +79,7 @@ import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
@@ -185,6 +186,8 @@ import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHea
 import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -3025,5 +3028,33 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         if (errResponse != null) {
             throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
         }
+    }
+
+    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
+        String brokerAddr) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
+
+        //get controller leader address
+        final GetMetaDataResponseHeader controllerMetaData = this.getControllerMetaData(controllerAddr);
+        assert controllerMetaData != null;
+        assert controllerMetaData.getControllerLeaderAddress() != null;
+        final String leaderAddress = controllerMetaData.getControllerLeaderAddress();
+        ElectMasterRequestHeader electRequestHeader = new ElectMasterRequestHeader(clusterName, brokerName, brokerAddr);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, electRequestHeader);
+        final RemotingCommand response = this.remotingClient.invokeSync(leaderAddress, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                BrokerMemberGroup brokerMemberGroup = RemotingSerializable.decode(response.getBody(), BrokerMemberGroup.class);
+                ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
+                if (null != responseHeader) {
+                    responseHeader.setBrokerMemberGroup(brokerMemberGroup);
+                }
+                return responseHeader;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 }

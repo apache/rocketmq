@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
@@ -53,7 +54,8 @@ public class ReplicasInfoManagerTest {
         this.replicasInfoManager = new ReplicasInfoManager(config);
     }
 
-    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, boolean isFirstRegisteredBroker) {
+    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress,
+        boolean isFirstRegisteredBroker) {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
             new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
@@ -72,7 +74,8 @@ public class ReplicasInfoManagerTest {
         return true;
     }
 
-    private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch, Set<String> newSyncStateSet, int syncStateSetEpoch) {
+    private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch,
+        Set<String> newSyncStateSet, int syncStateSetEpoch) {
         final AlterSyncStateSetRequestHeader alterRequest =
             new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
         final ControllerResult<AlterSyncStateSetResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch), (va1, va2) -> true);
@@ -113,6 +116,29 @@ public class ReplicasInfoManagerTest {
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+
+        final Set<String> brokerSet = new HashSet<>();
+        brokerSet.add("127.0.0.1:9000");
+        brokerSet.add("127.0.0.1:9001");
+        brokerSet.add("127.0.0.1:9002");
+        final ElectMasterRequestHeader assignRequest = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9000");
+        final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest, (clusterName, brokerAddress) -> brokerAddress.contains("127.0.0.1:9000"));
+        assertEquals( cResult1.getResponseCode(), ResponseCode.CONTROLLER_INVALID_REQUEST);
+
+
+        final ElectMasterRequestHeader assignRequest1 = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9001");
+        final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1, (clusterName, brokerAddress) -> brokerAddress.equals("127.0.0.1:9000"));
+        assertEquals( cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE);
+
+        final ElectMasterRequestHeader assignRequest2 = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9001");
+        final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2, (clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"));
+        assertEquals( cResult3.getResponseCode(), ResponseCode.SUCCESS);
+        final ElectMasterResponseHeader response3 = cResult3.getResponse();
+        assertEquals(response3.getNewMasterAddress(),"127.0.0.1:9001");
+        assertEquals(response.getMasterEpoch(), 2);
+        assertFalse(response.getNewMasterAddress().isEmpty());
+        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+
     }
 
     @Test
