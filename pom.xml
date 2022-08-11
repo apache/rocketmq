@@ -129,7 +129,7 @@
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
-        <caffeine.version>2.8.5</caffeine.version>
+        <caffeine.version>2.9.3</caffeine.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
