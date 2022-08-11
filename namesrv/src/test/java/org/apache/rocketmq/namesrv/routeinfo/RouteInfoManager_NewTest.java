@@ -707,6 +707,7 @@ public class RouteInfoManager_NewTest {
             brokerInfo.brokerName,
             brokerInfo.brokerId,
             brokerInfo.haAddr,
+            "",
             null,
             brokerInfo.enableActingMaster,
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);

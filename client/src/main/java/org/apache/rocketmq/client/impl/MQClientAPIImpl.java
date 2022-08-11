@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import com.alibaba.fastjson.JSON;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -193,6 +192,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.subscription.GroupForbidden;
@@ -217,8 +217,8 @@ import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
+import com.alibaba.fastjson.JSON;
 
 public class MQClientAPIImpl implements NameServerUpdateCallback {
     private final static InternalLogger log = ClientLogger.getLog();
@@ -249,6 +249,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             this.remotingClient.registerRPCHook(new StreamTypeRPCHook());
         }
         this.remotingClient.registerRPCHook(rpcHook);
+        this.remotingClient.registerRPCHook(new DynamicalExtFieldRPCHook());
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, this.clientRemotingProcessor, null);
