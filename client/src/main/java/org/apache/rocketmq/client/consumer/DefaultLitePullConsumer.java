@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -256,6 +257,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
+    /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     *
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    @Override
+    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
+    }
+
     @Override
     public void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), messageSelector);
@@ -264,6 +277,17 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
+    }
+
+    /**
+     * Get the queue assigned in subscribe mode
+     *
+     * @return
+     * @throws MQClientException
+     */
+    @Override
+    public Set<MessageQueue> assignment() throws MQClientException {
+        return this.defaultLitePullConsumerImpl.assignment();
     }
 
     @Override
@@ -315,6 +339,16 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    /**
+     * Offset specified by batch commit
+     * @param messageQueues
+     * @param persist
+     */
+    @Override
+    public void commitSync(Map<MessageQueue, Long> messageQueues, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
     }
 
     @Override
