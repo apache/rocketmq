@@ -16,32 +16,19 @@
  */
 package org.apache.rocketmq.controller.elect;
 
-import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
 
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 
-public abstract class ElectPolicy {
-
-    // <clusterName, brokerAddr> valid predicate
-    protected BiPredicate<String, String> validPredicate;
-
-    // <clusterName, brokerAddr, info> getter to get more information
-    protected BiFunction<String, String, ?> additionalInfoGetter;
-
-    public ElectPolicy(BiPredicate<String, String> validPredicate, BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
-        this.validPredicate = validPredicate;
-        this.additionalInfoGetter = additionalInfoGetter;
-    }
+public interface ElectPolicy {
 
     /**
      * elect a master
-     * @param clusterName the brokerGroup belongs
-     * @param syncStateBrokers all broker replicas in syncStateSet
+     *
+     * @param clusterName       the brokerGroup belongs
+     * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
-     * @param oldMaster old master
+     * @param oldMaster         old master
      * @return new master's brokerAddr
      */
-    public abstract String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster);
+    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster);
 }

@@ -1138,7 +1138,8 @@ public class BrokerOuterAPI {
                                           final int timeoutMills,
                                           final boolean isInBrokerContainer,
                                           final int epoch,
-                                          final long maxOffset) {
+                                          final long maxOffset,
+                                          final long confirmOffset) {
         if (StringUtils.isEmpty(controllerAddress)) {
             return;
         }
@@ -1149,6 +1150,7 @@ public class BrokerOuterAPI {
         requestHeader.setBrokerName(brokerName);
         requestHeader.setEpoch(epoch);
         requestHeader.setMaxOffset(maxOffset);
+        requestHeader.setConfirmOffset(confirmOffset);
         brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
             @Override
             public void run2() {

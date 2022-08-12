@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.protocol.header.namesrv;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
@@ -28,10 +29,13 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     private String brokerAddr;
     @CFNotNull
     private String brokerName;
-    @CFNotNull
-    private int epoch;
-    @CFNotNull
-    private long maxOffset;
+    @CFNullable
+    private Integer epoch;
+    @CFNullable
+    private Long maxOffset;
+    @CFNullable
+    private Long confirmOffset;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -75,5 +79,13 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
 
     public void setMaxOffset(long maxOffset) {
         this.maxOffset = maxOffset;
+    }
+
+    public Long getConfirmOffset() {
+        return confirmOffset;
+    }
+
+    public void setConfirmOffset(Long confirmOffset) {
+        this.confirmOffset = confirmOffset;
     }
 }

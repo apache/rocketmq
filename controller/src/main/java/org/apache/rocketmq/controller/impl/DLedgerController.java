@@ -24,6 +24,7 @@ import io.openmessaging.storage.dledger.MemberState;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
+
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -55,7 +57,7 @@ import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
-import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -81,8 +83,8 @@ public class DLedgerController implements Controller {
     private final DLedgerControllerStateMachine statemachine;
     // Usr for checking whether the broker is alive
     private BiPredicate<String, String> brokerAlivePredicate;
-
-    private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
+    // use for elect a master
+    private ElectPolicy electPolicy;
 
 
     private AtomicBoolean isScheduling = new AtomicBoolean(false);
@@ -92,14 +94,14 @@ public class DLedgerController implements Controller {
     }
 
     public DLedgerController(final ControllerConfig controllerConfig,
-        final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
-                             BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
+                             final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
+                             final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
+                             final ElectPolicy electPolicy) {
         this.controllerConfig = controllerConfig;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
         this.brokerAlivePredicate = brokerAlivePredicate;
-        this.additionalInfoGetter = additionalInfoGetter;
+        this.electPolicy = electPolicy == null ? new DefaultElectPolicy() : electPolicy;
         this.dLedgerConfig = new DLedgerConfig();
         this.dLedgerConfig.setGroup(controllerConfig.getControllerDLegerGroup());
         this.dLedgerConfig.setPeers(controllerConfig.getControllerDLegerPeers());
@@ -154,34 +156,34 @@ public class DLedgerController implements Controller {
 
     @Override
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
-        final SyncStateSet syncStateSet) {
+                                                                final SyncStateSet syncStateSet) {
         return this.scheduler.appendEvent("alterSyncStateSet",
-            () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
+                () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         return this.scheduler.appendEvent("electMaster",
-            () -> this.replicasInfoManager.electMaster(request, new DefaultElectPolicy(this.brokerAlivePredicate, this.additionalInfoGetter)), true);
+                () -> this.replicasInfoManager.electMaster(request, this.electPolicy), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
         return this.scheduler.appendEvent("registerBroker",
-            () -> this.replicasInfoManager.registerBroker(request), true);
+                () -> this.replicasInfoManager.registerBroker(request), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
         return this.scheduler.appendEvent("getReplicaInfo",
-            () -> this.replicasInfoManager.getReplicaInfo(request), false);
+                () -> this.replicasInfoManager.getReplicaInfo(request), false);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
 
         return this.scheduler.appendEvent("getSyncStateData",
-            () -> this.replicasInfoManager.getSyncStateData(brokerNames), false);
+                () -> this.replicasInfoManager.getSyncStateData(brokerNames), false);
     }
 
     @Override
@@ -194,7 +196,7 @@ public class DLedgerController implements Controller {
             sb.append(peer).append(";");
         }
         return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(
-            state.getGroup(), state.getLeaderId(), state.getLeaderAddr(), state.isLeader(), sb.toString()));
+                state.getGroup(), state.getLeaderId(), state.getLeaderAddr(), state.isLeader(), sb.toString()));
     }
 
     @Override
@@ -285,7 +287,7 @@ public class DLedgerController implements Controller {
         }
 
         public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
-            final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
+                                                                  final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
             if (isStopped() || !DLedgerController.this.roleHandler.isLeaderState()) {
                 final RemotingCommand command = RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "The controller is not in leader state");
                 final CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -322,7 +324,7 @@ public class DLedgerController implements Controller {
         private final boolean isWriteEvent;
 
         ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
-            final boolean isWriteEvent) {
+                               final boolean isWriteEvent) {
             this.name = name;
             this.supplier = supplier;
             this.future = new CompletableFuture<>();

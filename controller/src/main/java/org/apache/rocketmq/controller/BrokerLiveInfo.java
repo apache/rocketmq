@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.pojo;
+package org.apache.rocketmq.controller;
 
 
 import io.netty.channel.Channel;
@@ -31,6 +31,8 @@ public class BrokerLiveInfo {
     private long lastUpdateTimestamp;
     private int epoch;
     private long maxOffset;
+    private long confirmOffset;
+
     public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
                           Channel channel, int epoch, long maxOffset) {
         this.brokerName = brokerName;
@@ -41,6 +43,18 @@ public class BrokerLiveInfo {
         this.channel = channel;
         this.epoch = epoch;
         this.maxOffset = maxOffset;
+    }
+    public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
+                          Channel channel, int epoch, long maxOffset, long confirmOffset) {
+        this.brokerName = brokerName;
+        this.brokerAddr = brokerAddr;
+        this.brokerId = brokerId;
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
+        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
+        this.channel = channel;
+        this.epoch = epoch;
+        this.maxOffset = maxOffset;
+        this.confirmOffset = confirmOffset;
     }
 
     @Override
@@ -54,6 +68,7 @@ public class BrokerLiveInfo {
                 ", lastUpdateTimestamp=" + lastUpdateTimestamp +
                 ", epoch=" + epoch +
                 ", maxOffset=" + maxOffset +
+                ", confirmOffset=" + confirmOffset +
                 '}';
     }
 
@@ -105,4 +120,11 @@ public class BrokerLiveInfo {
         return brokerAddr;
     }
 
+    public void setConfirmOffset(long confirmOffset) {
+        this.confirmOffset = confirmOffset;
+    }
+
+    public long getConfirmOffset() {
+        return confirmOffset;
+    }
 }

@@ -91,6 +91,10 @@ public class ReplicasManager {
         this.haService.setLocalAddress(this.localAddress);
     }
 
+    public long getConfirmOffset() {
+        return this.haService.getConfirmOffset();
+    }
+
 
     enum State {
         INITIAL,

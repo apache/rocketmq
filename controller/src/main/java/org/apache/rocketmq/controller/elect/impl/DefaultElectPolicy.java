@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.controller.elect.impl;
 
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
-import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -28,15 +27,25 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
-public class DefaultElectPolicy extends ElectPolicy {
+public class DefaultElectPolicy implements ElectPolicy {
 
-    private final Comparator<BrokerLiveInfo> comparator;
+    // <clusterName, brokerAddr> valid predicate
+    private BiPredicate<String, String> validPredicate;
+
+    // <clusterName, brokerAddr, info> getter to get more information
+    private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
+
+    private final Comparator<BrokerLiveInfo> comparator = (x, y) -> {
+        return x.getEpoch() == y.getEpoch() ? (int) (y.getMaxOffset() - x.getMaxOffset()) : y.getEpoch() - x.getEpoch();
+    };
 
     public DefaultElectPolicy(BiPredicate<String, String> validPredicate, BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
-        super(validPredicate, additionalInfoGetter);
-        comparator = (x, y) -> {
-            return x.getEpoch() == y.getEpoch() ? (int) (y.getMaxOffset() - x.getMaxOffset()) : y.getEpoch() - x.getEpoch();
-        };
+        this.validPredicate = validPredicate;
+        this.additionalInfoGetter = additionalInfoGetter;
+    }
+
+    public DefaultElectPolicy() {
+
     }
 
 
@@ -58,8 +67,8 @@ public class DefaultElectPolicy extends ElectPolicy {
     }
 
     private String tryElect(String clusterName, Set<String> brokers, String oldMaster) {
-        if (super.validPredicate != null) {
-            brokers = brokers.stream().filter(brokerAddr -> super.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
+        if (this.validPredicate != null) {
+            brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
         }
         // try to elect in brokers
         if (brokers.size() >= 1) {
@@ -67,12 +76,11 @@ public class DefaultElectPolicy extends ElectPolicy {
                 // old master still valid, we prefer it
                 return oldMaster;
             }
-            if (super.additionalInfoGetter != null) {
+            if (this.additionalInfoGetter != null) {
                 // get more information from getter
-                BiFunction<String, String, BrokerLiveInfo> getter = (BiFunction<String, String, BrokerLiveInfo>) super.additionalInfoGetter;
                 // sort brokerLiveInfos by epoch, maxOffset
                 TreeSet<BrokerLiveInfo> brokerLiveInfos = new TreeSet<>(this.comparator);
-                brokers.forEach(brokerAddr -> brokerLiveInfos.add(getter.apply(clusterName, brokerAddr)));
+                brokers.forEach(brokerAddr -> brokerLiveInfos.add(this.additionalInfoGetter.apply(clusterName, brokerAddr)));
                 if (brokerLiveInfos.size() >= 1) {
                     return brokerLiveInfos.first().getBrokerAddr();
                 }
@@ -81,5 +89,21 @@ public class DefaultElectPolicy extends ElectPolicy {
             return brokers.iterator().next();
         }
         return null;
+    }
+
+    public BiFunction<String, String, BrokerLiveInfo> getAdditionalInfoGetter() {
+        return additionalInfoGetter;
+    }
+
+    public void setAdditionalInfoGetter(BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
+        this.additionalInfoGetter = additionalInfoGetter;
+    }
+
+    public BiPredicate<String, String> getValidPredicate() {
+        return validPredicate;
+    }
+
+    public void setValidPredicate(BiPredicate<String, String> validPredicate) {
+        this.validPredicate = validPredicate;
     }
 }

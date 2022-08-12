@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.pojo.BrokerLiveInfo;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -127,7 +127,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerAddr, int epoch, long maxOffset) {
+    public void onBrokerHeartbeat(String clusterName, String brokerAddr, int epoch, long maxOffset, long confirmOffset) {
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         if (prev != null) {
@@ -135,9 +135,11 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             if (epoch > prev.getEpoch()) {
                 prev.setEpoch(epoch);
                 prev.setMaxOffset(maxOffset);
+                prev.setConfirmOffset(confirmOffset);
             }else if (epoch == prev.getEpoch()) {
                 if (maxOffset > prev.getMaxOffset()) {
                     prev.setMaxOffset(maxOffset);
+                    prev.setConfirmOffset(confirmOffset);
                 }
             }
         }
