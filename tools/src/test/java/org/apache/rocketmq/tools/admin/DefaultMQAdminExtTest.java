@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -41,7 +40,6 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -80,6 +78,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
+import org.apache.rocketmq.tools.utils.MQAdminTestUtils;
 import org.assertj.core.util.Maps;
 import org.junit.*;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
@@ -155,8 +154,8 @@ public class DefaultMQAdminExtTest {
         HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(1234l, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
-        brokerData.setCluster("default-cluster");
-        brokerData.setBrokerName("default-broker");
+        brokerData.setCluster(cluster);
+        brokerData.setBrokerName(broker1Name);
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDatas.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDatas);
@@ -171,7 +170,7 @@ public class DefaultMQAdminExtTest {
         when(mQClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
 
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
-        brokerAddrTable.put("default-broker", brokerData);
+        brokerAddrTable.put(cluster, brokerData);
         brokerAddrTable.put("broker-test", new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
@@ -337,17 +336,16 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testexamineConsumerConnectionInfoConcurrent() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
     
-        awaitUtilDefaultMQAdminExtStart();
-        
-          //TODO init topic
-//        IntegrationTestBase.initTopic(topic1, "localhost:"+NAME_SERVER_PORT, cluster, 1, CQType.SimpleCQ)
+        awaitUtilDefaultMQAdminExtStart(cluster);
     
         defaultMQAdminExt.setNamesrvAddr("localhost:"+NAME_SERVER_PORT);
     
-        //FIXME: IntegrationTestBase.initTopic replace defaultMQAdminExt.createTopic
-        defaultMQAdminExt.setCreateTopicKey(topic1);
-        defaultMQAdminExt.createTopic(broker1Addr,topic1, 8,new HashMap<>());
-        defaultMQAdminExt.createTopic(broker1Addr,topic2,8,new HashMap<>());
+        TopicConfig topicConfig = new TopicConfig(topic1, 1, 1, 6, 0);
+        defaultMQAdminExt.createAndUpdateTopicConfig(broker1Addr, topicConfig);
+    
+        defaultMQAdminExt.setCreateTopicKey(broker1Name);
+        defaultMQAdminExt.createTopic(broker1Name,topic1, 8,new HashMap<>());
+        defaultMQAdminExt.createTopic(broker1Name,topic2,8,new HashMap<>());
         
         AdminToolResult<ConsumerConnection> adminToolResult = defaultMQAdminExt.examineConsumerConnectionInfoConcurrent("default-consumer-group");
         ConsumerConnection consumerConnection = adminToolResult.getData();
@@ -505,13 +503,13 @@ public class DefaultMQAdminExtTest {
     }
     
     
-    protected static void awaitUtilDefaultMQAdminExtStart() {
-        await().atMost(Duration.ofSeconds(1000))
+    protected static void awaitUtilDefaultMQAdminExtStart(String cluster) {
+        await().atMost(Duration.ofSeconds(10000))
             .until(() -> {
                 boolean done = true;
                 try {
                     brokerMocker = startOneBroker();
-                    nameServerMocker = startNameServer();
+                    nameServerMocker = startNameServer(cluster);
                     defaultMQAdminExtImpl.start();
                 } catch (Exception ex){
                     done = false;
@@ -520,24 +518,24 @@ public class DefaultMQAdminExtTest {
             });
     }
     
-    private static ServerResponseMocker startNameServer() {
+    private static ServerResponseMocker startNameServer(String cluster) {
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
         ClusterInfo clusterInfo = new ClusterInfo();
         
         HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
         BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("mockBrokerName");
+        brokerData.setBrokerName(broker1Name);
         HashMap<Long, String> brokerAddress = new HashMap<>();
         brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
         brokerData.setBrokerAddrs(brokerAddress);
-        brokerData.setCluster("mockCluster");
-        brokerAddressTable.put("mockBrokerName", brokerData);
+        brokerData.setCluster(cluster);
+        brokerAddressTable.put(broker1Name, brokerData);
         clusterInfo.setBrokerAddrTable(brokerAddressTable);
         
         HashMap<String, Set<String>> clusterAddressTable = new HashMap<>();
         Set<String> brokerNames = new HashSet<>();
-        brokerNames.add("mockBrokerName");
-        clusterAddressTable.put("mockCluster", brokerNames);
+        brokerNames.add(broker1Name);
+        clusterAddressTable.put(cluster, brokerNames);
         clusterInfo.setClusterAddrTable(clusterAddressTable);
         
         // start name server

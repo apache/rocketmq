@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.test.util;
+package org.apache.rocketmq.tools.utils;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
