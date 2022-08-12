@@ -414,7 +414,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             return AutoSwitchAcceptSocketService.class.getSimpleName();
         }
 
-        @Override protected HAConnection createConnection(SocketChannel sc) throws IOException {
+        @Override
+        protected HAConnection createConnection(SocketChannel sc) throws IOException {
             return new AutoSwitchHAConnection(AutoSwitchHAService.this, sc, AutoSwitchHAService.this.epochCache);
         }
     }

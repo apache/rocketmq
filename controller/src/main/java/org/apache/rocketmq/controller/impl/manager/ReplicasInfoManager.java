@@ -153,9 +153,9 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<ElectMasterResponseHeader> electMaster(
-            final ElectMasterRequestHeader request, final ElectPolicy electPolicy) {
+    public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request, final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();
+        final String assignBrokerAddress = request.getBrokerAddress();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
         if (isContainsBroker(brokerName)) {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
@@ -199,7 +199,7 @@ public class ReplicasInfoManager {
         result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker metadata is not existed");
         return result;
     }
-
+    
 
     private BrokerMemberGroup buildBrokerMemberGroup(final String brokerName) {
         if (isContainsBroker(brokerName)) {
@@ -213,6 +213,7 @@ public class ReplicasInfoManager {
         }
         return null;
     }
+
 
     public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request) {
         final String brokerName = request.getBrokerName();
