@@ -106,7 +106,6 @@
     </properties>
 
     <modules>
-        <module>apis</module>
         <module>client</module>
         <module>common</module>
         <module>broker</module>
@@ -279,9 +278,6 @@
                             <goal>prepare-agent-integration</goal>
                         </goals>
                         <configuration>
-                            <excludes>
-                                <exclude>**/apache/rocketmq/apis/*</exclude>
-                            </excludes>
                             <destFile>${project.build.directory}/jacoco-it.exec</destFile>
                             <propertyName>failsafeArgLine</propertyName>
                         </configuration>

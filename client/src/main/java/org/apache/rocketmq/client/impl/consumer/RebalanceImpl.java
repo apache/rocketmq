@@ -273,40 +273,28 @@ public abstract class RebalanceImpl {
         if (topicBrokerRebalance.containsKey(topic)) {
             return true;
         }
-
         String strategyName = allocateMessageQueueStrategy != null ? allocateMessageQueueStrategy.getName() : null;
-
-        boolean success = false;
-        int i = 0;
-        int timeOut = 0;
-        while (i++ < TIMEOUT_CHECK_TIMES) {
+        int retryTimes = 0;
+        while (retryTimes++ < TIMEOUT_CHECK_TIMES) {
             try {
                 Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
-                    strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * i);
-                success = true;
-                break;
+                    strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
+                topicBrokerRebalance.put(topic, topic);
+                return true;
             } catch (Throwable t) {
-                if (t instanceof RemotingTimeoutException) {
-                    timeOut++;
-                } else {
+                if (!(t instanceof RemotingTimeoutException)) {
                     log.error("tryQueryAssignment error.", t);
-                    break;
+                    topicClientRebalance.put(topic, topic);
+                    return false;
                 }
             }
         }
-
-        if (success) {
-            topicBrokerRebalance.put(topic, topic);
-            return true;
-        } else {
-            if (timeOut >= TIMEOUT_CHECK_TIMES) {
-                // if never success before and timeout exceed TIMEOUT_CHECK_TIMES, force client rebalance
-                topicClientRebalance.put(topic, topic);
-                return false;
-            } else {
-                return true;
-            }
+        if (retryTimes >= TIMEOUT_CHECK_TIMES) {
+            // if never success before and timeout exceed TIMEOUT_CHECK_TIMES, force client rebalance
+            topicClientRebalance.put(topic, topic);
+            return false;
         }
+        return true;
     }
 
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {

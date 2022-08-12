@@ -35,8 +35,6 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long queueOffset;
     @CFNotNull
-    private Integer maxMsgBytes;
-    @CFNotNull
     private Integer maxMsgNums;
     @CFNotNull
     private Integer sysFlag;
@@ -49,6 +47,9 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long subVersion;
     private String expressionType;
+
+    @CFNullable
+    private Integer maxMsgBytes;
 
     @Override
     public void checkFields() throws RemotingCommandException {

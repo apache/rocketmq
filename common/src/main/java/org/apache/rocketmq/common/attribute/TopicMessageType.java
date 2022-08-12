@@ -15,20 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.apis.producer;
+package org.apache.rocketmq.common.attribute;
 
-public enum TransactionResolution {
-    /**
-     * Notify server that current transaction should be committed.
-     */
-    COMMIT,
-    /**
-     * Notify server that current transaction should be roll-backed.
-     */
-    ROLLBACK,
-    /**
-     * Notify server that the state of this transaction is not sure. You should be cautions before return unknown
-     * because the examination from server will be performed periodically.
-     */
-    UNKNOWN;
+import com.google.common.collect.Sets;
+import java.util.Set;
+
+public enum TopicMessageType {
+    UNSPECIFIED("UNSPECIFIED"),
+    NORMAL("NORMAL"),
+    FIFO("FIFO"),
+    DELAY("DELAY"),
+    TRANSACTION("TRANSACTION");
+
+    private final String value;
+    TopicMessageType(String value) {
+        this.value = value;
+    }
+
+    public static Set<String> topicMessageTypeSet() {
+        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value);
+    }
+
+    public String getValue() {
+        return value;
+    }
 }

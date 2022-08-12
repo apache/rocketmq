@@ -85,11 +85,11 @@ public class HATest {
         slaveMessageStore = buildMessageStore(slaveStoreConfig, 1L);
         boolean load = messageStore.load();
         boolean slaveLoad = slaveMessageStore.load();
-        slaveMessageStore.updateHaMasterAddress("127.0.0.1:10912");
         assertTrue(load);
         assertTrue(slaveLoad);
         messageStore.start();
         slaveMessageStore.start();
+        slaveMessageStore.updateHaMasterAddress("127.0.0.1:10912");
         Thread.sleep(6000L);//because the haClient will wait 5s after the first connectMaster failed,sleep 6s
     }
 

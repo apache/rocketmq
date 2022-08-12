@@ -26,12 +26,13 @@ public class SubscriptionGroupConfig {
 
     private boolean consumeEnable = true;
     private boolean consumeFromMinEnable = true;
-
     private boolean consumeBroadcastEnable = true;
+    private boolean consumeMessageOrderly = false;
 
     private int retryQueueNums = 1;
 
     private int retryMaxTimes = 16;
+    private GroupRetryPolicy groupRetryPolicy = new GroupRetryPolicy();
 
     private long brokerId = MixAll.MASTER_ID;
 
@@ -40,6 +41,9 @@ public class SubscriptionGroupConfig {
     private boolean notifyConsumerIdsChangedEnable = true;
 
     private int groupSysFlag = 0;
+
+    // Only valid for push consumer
+    private int consumeTimeoutMinute = 15;
 
     public String getGroupName() {
         return groupName;
@@ -73,6 +77,14 @@ public class SubscriptionGroupConfig {
         this.consumeBroadcastEnable = consumeBroadcastEnable;
     }
 
+    public boolean isConsumeMessageOrderly() {
+        return consumeMessageOrderly;
+    }
+
+    public void setConsumeMessageOrderly(boolean consumeMessageOrderly) {
+        this.consumeMessageOrderly = consumeMessageOrderly;
+    }
+
     public int getRetryQueueNums() {
         return retryQueueNums;
     }
@@ -87,6 +99,14 @@ public class SubscriptionGroupConfig {
 
     public void setRetryMaxTimes(int retryMaxTimes) {
         this.retryMaxTimes = retryMaxTimes;
+    }
+
+    public GroupRetryPolicy getGroupRetryPolicy() {
+        return groupRetryPolicy;
+    }
+
+    public void setGroupRetryPolicy(GroupRetryPolicy groupRetryPolicy) {
+        this.groupRetryPolicy = groupRetryPolicy;
     }
 
     public long getBrokerId() {
@@ -119,6 +139,14 @@ public class SubscriptionGroupConfig {
 
     public void setGroupSysFlag(int groupSysFlag) {
         this.groupSysFlag = groupSysFlag;
+    }
+
+    public int getConsumeTimeoutMinute() {
+        return consumeTimeoutMinute;
+    }
+
+    public void setConsumeTimeoutMinute(int consumeTimeoutMinute) {
+        this.consumeTimeoutMinute = consumeTimeoutMinute;
     }
 
     @Override
@@ -163,11 +191,19 @@ public class SubscriptionGroupConfig {
 
     @Override
     public String toString() {
-        return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-            + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
-            + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
-            + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
-            + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
-            + notifyConsumerIdsChangedEnable + ", groupSysFlag=" + groupSysFlag + "]";
+        return "SubscriptionGroupConfig{" +
+            "groupName='" + groupName + '\'' +
+            ", consumeEnable=" + consumeEnable +
+            ", consumeFromMinEnable=" + consumeFromMinEnable +
+            ", consumeBroadcastEnable=" + consumeBroadcastEnable +
+            ", consumeMessageOrderly=" + consumeMessageOrderly +
+            ", retryQueueNums=" + retryQueueNums +
+            ", retryMaxTimes=" + retryMaxTimes +
+            ", groupRetryPolicy=" + groupRetryPolicy +
+            ", brokerId=" + brokerId +
+            ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly +
+            ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
+            ", groupSysFlag=" + groupSysFlag +
+            '}';
     }
 }

@@ -558,7 +558,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             } else {
                 putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
             }
-            putMessageResult = this.brokerController.getMessageStore().putMessage(messageExtBatch);
             handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt, beginTimeMillis, mappingContext);
             sendMessageCallback.onComplete(sendMessageContext, response);
             return response;

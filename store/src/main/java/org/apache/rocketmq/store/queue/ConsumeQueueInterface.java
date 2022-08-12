@@ -18,6 +18,8 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.DispatchRequest;
 
 public interface ConsumeQueueInterface {
     /**
@@ -117,4 +119,24 @@ public interface ConsumeQueueInterface {
      * @return total size
      */
     long getTotalSize();
+
+    /**
+     * Correct min offset by min commit log offset.
+     * @param minCommitLogOffset min commit log offset
+     */
+    void correctMinOffset(long minCommitLogOffset);
+
+    /**
+     * Do dispatch.
+     * @param request the request containing dispatch information.
+     */
+    void putMessagePositionInfoWrapper(DispatchRequest request);
+
+    /**
+     * Assign queue offset.
+     * @param queueOffsetAssigner the delegated queue offset assigner
+     * @param msg message itself
+     * @param messageNum message number
+     */
+    void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
 }

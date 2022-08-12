@@ -161,7 +161,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         }
         end = System.currentTimeMillis();
         Assert.assertTrue(end - start < 2000);
-        Assert.assertEquals(-1, batchConsumeQueue.getOffsetInQueueByTime(System.currentTimeMillis()));
+        Assert.assertEquals(199991, batchConsumeQueue.getOffsetInQueueByTime(System.currentTimeMillis()));
         batchConsumeQueue.destroy();
     }
 
