@@ -490,7 +490,15 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-            this.defaultLitePullConsumer.setMessageQueueListener(messageQueueListener);
+            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListener() {
+                @Override
+                public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                    // First, update the assign queue
+                    updateAssignQueueAndStartPullTask(topic, mqAll, mqDivided);
+                    // run custom listener
+                    messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
+                }
+            });
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
@@ -510,7 +518,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-//            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
@@ -534,7 +542,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             SubscriptionData subscriptionData = FilterAPI.build(topic,
                 messageSelector.getExpression(), messageSelector.getExpressionType());
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-//            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();

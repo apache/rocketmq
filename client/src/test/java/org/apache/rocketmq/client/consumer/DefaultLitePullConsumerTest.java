@@ -21,9 +21,12 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -124,6 +127,71 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.shutdown();
         }
     }
+
+    @Test
+    public void testSubscribeWithListener_PollMessageSuccess() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumerWithListener();
+        try {
+            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            messageQueueSet.add(createMessageQueue());
+            litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+            litePullConsumer.setPollTimeoutMillis(20 * 1000);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result.get(0).getTopic()).isEqualTo(topic);
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+
+            Set<MessageQueue> assignment= litePullConsumer.assignment();
+            assertThat(assignment.stream().findFirst().get()).isEqualTo(messageQueueSet.stream().findFirst().get());
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testAssignment() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumerWithListener();
+        try {
+            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            messageQueueSet.add(createMessageQueue());
+            litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+            litePullConsumer.setPollTimeoutMillis(20 * 1000);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result.get(0).getTopic()).isEqualTo(topic);
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testConsumerCommitSyncWithMQOffset() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+        litePullConsumer.setOffsetStore(store);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+
+        //replace with real offsetStore.
+        Field offsetStore = litePullConsumerImpl.getClass().getDeclaredField("offsetStore");
+        offsetStore.setAccessible(true);
+        offsetStore.set(litePullConsumerImpl, store);
+
+        MessageQueue messageQueue = createMessageQueue();
+        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        set.add(messageQueue);
+
+        //mock assign and reset offset
+        litePullConsumer.assign(set);
+        litePullConsumer.seek(messageQueue, 0);
+
+        //commit offset 1
+        Map<MessageQueue, Long> commitOffset = new HashMap<>();
+        commitOffset.put(messageQueue, 1L);
+        litePullConsumer.commitSync(commitOffset, true);
+
+        assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(1);
+    }
+
 
     @Test
     public void testSubscribe_PollMessageSuccess() throws Exception {
@@ -571,6 +639,7 @@ public class DefaultLitePullConsumerTest {
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0);
     }
 
+
     static class AsyncConsumer {
         public void executeAsync(final DefaultLitePullConsumer consumer) {
             new Thread(new Runnable() {
@@ -660,7 +729,9 @@ public class DefaultLitePullConsumerTest {
         litePullConsumer.subscribe(topic, "*", new MessageQueueListener() {
             @Override
             public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-                System.out.println("No operation");
+                assertThat(mqAll.stream().findFirst().get().getTopic()).isEqualTo(mqDivided.stream().findFirst().get().getTopic());
+                assertThat(mqAll.stream().findFirst().get().getBrokerName()).isEqualTo(mqDivided.stream().findFirst().get().getBrokerName());
+                assertThat(mqAll.stream().findFirst().get().getQueueId()).isEqualTo(mqDivided.stream().findFirst().get().getQueueId());
             }
         });
         suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
