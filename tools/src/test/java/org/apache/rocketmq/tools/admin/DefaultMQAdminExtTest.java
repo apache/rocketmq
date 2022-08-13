@@ -38,10 +38,12 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -68,6 +70,7 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -340,12 +343,15 @@ public class DefaultMQAdminExtTest {
     
         defaultMQAdminExt.setNamesrvAddr("localhost:"+NAME_SERVER_PORT);
     
-        TopicConfig topicConfig = new TopicConfig(topic1, 1, 1, 6, 0);
-        defaultMQAdminExt.createAndUpdateTopicConfig(broker1Addr, topicConfig);
+        TopicConfig topicConfig1 = new TopicConfig(topic1, 1, 1, 6, 0);
+        defaultMQAdminExt.createAndUpdateTopicConfig(broker1Addr, topicConfig1);
     
-        defaultMQAdminExt.setCreateTopicKey(broker1Name);
-        defaultMQAdminExt.createTopic(broker1Name,topic1, 8,new HashMap<>());
-        defaultMQAdminExt.createTopic(broker1Name,topic2,8,new HashMap<>());
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), CQType.SimpleCQ.toString());
+        
+        defaultMQAdminExt.setCreateTopicKey(cluster);
+        defaultMQAdminExt.createTopic(cluster,topic1, 8, attributes);
+        defaultMQAdminExt.createTopic(cluster,topic2,8, attributes);
         
         AdminToolResult<ConsumerConnection> adminToolResult = defaultMQAdminExt.examineConsumerConnectionInfoConcurrent("default-consumer-group");
         ConsumerConnection consumerConnection = adminToolResult.getData();
