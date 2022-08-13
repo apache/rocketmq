@@ -65,7 +65,7 @@ public class ReplicasInfoManagerTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         this.replicasInfoManager = null;
         this.heartbeatManager.shutdown();
         this.heartbeatManager = null;
@@ -211,20 +211,22 @@ public class ReplicasInfoManagerTest {
         brokerSet.add("127.0.0.1:9000");
         brokerSet.add("127.0.0.1:9001");
         brokerSet.add("127.0.0.1:9002");
-        final ElectMasterRequestHeader assignRequest = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9000");
-        final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest, (clusterName, brokerAddress) -> brokerAddress.contains("127.0.0.1:9000"));
-        assertEquals( cResult1.getResponseCode(), ResponseCode.CONTROLLER_INVALID_REQUEST);
+        final ElectMasterRequestHeader assignRequest = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+        final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest,
+                new DefaultElectPolicy((clusterName, brokerAddress) -> brokerAddress.contains("127.0.0.1:9000"), null));
+        assertEquals(cResult1.getResponseCode(), ResponseCode.CONTROLLER_INVALID_REQUEST);
 
+        final ElectMasterRequestHeader assignRequest1 = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+        final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1,
+                new DefaultElectPolicy((clusterName, brokerAddress) -> brokerAddress.equals("127.0.0.1:9000"), null));
+        assertEquals(cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE);
 
-        final ElectMasterRequestHeader assignRequest1 = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9001");
-        final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1, (clusterName, brokerAddress) -> brokerAddress.equals("127.0.0.1:9000"));
-        assertEquals( cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE);
-
-        final ElectMasterRequestHeader assignRequest2 = new ElectMasterRequestHeader("cluster1","broker1", "127.0.0.1:9001");
-        final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2, (clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"));
-        assertEquals( cResult3.getResponseCode(), ResponseCode.SUCCESS);
+        final ElectMasterRequestHeader assignRequest2 = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+        final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2,
+                new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"), null));
+        assertEquals(cResult3.getResponseCode(), ResponseCode.SUCCESS);
         final ElectMasterResponseHeader response3 = cResult3.getResponse();
-        assertEquals(response3.getNewMasterAddress(),"127.0.0.1:9001");
+        assertEquals(response3.getNewMasterAddress(), "127.0.0.1:9001");
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
