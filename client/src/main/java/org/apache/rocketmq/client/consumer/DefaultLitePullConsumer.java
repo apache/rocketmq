@@ -257,18 +257,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
-    /**
-     * Subscribe some topic with subExpression and messageQueueListener
-     *
-     * @param topic
-     * @param subExpression
-     * @param messageQueueListener
-     */
-    @Override
-    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
-        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
-    }
-
     @Override
     public void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), messageSelector);
@@ -278,18 +266,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
-
-    /**
-     * Get the queue assigned in subscribe mode
-     *
-     * @return
-     * @throws MQClientException
-     */
-    @Override
-    public Set<MessageQueue> assignment() throws MQClientException {
-        return this.defaultLitePullConsumerImpl.assignment();
-    }
-
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
@@ -350,6 +326,30 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void commitSync(Map<MessageQueue, Long> messageQueues, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
     }
+
+    /**
+     * Get the MessageQueue assigned in subscribe mode
+     *
+     * @return
+     * @throws MQClientException
+     */
+    @Override
+    public Set<MessageQueue> assignment() throws MQClientException {
+        return this.defaultLitePullConsumerImpl.assignment();
+    }
+
+    /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     *
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    @Override
+    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
+    }
+
 
     @Override
     public void commit(final Set<MessageQueue> messageQueues, boolean persist) {

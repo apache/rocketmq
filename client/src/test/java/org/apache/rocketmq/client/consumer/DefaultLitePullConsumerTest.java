@@ -654,6 +654,21 @@ public class DefaultLitePullConsumerTest {
         return litePullConsumer;
     }
 
+    private DefaultLitePullConsumer createSubscribeLitePullConsumerWithListener() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        litePullConsumer.subscribe(topic, "*", new MessageQueueListener() {
+            @Override
+            public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                System.out.println("No operation");
+            }
+        });
+        suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+        return litePullConsumer;
+    }
+
     private DefaultLitePullConsumer createStartLitePullConsumer() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
@@ -662,6 +677,7 @@ public class DefaultLitePullConsumerTest {
         initDefaultLitePullConsumer(litePullConsumer);
         return litePullConsumer;
     }
+
 
     private DefaultLitePullConsumer createNotStartLitePullConsumer() {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());

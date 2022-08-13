@@ -510,7 +510,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+//            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
@@ -534,7 +534,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             SubscriptionData subscriptionData = FilterAPI.build(topic,
                 messageSelector.getExpression(), messageSelector.getExpressionType());
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+//            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
@@ -561,16 +561,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             updateAssignPullTask(messageQueues);
         }
     }
-
-
-    /**
-     * Get the queue assigned in subscribe mode
-     * @return
-     */
-    public synchronized Set<MessageQueue> assignment() {
-       return assignedMessageQueue.getAssignedMessageQueues();
-    }
-
     private void maybeAutoCommit() {
         long now = System.currentTimeMillis();
         if (now >= nextAutoCommitDeadline) {
@@ -713,7 +703,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-
     /**
      * Specify offset commit
      * @param messageQueues
@@ -742,6 +731,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    /**
+     * Get the queue assigned in subscribe mode
+     * @return
+     */
+    public synchronized Set<MessageQueue> assignment() {
+        return assignedMessageQueue.getAssignedMessageQueues();
+    }
 
     public synchronized void commit(final Set<MessageQueue> messageQueues, boolean persist) {
         if (messageQueues == null || messageQueues.size() == 0) {
