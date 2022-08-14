@@ -90,7 +90,7 @@ public class DefaultElectPolicy implements ElectPolicy {
             }
             // if preferBrokerAddr is not blank, if preferBrokerAddr is valid, we choose it, else we choose nothing
             if (StringUtils.isNotBlank(preferBrokerAddr)) {
-                return brokers.contains(preferBrokerAddr) ? preferBrokerAddr: null;
+                return brokers.contains(preferBrokerAddr) ? preferBrokerAddr : null;
             }
             if (this.additionalInfoGetter != null) {
                 // get more information from getter

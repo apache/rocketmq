@@ -156,32 +156,31 @@ public class DLedgerController implements Controller {
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
                                                                 final SyncStateSet syncStateSet) {
         return this.scheduler.appendEvent("alterSyncStateSet",
-                () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
+            () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         return this.scheduler.appendEvent("electMaster",
-                () -> this.replicasInfoManager.electMaster(request, this.electPolicy), true);
+            () -> this.replicasInfoManager.electMaster(request, this.electPolicy), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
         return this.scheduler.appendEvent("registerBroker",
-                () -> this.replicasInfoManager.registerBroker(request), true);
+            () -> this.replicasInfoManager.registerBroker(request), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
         return this.scheduler.appendEvent("getReplicaInfo",
-                () -> this.replicasInfoManager.getReplicaInfo(request), false);
+            () -> this.replicasInfoManager.getReplicaInfo(request), false);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
-
         return this.scheduler.appendEvent("getSyncStateData",
-                () -> this.replicasInfoManager.getSyncStateData(brokerNames), false);
+            () -> this.replicasInfoManager.getSyncStateData(brokerNames), false);
     }
 
     @Override

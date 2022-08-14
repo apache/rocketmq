@@ -246,7 +246,7 @@ public class DLedgerControllerTest {
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
 
-         final HashSet<String> newSyncStateSet2 = new HashSet<>();
+        final HashSet<String> newSyncStateSet2 = new HashSet<>();
         newSyncStateSet2.add(replicaInfo.getMasterAddress());
         assertEquals(syncStateSet.getSyncStateSet(), newSyncStateSet2);
         assertNotEquals(replicaInfo.getMasterAddress(), "");
