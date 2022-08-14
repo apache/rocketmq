@@ -19,7 +19,6 @@ package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
 
-import java.util.Objects;
 
 public class BrokerLiveInfo {
     private final String brokerName;

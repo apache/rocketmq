@@ -136,7 +136,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 prev.setEpoch(epoch);
                 prev.setMaxOffset(maxOffset);
                 prev.setConfirmOffset(confirmOffset);
-            }else if (epoch == prev.getEpoch()) {
+            } else if (epoch == prev.getEpoch()) {
                 if (maxOffset > prev.getMaxOffset()) {
                     prev.setMaxOffset(maxOffset);
                     prev.setConfirmOffset(confirmOffset);

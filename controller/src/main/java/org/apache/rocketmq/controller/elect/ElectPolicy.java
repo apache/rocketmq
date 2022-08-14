@@ -28,7 +28,9 @@ public interface ElectPolicy {
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
      * @param oldMaster         old master
+     * @param preferBrokerAddr  the broker prefer to be elected
      * @return new master's brokerAddr
      */
-    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster);
+    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr);
+
 }
