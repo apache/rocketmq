@@ -35,6 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
@@ -124,6 +125,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000;
 
     private static final long PULL_TIME_DELAY_MILLS_ON_EXCEPTION = 3 * 1000;
+
+    private ConcurrentHashMap<String/* topic */, String/* subExpression */> topicToSubExpression = new ConcurrentHashMap<String, String>();
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
@@ -529,6 +532,17 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public synchronized void setSubExpressionForAssign(final String topic, final String subExpression) {
+        if (StringUtils.isBlank(subExpression)) {
+            throw new IllegalArgumentException("subExpression can not be null or empty.");
+        }
+        if (serviceState != ServiceState.CREATE_JUST) {
+            throw new IllegalStateException("setAssignTag only can be called before start.");
+        }
+        setSubscriptionType(SubscriptionType.ASSIGN);
+        topicToSubExpression.put(topic, subExpression);
+    }
+
     private void maybeAutoCommit() {
         long now = System.currentTimeMillis();
         if (now >= nextAutoCommitDeadline) {
@@ -848,7 +862,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } else {
-                        subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                        String subExpression4Assign = topicToSubExpression.get(topic);
+                        subExpression4Assign = subExpression4Assign == null ? SubscriptionData.SUB_ALL : subExpression4Assign;
+                        subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression4Assign);
                     }
 
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
