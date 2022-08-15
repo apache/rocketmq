@@ -576,6 +576,11 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getTopicConfigBakPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             TopicConfigSerializeWrapper topicConfigSerializeWrapper =

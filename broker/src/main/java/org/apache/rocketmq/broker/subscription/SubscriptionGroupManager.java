@@ -237,6 +237,12 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getSubscriptionGroupBakPath(this.brokerController.getMessageStoreConfig()
+                .getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);

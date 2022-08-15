@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -25,18 +26,14 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.*;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
@@ -83,13 +80,48 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         this.topic = topic;
         this.queueId = queueId;
 
-        String queueDir = this.storePath
-            + File.separator + topic
-            + File.separator + queueId;
+        if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            String[] storePaths = storePath.split(MixAll.MULTI_PATH_SPLITTER);
+            Set<String> readOnlyPathSet = getReadOnlyPathsSet();
+            Set<String> storePathSet = new HashSet<>();
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            for (String path : storePaths) {
+                storePathSet.add(path + File.separator + topic + File.separator + queueId);
+            }
 
+            this.mappedFileQueue = new MultiPathMappedFileQueue(
+                    messageStore.getMessageStoreConfig(),
+                    storePathSet,
+                    readOnlyPathSet,
+                    mappedFileSize,
+                    null,
+                    this::getFullPath);
+        } else {
+            String queueDir = this.storePath
+                    + File.separator + topic
+                    + File.separator + queueId;
+
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        }
         this.byteBufferItem = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
+    }
+
+    private Set<String> getReadOnlyPathsSet() {
+        String[] readOnlyReadRootPaths = messageStore.getMessageStoreConfig().getReadOnlyStorePaths().trim().split(MixAll.MULTI_PATH_SPLITTER);
+        HashSet<String> readOnlyPathSet = new HashSet<>();
+        for (String readOnlyReadRootPath : readOnlyReadRootPaths) {
+            readOnlyPathSet.add(readOnlyReadRootPath + File.separator + topic + File.separator + queueId);
+        }
+        return readOnlyPathSet;
+    }
+
+    private Set<String> getFullPath() {
+        Set<String> fullStoreRootPathSet = ((DefaultMessageStore)messageStore).getFullStorePathRootSet();
+        Set<String> fullDirPathSet = new HashSet<>();
+        for (String fullStoreRootPath : fullStoreRootPathSet) {
+            fullDirPathSet.add(fullStoreRootPath + File.separator + topic + File.separator + queueId);
+        }
+        return fullDirPathSet;
     }
 
     @Override

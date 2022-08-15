@@ -89,6 +89,9 @@ public class CommitLog implements Swappable {
 
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
+        if (!messageStore.getMessageStoreConfig().isStorePathCommitLogNull()) {
+            log.info("The storePathCommitLog is deprecated, please use storePathRootDir only. The storePathCommitLog will be generated as ${storePathRootDir}/commitlog.");
+        }
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
             this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),

@@ -36,6 +36,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -68,6 +69,7 @@ public class DefaultMessageStoreTest {
     private SocketAddress storeHost;
     private byte[] messageBody;
     private MessageStore messageStore;
+    private MessageStore multiPathMessageStore;
 
     @Before
     public void init() throws Exception {
@@ -78,6 +80,11 @@ public class DefaultMessageStoreTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
+
+        multiPathMessageStore = buildMessageStoreMutiPath();
+        load = multiPathMessageStore.load();
+        assertTrue(load);
+        multiPathMessageStore.start();
     }
 
     @Test(expected = OverlappingFileLockException.class)
@@ -112,6 +119,17 @@ public class DefaultMessageStoreTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
+
+
+        multiPathMessageStore.shutdown();
+        multiPathMessageStore.destroy();
+
+        MessageStoreConfig messageStoreConfig1 = multiPathMessageStore.getMessageStoreConfig();
+        String[] multiPaths = messageStoreConfig1.getStorePathRootDir().split(MixAll.MULTI_PATH_SPLITTER);
+        for (String path : multiPaths) {
+            File temp = new File(path);
+            UtilAll.deleteFile(temp);
+        }
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -124,6 +142,22 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
         messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
+    }
+
+    private MessageStore buildMessageStoreMutiPath() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(
+                "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/store");
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("multiTest", true), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
@@ -149,6 +183,31 @@ public class DefaultMessageStoreTest {
             result.release();
         }
         verifyThatMasterIsFunctional(totalMsgs, messageStore);
+    }
+
+    @Test
+    public void testMultiPathWriteAndRead() {
+        long ipv4HostMsgs = 10;
+        long ipv6HostMsgs = 10;
+        long totalMsgs = ipv4HostMsgs + ipv6HostMsgs;
+        QUEUE_TOTAL = 1;
+        messageBody = storeMessage.getBytes();
+        for (long i = 0; i < ipv4HostMsgs; i++) {
+            multiPathMessageStore.putMessage(buildMessage());
+        }
+
+        for (long i = 0; i < ipv6HostMsgs; i++) {
+            multiPathMessageStore.putMessage(buildIPv6HostMessage());
+        }
+
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) multiPathMessageStore);
+
+        for (long i = 0; i < totalMsgs; i++) {
+            GetMessageResult result = multiPathMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
+            assertThat(result).isNotNull();
+            result.release();
+        }
+        verifyThatMasterIsFunctional(totalMsgs, multiPathMessageStore);
     }
 
     @Test

@@ -18,6 +18,9 @@
 package org.apache.rocketmq.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.File;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.common.MixAll;
@@ -48,6 +51,31 @@ public class MultiPathMappedFileQueueTest {
         }
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
+
+
+        // new constructor
+        config.setStorePathRootDir("target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/store");
+        storePaths = config.getStorePathRootDir().split(MixAll.MULTI_PATH_SPLITTER);
+        Set<String> storePathSet = new HashSet<>();
+
+        Set<String> readOnlyPathSet = new HashSet<>();
+
+        for (String path : storePaths) {
+            storePathSet.add(path + File.separator + "consumequeue" +  File.separator + "unit_test_topic" + File.separator + 1);
+        }
+
+        MappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, storePathSet, readOnlyPathSet, 1024, null, null);
+        for (int i = 0; i < 1024; i++) {
+            MappedFile mappedFile = mappedFileQueue2.getLastMappedFile(fixedMsg.length * i);
+            assertThat(mappedFile).isNotNull();
+            assertThat(mappedFile.appendMessage(fixedMsg)).isTrue();
+            int idx = i % storePaths.length;
+            assertThat(mappedFile.getFileName().startsWith(storePaths[idx])).isTrue();
+        }
+        mappedFileQueue2.shutdown(1000);
+        mappedFileQueue2.destroy();
     }
 
     @Test
@@ -85,7 +113,28 @@ public class MultiPathMappedFileQueueTest {
             assertThat(mappedFileQueue.mappedFiles.get(i).getFile().getName())
                     .isEqualTo(UtilAll.offset2FileName(1024 * i));
         }
-        mappedFileQueue.destroy();
+
+        // test load and readonly
+        config.setStorePathRootDir("target/unit_test_store/b");
+        config.setReadOnlyStorePaths("target/unit_test_store/a" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c");
+
+        String[] storePaths = config.getStorePathRootDir().split(MixAll.MULTI_PATH_SPLITTER);
+        String[] readOnlyStorePaths = config.getReadOnlyStorePaths().split(MixAll.MULTI_PATH_SPLITTER);
+        Set<String> storePathSet = new HashSet<>();
+        Set<String> readOnlyPathSet = new HashSet<>();
+        storePathSet.addAll(Arrays.asList(storePaths));
+        readOnlyPathSet.addAll(Arrays.asList(readOnlyStorePaths));
+        MultiPathMappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, storePathSet, readOnlyPathSet, 1024, null, null);
+
+        mappedFileQueue2.load();
+
+        assertThat(mappedFileQueue2.mappedFiles.size()).isEqualTo(1024);
+        for (int i = 0; i < 1024; i++) {
+            assertThat(mappedFileQueue.mappedFiles.get(i).getFile().getName())
+                    .isEqualTo(UtilAll.offset2FileName(1024 * i));
+        }
+        mappedFileQueue2.destroy();
 
     }
 

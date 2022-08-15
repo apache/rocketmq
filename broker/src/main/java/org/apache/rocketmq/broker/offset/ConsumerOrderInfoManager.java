@@ -267,6 +267,15 @@ public class ConsumerOrderInfoManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        if (brokerController != null) {
+            return BrokerPathConfigHelper.getConsumerOrderInfoBakPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        } else {
+            return BrokerPathConfigHelper.getConsumerOrderInfoBakPath("~");
+        }
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             ConsumerOrderInfoManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOrderInfoManager.class);

@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.store;
 
-
+import java.util.Collections;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,14 +30,13 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class MultiPathMappedFileQueue extends MappedFileQueue {
 
     private final MessageStoreConfig config;
     private final Supplier<Set<String>> fullStorePathsSupplier;
+    private final Set<String> storePathSet;
+    private final Set<String> readOnlyPathSet;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
                                     AllocateMappedFileService allocateMappedFileService,
@@ -43,14 +44,32 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService);
         this.config = messageStoreConfig;
         this.fullStorePathsSupplier = fullStorePathsSupplier;
+        storePathSet = null;
+        readOnlyPathSet = null;
+    }
+
+    public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, Set<String> storePathSet, Set<String> readOnlyPathSet,
+                                    int mappedFileSize, AllocateMappedFileService allocateMappedFileService,
+                                    Supplier<Set<String>> fullStorePathsSupplier) {
+        super(messageStoreConfig.getStorePathRootDir(), mappedFileSize, allocateMappedFileService);
+        this.config = messageStoreConfig;
+        this.fullStorePathsSupplier = fullStorePathsSupplier;
+        this.storePathSet = storePathSet;
+        this.readOnlyPathSet = readOnlyPathSet;
     }
 
     private Set<String> getPaths() {
+        if (storePathSet != null) {
+            return storePathSet;
+        }
         String[] paths = config.getStorePathCommitLog().trim().split(MixAll.MULTI_PATH_SPLITTER);
         return new HashSet<>(Arrays.asList(paths));
     }
 
     private Set<String> getReadonlyPaths() {
+        if (readOnlyPathSet != null) {
+            return readOnlyPathSet;
+        }
         String pathStr = config.getReadOnlyCommitLogStorePaths();
         if (StringUtils.isBlank(pathStr)) {
             return Collections.emptySet();
@@ -61,11 +80,16 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
     @Override
     public boolean load() {
-        Set<String> storePathSet = getPaths();
-        storePathSet.addAll(getReadonlyPaths());
+        Set<String> loadStorePathSet;
+        if (storePathSet == null) {
+            loadStorePathSet = getPaths();
+        } else {
+            loadStorePathSet = storePathSet;
+        }
+        loadStorePathSet.addAll(getReadonlyPaths());
 
         List<File> files = new ArrayList<>();
-        for (String path : storePathSet) {
+        for (String path : loadStorePathSet) {
             File dir = new File(path);
             File[] ls = dir.listFiles();
             if (ls != null) {
@@ -83,7 +107,6 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         Set<String> readonlyPathSet = getReadonlyPaths();
         Set<String> fullStorePaths =
                 fullStorePathsSupplier == null ? Collections.emptySet() : fullStorePathsSupplier.get();
-
 
         HashSet<String> availableStorePath = new HashSet<>(storePath);
         //do not create file in readonly store path.

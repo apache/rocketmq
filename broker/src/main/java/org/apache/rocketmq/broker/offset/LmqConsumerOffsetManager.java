@@ -88,6 +88,11 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getLmqConsumerOffsetBakPath(brokerController.getMessageStoreConfig().getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             LmqConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, LmqConsumerOffsetManager.class);

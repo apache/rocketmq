@@ -18,12 +18,11 @@ package org.apache.rocketmq.store.index;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -56,24 +55,31 @@ public class IndexService {
     }
 
     public boolean load(final boolean lastExitOK) {
-        File dir = new File(this.storePath);
-        File[] files = dir.listFiles();
-        if (files != null) {
+        // if not MULTI_PATH, storePathList length will be 1.
+        String[] storePathList = storePath.trim().split(MixAll.MULTI_PATH_SPLITTER);
+        ArrayList<File> fileList = new ArrayList<>();
+        for (String storePath : storePathList) {
+            File dir = new File(storePath);
+            File[] files = dir.listFiles();
+            if (files != null) {
+                Collections.addAll(fileList, files);
+            }
+        }
+
+        if (fileList.size() != 0) {
             // ascending order
-            Arrays.sort(files);
-            for (File file : files) {
+            Collections.sort(fileList);
+            for (File file : fileList) {
                 try {
                     IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
                     f.load();
-
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                            .getIndexMsgTimestamp()) {
+                                .getIndexMsgTimestamp()) {
                             f.destroy(0);
                             continue;
                         }
                     }
-
                     LOGGER.info("load index file OK, " + f.getFileName());
                     this.indexFileList.add(f);
                 } catch (IOException e) {
@@ -304,9 +310,11 @@ public class IndexService {
         IndexFile prevIndexFile = null;
         long lastUpdateEndPhyOffset = 0;
         long lastUpdateIndexTimestamp = 0;
+        int numIndexFile = 0;
 
         {
             this.readWriteLock.readLock().lock();
+            numIndexFile = this.indexFileList.size();
             if (!this.indexFileList.isEmpty()) {
                 IndexFile tmp = this.indexFileList.get(this.indexFileList.size() - 1);
                 if (!tmp.isWriteFull()) {
@@ -323,8 +331,11 @@ public class IndexService {
 
         if (indexFile == null) {
             try {
+                String[] availablePaths = this.defaultMessageStore.getAvailableWriteStoreRootPaths();
+                Arrays.sort(availablePaths);
+                String choosePath = availablePaths[numIndexFile % availablePaths.length];
                 String fileName =
-                    this.storePath + File.separator
+                        StorePathConfigHelper.getStorePathIndex(choosePath) + File.separator
                         + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
                 indexFile =
                     new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,

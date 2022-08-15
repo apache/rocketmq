@@ -79,6 +79,11 @@ public class MessageRequestModeManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getMessageRequestModeBakPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             MessageRequestModeManager obj = RemotingSerializable.fromJson(jsonString, MessageRequestModeManager.class);

@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.broker;
 
+import org.apache.rocketmq.common.MixAll;
+
 import java.io.File;
 
 public class BrokerPathConfigHelper {
@@ -32,34 +34,116 @@ public class BrokerPathConfigHelper {
     }
 
     public static String getTopicConfigPath(final String rootDir) {
+        // when multi-path, choose first dir as config path
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "topics.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "topics.json";
+    }
+
+    public static String getTopicConfigBakPath(final String rootDir) {
+        // when multi-path, choose second dir as config path
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "topics.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "topics.json";
     }
 
     public static String getTopicQueueMappingPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "topicQueueMapping.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "topicQueueMapping.json";
+    }
+
+    public static String getTopicQueueMappingBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "topicQueueMapping.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "topicQueueMapping.json";
     }
 
     public static String getConsumerOffsetPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "consumerOffset.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
+    }
+
+    public static String getConsumerOffsetBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "consumerOffset.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
     }
 
     public static String getLmqConsumerOffsetPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
+    }
+
+    public static String getLmqConsumerOffsetBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
     }
 
     public static String getConsumerOrderInfoPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "consumerOrderInfo.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "consumerOrderInfo.json";
+    }
+
+    public static String getConsumerOrderInfoBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "consumerOrderInfo.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "consumerOrderInfo.json";
     }
 
     public static String getSubscriptionGroupPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "subscriptionGroup.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
+    }
+
+    public static String getSubscriptionGroupBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "subscriptionGroup.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }
 
     public static String getConsumerFilterPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "consumerFilter.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";
+    }
+
+    public static String getConsumerFilterBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "consumerFilter.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";
     }
 
     public static String getMessageRequestModePath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "messageRequestMode.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "messageRequestMode.json";
+    }
+
+    public static String getMessageRequestModeBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "messageRequestMode.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "messageRequestMode.json";
     }
 }

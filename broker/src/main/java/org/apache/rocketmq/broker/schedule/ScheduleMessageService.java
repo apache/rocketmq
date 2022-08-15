@@ -239,6 +239,14 @@ public class ScheduleMessageService extends ConfigManager {
         return result;
     }
 
+    @Override
+    public boolean load(String fileName) {
+        boolean result = super.load(fileName);
+        result = result && this.parseDelayLevel();
+        result = result && this.correctDelayOffset();
+        return result;
+    }
+
     public boolean correctDelayOffset() {
         try {
             for (int delayLevel : delayLevelTable.keySet()) {
@@ -279,6 +287,12 @@ public class ScheduleMessageService extends ConfigManager {
     public String configFilePath() {
         return StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStore().getMessageStoreConfig()
             .getStorePathRootDir());
+    }
+
+    @Override
+    public String configFileBakPath() {
+        return StorePathConfigHelper.getDelayOffsetStoreBakPath(this.brokerController.getMessageStore().getMessageStoreConfig()
+                .getStorePathRootDir());
     }
 
     @Override

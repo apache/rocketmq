@@ -225,6 +225,11 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getConsumerOffsetBakPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);

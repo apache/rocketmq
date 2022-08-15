@@ -75,6 +75,11 @@ public class ConfigManagerTest {
             }
 
             @Override
+            public String configFileBakPath() {
+                return PATH_FILE;
+            }
+
+            @Override
             public void decode(String jsonString) {
 
             }

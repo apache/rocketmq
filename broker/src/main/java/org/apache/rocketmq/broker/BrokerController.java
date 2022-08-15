@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -685,19 +686,57 @@ public class BrokerController {
         }
     }
 
-    public boolean initialize() throws CloneNotSupportedException {
+    public String initializeLoadRootPath() {
+        if (this.messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
+            // choose latest topic dateversion to load config
+            String[] paths = this.messageStoreConfig.getStorePathRootDir().trim().split(MixAll.MULTI_PATH_SPLITTER);
+            String latestPath = paths[0];
+            long latestTime = 0L;
+            for (String path : paths) {
+                String topicPath = path + File.separator + "config" + File.separator + "topics.json";
+                File file = new File(topicPath);
+                if (file.exists()) {
+                    TopicConfigManager topicConfigManager1 = new TopicConfigManager();
+                    topicConfigManager1.load(topicPath);
+                    if (latestTime < topicConfigManager1.getDataVersion().getTimestamp()) {
+                        latestTime = topicConfigManager1.getDataVersion().getTimestamp();
+                        latestPath = path;
+                    }
+                }
+            }
+            return latestPath;
+        }
+        return this.messageStoreConfig.getStorePathRootDir();
+    }
 
-        boolean result = this.topicConfigManager.load();
-        result = result && this.topicQueueMappingManager.load();
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
-        result = result && this.consumerOrderInfoManager.load();
+    public boolean initialize() throws CloneNotSupportedException {
+        String loadRootPath = initializeLoadRootPath();
+        boolean result = true;
+        if (this.messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
+            String loadConfigDirPath = loadRootPath + File.separator + "config";
+            result = result && this.topicConfigManager.load(loadConfigDirPath + File.separator + "topics.json");
+            result = result && this.topicQueueMappingManager.load(loadConfigDirPath + File.separator + "topicQueueMapping.json");
+            result = result && this.consumerOffsetManager.load(loadConfigDirPath + File.separator + "consumerOffset.json");
+            result = result && this.subscriptionGroupManager.load(loadConfigDirPath + File.separator + "subscriptionGroup.json");
+            result = result && this.consumerFilterManager.load(loadConfigDirPath + File.separator + "consumerFilter.json");
+            result = result && this.consumerOrderInfoManager.load(loadConfigDirPath + File.separator + "consumerOrderInfo.json");
+        } else {
+            result = result && this.topicConfigManager.load();
+            result = result && this.topicQueueMappingManager.load();
+            result = result && this.consumerOffsetManager.load();
+            result = result && this.subscriptionGroupManager.load();
+            result = result && this.consumerFilterManager.load();
+            result = result && this.consumerOrderInfoManager.load();
+        }
 
         if (result) {
             try {
                 DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
                 defaultMessageStore.setTopicConfigTable(topicConfigManager.getTopicConfigTable());
+                if (this.messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
+                    // multi-path need to set chosen loadRootPath, otherwise use default path
+                    defaultMessageStore.setLoadCheckPointRootPath(loadRootPath);
+                }
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
@@ -721,7 +760,11 @@ public class BrokerController {
         result = result && this.messageStore.load();
 
         //scheduleMessageService load after messageStore load success
-        result = result && this.scheduleMessageService.load();
+        if (this.messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
+            result = result && this.scheduleMessageService.load(loadRootPath + File.separator + "config" + File.separator + "delayOffset.json");
+        } else {
+            result = result && this.scheduleMessageService.load(loadRootPath + File.separator + "config" + File.separator + "delayOffset.json");
+        }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
             if (brokerAttachedPlugin != null) {

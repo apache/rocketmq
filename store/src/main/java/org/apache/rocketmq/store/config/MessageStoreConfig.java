@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.config;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
@@ -36,6 +37,8 @@ public class MessageStoreConfig {
 
     @ImportantField
     private String storePathDLedgerCommitLog = null;
+
+    private String readOnlyStorePaths = "/Users/wangshengmin/mqtest/root1/store";
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -227,6 +230,8 @@ public class MessageStoreConfig {
     private int maxAsyncPutMessageRequests = 5000;
 
     private int pullBatchMaxMessageCount = 160;
+
+    private int checkFullStoreDirInterval = 10000;
 
     @ImportantField
     private int totalReplicas = 1;
@@ -457,6 +462,17 @@ public class MessageStoreConfig {
 
     public String getStorePathCommitLog() {
         if (storePathCommitLog == null) {
+            if (storePathRootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+                String[] paths = storePathRootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i<paths.length; i++) {
+                    sb.append(paths[i]).append(File.separator).append("commitlog");
+                    if (i != paths.length-1) {
+                        sb.append(MixAll.MULTI_PATH_SPLITTER);
+                    }
+                }
+                return sb.toString();
+            }
             return storePathRootDir + File.separator + "commitlog";
         }
         return storePathCommitLog;
@@ -464,6 +480,10 @@ public class MessageStoreConfig {
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public boolean isStorePathCommitLogNull() {
+        return storePathCommitLog == null;
     }
 
     public String getStorePathDLedgerCommitLog() {
@@ -903,12 +923,16 @@ public class MessageStoreConfig {
     }
 
     public String getReadOnlyCommitLogStorePaths() {
+        if (readOnlyCommitLogStorePaths == null && readOnlyStorePaths != null) {
+            return MixAll.generateMultiRoute(readOnlyStorePaths, "commitlog");
+        }
         return readOnlyCommitLogStorePaths;
     }
 
     public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
         this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
     }
+
     public String getdLegerGroup() {
         return dLegerGroup;
     }
@@ -1284,4 +1308,21 @@ public class MessageStoreConfig {
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
+
+    public int getCheckFullStoreDirInterval() {
+        return checkFullStoreDirInterval;
+    }
+
+    public void setCheckFullStoreDirInterval(int checkFullStoreDirInterval) {
+        this.checkFullStoreDirInterval = checkFullStoreDirInterval;
+    }
+
+    public String getReadOnlyStorePaths() {
+        return readOnlyStorePaths;
+    }
+
+    public void setReadOnlyStorePaths(String readOnlyCommitLogStorePaths) {
+        this.readOnlyStorePaths = readOnlyCommitLogStorePaths;
+    }
+
 }

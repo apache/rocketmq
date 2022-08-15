@@ -16,46 +16,87 @@
  */
 package org.apache.rocketmq.store.config;
 
+import org.apache.rocketmq.common.MixAll;
+
 import java.io.File;
 
 public class StorePathConfigHelper {
 
     public static String getStorePathConsumeQueue(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "consumequeue");
+        }
         return rootDir + File.separator + "consumequeue";
     }
 
     public static String getStorePathConsumeQueueExt(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "consumequeue_ext");
+        }
         return rootDir + File.separator + "consumequeue_ext";
     }
     public static String getStorePathBatchConsumeQueue(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "batchconsumequeue");
+        }
         return rootDir + File.separator + "batchconsumequeue";
     }
 
     public static String getStorePathIndex(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "index");
+        }
         return rootDir + File.separator + "index";
     }
 
     public static String getStoreCheckpoint(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            // use same dir path as config
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "checkpoint";
+        }
         return rootDir + File.separator + "checkpoint";
     }
 
     public static String getAbortFile(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            // use same dir path as config
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "abort" ;
+        }
         return rootDir + File.separator + "abort";
     }
 
     public static String getLockFile(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "lock" ;
+        }
         return rootDir + File.separator + "lock";
     }
 
     public static String getDelayOffsetStorePath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigDir(rootDir)+ File.separator + "config" + File.separator + "delayOffset.json";
+        }
+        return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
+    }
+
+    public static String getDelayOffsetStoreBakPath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.chooseConfigBakDir(rootDir) + File.separator + "config" + File.separator + "delayOffset.json";
+        }
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }
 
     public static String getTranStateTableStorePath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "transaction" + File.separator + "statetable");
+        }
         return rootDir + File.separator + "transaction" + File.separator + "statetable";
     }
 
     public static String getTranRedoLogStorePath(final String rootDir) {
+        if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            return MixAll.generateMultiRoute(rootDir, "transaction" + File.separator + "redolog");
+        }
         return rootDir + File.separator + "transaction" + File.separator + "redolog";
     }
 

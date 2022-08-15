@@ -227,6 +227,16 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        if (this.brokerController != null) {
+            return BrokerPathConfigHelper.getConsumerFilterBakPath(
+                    this.brokerController.getMessageStoreConfig().getStorePathRootDir()
+            );
+        }
+        return BrokerPathConfigHelper.getConsumerFilterBakPath("./unit_test");
+    }
+
+    @Override
     public void decode(final String jsonString) {
         ConsumerFilterManager load = RemotingSerializable.fromJson(jsonString, ConsumerFilterManager.class);
         if (load != null && load.filterDataByTopic != null) {

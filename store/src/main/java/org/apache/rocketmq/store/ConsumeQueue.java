@@ -17,10 +17,9 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
@@ -73,12 +72,28 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         this.topic = topic;
         this.queueId = queueId;
 
-        String queueDir = this.storePath
-            + File.separator + topic
-            + File.separator + queueId;
+        if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            String[] storePaths = storePath.split(MixAll.MULTI_PATH_SPLITTER);
+            Set<String> readOnlyPathSet = getReadOnlyPathsSet();
+            Set<String> storePathSet = new HashSet<>();
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            for (String path : storePaths) {
+                storePathSet.add(path + File.separator + topic + File.separator + queueId);
+            }
 
+            this.mappedFileQueue = new MultiPathMappedFileQueue(
+                    messageStore.getMessageStoreConfig(),
+                    storePathSet,
+                    readOnlyPathSet,
+                    mappedFileSize,
+                    null,
+                    this::getFullPath);
+        } else {
+            String queueDir = this.storePath
+                    + File.separator + topic
+                    + File.separator + queueId;
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        }
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
 
         if (messageStore.getMessageStoreConfig().isEnableConsumeQueueExt()) {
@@ -90,6 +105,28 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt()
             );
         }
+    }
+
+    private Set<String> getReadOnlyPathsSet() {
+        HashSet<String> readOnlyPathSet = new HashSet<>();
+        String path = messageStore.getMessageStoreConfig().getReadOnlyStorePaths();
+        if (path == null) {
+            return readOnlyPathSet;
+        }
+        String[] readOnlyReadRootPaths = path.trim().split(MixAll.MULTI_PATH_SPLITTER);
+        for (String readOnlyReadRootPath : readOnlyReadRootPaths) {
+            readOnlyPathSet.add(readOnlyReadRootPath + File.separator + "consumequeue" + File.separator + topic + File.separator + queueId);
+        }
+        return readOnlyPathSet;
+    }
+
+    private Set<String> getFullPath() {
+        Set<String> fullStoreRootPathSet = ((DefaultMessageStore) messageStore).getFullStorePathRootSet();
+        Set<String> fullDirPathSet = new HashSet<>();
+        for (String fullStoreRootPath : fullStoreRootPathSet) {
+            fullDirPathSet.add(fullStoreRootPath + File.separator + "consumequeue" + File.separator + topic + File.separator + queueId);
+        }
+        return fullDirPathSet;
     }
 
     @Override

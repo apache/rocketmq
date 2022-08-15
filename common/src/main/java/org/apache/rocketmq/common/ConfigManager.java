@@ -46,12 +46,47 @@ public abstract class ConfigManager {
         }
     }
 
+    public boolean load(String fileName) {
+        try {
+            String jsonString = MixAll.file2String(fileName);
+            if (null == jsonString || jsonString.length() == 0) {
+                return this.loadBak(fileName);
+            } else {
+                this.decode(jsonString);
+                log.info("load " + fileName + " OK");
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("load " + fileName + " failed, and try to load backup file", e);
+            return this.loadBak(fileName);
+        }
+    }
+
     public abstract String configFilePath();
+
+    // when root path is multi-path, config file and bak file should be in different paths
+    public abstract String configFileBakPath();
 
     private boolean loadBak() {
         String fileName = null;
         try {
-            fileName = this.configFilePath();
+            fileName = this.configFileBakPath();
+            String jsonString = MixAll.file2String(fileName + ".bak");
+            if (jsonString != null && jsonString.length() > 0) {
+                this.decode(jsonString);
+                log.info("load " + fileName + " OK");
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("load " + fileName + " Failed", e);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean loadBak(String fileName) {
+        try {
             String jsonString = MixAll.file2String(fileName + ".bak");
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
@@ -82,8 +117,10 @@ public abstract class ConfigManager {
         String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
+            // when multi-path, use different path to store bak file
+            String bakFileName = this.configFileBakPath();
             try {
-                MixAll.string2File(jsonString, fileName);
+                MixAll.string2File(jsonString, fileName, bakFileName);
             } catch (IOException e) {
                 log.error("persist file " + fileName + " exception", e);
             }

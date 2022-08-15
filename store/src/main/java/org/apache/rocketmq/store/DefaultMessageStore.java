@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -110,6 +111,8 @@ public class DefaultMessageStore implements MessageStore {
 
     private final CorrectLogicOffsetService correctLogicOffsetService;
 
+    private final CheckFullStoreDirService checkFullStoreDirService;
+
     private final IndexService indexService;
 
     private final AllocateMappedFileService allocateMappedFileService;
@@ -167,6 +170,12 @@ public class DefaultMessageStore implements MessageStore {
 
     private int maxDelayLevel;
 
+    private Set<String> fullStorePathRootSet = new HashSet<>();
+
+    private Set<String> readOnlyStorePathRootSet = null;
+
+    private String loadCheckPointRootPath = null;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -186,6 +195,7 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.correctLogicOffsetService = new CorrectLogicOffsetService();
+        this.checkFullStoreDirService = new CheckFullStoreDirService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
@@ -261,7 +271,13 @@ public class DefaultMessageStore implements MessageStore {
         boolean result = true;
 
         try {
-            boolean lastExitOK = !this.isTempFileExist();
+            boolean lastExitOK;
+            if (this.loadCheckPointRootPath == null) {
+                lastExitOK = !this.isTempFileExist();
+            } else {
+                lastExitOK = !this.isTempFileExist(this.loadCheckPointRootPath);
+            }
+
             LOGGER.info("last shutdown {}, root dir: {}", lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
 
             // load Commit Log
@@ -271,8 +287,17 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.consumeQueueStore.load();
 
             if (result) {
-                this.storeCheckpoint =
-                    new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+                if (this.loadCheckPointRootPath == null) {
+                    this.storeCheckpoint = new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+                } else {
+                    // make new checkpoint store in first path
+                    StoreCheckpoint loadStoreCheckpoint = new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(loadCheckPointRootPath));
+                    this.storeCheckpoint = new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(messageStoreConfig.getStorePathRootDir()));
+                    this.storeCheckpoint.setIndexMsgTimestamp(loadStoreCheckpoint.getIndexMsgTimestamp());
+                    this.storeCheckpoint.setLogicsMsgTimestamp(loadStoreCheckpoint.getLogicsMsgTimestamp());
+                    this.storeCheckpoint.setPhysicMsgTimestamp(loadStoreCheckpoint.getPhysicMsgTimestamp());
+                    this.storeCheckpoint.setMasterFlushedOffset(loadStoreCheckpoint.getMasterFlushedOffset());
+                }
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
                 this.indexService.load(lastExitOK);
 
@@ -1580,6 +1605,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 1, TimeUnit.SECONDS);
 
+        if (messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
+            this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+                @Override
+                public void run2() {
+                    checkFullStoreDirService.run();
+                }
+            }, 1000 * 10, this.messageStoreConfig.getCheckFullStoreDirInterval(), TimeUnit.MILLISECONDS);
+        }
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
         // @Override
         // public void run() {
@@ -1601,6 +1634,12 @@ public class DefaultMessageStore implements MessageStore {
 
     private boolean isTempFileExist() {
         String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
+        File file = new File(fileName);
+        return file.exists();
+    }
+
+    private boolean isTempFileExist(String loadAbortRootPath) {
+        String fileName = StorePathConfigHelper.getAbortFile(loadAbortRootPath);
         File file = new File(fileName);
         return file.exists();
     }
@@ -2363,6 +2402,101 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    class CheckFullStoreDirService extends ServiceThread {
+        private final String diskSpaceWarningLevelRatio =
+                System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "");
+
+        private final String diskSpaceCleanForciblyRatio =
+                System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "");
+
+        double getDiskSpaceWarningLevelRatio() {
+            double finalDiskSpaceWarningLevelRatio;
+            if ("".equals(diskSpaceWarningLevelRatio)) {
+                finalDiskSpaceWarningLevelRatio = DefaultMessageStore.this.getMessageStoreConfig().getDiskSpaceWarningLevelRatio() / 100.0;
+            } else {
+                finalDiskSpaceWarningLevelRatio = Double.parseDouble(diskSpaceWarningLevelRatio);
+            }
+
+            if (finalDiskSpaceWarningLevelRatio > 0.90) {
+                finalDiskSpaceWarningLevelRatio = 0.90;
+            }
+            if (finalDiskSpaceWarningLevelRatio < 0.35) {
+                finalDiskSpaceWarningLevelRatio = 0.35;
+            }
+
+            return finalDiskSpaceWarningLevelRatio;
+        }
+
+        @Override
+        public void run() {
+            try{
+                checkStorePath();
+            } catch (Throwable e) {
+                DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
+            }
+        }
+
+        double getDiskSpaceCleanForciblyRatio() {
+            double finalDiskSpaceCleanForciblyRatio;
+            if ("".equals(diskSpaceCleanForciblyRatio)) {
+                finalDiskSpaceCleanForciblyRatio = DefaultMessageStore.this.getMessageStoreConfig().getDiskSpaceCleanForciblyRatio() / 100.0;
+            } else {
+                finalDiskSpaceCleanForciblyRatio = Double.parseDouble(diskSpaceCleanForciblyRatio);
+            }
+
+            if (finalDiskSpaceCleanForciblyRatio > 0.85) {
+                finalDiskSpaceCleanForciblyRatio = 0.85;
+            }
+            if (finalDiskSpaceCleanForciblyRatio < 0.30) {
+                finalDiskSpaceCleanForciblyRatio = 0.30;
+            }
+
+            return finalDiskSpaceCleanForciblyRatio;
+        }
+
+        public void checkStorePath() {
+            String storePathRootDir = DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir();
+            String[] storePaths = storePathRootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
+            Set<String> tempFullStorePath = new HashSet<>();
+            double minPhysicRatio = 100;
+            String minStorePath = null;
+            for (String storePathPhysic : storePaths) {
+                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                if (minPhysicRatio > physicRatio) {
+                    minPhysicRatio = physicRatio;
+                    minStorePath = storePathPhysic;
+                }
+                if (physicRatio > getDiskSpaceCleanForciblyRatio()) {
+                    tempFullStorePath.add(storePathPhysic);
+                }
+            }
+
+            DefaultMessageStore.this.fullStorePathRootSet = tempFullStorePath;
+
+            if (minPhysicRatio > getDiskSpaceWarningLevelRatio()) {
+                boolean diskFull = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                if (diskFull) {
+                    DefaultMessageStore.LOGGER.error("physic disk maybe full soon " + minPhysicRatio +
+                            ", so mark disk full, storePathPhysic=" + minStorePath);
+                }
+            } else {
+                boolean diskOK = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+                if (!diskOK) {
+                    DefaultMessageStore.LOGGER.info("physic disk space OK " + minPhysicRatio +
+                            ", so mark disk ok, storePathPhysic=" + minStorePath);
+                }
+            }
+        }
+
+        @Override
+        public String getServiceName() {
+            if (DefaultMessageStore.this.brokerConfig.isInBrokerContainer()) {
+                return DefaultMessageStore.this.getBrokerIdentity().getLoggerIdentifier() + CheckFullStoreDirService.class.getSimpleName();
+            }
+            return CheckFullStoreDirService.class.getSimpleName();
+        }
+    }
+
     class ReputMessageService extends ServiceThread {
 
         private volatile long reputFromOffset = 0;
@@ -2572,4 +2706,46 @@ public class DefaultMessageStore implements MessageStore {
     @Override public boolean isShutdown() {
         return shutdown;
     }
+
+    public Set<String> getStorePathRootDirSet() {
+        String[] paths = messageStoreConfig.getStorePathRootDir().trim().split(MixAll.MULTI_PATH_SPLITTER);
+        return new HashSet<>(Arrays.asList(paths));
+    }
+
+    public Set<String> getFullStorePathRootSet() {
+        return fullStorePathRootSet;
+    }
+
+    public String[] getAvailableWriteStoreRootPaths() {
+        Set<String> storePathSet = this.getStorePathRootDirSet();
+        Set<String> availableStorePath = new HashSet<>(storePathSet);
+
+        if (readOnlyStorePathRootSet == null) {
+            String readOnlyPath = getMessageStoreConfig().getReadOnlyStorePaths();
+            if (readOnlyPath != null) {
+                String[] readOnlyPaths = readOnlyPath.trim().split(MixAll.MULTI_PATH_SPLITTER);
+                readOnlyStorePathRootSet = new HashSet<>(Arrays.asList(readOnlyPaths));
+            } else {
+                readOnlyStorePathRootSet = new HashSet<>();
+            }
+        }
+
+        availableStorePath.removeAll(readOnlyStorePathRootSet);
+
+        // do not create file if space is nearly full.
+        availableStorePath.removeAll(fullStorePathRootSet);
+
+        // if no store path left, fall back to writable store path.
+        if (availableStorePath.isEmpty()) {
+            availableStorePath = new HashSet<>(storePathSet);
+            availableStorePath.removeAll(readOnlyStorePathRootSet);
+        }
+
+        return availableStorePath.toArray(new String[]{});
+    }
+
+    public void setLoadCheckPointRootPath(String loadCheckPointRootPath) {
+        this.loadCheckPointRootPath = loadCheckPointRootPath;
+    }
+
 }

@@ -165,6 +165,12 @@ public class TopicQueueMappingManager extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return BrokerPathConfigHelper.getTopicQueueMappingBakPath(this.brokerController.getMessageStoreConfig()
+                .getStorePathRootDir());
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             TopicQueueMappingSerializeWrapper wrapper = TopicQueueMappingSerializeWrapper.fromJson(jsonString, TopicQueueMappingSerializeWrapper.class);

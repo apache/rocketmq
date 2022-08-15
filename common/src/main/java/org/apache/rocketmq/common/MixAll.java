@@ -152,11 +152,27 @@ public class MixAll {
     }
 
     public static void string2File(final String str, final String fileName) throws IOException {
-
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
         String bakFile = fileName + ".bak";
+        String prevContent = file2String(fileName);
+        if (prevContent != null) {
+            string2FileNotSafe(prevContent, bakFile);
+        }
+
+        File file = new File(fileName);
+        file.delete();
+
+        file = new File(tmpFile);
+        file.renameTo(new File(fileName));
+    }
+
+    public static void string2File(final String str, final String fileName, String bakFileName) throws IOException {
+        String tmpFile = fileName + ".tmp";
+        string2FileNotSafe(str, tmpFile);
+
+        String bakFile = bakFileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
@@ -473,6 +489,33 @@ public class MixAll {
     public static String dealFilePath(String aclFilePath) {
         Path path = Paths.get(aclFilePath);
         return path.normalize().toString();
+    }
+
+    public static String generateMultiRoute(final String rootDir, String fileName) {
+        String[] rootDirList = rootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i<rootDirList.length; i++) {
+            sb.append(rootDirList[i]).append(File.separator).append(fileName);
+            if (i != rootDirList.length-1) {
+                sb.append(MixAll.MULTI_PATH_SPLITTER);
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String chooseConfigDir(final String rootDir) {
+        // use first path to store config
+        String[] rootDirList = rootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
+        return rootDirList[0];
+    }
+
+    public static String chooseConfigBakDir(final String rootDir) {
+        String[] rootDirList = rootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
+        if (rootDirList.length == 1) {
+            // one path, config file and bak file paths should be same
+            return rootDirList[0];
+        }
+        return rootDirList[1];
     }
 
 }
