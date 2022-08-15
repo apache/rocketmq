@@ -741,7 +741,7 @@ public class DefaultLitePullConsumerTest {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
         suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
-        litePullConsumer.setSubExpression4Assign(topic, "tagA");
+        litePullConsumer.setSubExpressionForAssign(topic, "tagA");
         litePullConsumer.start();
         initDefaultLitePullConsumerWithTag(litePullConsumer);
         return litePullConsumer;

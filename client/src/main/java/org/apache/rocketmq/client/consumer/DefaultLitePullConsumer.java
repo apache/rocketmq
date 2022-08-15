@@ -272,8 +272,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void setSubExpression4Assign(final String topic, final String subExpresion) {
-        defaultLitePullConsumerImpl.setSubExpression4Assign(withNamespace(topic), subExpresion);
+    public void setSubExpressionForAssign(final String topic, final String subExpresion) {
+        defaultLitePullConsumerImpl.setSubExpressionForAssign(withNamespace(topic), subExpresion);
     }
 
     @Override
