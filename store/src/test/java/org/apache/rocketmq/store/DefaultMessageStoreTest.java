@@ -87,6 +87,7 @@ public class DefaultMessageStoreTest {
         multiPathMessageStore.start();
     }
 
+
     @Test(expected = OverlappingFileLockException.class)
     public void test_repeat_restart() throws Exception {
         QUEUE_TOTAL = 1;
