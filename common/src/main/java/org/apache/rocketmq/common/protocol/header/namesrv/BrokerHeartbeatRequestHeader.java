@@ -65,19 +65,19 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public int getEpoch() {
+    public Integer getEpoch() {
         return epoch;
     }
 
-    public void setEpoch(int epoch) {
+    public void setEpoch(Integer epoch) {
         this.epoch = epoch;
     }
 
-    public long getMaxOffset() {
+    public Long getMaxOffset() {
         return maxOffset;
     }
 
-    public void setMaxOffset(long maxOffset) {
+    public void setMaxOffset(Long maxOffset) {
         this.maxOffset = maxOffset;
     }
 

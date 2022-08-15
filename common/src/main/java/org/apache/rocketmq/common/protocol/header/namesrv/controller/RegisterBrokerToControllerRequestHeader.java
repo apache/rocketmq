@@ -24,8 +24,10 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
-    private int epoch;
-    private long maxOffset;
+    @CFNullable
+    private Integer epoch;
+    @CFNullable
+    private Long maxOffset;
     @CFNullable
     private Long heartbeatTimeoutMillis;
 
@@ -91,19 +93,19 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
                 '}';
     }
 
-    public int getEpoch() {
+    public Integer getEpoch() {
         return epoch;
     }
 
-    public void setEpoch(int epoch) {
+    public void setEpoch(Integer epoch) {
         this.epoch = epoch;
     }
 
-    public long getMaxOffset() {
+    public Long getMaxOffset() {
         return maxOffset;
     }
 
-    public void setMaxOffset(long maxOffset) {
+    public void setMaxOffset(Long maxOffset) {
         this.maxOffset = maxOffset;
     }
 

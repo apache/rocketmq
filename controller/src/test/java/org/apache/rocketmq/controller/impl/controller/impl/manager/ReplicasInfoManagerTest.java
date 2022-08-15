@@ -126,30 +126,30 @@ public class ReplicasInfoManagerTest {
 
     public void mockHeartbeatDataMasterStillAlive() {
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, 10000000000L, null,
-                1, 3);
+                1, 3L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-                1, 2);
+                1, 2L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-                1, 3);
+                1, 3L);
     }
 
     public void mockHeartbeatDataHigherEpoch() {
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-                1, 3);
+                1, 3L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-                1, 2);
+                1, 2L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-                0, 3);
+                0, 3L);
     }
 
 
     public void mockHeartbeatDataHigherOffset() {
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-                1, 3);
+                1, 3L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-                1, 2);
+                1, 2L);
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-                1, 3);
+                1, 3L);
     }
 
     @Test

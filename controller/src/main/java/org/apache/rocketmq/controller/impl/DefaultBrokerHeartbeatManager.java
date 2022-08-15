@@ -102,7 +102,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void registerBroker(String clusterName, String brokerName, String brokerAddr,
-                               long brokerId, Long timeoutMillis, Channel channel, int epoch, long maxOffset) {
+                               long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset) {
         final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
                 new BrokerLiveInfo(brokerName,
@@ -110,7 +110,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                         brokerId,
                         System.currentTimeMillis(),
                         timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                        channel, epoch, maxOffset));
+                        channel, epoch == null ? -1 : epoch, maxOffset == null ? -1 : maxOffset));
         if (prevBrokerLiveInfo == null) {
             log.info("new broker registered, {}, brokerId:{}", addrInfo, brokerId);
         }
@@ -127,19 +127,22 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerAddr, int epoch, long maxOffset, long confirmOffset) {
+    public void onBrokerHeartbeat(String clusterName, String brokerAddr, Integer epoch, Long maxOffset, Long confirmOffset) {
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
+        int realEpoch = epoch == null ? -1 : epoch;
+        long realMaxOffset = maxOffset == null ? -1 : maxOffset;
+        long realConfirmOffset = confirmOffset == null ? -1 : confirmOffset;
         if (prev != null) {
             prev.setLastUpdateTimestamp(System.currentTimeMillis());
-            if (epoch > prev.getEpoch()) {
-                prev.setEpoch(epoch);
-                prev.setMaxOffset(maxOffset);
-                prev.setConfirmOffset(confirmOffset);
-            } else if (epoch == prev.getEpoch()) {
-                if (maxOffset > prev.getMaxOffset()) {
-                    prev.setMaxOffset(maxOffset);
-                    prev.setConfirmOffset(confirmOffset);
+            if (realEpoch > prev.getEpoch()) {
+                prev.setEpoch(realEpoch);
+                prev.setMaxOffset(realMaxOffset);
+                prev.setConfirmOffset(realConfirmOffset);
+            } else if (realEpoch == prev.getEpoch()) {
+                if (realMaxOffset > prev.getMaxOffset()) {
+                    prev.setMaxOffset(realMaxOffset);
+                    prev.setConfirmOffset(realConfirmOffset);
                 }
             }
         }

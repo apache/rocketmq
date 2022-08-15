@@ -228,6 +228,10 @@ public class DLedgerController implements Controller {
         this.brokerAlivePredicate = brokerAlivePredicate;
     }
 
+    public void setElectPolicy(ElectPolicy electPolicy) {
+        this.electPolicy = electPolicy;
+    }
+
     /**
      * Event handler that handle event
      */
