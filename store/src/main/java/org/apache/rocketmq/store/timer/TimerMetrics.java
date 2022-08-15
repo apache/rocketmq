@@ -142,6 +142,11 @@ public class TimerMetrics extends ConfigManager {
     }
 
     @Override
+    public String configFileBakPath() {
+        return configPath;
+    }
+
+    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             TimerMetricsSerializeWrapper timerMetricsSerializeWrapper =
