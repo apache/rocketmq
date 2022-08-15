@@ -205,6 +205,8 @@ public class SendMessageActivityTest extends BaseActivityTest {
     @Test
     public void testBuildMessage() {
         long deliveryTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        ConfigurationManager.getProxyConfig().setMessageDelayLevel("1s 5s");
+        ConfigurationManager.getProxyConfig().initData();
         String msgId = MessageClientIDSetter.createUniqID();
 
         org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,

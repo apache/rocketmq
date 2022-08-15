@@ -111,7 +111,7 @@ public class EscapeBridge {
         } else if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
             && this.brokerController.getBrokerConfig().isEnableRemoteEscape()
             && innerProducer != null) {
-            // Remote Acting lead to born timestamp, msgId changed, it need to polish.
+            // Remote Acting lead to born timestamp, msgId changed, it needs to polish.
             try {
                 messageExt.setWaitStoreMsgOK(false);
                 SendResult sendResult = innerProducer.send(messageExt);
@@ -135,15 +135,17 @@ public class EscapeBridge {
         } else if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
             && this.brokerController.getBrokerConfig().isEnableRemoteEscape()
             && innerProducer != null) {
-            // Remote Acting lead to born timestamp, msgId changed, it need to polish.
+            // Remote Acting lead to born timestamp, msgId changed, it needs to polish.
             try {
                 messageExt.setWaitStoreMsgOK(false);
                 innerProducer.send(messageExt, new SendCallback() {
-                    @Override public void onSuccess(SendResult sendResult) {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
                         completableFuture.complete(transformSendResult2PutResult(sendResult));
                     }
 
-                    @Override public void onException(Throwable e) {
+                    @Override
+                    public void onException(Throwable e) {
                         completableFuture.complete(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
                     }
                 });
@@ -168,7 +170,7 @@ public class EscapeBridge {
             && this.innerProducer != null) {
             try {
                 messageExt.setWaitStoreMsgOK(false);
-                // Remote Acting lead to born timestamp, msgId changed, it need to polish.
+                // Remote Acting lead to born timestamp, msgId changed, it needs to polish.
                 SendResult sendResult = innerProducer.send(messageExt, new MessageQueueSelector() {
                     @Override
                     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
@@ -211,6 +213,10 @@ public class EscapeBridge {
         MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
         if (messageStore != null) {
             final GetMessageResult getMessageTmpResult = messageStore.getMessage(innerConsumerGroupName, topic, queueId, offset, 1, null);
+            if (getMessageTmpResult == null) {
+                LOG.warn("getMessageResult is null , innerConsumerGroupName {}, topic {}, offset {}, queueId {}", innerConsumerGroupName, topic, offset, queueId);
+                return null;
+            }
             List<MessageExt> list = decodeMsgList(getMessageTmpResult);
             if (list == null || list.isEmpty()) {
                 LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, getMessageTmpResult);

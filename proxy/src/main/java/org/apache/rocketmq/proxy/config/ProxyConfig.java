@@ -91,6 +91,7 @@ public class ProxyConfig implements ConfigFile {
     private int grpcClientProducerBackoffMultiplier = 2;
     private long grpcClientConsumerLongPollingTimeoutMillis = Duration.ofSeconds(30).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
+    private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
 
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
@@ -150,7 +151,7 @@ public class ProxyConfig implements ConfigFile {
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
 
-    private int metricCollectorMode = MetricCollectorMode.OFF.getOrdinal();
+    private String metricCollectorMode = MetricCollectorMode.OFF.getModeString();
     // Example address: 127.0.0.1:1234
     private String metricCollectorAddress = "";
 
@@ -820,11 +821,11 @@ public class ProxyConfig implements ConfigFile {
         this.renewSchedulePeriodMillis = renewSchedulePeriodMillis;
     }
 
-    public int getMetricCollectorMode() {
+    public String getMetricCollectorMode() {
         return metricCollectorMode;
     }
 
-    public void setMetricCollectorMode(int metricCollectorMode) {
+    public void setMetricCollectorMode(String metricCollectorMode) {
         this.metricCollectorMode = metricCollectorMode;
     }
 
@@ -854,5 +855,13 @@ public class ProxyConfig implements ConfigFile {
 
     public Map<Integer, Long> getDelayLevelTable() {
         return delayLevelTable;
+    }
+
+    public long getGrpcClientIdleTimeMills() {
+        return grpcClientIdleTimeMills;
+    }
+
+    public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
+        this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
     }
 }

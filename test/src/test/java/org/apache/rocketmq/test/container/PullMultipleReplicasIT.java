@@ -166,7 +166,7 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
 
         await().atMost(Duration.ofSeconds(60)).until(() -> {
             DefaultMessageStore messageStore = (DefaultMessageStore) master3With3Replicas.getMessageStore();
-            return messageStore.getHaService().inSyncSlaveNums(messageStore.getMaxPhyOffset()) == 2;
+            return messageStore.getHaService().inSyncReplicasNums(messageStore.getMaxPhyOffset()) == 3;
         });
 
         InnerSalveBrokerController slaveBroker = null;

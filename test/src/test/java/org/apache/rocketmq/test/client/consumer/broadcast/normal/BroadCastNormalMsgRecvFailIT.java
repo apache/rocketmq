@@ -40,7 +40,7 @@ public class BroadCastNormalMsgRecvFailIT extends BaseBroadCastIT {
 
     @Before
     public void setUp() {
-        printSeperator();
+        printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);

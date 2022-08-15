@@ -14,21 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
 
-public final class MsgUtil {
-    private MsgUtil() {
-    }
-
-    public static void setMessageDeliverTime(BrokerController brokerController, Message msgInner, long timeMillis) {
-        msgInner.setDelayTimeLevel(brokerController.getScheduleMessageService().computeDelayLevel(timeMillis));
-    }
-
-    public static long getMessageDeliverTime(BrokerController brokerController, MessageExt msgInner) {
-        return brokerController.getScheduleMessageService().computeDeliverTimestamp(msgInner.getDelayTimeLevel(), msgInner.getStoreTimestamp());
-    }
-}
+Field clusterName : private java.lang.String null
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getClusterName() : public throws (java.lang.String)
+Method getTopic() : public throws (java.lang.String)
+Method setClusterName(java.lang.String) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)

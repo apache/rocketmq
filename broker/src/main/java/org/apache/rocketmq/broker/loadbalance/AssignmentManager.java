@@ -105,6 +105,7 @@ public class AssignmentManager {
         try {
             TopicRouteData topicRouteData = this.brokerController.getBrokerOuterAPI().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
+                topicRouteData.setTopicQueueMappingByBroker(null);
                 Set<MessageQueue> newSubscribeInfo = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 Set<MessageQueue> oldSubscribeInfo = topicSubscribeInfoTable.get(topic);
                 boolean changed = !newSubscribeInfo.equals(oldSubscribeInfo);

@@ -23,10 +23,7 @@ import apache.rocketmq.v2.CustomizedBackoff;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.Metric;
-import apache.rocketmq.v2.Publishing;
-import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
-import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import java.util.Arrays;
@@ -61,14 +58,35 @@ public class GrpcClientSettingsManager {
         if (settings == null) {
             return null;
         }
-        if (settings.hasSubscription()) {
+        if (settings.hasPublishing()) {
+            settings = mergeProducerData(settings);
+        } else if (settings.hasSubscription()) {
             settings = mergeSubscriptionData(ctx, settings,
                 GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
         }
         return mergeMetric(settings);
     }
 
-    private Settings mergeSubscriptionData(ProxyContext ctx, Settings settings, String consumerGroup) {
+    protected static Settings mergeProducerData(Settings settings) {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        Settings.Builder builder = settings.toBuilder();
+
+        builder.getBackoffPolicyBuilder()
+            .setMaxAttempts(config.getGrpcClientProducerMaxAttempts())
+            .setExponentialBackoff(ExponentialBackoff.newBuilder()
+                .setInitial(Durations.fromMillis(config.getGrpcClientProducerBackoffInitialMillis()))
+                .setMax(Durations.fromMillis(config.getGrpcClientProducerBackoffMaxMillis()))
+                .setMultiplier(config.getGrpcClientProducerBackoffMultiplier())
+                .build())
+            .build();
+
+        builder.getPublishingBuilder()
+            .setValidateMessageType(config.isEnableTopicMessageTypeCheck())
+            .setMaxBodySize(config.getMaxMessageSize());
+        return builder.build();
+    }
+
+    protected Settings mergeSubscriptionData(ProxyContext ctx, Settings settings, String consumerGroup) {
         SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx, consumerGroup);
         if (config == null) {
             return settings;
@@ -77,11 +95,11 @@ public class GrpcClientSettingsManager {
         return mergeSubscriptionData(settings, config);
     }
 
-    private Settings mergeMetric(Settings settings) {
+    protected Settings mergeMetric(Settings settings) {
         // Construct metric according to the proxy config
         final ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         final MetricCollectorMode metricCollectorMode =
-            MetricCollectorMode.getEnumByOrdinal(proxyConfig.getMetricCollectorMode());
+            MetricCollectorMode.getEnumByString(proxyConfig.getMetricCollectorMode());
         final String metricCollectorAddress = proxyConfig.getMetricCollectorAddress();
         final Metric.Builder metricBuilder = Metric.newBuilder();
         switch (metricCollectorMode) {
@@ -106,14 +124,18 @@ public class GrpcClientSettingsManager {
         return settings.toBuilder().setMetric(metric).build();
     }
 
-    protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig config) {
+    protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig groupConfig) {
         Settings.Builder resultSettingsBuilder = settings.toBuilder();
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
 
-        resultSettingsBuilder.getSubscriptionBuilder().setFifo(config.isConsumeMessageOrderly());
+        resultSettingsBuilder.getSubscriptionBuilder()
+            .setReceiveBatchSize(config.getGrpcClientConsumerLongPollingBatchSize())
+            .setLongPollingTimeout(Durations.fromMillis(config.getGrpcClientConsumerLongPollingTimeoutMillis()))
+            .setFifo(groupConfig.isConsumeMessageOrderly());
 
-        resultSettingsBuilder.getBackoffPolicyBuilder().setMaxAttempts(config.getRetryMaxTimes() + 1);
+        resultSettingsBuilder.getBackoffPolicyBuilder().setMaxAttempts(groupConfig.getRetryMaxTimes() + 1);
 
-        GroupRetryPolicy groupRetryPolicy = config.getGroupRetryPolicy();
+        GroupRetryPolicy groupRetryPolicy = groupConfig.getGroupRetryPolicy();
         if (groupRetryPolicy.getType().equals(GroupRetryPolicyType.EXPONENTIAL)) {
             ExponentialRetryPolicy exponentialRetryPolicy = groupRetryPolicy.getExponentialRetryPolicy();
             if (exponentialRetryPolicy == null) {
@@ -148,39 +170,14 @@ public class GrpcClientSettingsManager {
     }
 
     public void updateClientSettings(String clientId, Settings settings) {
-        if (settings.hasPublishing()) {
-            settings = createDefaultProducerSettingsBuilder().mergeFrom(settings).build();
-        } else if (settings.hasSubscription()) {
+        if (settings.hasSubscription()) {
             settings = createDefaultConsumerSettingsBuilder().mergeFrom(settings).build();
         }
         CLIENT_SETTINGS_MAP.put(clientId, settings);
     }
 
-    protected Settings.Builder createDefaultProducerSettingsBuilder() {
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
-        return Settings.newBuilder()
-            .setBackoffPolicy(RetryPolicy.newBuilder()
-                .setMaxAttempts(config.getGrpcClientProducerMaxAttempts())
-                .setExponentialBackoff(ExponentialBackoff.newBuilder()
-                    .setInitial(Durations.fromMillis(config.getGrpcClientProducerBackoffInitialMillis()))
-                    .setMax(Durations.fromMillis(config.getGrpcClientProducerBackoffMaxMillis()))
-                    .setMultiplier(config.getGrpcClientProducerBackoffMultiplier())
-                    .build())
-                .build())
-            .setPublishing(Publishing.newBuilder()
-                .setValidateMessageType(config.isEnableTopicMessageTypeCheck())
-                .setMaxBodySize(config.getMaxMessageSize())
-                .build());
-    }
-
     protected Settings.Builder createDefaultConsumerSettingsBuilder() {
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
-        return mergeSubscriptionData(Settings.newBuilder()
-            .setSubscription(Subscription.newBuilder()
-                .setReceiveBatchSize(config.getGrpcClientConsumerLongPollingBatchSize())
-                .setLongPollingTimeout(Durations.fromMillis(config.getGrpcClientConsumerLongPollingTimeoutMillis()))
-                .build())
-            .build(), new SubscriptionGroupConfig())
+        return mergeSubscriptionData(Settings.newBuilder().getDefaultInstanceForType(), new SubscriptionGroupConfig())
             .toBuilder();
     }
 
@@ -194,8 +191,10 @@ public class GrpcClientSettingsManager {
         if (settings == null) {
             return null;
         }
-        settings = mergeSubscriptionData(ctx, settings,
-            GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+        if (settings.hasSubscription()) {
+            settings = mergeSubscriptionData(ctx, settings,
+                GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+        }
         if (settings == null) {
             return null;
         }

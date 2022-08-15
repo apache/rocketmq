@@ -95,7 +95,8 @@ public class ChangeInvisibleTimeRequestHeader implements CommandCustomHeader {
         this.queueId = queueId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("consumerGroup", consumerGroup)
             .add("topic", topic)

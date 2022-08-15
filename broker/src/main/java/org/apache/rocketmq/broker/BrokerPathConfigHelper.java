@@ -118,6 +118,12 @@ public class BrokerPathConfigHelper {
         }
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }
+    public static String getTimerCheckPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "timercheck";
+    }
+    public static String getTimerMetricsPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "timermetrics";
+    }
 
     public static String getConsumerFilterPath(final String rootDir) {
         if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {

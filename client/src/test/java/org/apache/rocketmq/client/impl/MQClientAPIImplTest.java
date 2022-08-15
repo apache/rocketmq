@@ -478,7 +478,8 @@ public class MQClientAPIImplTest {
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
         final CountDownLatch done = new CountDownLatch(1);
         mqClientAPI.popMessageAsync(brokerName, brokerAddr, new PopMessageRequestHeader(), 10 * 1000, new PopCallback() {
-            @Override public void onSuccess(PopResult popResult) {
+            @Override
+            public void onSuccess(PopResult popResult) {
                 assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
                 assertThat(popResult.getRestNum()).isEqualTo(1);
                 assertThat(popResult.getInvisibleTime()).isEqualTo(invisibleTime);
@@ -487,7 +488,8 @@ public class MQClientAPIImplTest {
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }
@@ -514,12 +516,14 @@ public class MQClientAPIImplTest {
 
         final CountDownLatch done = new CountDownLatch(1);
         mqClientAPI.ackMessageAsync(brokerAddr, 10 * 1000, new AckCallback() {
-            @Override public void onSuccess(AckResult ackResult) {
+            @Override
+            public void onSuccess(AckResult ackResult) {
                 assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }
@@ -554,12 +558,14 @@ public class MQClientAPIImplTest {
         requestHeader.setOffset(0L);
         requestHeader.setInvisibleTime(10 * 1000L);
         mqClientAPI.changeInvisibleTimeAsync(brokerName, brokerAddr, requestHeader, 10 * 1000, new AckCallback() {
-            @Override public void onSuccess(AckResult ackResult) {
+            @Override
+            public void onSuccess(AckResult ackResult) {
                 assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }

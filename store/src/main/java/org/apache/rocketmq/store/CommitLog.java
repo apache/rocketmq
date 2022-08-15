@@ -56,6 +56,7 @@ import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.common.attribute.CQType;
 
+
 /**
  * Store all metadata downtime for recovery, data protection reliability
  */
@@ -355,6 +356,7 @@ public class CommitLog implements Swappable {
                 log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
                 this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
             }
+
         } else {
             // Commitlog case files are deleted
             log.warn("The commitlog files are deleted, and delete the consume queue files");
@@ -712,7 +714,7 @@ public class CommitLog implements Swappable {
     private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
-        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
+        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
         if (magicCode != MESSAGE_MAGIC_CODE) {
             return false;
         }
@@ -815,12 +817,20 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        boolean needHandleHA = needHandleHA(msg);
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        boolean needHandleHA = needHandleHA(msg);
 
-        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+            if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+            if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            }
+        } else if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
             needAckNums = calcNeedAckNums(inSyncReplicas);
             if (needAckNums > inSyncReplicas) {
                 // Tell the producer, don't have enough slaves to handle the send request
@@ -962,12 +972,21 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        boolean needHandleHA = needHandleHA(messageExtBatch);
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        boolean needHandleHA = needHandleHA(messageExtBatch);
 
-        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
+
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+            if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+            if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            }
+        } else if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
             needAckNums = calcNeedAckNums(inSyncReplicas);
             if (needAckNums > inSyncReplicas) {
                 // Tell the producer, don't have enough slaves to handle the send request
@@ -1117,27 +1136,16 @@ public class CommitLog implements Swappable {
 
     private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
         int needAckNums) {
-        if (needAckNums <= 1) {
+        if (needAckNums >= 0 && needAckNums <= 1) {
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
 
         HAService haService = this.defaultMessageStore.getHaService();
 
         long nextOffset = result.getWroteOffset() + result.getWroteBytes();
-        // NOTE: Plus the master replicas
-//        int inSyncReplicas = haService.inSyncSlaveNums(nextOffset) + 1;
-
-//        if (needAckNums > inSyncReplicas) {
-//            /*
-//             * Tell the producer, don't have enough slaves to handle the send request.
-//             * NOTE: this may cause msg duplicate
-//             */
-//            putMessageResult.setPutMessageStatus(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//            return CompletableFuture.completedFuture(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//        }
 
         // Wait enough acks from different slaves
-        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1);
+        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums);
         haService.putRequest(request);
         haService.getWaitNotifyObject().wakeupAll();
         return request.future();

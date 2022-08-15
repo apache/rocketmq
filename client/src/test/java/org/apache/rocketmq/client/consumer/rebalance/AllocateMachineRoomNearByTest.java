@@ -36,11 +36,13 @@ public class AllocateMachineRoomNearByTest {
 
     private final String topic = "topic_test";
     private final AllocateMachineRoomNearby.MachineRoomResolver machineRoomResolver =  new AllocateMachineRoomNearby.MachineRoomResolver() {
-        @Override public String brokerDeployIn(MessageQueue messageQueue) {
+        @Override
+        public String brokerDeployIn(MessageQueue messageQueue) {
             return messageQueue.getBrokerName().split("-")[0];
         }
 
-        @Override public String consumerDeployIn(String clientID) {
+        @Override
+        public String consumerDeployIn(String clientID) {
             return clientID.split("-")[0];
         }
     };

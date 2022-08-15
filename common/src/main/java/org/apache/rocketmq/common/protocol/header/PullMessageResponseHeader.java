@@ -86,22 +86,22 @@ public class PullMessageResponseHeader implements CommandCustomHeader, FastCodes
             this.maxOffset = Long.parseLong(str);
         }
 
-        str = getAndCheckNotNull(fields, "offsetDelta");
+        str = fields.get("offsetDelta");
         if (str != null) {
             this.offsetDelta = Long.parseLong(str);
         }
 
-        str = getAndCheckNotNull(fields, "topicSysFlag");
+        str = fields.get("topicSysFlag");
         if (str != null) {
             this.topicSysFlag = Integer.parseInt(str);
         }
 
-        str = getAndCheckNotNull(fields, "groupSysFlag");
+        str = fields.get("groupSysFlag");
         if (str != null) {
             this.groupSysFlag = Integer.parseInt(str);
         }
 
-        str = getAndCheckNotNull(fields, "forbiddenType");
+        str = fields.get("forbiddenType");
         if (str != null) {
             this.forbiddenType = Integer.parseInt(str);
         }

@@ -22,7 +22,6 @@ import java.lang.reflect.Field;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -82,9 +81,6 @@ public class ChangeInvisibleTimeProcessorTest {
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
-        ScheduleMessageService scheduleMessageService = new ScheduleMessageService(brokerController);
-        scheduleMessageService.parseDelayLevel();
-        when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         Channel mockChannel = mock(Channel.class);
         when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

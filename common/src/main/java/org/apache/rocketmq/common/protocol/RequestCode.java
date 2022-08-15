@@ -82,6 +82,10 @@ public class RequestCode {
 
     public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
 
+    public static final int GET_TIMER_CHECK_POINT = 60;
+
+    public static final int GET_TIMER_METRICS = 61;
+
     public static final int POP_MESSAGE = 200050;
     public static final int ACK_MESSAGE = 200051;
     public static final int PEEK_MESSAGE = 200052;
@@ -236,4 +240,33 @@ public class RequestCode {
     public static final int GET_ALL_PRODUCER_INFO = 328;
 
     public static final int DELETE_EXPIRED_COMMITLOG = 329;
+
+    /**
+     * Controller code
+     */
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
+
+    public static final int CONTROLLER_ELECT_MASTER = 1002;
+
+    public static final int CONTROLLER_REGISTER_BROKER = 1003;
+
+    public static final int CONTROLLER_GET_REPLICA_INFO = 1004;
+
+    public static final int CONTROLLER_GET_METADATA_INFO = 1005;
+
+    public static final int CONTROLLER_GET_SYNC_STATE_DATA = 1006;
+
+    public static final int GET_BROKER_EPOCH_CACHE = 1007;
+
+    public static final int NOTIFY_BROKER_ROLE_CHANGED = 1008;
+
+    /**
+     * update the config of controller
+     */
+    public static final int UPDATE_CONTROLLER_CONFIG = 1009;
+
+    /**
+     * get config from controller
+     */
+    public static final int GET_CONTROLLER_CONFIG = 1010;
 }
