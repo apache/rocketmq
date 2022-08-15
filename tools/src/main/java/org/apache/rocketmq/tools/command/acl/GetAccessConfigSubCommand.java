@@ -52,7 +52,7 @@ public class GetAccessConfigSubCommand implements SubCommand {
     @Override public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "query acl config for which broker");
+        Option opt = new Option("b", "brokerAddr", true, "query acl config for specified broker");
         optionGroup.addOption(opt);
 
         opt = new Option("c", "clusterName", true, "query acl config for specified cluster");
