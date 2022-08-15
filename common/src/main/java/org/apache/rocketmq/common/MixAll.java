@@ -507,9 +507,9 @@ public class MixAll {
     public static String generateMultiRoute(final String rootDir, String fileName) {
         String[] rootDirList = rootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i<rootDirList.length; i++) {
+        for (int i = 0; i < rootDirList.length; i++) {
             sb.append(rootDirList[i]).append(File.separator).append(fileName);
-            if (i != rootDirList.length-1) {
+            if (i != rootDirList.length - 1) {
                 sb.append(MixAll.MULTI_PATH_SPLITTER);
             }
         }
