@@ -78,7 +78,6 @@ public class PopMessageProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        when(messageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
