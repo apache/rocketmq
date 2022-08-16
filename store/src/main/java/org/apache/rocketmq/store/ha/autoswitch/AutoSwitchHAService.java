@@ -392,6 +392,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         return reputFromOffset;
     }
 
+    public int getLastEpoch() {
+        return this.epochCache.lastEpoch();
+    }
+
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
     }

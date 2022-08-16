@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.MixAll;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
@@ -63,15 +65,12 @@ public class ControllerManager {
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
-        NettyClientConfig nettyClientConfig) {
+                             NettyClientConfig nettyClientConfig) {
         this.controllerConfig = controllerConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-        this.configuration = new Configuration(
-            log,
-            this.controllerConfig, this.nettyServerConfig
-        );
+        this.configuration = new Configuration(log, this.controllerConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
     }
@@ -79,12 +78,12 @@ public class ControllerManager {
     public boolean initialize() {
         this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
         this.controllerRequestExecutor = new ThreadPoolExecutor(
-            this.controllerConfig.getControllerThreadPoolNums(),
-            this.controllerConfig.getControllerThreadPoolNums(),
-            1000 * 60,
-            TimeUnit.MILLISECONDS,
-            this.controllerRequestThreadPoolQueue,
-            new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
+                this.controllerConfig.getControllerThreadPoolNums(),
+                this.controllerConfig.getControllerThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.controllerRequestThreadPoolQueue,
+                new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
             @Override
             protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
                 return new FutureTaskExt<T>(runnable, value);
@@ -97,39 +96,46 @@ public class ControllerManager {
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
         }
-        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
-            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
+        this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
+                this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
+                new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
 
         // Register broker inactive listener
-        this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {
-            @Override
-            public void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
-                if (brokerId == MixAll.MASTER_ID) {
-                    if (controller.isLeaderState()) {
-                        final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
-                        try {
-                            final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
-                            final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
-                            if (responseHeader != null) {
-                                log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
-                                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                                    heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
-                                }
-
-                                if (controllerConfig.isNotifyBrokerRoleChanged()) {
-                                    notifyBrokerRoleChanged(responseHeader, clusterName);
-                                }
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    } else {
-                        log.info("Broker{}' master shutdown", brokerName);
-                    }
-                }
-            }
-        });
+        this.heartbeatManager.addBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
         return true;
+    }
+
+    /**
+     * When the heartbeatManager detects the "Broker is not active",
+     * we call this method to elect a master and do something else.
+     * @param clusterName The cluster name of this inactive broker
+     * @param brokerName The inactive broker name
+     * @param brokerAddress The inactive broker address(ip)
+     * @param brokerId The inactive broker id
+     */
+    private void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
+        if (brokerId == MixAll.MASTER_ID) {
+            if (controller.isLeaderState()) {
+                final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
+                try {
+                    final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
+                    final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
+                    if (responseHeader != null) {
+                        log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
+                        if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
+                            heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                        }
+                        if (controllerConfig.isNotifyBrokerRoleChanged()) {
+                            notifyBrokerRoleChanged(responseHeader, clusterName);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            } else {
+                log.info("Broker{}' master shutdown", brokerName);
+            }
+        }
     }
 
     /**
@@ -156,11 +162,11 @@ public class ControllerManager {
     }
 
     public void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
-        final ElectMasterResponseHeader responseHeader) {
+                                          final ElectMasterResponseHeader responseHeader) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
-                responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
+                    responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             try {
                 this.remotingClient.invokeOneway(brokerAddr, request, 3000);
