@@ -17,9 +17,12 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
@@ -39,7 +42,6 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
 import org.apache.rocketmq.store.queue.QueueOffsetAssigner;
 import org.apache.rocketmq.store.queue.ReferredIterator;
-
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 

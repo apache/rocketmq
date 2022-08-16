@@ -74,7 +74,7 @@ public class StorePathConfigHelper {
 
     public static String getDelayOffsetStorePath(final String rootDir) {
         if (rootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
-            return MixAll.chooseConfigDir(rootDir)+ File.separator + "config" + File.separator + "delayOffset.json";
+            return MixAll.chooseConfigDir(rootDir) + File.separator + "config" + File.separator + "delayOffset.json";
         }
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }

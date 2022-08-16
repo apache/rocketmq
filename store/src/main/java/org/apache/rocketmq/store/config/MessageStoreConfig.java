@@ -519,9 +519,9 @@ public class MessageStoreConfig {
             if (storePathRootDir.contains(MixAll.MULTI_PATH_SPLITTER)) {
                 String[] paths = storePathRootDir.trim().split(MixAll.MULTI_PATH_SPLITTER);
                 StringBuilder sb = new StringBuilder();
-                for (int i = 0; i<paths.length; i++) {
+                for (int i = 0; i < paths.length; i++) {
                     sb.append(paths[i]).append(File.separator).append("commitlog");
-                    if (i != paths.length-1) {
+                    if (i != paths.length - 1) {
                         sb.append(MixAll.MULTI_PATH_SPLITTER);
                     }
                 }

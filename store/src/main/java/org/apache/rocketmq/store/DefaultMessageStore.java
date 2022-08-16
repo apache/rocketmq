@@ -2443,7 +2443,7 @@ public class DefaultMessageStore implements MessageStore {
 
         @Override
         public void run() {
-            try{
+            try {
                 checkStorePath();
             } catch (Throwable e) {
                 DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
