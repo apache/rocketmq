@@ -153,7 +153,7 @@ public class ControllerManagerTest {
 
         // Send heartbeat for broker2
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(()-> {
+        executor.scheduleAtFixedRate(() -> {
             final BrokerHeartbeatRequestHeader heartbeatRequestHeader = new BrokerHeartbeatRequestHeader();
             heartbeatRequestHeader.setClusterName("cluster1");
             heartbeatRequestHeader.setBrokerName("broker1");

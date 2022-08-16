@@ -25,6 +25,10 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private String brokerName;
     private String brokerAddress;
     @CFNullable
+    private Integer epoch;
+    @CFNullable
+    private Long maxOffset;
+    @CFNullable
     private Long heartbeatTimeoutMillis;
 
 
@@ -35,6 +39,14 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+    }
+
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int epoch, long maxOffset) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
+        this.epoch = epoch;
+        this.maxOffset = maxOffset;
     }
 
     public String getClusterName() {
@@ -71,11 +83,30 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     @Override
     public String toString() {
-        return "RegisterBrokerRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            '}';
+        return "RegisterBrokerToControllerRequestHeader{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerAddress='" + brokerAddress + '\'' +
+                ", epoch=" + epoch +
+                ", maxOffset=" + maxOffset +
+                ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+                '}';
+    }
+
+    public Integer getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(Integer epoch) {
+        this.epoch = epoch;
+    }
+
+    public Long getMaxOffset() {
+        return maxOffset;
+    }
+
+    public void setMaxOffset(Long maxOffset) {
+        this.maxOffset = maxOffset;
     }
 
     @Override
