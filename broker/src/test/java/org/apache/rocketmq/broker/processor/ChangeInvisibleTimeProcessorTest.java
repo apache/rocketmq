@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
+import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -75,12 +76,20 @@ public class ChangeInvisibleTimeProcessorTest {
     @Mock
     private Broker2Client broker2Client;
 
+    @Mock
+    private EscapeBridge escapeBridge = new EscapeBridge(this.brokerController);
+
     @Before
     public void init() throws IllegalAccessException, NoSuchFieldException {
         brokerController.setMessageStore(messageStore);
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
+
+        Field ebField = BrokerController.class.getDeclaredField("escapeBridge");
+        ebField.setAccessible(true);
+        ebField.set(brokerController, this.escapeBridge);
+
         Channel mockChannel = mock(Channel.class);
         when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
@@ -99,7 +108,7 @@ public class ChangeInvisibleTimeProcessorTest {
 
     @Test
     public void testProcessRequest_Success() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         int queueId = 0;
         long queueOffset = 0;
         long popTime = System.currentTimeMillis() - 1_000;

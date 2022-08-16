@@ -477,7 +477,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return restNum;
         }
         offset = getPopOffset(topic, requestHeader, queueId, true, lockKey);
-        GetMessageResult getMessageTmpResult;
+        GetMessageResult getMessageTmpResult = null;
         try {
             if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(topic,
                 requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
@@ -544,6 +544,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 //                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
 //                        queueId, getMessageTmpResult.getNextBeginOffset());
             }
+        } catch (Exception e) {
+            POP_LOGGER.error("Exception in popMsgFromQueue", e);
         } finally {
             queueLockManager.unLock(lockKey);
         }
