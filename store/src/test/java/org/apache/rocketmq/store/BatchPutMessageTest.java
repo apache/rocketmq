@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -47,6 +48,8 @@ public class BatchPutMessageTest {
 
     private MessageStore messageStore;
 
+    private MessageStore multiPathMessageStore;
+
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
@@ -57,6 +60,11 @@ public class BatchPutMessageTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
+
+        multiPathMessageStore = buildMessageStoreMutiPath();
+        load = multiPathMessageStore.load();
+        assertTrue(load);
+        multiPathMessageStore.start();
     }
 
     @After
@@ -65,6 +73,16 @@ public class BatchPutMessageTest {
         messageStore.destroy();
 
         UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "putmessagesteststore"));
+
+        multiPathMessageStore.shutdown();
+        multiPathMessageStore.destroy();
+
+        MessageStoreConfig messageStoreConfig1 = multiPathMessageStore.getMessageStoreConfig();
+        String[] multiPaths = messageStoreConfig1.getStorePathRootDir().split(MixAll.MULTI_PATH_SPLITTER);
+        for (String path : multiPaths) {
+            File temp = new File(path);
+            UtilAll.deleteFile(temp);
+        }
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -78,6 +96,22 @@ public class BatchPutMessageTest {
         messageStoreConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "putmessagesteststore");
         messageStoreConfig.setStorePathCommitLog(System.getProperty("user.home") + File.separator + "putmessagesteststore" + File.separator + "commitlog");
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
+    }
+
+    private MessageStore buildMessageStoreMutiPath() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(
+                "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/c/store");
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("multiTest", true), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
@@ -128,6 +162,20 @@ public class BatchPutMessageTest {
             MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
             assertThat(messageExt).isNotNull();
             GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
+            assertThat(result).isNotNull();
+            assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
+            result.release();
+        }
+
+        PutMessageResult putMessageResult1 = multiPathMessageStore.putMessages(messageExtBatch);
+        assertThat(putMessageResult1.isOk()).isTrue();
+
+        Thread.sleep(3 * 1000);
+
+        for (long i = 0; i < 10; i++) {
+            MessageExt messageExt = multiPathMessageStore.lookMessageByOffset(msgLengthArr[(int) i]);
+            assertThat(messageExt).isNotNull();
+            GetMessageResult result = multiPathMessageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
             result.release();
@@ -185,13 +233,6 @@ public class BatchPutMessageTest {
             result.release();
         }
 
-    }
-    private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
-        keyBuilder.setLength(0);
-        keyBuilder.append(messageExt.getTopic());
-        keyBuilder.append('-');
-        keyBuilder.append(messageExt.getQueueId());
-        return keyBuilder.toString();
     }
 
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {

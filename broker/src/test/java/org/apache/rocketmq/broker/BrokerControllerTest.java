@@ -23,8 +23,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.broker.latency.FutureTaskExt;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
@@ -46,6 +50,65 @@ public class BrokerControllerTest {
         assertThat(brokerController.initialize()).isTrue();
         brokerController.start();
         brokerController.shutdown();
+    }
+
+    @Test
+    public void testMultiPathStart() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(
+                "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/store"
+        );
+        BrokerController brokerController = new BrokerController(
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
+                messageStoreConfig);
+        assertThat(brokerController.initialize()).isTrue();
+        brokerController.start();
+        brokerController.shutdown();
+        UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
+    }
+
+    @Test
+    public void testMultiPathLoadConfig() {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(
+                "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/c/store"
+        );
+        BrokerController brokerController = new BrokerController(
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
+                messageStoreConfig);
+        // pre-write config/topic.json
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+        String topic = "test_multi_path";
+        TopicConfig topicConfig = new TopicConfig(topic);
+        TopicValidator.addSystemTopic(topic);
+        topicConfig.setReadQueueNums(1);
+        topicConfig.setWriteQueueNums(1);
+        topicConfigManager.createTopicIfAbsent(topicConfig);
+
+        assertThat(brokerController.initializeLoadRootPath().equals("target/unit_test_store/a/store")).isTrue();
+
+        // change the path, should load the newest path
+        messageStoreConfig.setStorePathRootDir(
+                "target/unit_test_store/b/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/c/store"
+        );
+        brokerController = new BrokerController(
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
+                messageStoreConfig);
+        assertThat(brokerController.initializeLoadRootPath().equals("target/unit_test_store/a/store")).isTrue();
+
+        UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
     }
 
     @After
