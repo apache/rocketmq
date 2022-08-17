@@ -88,8 +88,7 @@ public abstract class NettyRemotingAbstract {
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     /**
-     * The default request processor to use in case there is no exact match in {@link #processorTable} per request
-     * code.
+     * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
      */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
@@ -111,7 +110,7 @@ public abstract class NettyRemotingAbstract {
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
      * @param permitsOneway Number of permits for one-way requests.
-     * @param permitsAsync Number of permits for asynchronous requests.
+     * @param permitsAsync  Number of permits for asynchronous requests.
      */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
@@ -182,14 +181,6 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    public void doAfterRpcFailure(String addr, RemotingCommand request, Boolean remoteTimeout) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
-                rpcHook.doAfterRpcFailure(addr, request, remoteTimeout);
-            }
-        }
-    }
-
     /**
      * Process incoming request command issued by remote peer.
      *
@@ -219,8 +210,7 @@ public abstract class NettyRemotingAbstract {
                         if (exception == null) {
                             response = pair.getObject1().processRequest(ctx, cmd);
                         } else {
-                            response = RemotingCommand.createResponseCommand(null);
-                            response.setCode(RemotingSysResponseCode.SYSTEM_ERROR);
+                            response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, null);
                         }
 
                         try {
@@ -495,10 +485,6 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
-            if (this instanceof NettyRemotingClient) {
-                NettyRemotingClient nettyRemotingClient = (NettyRemotingClient) this;
-                nettyRemotingClient.doAfterRpcFailure(RemotingHelper.parseChannelRemoteAddr(channel), request, false);
-            }
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             } else {

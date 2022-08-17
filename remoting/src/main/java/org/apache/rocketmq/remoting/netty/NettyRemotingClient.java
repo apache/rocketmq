@@ -210,14 +210,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             LOGGER.warn("Connections are insecure as SSLContext is null!");
                         }
                     }
-                    if (nettyClientConfig.isDefaultEventExecutorGroupEnable() && !nettyClientConfig.isDisableNettyWorkerGroup()) {
-                        ch.pipeline().addLast(defaultEventExecutorGroup);
-                    }
-                    ch.pipeline().addLast(//
-                        new NettyEncoder(), //
-                        new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()), //
-                        new NettyConnectManageHandler(), //
+                    ch.pipeline().addLast(
+                        nettyClientConfig.isDisableNettyWorkerGroup() ? null : defaultEventExecutorGroup,
+                        new NettyEncoder(),
+                        new NettyDecoder(),
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        new NettyConnectManageHandler(),
                         new NettyClientHandler());
                 }
             });
@@ -234,13 +232,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark());
             handler.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(
                     nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
-        }
-
-        if (nettyClientConfig.getClientSocketSndBufSize() != 0) {
-            handler.option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize());
-        }
-        if (nettyClientConfig.getClientSocketRcvBufSize() != 0) {
-            handler.option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize());
         }
         if (nettyClientConfig.isClientPooledByteBufAllocatorEnable()) {
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -277,7 +268,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     LOGGER.error("scanAvailableNameSrv exception", e);
                 }
             }
-        }, 1000 * 3, this.nettyClientConfig.getConnectTimeoutMillis());
+        }, 0, this.nettyClientConfig.getConnectTimeoutMillis());
 
     }
 
@@ -468,7 +459,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return response;
             } catch (RemotingSendRequestException e) {
                 LOGGER.warn("invokeSync: send request exception, so close the channel[{}]", addr);
-                doAfterRpcFailure(addr, request, false);
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
@@ -476,7 +466,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     this.closeChannel(addr, channel);
                     LOGGER.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                 }
-                doAfterRpcFailure(addr, request, true);
                 LOGGER.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
                 throw e;
             }
@@ -484,11 +473,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             this.closeChannel(addr, channel);
             throw new RemotingConnectException(addr);
         }
-    }
-
-    @Override
-    public void closeChannels() {
-        closeChannels(new ArrayList<String>(this.channelTables.keySet()));
     }
 
     @Override
@@ -686,7 +670,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
                 LOGGER.warn("invokeOneway: send request exception, so close the channel[{}]", addr);
-                doAfterRpcFailure(addr, request, false);
                 this.closeChannel(addr, channel);
                 throw e;
             }
@@ -742,11 +725,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
         this.callbackExecutor = callbackExecutor;
-    }
-
-    @Override
-    public ConcurrentMap<Integer, ResponseFuture> getResponseTable() {
-        return this.responseTable;
     }
 
     protected void scanChannelTablesOfNameServer() {

@@ -33,13 +33,11 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
@@ -251,7 +249,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         if (requestHeader.isTimeoutTooMuch()) {
-            response.setCode(POLLING_TIMEOUT);
+            response.setCode(ResponseCode.POLLING_TIMEOUT);
             response.setRemark(String.format("the broker[%s] poping message is timeout too much",
                 this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
@@ -302,14 +300,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark(String.format("subscription group [%s] does not exist, %s",
                 requestHeader.getConsumerGroup(), FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST)));
-            return response;
-        }
-        ConsumerGroupInfo consumerGroupInfo =
-            this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
-        if (null == consumerGroupInfo) {
-            POP_LOGGER.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
-            response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-            response.setRemark("the consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
             return response;
         }
 
@@ -463,6 +453,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     response = null;
                 }
                 break;
+            case ResponseCode.POLLING_TIMEOUT:
+                return response;
             default:
                 assert false;
         }
@@ -485,7 +477,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return restNum;
         }
         offset = getPopOffset(topic, requestHeader, queueId, true, lockKey);
-        GetMessageResult getMessageTmpResult;
+        GetMessageResult getMessageTmpResult = null;
         try {
             if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(topic,
                 requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
@@ -552,6 +544,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 //                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
 //                        queueId, getMessageTmpResult.getNextBeginOffset());
             }
+        } catch (Exception e) {
+            POP_LOGGER.error("Exception in popMsgFromQueue", e);
         } finally {
             queueLockManager.unLock(lockKey);
         }
@@ -665,7 +659,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
-        MsgUtil.setMessageDeliverTime(this.brokerController, msgInner, ck.getReviveTime() - PopAckConstants.ackTimeInterval);
+        msgInner.setDeliverTimeMs(ck.getReviveTime() - PopAckConstants.ackTimeInterval);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, genCkUniqueId(ck));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 

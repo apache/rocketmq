@@ -34,10 +34,11 @@ import org.apache.rocketmq.client.consumer.MQPushConsumer;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -92,7 +93,8 @@ public class BaseConf {
     }
 
     public BaseConf() {
-
+        // Add waitBrokerRegistered to BaseConf constructor to make it default for all subclasses.
+        waitBrokerRegistered(nsAddr, clusterName, brokerNum);
     }
 
     // This method can't be placed in the static block of BaseConf, which seems to lead to a strange dead lock.
@@ -101,9 +103,13 @@ public class BaseConf {
         mqAdminExt.setNamesrvAddr(nsAddr);
         try {
             mqAdminExt.start();
-            Thread.sleep(10000);
             await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                List<BrokerData> brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
+                List<BrokerData> brokerDatas;
+                try {
+                    brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
+                } catch (Exception e) {
+                    return false;
+                }
                 return brokerDatas.size() == expectedBrokerNum;
             });
             for (BrokerController brokerController: brokerControllerList) {
@@ -116,13 +122,62 @@ public class BaseConf {
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
     }
 
+    public boolean awaitDispatchMs(long timeMs) throws Exception {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start <= timeMs) {
+            boolean allOk = true;
+            for (BrokerController brokerController: brokerControllerList) {
+                if (brokerController.getMessageStore().dispatchBehindBytes() != 0) {
+                    allOk = false;
+                    break;
+                }
+            }
+            if (allOk) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
+    }
+
+
     public static String initTopic() {
         String topic = MQRandomUtils.getRandomTopic();
         return initTopicWithName(topic);
     }
 
+    public static String initTopic(TopicMessageType topicMessageType) {
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicWithName(topic, topicMessageType);
+    }
+
+    public static String initTopicOnSampleTopicBroker(String sampleTopic) {
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicOnSampleTopicBroker(topic, sampleTopic);
+    }
+
+    public static String initTopicOnSampleTopicBroker(String sampleTopic, TopicMessageType topicMessageType) {
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicOnSampleTopicBroker(topic, sampleTopic, topicMessageType);
+    }
+
     public static String initTopicWithName(String topicName) {
         IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, CQType.SimpleCQ);
+        return topicName;
+    }
+
+    public static String initTopicWithName(String topicName, TopicMessageType topicMessageType) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, topicMessageType);
+        return topicName;
+    }
+
+    public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, CQType.SimpleCQ);
+        return topicName;
+    }
+
+    public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic, TopicMessageType topicMessageType) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, topicMessageType);
         return topicName;
     }
 

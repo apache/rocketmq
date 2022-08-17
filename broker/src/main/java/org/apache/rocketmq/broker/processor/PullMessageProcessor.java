@@ -95,8 +95,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s", topic, globalId, mappingDetail.getBname()));
             }
-            Long globalOffset = requestHeader.getQueueOffset();
 
+            Long globalOffset = requestHeader.getQueueOffset();
             LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
             mappingContext.setCurrentItem(mappingItem);
 
@@ -329,11 +329,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        final boolean hasSuspendFlag = PullSysFlag.hasSuspendFlag(requestHeader.getSysFlag());
         final boolean hasCommitOffsetFlag = PullSysFlag.hasCommitOffsetFlag(requestHeader.getSysFlag());
         final boolean hasSubscriptionFlag = PullSysFlag.hasSubscriptionFlag(requestHeader.getSysFlag());
-
-        final long suspendTimeoutMillisLong = hasSuspendFlag ? requestHeader.getSuspendTimeoutMillis() : 0;
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {

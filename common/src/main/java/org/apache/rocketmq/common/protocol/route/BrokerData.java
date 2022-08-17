@@ -22,13 +22,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
 public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
-
+    private String zoneName;
     private final Random random = new Random();
 
     /**
@@ -58,17 +60,24 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerAddrs = brokerAddrs;
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs,
-        boolean enableActingMaster) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
         this.enableActingMaster = enableActingMaster;
     }
 
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster, String zoneName) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+        this.brokerAddrs = brokerAddrs;
+        this.enableActingMaster = enableActingMaster;
+        this.zoneName = zoneName;
+    }
+
     /**
-     * Selects a (preferably master) broker address from the registered list.
-     * If the master's address cannot be found, a slave broker address is selected in a random manner.
+     * Selects a (preferably master) broker address from the registered list. If the master's address cannot be found, a
+     * slave broker address is selected in a random manner.
      *
      * @return Broker address.
      */
@@ -107,6 +116,14 @@ public class BrokerData implements Comparable<BrokerData> {
         this.enableActingMaster = enableActingMaster;
     }
 
+    public String getZoneName() {
+        return zoneName;
+    }
+
+    public void setZoneName(String zoneName) {
+        this.zoneName = zoneName;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -135,11 +152,7 @@ public class BrokerData implements Comparable<BrokerData> {
         } else if (!brokerAddrs.equals(other.brokerAddrs)) {
             return false;
         }
-        if (brokerName == null) {
-            return other.brokerName == null;
-        } else {
-            return brokerName.equals(other.brokerName);
-        }
+        return StringUtils.equals(brokerName, other.brokerName);
     }
 
     @Override

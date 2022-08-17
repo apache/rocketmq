@@ -19,8 +19,6 @@ package org.apache.rocketmq.store.index;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -38,7 +36,6 @@ public class IndexFile {
     private final int indexNum;
     private final int fileTotalSize;
     private final MappedFile mappedFile;
-    private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
     private final IndexHeader indexHeader;
 
@@ -47,7 +44,6 @@ public class IndexFile {
         this.fileTotalSize =
             IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
         this.mappedFile = new DefaultMappedFile(fileName, fileTotalSize);
-        this.fileChannel = this.mappedFile.getFileChannel();
         this.mappedByteBuffer = this.mappedFile.getMappedByteBuffer();
         this.hashSlotNum = hashSlotNum;
         this.indexNum = indexNum;
@@ -81,12 +77,6 @@ public class IndexFile {
     public void shutdown() {
         this.flush();
         UtilAll.cleanBuffer(this.mappedByteBuffer);
-
-        try {
-            this.fileChannel.close();
-        } catch (IOException e) {
-            log.error("Shutdown error in index file", e);
-        }
     }
 
     public void flush() {
@@ -113,12 +103,8 @@ public class IndexFile {
             int slotPos = keyHash % this.hashSlotNum;
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
-            FileLock fileLock = null;
-
             try {
 
-                // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
-                // false);
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
@@ -162,14 +148,6 @@ public class IndexFile {
                 return true;
             } catch (Exception e) {
                 log.error("putKey exception, Key: " + key + " KeyHashCode: " + key.hashCode(), e);
-            } finally {
-                if (fileLock != null) {
-                    try {
-                        fileLock.release();
-                    } catch (IOException e) {
-                        log.error("Failed to release the lock", e);
-                    }
-                }
             }
         } else {
             log.warn("Over index file capacity: index count = " + this.indexHeader.getIndexCount()
@@ -208,25 +186,14 @@ public class IndexFile {
     }
 
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
-        final long begin, final long end, boolean lock) {
+                                final long begin, final long end) {
         if (this.mappedFile.hold()) {
             int keyHash = indexKeyHashMethod(key);
             int slotPos = keyHash % this.hashSlotNum;
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
-            FileLock fileLock = null;
             try {
-                if (lock) {
-                    // fileLock = this.fileChannel.lock(absSlotPos,
-                    // hashSlotSize, true);
-                }
-
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
-                // if (fileLock != null) {
-                // fileLock.release();
-                // fileLock = null;
-                // }
-
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()
                     || this.indexHeader.getIndexCount() <= 1) {
                 } else {
@@ -242,7 +209,7 @@ public class IndexFile {
                         int keyHashRead = this.mappedByteBuffer.getInt(absIndexPos);
                         long phyOffsetRead = this.mappedByteBuffer.getLong(absIndexPos + 4);
 
-                        long timeDiff = (long) this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
+                        long timeDiff = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
                         int prevIndexRead = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8 + 4);
 
                         if (timeDiff < 0) {
@@ -270,14 +237,6 @@ public class IndexFile {
             } catch (Exception e) {
                 log.error("selectPhyOffset exception ", e);
             } finally {
-                if (fileLock != null) {
-                    try {
-                        fileLock.release();
-                    } catch (IOException e) {
-                        log.error("Failed to release the lock", e);
-                    }
-                }
-
                 this.mappedFile.release();
             }
         }

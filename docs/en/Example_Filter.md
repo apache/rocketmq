@@ -8,7 +8,7 @@ DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_EXAMPLE");
 consumer.subscribe("TOPIC", "TAGA || TAGB || TAGC");
 ```
 
-The consumer will recieve messages that contains TAGA or TAGB or TAGC. But the limitation is that one message only can have one tag, and this may not work for sophisticated scenarios. In this case, you can use SQL expression to filter out messages.
+The consumer will receive messages that contains TAGA or TAGB or TAGC. But the limitation is that one message only can have one tag, and this may not work for sophisticated scenarios. In this case, you can use SQL expression to filter out messages.
 SQL feature could do some calculation through the properties you put in when sending messages. Under the grammars defined by RocketMQ, you can implement some interesting logic. Here is an example:
 
 ```
@@ -73,7 +73,7 @@ Use `MessageSelector.bySql` to select messages through SQL when consuming.
 
 ```java
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
-// only subsribe messages have property a, also a >=0 and a <= 3
+// only subscribe messages have property a, also a >=0 and a <= 3
 consumer.subscribe("TopicTest", MessageSelector.bySql("a between 0 and 3"));
 consumer.registerMessageListener(new MessageListenerConcurrently() {
    @Override

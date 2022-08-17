@@ -67,14 +67,15 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 
     private synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
         RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final AddBrokerRequestHeader requestHeader = request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
+        final AddBrokerRequestHeader requestHeader = (AddBrokerRequestHeader) request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
 
         LOGGER.info("addBroker called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
@@ -117,21 +118,23 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
-            switch (messageStoreConfig.getBrokerRole()) {
-                case ASYNC_MASTER:
-                case SYNC_MASTER:
-                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                    break;
-                case SLAVE:
-                    if (brokerConfig.getBrokerId() <= 0) {
-                        response.setCode(ResponseCode.SYSTEM_ERROR);
-                        response.setRemark("slave broker id must be > 0");
-                        return response;
-                    }
-                    break;
-                default:
-                    break;
+            if (!brokerConfig.isEnableControllerMode()) {
+                switch (messageStoreConfig.getBrokerRole()) {
+                    case ASYNC_MASTER:
+                    case SYNC_MASTER:
+                        brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                        break;
+                    case SLAVE:
+                        if (brokerConfig.getBrokerId() <= 0) {
+                            response.setCode(ResponseCode.SYSTEM_ERROR);
+                            response.setRemark("slave broker id must be > 0");
+                            return response;
+                        }
+                        break;
+                    default:
+                        break;
 
+                }
             }
 
             if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()
@@ -192,7 +195,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
     private synchronized RemotingCommand removeBroker(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final RemoveBrokerRequestHeader requestHeader = request.decodeCommandCustomHeader(RemoveBrokerRequestHeader.class);
+        final RemoveBrokerRequestHeader requestHeader = (RemoveBrokerRequestHeader) request.decodeCommandCustomHeader(RemoveBrokerRequestHeader.class);
 
         LOGGER.info("removeBroker called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 

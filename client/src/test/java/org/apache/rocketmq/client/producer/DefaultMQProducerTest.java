@@ -102,7 +102,7 @@ public class DefaultMQProducerTest {
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
-        producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
+        producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
@@ -358,7 +358,7 @@ public class DefaultMQProducerTest {
         producer.setCallbackExecutor(customized);
 
         NettyRemotingClient remotingClient = (NettyRemotingClient) producer.getDefaultMQProducerImpl()
-            .getmQClientFactory().getMQClientAPIImpl().getRemotingClient();
+            .getMqClientFactory().getMQClientAPIImpl().getRemotingClient();
 
         assertThat(remotingClient.getCallbackExecutor()).isEqualTo(customized);
     }
@@ -368,7 +368,8 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicBoolean finish = new AtomicBoolean(false);
         new Thread(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
@@ -400,14 +401,16 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {
                 assertThat(message.getTopic()).isEqualTo("FooBar");
                 assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
                 assertThat(message.getFlag()).isEqualTo(1);
                 countDownLatch.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
             }
         };
         producer.request(message, requestCallback, 3 * 1000L);
@@ -427,11 +430,13 @@ public class DefaultMQProducerTest {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {
 
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 cc.incrementAndGet();
                 countDownLatch.countDown();
             }

@@ -38,18 +38,23 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
+    public static final String MESSAGE_COMPRESS_TYPE = "rocketmq.message.compressType";
     public static final String MESSAGE_COMPRESS_LEVEL = "rocketmq.message.compressLevel";
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -77,6 +82,7 @@ public class MixAll {
     public static final long FIRST_SLAVE_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
     public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
+    public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
 
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
@@ -89,6 +95,14 @@ public class MixAll {
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
+    public static final String REQ_T = "ReqT";
+    public static final String ROCKETMQ_ZONE_ENV = "ROCKETMQ_ZONE";
+    public static final String ROCKETMQ_ZONE_PROPERTY = "rocketmq.zone";
+    public static final String ROCKETMQ_ZONE_MODE_ENV = "ROCKETMQ_ZONE_MODE";
+    public static final String ROCKETMQ_ZONE_MODE_PROPERTY = "rocketmq.zone.mode";
+    public static final String ZONE_NAME = "__ZONE_NAME"; 
+    public static final String ZONE_MODE = "__ZONE_MODE";
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
     public static final String METADATA_SCOPE_GLOBAL = "__global__";
@@ -221,7 +235,7 @@ public class MixAll {
             int len = in.available();
             byte[] data = new byte[len];
             in.read(data, 0, len);
-            return new String(data, "UTF-8");
+            return new String(data, StandardCharsets.UTF_8);
         } catch (Exception ignored) {
         } finally {
             if (null != in) {
@@ -246,6 +260,13 @@ public class MixAll {
             if (!Modifier.isStatic(field.getModifiers())) {
                 String name = field.getName();
                 if (!name.startsWith("this")) {
+                    if (onlyImportantField) {
+                        Annotation annotation = field.getAnnotation(ImportantField.class);
+                        if (null == annotation) {
+                            continue;
+                        }
+                    }
+
                     Object value = null;
                     try {
                         field.setAccessible(true);
@@ -255,13 +276,6 @@ public class MixAll {
                         }
                     } catch (IllegalAccessException e) {
                         log.error("Failed to obtain object properties", e);
-                    }
-
-                    if (onlyImportantField) {
-                        Annotation annotation = field.getAnnotation(ImportantField.class);
-                        if (null == annotation) {
-                            continue;
-                        }
                     }
 
                     if (logger != null) {
@@ -366,6 +380,10 @@ public class MixAll {
         return p1.equals(p2);
     }
 
+    public static boolean isPropertyValid(Properties props, String key, Predicate<String> validator) {
+        return validator.test(props.getProperty(key));
+    }
+
     public static List<String> getLocalInetAddress() {
         List<String> inetAddressList = new ArrayList<String>();
         try {
@@ -464,4 +482,10 @@ public class MixAll {
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }
+
+    public static String dealFilePath(String aclFilePath) {
+        Path path = Paths.get(aclFilePath);
+        return path.normalize().toString();
+    }
+
 }

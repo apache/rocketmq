@@ -116,7 +116,7 @@ public class GetRouteInfoBenchmark {
                             topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
                             Channel channel = mock(Channel.class);
 
-                            routeInfoManager.registerBroker(clusterName, brokerAddr, brokerName, 0, brokerAddr,
+                            routeInfoManager.registerBroker(clusterName, brokerAddr, brokerName, 0, brokerAddr, "",
                                 null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
                         }
                     }

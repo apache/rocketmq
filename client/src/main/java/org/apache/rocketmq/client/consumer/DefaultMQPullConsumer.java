@@ -118,6 +118,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public DefaultMQPullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
+        this.enableStreamRequestType = true;
         defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
     }
 
@@ -442,10 +443,12 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return defaultMQPullConsumerImpl;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }

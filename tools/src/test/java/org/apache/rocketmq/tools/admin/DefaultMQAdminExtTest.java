@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,8 @@ import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerInfo;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -76,6 +79,7 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
@@ -87,12 +91,14 @@ import org.junit.*;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.assertj.core.util.Maps;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -241,6 +247,17 @@ public class DefaultMQAdminExtTest {
         producerConnection.setConnectionSet(connectionSet);
         when(mQClientAPIImpl.getProducerConnectionList(anyString(), anyString(), anyLong())).thenReturn(producerConnection);
 
+        ProducerTableInfo producerTableInfo = new ProducerTableInfo(new HashMap<>());
+        producerTableInfo.getData().put("test-producer-group", Arrays.asList(new ProducerInfo(
+                "xxxx-client-id",
+                "127.0.0.1:18978",
+                LanguageCode.JAVA,
+                400,
+                System.currentTimeMillis()
+
+        )));
+        when(mQClientAPIImpl.getAllProducerInfo(anyString(), anyLong())).thenReturn(producerTableInfo);
+
         when(mQClientAPIImpl.wipeWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(6);
         when(mQClientAPIImpl.addWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(7);
 
@@ -369,6 +386,13 @@ public class DefaultMQAdminExtTest {
     }
 
     @Test
+    public void testGetAllProducerInfo() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        ProducerTableInfo producerTableInfo = defaultMQAdminExt.getAllProducerInfo("127.0.0.1:10911");
+        assertThat(producerTableInfo.getData().size()).isEqualTo(1);
+    }
+
+
+    @Test
     public void testWipeWritePermOfBroker() throws InterruptedException, RemotingCommandException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, RemotingConnectException {
         int result = defaultMQAdminExt.wipeWritePermOfBroker("127.0.0.1:9876", "default-broker");
         assertThat(result).isEqualTo(6);
@@ -490,14 +514,14 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testMaxOffset() throws Exception {
-        when(mQClientAPIImpl.getMaxOffset(anyString(), anyString(), anyInt(), anyLong())).thenReturn(100L);
+        when(mQClientAPIImpl.getMaxOffset(anyString(), any(MessageQueue.class), anyLong())).thenReturn(100L);
 
         assertThat(defaultMQAdminExt.maxOffset(new MessageQueue(topic1, broker1Name, 0))).isEqualTo(100L);
     }
 
     @Test
     public void testSearchOffset() throws Exception {
-        when(mQClientAPIImpl.searchOffset(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(101L);
+        when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
 
         assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(topic1, broker1Name, 0), System.currentTimeMillis())).isEqualTo(101L);
     }

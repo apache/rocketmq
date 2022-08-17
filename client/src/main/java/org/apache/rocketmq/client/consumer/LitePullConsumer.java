@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 public interface LitePullConsumer {
 
@@ -73,6 +74,15 @@ public interface LitePullConsumer {
      * @param messageQueues Message queues that needs to be assigned.
      */
     void assign(Collection<MessageQueue> messageQueues);
+
+    /**
+     * Set topic subExpression for assign mode. This interface does not allow be call after start(). Default value is * if not set.
+     * assignment and will replace the previous assignment (if there is one).
+     *
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     *      * null or * expression,meaning subscribe all
+     */
+    void setSubExpressionForAssign(final String topic, final String subExpression);
 
     /**
      * Fetch data for the topics or partitions specified using assign API
@@ -159,6 +169,9 @@ public interface LitePullConsumer {
      * Manually commit consume offset.
      */
     void commitSync();
+
+
+    void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
     /**
      * Get the last committed offset for the given message queue.

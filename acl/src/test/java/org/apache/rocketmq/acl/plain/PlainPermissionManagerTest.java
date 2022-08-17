@@ -29,6 +29,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -213,6 +214,38 @@ public class PlainPermissionManagerTest {
     }
 
     @Test
+    public void multiFilePathTest() {
+        File file = new File("src/test/resources");
+        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
+
+        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
+
+        String samefilePath = file.getAbsolutePath()+"/conf/acl/.";
+        String samefilePath2 = "/" +file.getAbsolutePath()+"/conf/acl";
+        String samefilePath3 = file.getAbsolutePath()+"/conf/acl/../"+file.getAbsolutePath();
+        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///";
+        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./";
+
+        int size = plainPermissionManager.getDataVersionMap().size();
+
+        plainPermissionManager.load(samefilePath);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath2);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath3);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath4);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath5);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+    }
+
+    @Test
     public void testWatch() throws IOException, IllegalAccessException, InterruptedException {
         File file = new File("src/test/resources");
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
@@ -267,5 +300,29 @@ public class PlainPermissionManagerTest {
         }
         transport.delete();
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+    }
+    
+    @Test
+    public void updateAccessConfigTest() {
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(null));
+        
+        plainAccessConfig.setAccessKey("admin_test");
+        // Invalid parameter
+        plainAccessConfig.setSecretKey("123456");
+        plainAccessConfig.setAdmin(true);
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        plainAccessConfig.setSecretKey("12345678");
+        // Invalid parameter
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA!SUB"));
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        // first update
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
+        
+        // second update
+        plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
     }
 }

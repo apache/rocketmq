@@ -182,7 +182,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
 
-                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end);
                     }
 
                     if (f.getBeginTimestamp() < begin) {
@@ -341,7 +341,8 @@ public class IndexService {
                 final IndexFile flushThisFile = prevIndexFile;
 
                 Thread flushThread = new Thread(new AbstractBrokerRunnable(defaultMessageStore.getBrokerConfig()) {
-                    @Override public void run2() {
+                    @Override
+                    public void run2() {
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");

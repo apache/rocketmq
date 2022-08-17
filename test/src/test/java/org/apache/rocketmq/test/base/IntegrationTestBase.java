@@ -26,12 +26,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -40,7 +42,6 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
-import org.apache.rocketmq.test.util.TestUtils;
 
 public class IntegrationTestBase {
     public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
@@ -51,7 +52,7 @@ public class IntegrationTestBase {
     protected static final List<File> TMPE_FILES = new ArrayList<>();
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
-    protected static int topicCreateTime = 30 * 1000;
+    protected static int topicCreateTime = (int) TimeUnit.SECONDS.toSeconds(30);
     public static volatile int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
@@ -169,32 +170,28 @@ public class IntegrationTestBase {
     }
 
     public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType) {
-        long startTime = System.currentTimeMillis();
+        return initTopic(topic, nsAddr, clusterName, queueNumbers, cqType, TopicMessageType.NORMAL);
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType, TopicMessageType topicMessageType) {
         boolean createResult;
-
-        while (true) {
-            Map<String, String> attributes = new HashMap<>();
-            if (!Objects.equals(CQType.SimpleCQ, cqType)) {
-                attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
-            }
-            createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes);
-            if (createResult) {
-                break;
-            } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
-                Truth.assertWithMessage(String.format("topic[%s] is created failed after:%d ms", topic,
-                        System.currentTimeMillis() - startTime)).fail();
-                break;
-            } else {
-                TestUtils.waitForMoment(500);
-                continue;
-            }
+        Map<String, String> attributes = new HashMap<>();
+        if (!Objects.equals(CQType.SimpleCQ, cqType)) {
+            attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
         }
-
+        if (!Objects.equals(TopicMessageType.NORMAL, topicMessageType)) {
+            attributes.put("+" + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.toString());
+        }
+        createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes, topicCreateTime);
         return createResult;
     }
 
     public static boolean initTopic(String topic, String nsAddr, String clusterName, CQType cqType) {
-        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType);
+        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType, TopicMessageType.NORMAL);
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, TopicMessageType topicMessageType) {
+        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, CQType.SimpleCQ, topicMessageType);
     }
 
     public static void deleteFile(File file) {

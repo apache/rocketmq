@@ -32,6 +32,8 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
@@ -47,19 +49,20 @@ public class NamesrvStartup {
     private static InternalLogger log;
     private static Properties properties = null;
     private static CommandLine commandLine = null;
+    private static NamesrvConfig namesrvConfig = null;
+    private static NettyServerConfig nettyServerConfig = null;
+    private static NettyClientConfig nettyClientConfig = null;
+    private static ControllerConfig controllerConfig = null;
 
     public static void main(String[] args) {
         main0(args);
+        controllerManagerMain();
     }
 
     public static NamesrvController main0(String[] args) {
-
         try {
-            NamesrvController controller = createNamesrvController(args);
-            start(controller);
-            String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
-            log.info(tip);
-            System.out.printf("%s%n", tip);
+            parseCommandlineAndConfigFile(args);
+            NamesrvController controller = createAndStartNamesrvController();
             return controller;
         } catch (Throwable e) {
             e.printStackTrace();
@@ -69,7 +72,19 @@ public class NamesrvStartup {
         return null;
     }
 
-    public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
+    public static ControllerManager controllerManagerMain() {
+        try {
+            if (namesrvConfig.isEnableControllerInNamesrv()) {
+                return createAndStartControllerManager();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return null;
+    }
+
+    public static void parseCommandlineAndConfigFile(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
@@ -77,13 +92,14 @@ public class NamesrvStartup {
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
-            return null;
+            return;
         }
 
-        final NamesrvConfig namesrvConfig = new NamesrvConfig();
-        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        namesrvConfig = new NamesrvConfig();
+        nettyServerConfig = new NettyServerConfig();
+        nettyClientConfig = new NettyClientConfig();
         nettyServerConfig.setListenPort(9876);
+        controllerConfig = new ControllerConfig();
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -93,6 +109,7 @@ public class NamesrvStartup {
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
+                MixAll.properties2Object(properties, controllerConfig);
 
                 namesrvConfig.setConfigStorePath(file);
 
@@ -105,6 +122,7 @@ public class NamesrvStartup {
             MixAll.printObjectProperties(null, namesrvConfig);
             MixAll.printObjectProperties(null, nettyServerConfig);
             MixAll.printObjectProperties(null, nettyClientConfig);
+            MixAll.printObjectProperties(null, controllerConfig);
             System.exit(0);
         }
 
@@ -126,11 +144,23 @@ public class NamesrvStartup {
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
-        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);
+    }
 
+    public static NamesrvController createAndStartNamesrvController() throws Exception {
+
+        NamesrvController controller = createNamesrvController();
+        start(controller);
+        String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+        log.info(tip);
+        System.out.printf("%s%n", tip);
+        return controller;
+    }
+
+    public static NamesrvController createNamesrvController() {
+
+        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);
         // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
-
         return controller;
     }
 
@@ -156,8 +186,51 @@ public class NamesrvStartup {
         return controller;
     }
 
+    public static ControllerManager createAndStartControllerManager() throws Exception {
+        ControllerManager controllerManager = createControllerManager();
+        start(controllerManager);
+        String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+        log.info(tip);
+        System.out.printf("%s%n", tip);
+        return controllerManager;
+    }
+
+    public static ControllerManager createControllerManager() throws Exception {
+        NettyServerConfig controllerNettyServerConfig = (NettyServerConfig) nettyServerConfig.clone();
+        ControllerManager controllerManager = new ControllerManager(controllerConfig, controllerNettyServerConfig, nettyClientConfig);
+        // remember all configs to prevent discard
+        controllerManager.getConfiguration().registerConfig(properties);
+        return controllerManager;
+    }
+
+    public static ControllerManager start(final ControllerManager controllerManager) throws Exception {
+
+        if (null == controllerManager) {
+            throw new IllegalArgumentException("ControllerManager is null");
+        }
+
+        boolean initResult = controllerManager.initialize();
+        if (!initResult) {
+            controllerManager.shutdown();
+            System.exit(-3);
+        }
+
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
+            controllerManager.shutdown();
+            return null;
+        }));
+
+        controllerManager.start();
+
+        return controllerManager;
+    }
+
     public static void shutdown(final NamesrvController controller) {
         controller.shutdown();
+    }
+
+    public static void shutdown(final ControllerManager controllerManager) {
+        controllerManager.shutdown();
     }
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -168,7 +241,6 @@ public class NamesrvStartup {
         opt = new Option("p", "printConfigItem", false, "Print all config items");
         opt.setRequired(false);
         options.addOption(opt);
-
         return options;
     }
 

@@ -29,5 +29,13 @@ public enum ConsumerGroupEvent {
     /**
      * The group of consumer is registered.
      */
-    REGISTER
+    REGISTER,
+    /**
+     * The client of this consumer is new registered.
+     */
+    CLIENT_REGISTER,
+    /**
+     * The client of this consumer is unregistered.
+     */
+    CLIENT_UNREGISTER
 }

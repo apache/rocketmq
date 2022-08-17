@@ -80,35 +80,35 @@ public class AclUtilsTest {
 
     @Test
     public void isScopeArray() {
-        String[] adderss = StringUtils.split("12.12.12.12", ".");
-        boolean isScope = AclUtils.isScope(adderss, 4);
+        String[] address = StringUtils.split("12.12.12.12", ".");
+        boolean isScope = AclUtils.isScope(address, 4);
         Assert.assertTrue(isScope);
-        isScope = AclUtils.isScope(adderss, 3);
+        isScope = AclUtils.isScope(address, 3);
         Assert.assertTrue(isScope);
 
-        adderss = StringUtils.split("12.12.1222.1222", ".");
-        isScope = AclUtils.isScope(adderss, 4);
+        address = StringUtils.split("12.12.1222.1222", ".");
+        isScope = AclUtils.isScope(address, 4);
         Assert.assertFalse(isScope);
-        isScope = AclUtils.isScope(adderss, 3);
+        isScope = AclUtils.isScope(address, 3);
         Assert.assertFalse(isScope);
 
 //        IPv6 test
-        adderss = StringUtils.split("1050:0000:0000:0000:0005:0600:300c:326b", ":");
-        isScope = AclUtils.isIPv6Scope(adderss, 8);
+        address = StringUtils.split("1050:0000:0000:0000:0005:0600:300c:326b", ":");
+        isScope = AclUtils.isIPv6Scope(address, 8);
         Assert.assertTrue(isScope);
-        isScope = AclUtils.isIPv6Scope(adderss, 4);
-        Assert.assertTrue(isScope);
-
-        adderss = StringUtils.split("1050:9876:0000:0000:0005:akkg:300c:326b", ":");
-        isScope = AclUtils.isIPv6Scope(adderss, 8);
-        Assert.assertFalse(isScope);
-        isScope = AclUtils.isIPv6Scope(adderss, 4);
+        isScope = AclUtils.isIPv6Scope(address, 4);
         Assert.assertTrue(isScope);
 
-        adderss = StringUtils.split(AclUtils.expandIP("1050::0005:akkg:300c:326b", 8), ":");
-        isScope = AclUtils.isIPv6Scope(adderss, 8);
+        address = StringUtils.split("1050:9876:0000:0000:0005:akkg:300c:326b", ":");
+        isScope = AclUtils.isIPv6Scope(address, 8);
         Assert.assertFalse(isScope);
-        isScope = AclUtils.isIPv6Scope(adderss, 4);
+        isScope = AclUtils.isIPv6Scope(address, 4);
+        Assert.assertTrue(isScope);
+
+        address = StringUtils.split(AclUtils.expandIP("1050::0005:akkg:300c:326b", 8), ":");
+        isScope = AclUtils.isIPv6Scope(address, 8);
+        Assert.assertFalse(isScope);
+        isScope = AclUtils.isIPv6Scope(address, 4);
         Assert.assertTrue(isScope);
 
     }

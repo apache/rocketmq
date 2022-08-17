@@ -24,19 +24,67 @@ import java.io.File;
 
 public class MessageStoreConfig {
 
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
+
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = null;
+
+    @ImportantField
+    private String storePathDLedgerCommitLog = null;
+
+    //The directory in which the epochFile is kept
+    @ImportantField
+    private String storePathEpochFile = System.getProperty("user.home") + File.separator + "store"
+        + File.separator + "epochFileCheckpoint";
 
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
+
+    // TimerLog file size, default is 100M
+    private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
+
+    private int timerPrecisionMs = 1000;
+
+    private int timerRollWindowSlot = 3600 * 24 * 2;
+    private int timerFlushIntervalMs = 1000;
+    private int timerGetMessageThreadNum = 3;
+    private int timerPutMessageThreadNum = 3;
+
+    private boolean timerEnableDisruptor = false;
+
+    private boolean timerEnableCheckMetrics = true;
+    private boolean timerInterceptDelayLevel = false;
+    private int timerMaxDelaySec = 3600 * 24 * 3;
+    private static boolean timerWheelEnable = true;
+
+    /**
+     * 1. Register to broker after (startTime + disappearTimeAfterStart)
+     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
+     *  A. PopReviveService
+     *  B. TimerDequeueGetService
+     */
+    @ImportantField
+    private int disappearTimeAfterStart = -1;
+
+    private boolean timerStopEnqueue = false;
+
+    private String timerCheckMetricsWhen = "05";
+
+    private boolean timerSkipUnknownError = false;
+    private boolean timerWarmEnable = false;
+    private boolean timerStopDequeue = false;
+    private int timerCongestNumEachSlot = Integer.MAX_VALUE;
+
+    private int timerMetricSmallThreshold = 1000000;
+    private int timerProgressLogIntervalMs = 10 * 1000;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -93,7 +141,7 @@ public class MessageStoreConfig {
     private int deleteFileBatchMax = 10;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
+    // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
@@ -139,7 +187,7 @@ public class MessageStoreConfig {
     private String haMasterAddress = null;
     private int haMaxGapNotInSync = 1024 * 1024 * 256;
     @ImportantField
-    private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    private volatile BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     // Used by GroupTransferService to sync messages from master to slave
@@ -231,15 +279,23 @@ public class MessageStoreConfig {
      * Each message must be written successfully to at least in-sync replicas.
      * The master broker is considered one of the in-sync replicas, and it's included in the count of total.
      * If a master broker is ASYNC_MASTER, inSyncReplicas will be ignored.
+     * If enableControllerMode is true and ackAckInSyncStateSet is true, inSyncReplicas will be ignored.
      */
     @ImportantField
     private int inSyncReplicas = 1;
 
     /**
      * Will be worked in auto multiple replicas mode, to provide minimum in-sync replicas.
+     * It is still valid in controller mode.
      */
     @ImportantField
     private int minInSyncReplicas = 1;
+
+    /**
+     * Each message must be written successfully to all replicas in InSyncStateSet.
+     */
+    @ImportantField
+    private boolean allAckInSyncStateSet = false;
 
     /**
      * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
@@ -260,6 +316,11 @@ public class MessageStoreConfig {
     private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
 
     /**
+     * The max gap time that slave doesn't catch up to master.
+     */
+    private long haMaxTimeSlaveNotCatchup = 1000 * 15;
+
+    /**
      * Sync flush offset from master when broker startup, used in upgrading from old version broker.
      */
     private boolean syncMasterFlushOffsetWhenStartup = false;
@@ -273,17 +334,14 @@ public class MessageStoreConfig {
 
     private double logicalDiskSpaceCleanForciblyThreshold = 0.8;
 
-    /**
-     * 1. Register to broker after (startTime + disappearTimeAfterStart)
-     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
-     *  PopReviveService
-     */
-    @ImportantField
-    private int disappearTimeAfterStart = -1;
-
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
-    private boolean syncFromMinOffset = false;
+    /**
+     * Whether sync from lastFile when a new broker replicas(no data) join the master.
+     */
+    private boolean syncFromLastFile = false;
+
+    private boolean asyncLearner = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -452,11 +510,30 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathCommitLog() {
+        if (storePathCommitLog == null) {
+            return storePathRootDir + File.separator + "commitlog";
+        }
         return storePathCommitLog;
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathDLedgerCommitLog() {
+        return storePathDLedgerCommitLog;
+    }
+
+    public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
+        this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
+    }
+
+    public String getStorePathEpochFile() {
+        return storePathEpochFile;
+    }
+
+    public void setStorePathEpochFile(String storePathEpochFile) {
+        this.storePathEpochFile = storePathEpochFile;
     }
 
     public String getDeleteWhen() {
@@ -1142,6 +1219,14 @@ public class MessageStoreConfig {
         this.minInSyncReplicas = minInSyncReplicas;
     }
 
+    public boolean isAllAckInSyncStateSet() {
+        return allAckInSyncStateSet;
+    }
+
+    public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
+        this.allAckInSyncStateSet = allAckInSyncStateSet;
+    }
+
     public boolean isEnableAutoInSyncReplicas() {
         return enableAutoInSyncReplicas;
     }
@@ -1164,6 +1249,14 @@ public class MessageStoreConfig {
 
     public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
         this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public long getHaMaxTimeSlaveNotCatchup() {
+        return haMaxTimeSlaveNotCatchup;
+    }
+
+    public void setHaMaxTimeSlaveNotCatchup(long haMaxTimeSlaveNotCatchup) {
+        this.haMaxTimeSlaveNotCatchup = haMaxTimeSlaveNotCatchup;
     }
 
     public boolean isSyncMasterFlushOffsetWhenStartup() {
@@ -1214,12 +1307,12 @@ public class MessageStoreConfig {
         this.maxSlaveResendLength = maxSlaveResendLength;
     }
 
-    public boolean isSyncFromMinOffset() {
-        return syncFromMinOffset;
+    public boolean isSyncFromLastFile() {
+        return syncFromLastFile;
     }
 
-    public void setSyncFromMinOffset(boolean syncFromMinOffset) {
-        this.syncFromMinOffset = syncFromMinOffset;
+    public void setSyncFromLastFile(boolean syncFromLastFile) {
+        this.syncFromLastFile = syncFromLastFile;
     }
 
     public boolean isEnableLmq() {
@@ -1269,4 +1362,139 @@ public class MessageStoreConfig {
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
+
+    public boolean isAsyncLearner() {
+        return asyncLearner;
+    }
+
+    public void setAsyncLearner(boolean asyncLearner) {
+        this.asyncLearner = asyncLearner;
+    }
+
+    public int getMappedFileSizeTimerLog() {
+        return mappedFileSizeTimerLog;
+    }
+    public void setMappedFileSizeTimerLog(final int mappedFileSizeTimerLog) {
+        this.mappedFileSizeTimerLog = mappedFileSizeTimerLog;
+    }
+
+    public int getTimerPrecisionMs() {
+        return timerPrecisionMs;
+    }
+    public void setTimerPrecisionMs(int timerPrecisionMs) {
+        int[] candidates = {100, 200, 500, 1000};
+        for (int i = 1; i < candidates.length; i++) {
+            if (timerPrecisionMs < candidates[i]) {
+                this.timerPrecisionMs = candidates[i - 1];
+                return;
+            }
+        }
+        this.timerPrecisionMs = candidates[candidates.length - 1];
+    }
+    public int getTimerRollWindowSlot() {
+        return timerRollWindowSlot;
+    }
+    public int getTimerGetMessageThreadNum() {
+        return timerGetMessageThreadNum;
+    }
+
+    public void setTimerGetMessageThreadNum(int timerGetMessageThreadNum) {
+        this.timerGetMessageThreadNum = timerGetMessageThreadNum;
+    }
+
+    public int getTimerPutMessageThreadNum() {
+        return timerPutMessageThreadNum;
+    }
+    public void setTimerPutMessageThreadNum(int timerPutMessageThreadNum) {
+        this.timerPutMessageThreadNum = timerPutMessageThreadNum;
+    }
+    public boolean isTimerEnableDisruptor() {
+        return timerEnableDisruptor;
+    }
+
+    public boolean isTimerEnableCheckMetrics() {
+        return timerEnableCheckMetrics;
+    }
+
+    public void setTimerEnableCheckMetrics(boolean timerEnableCheckMetrics) {
+        this.timerEnableCheckMetrics = timerEnableCheckMetrics;
+    }
+    public boolean isTimerStopEnqueue() {
+        return timerStopEnqueue;
+    }
+    public void setTimerStopEnqueue(boolean timerStopEnqueue) {
+        this.timerStopEnqueue = timerStopEnqueue;
+    }
+    public String getTimerCheckMetricsWhen() {
+        return timerCheckMetricsWhen;
+    }
+
+    public boolean isTimerSkipUnknownError() {
+        return timerSkipUnknownError;
+    }
+
+    public boolean isTimerWarmEnable() {
+        return timerWarmEnable;
+    }
+
+    public static boolean isTimerWheelEnable() {
+        return timerWheelEnable;
+    }
+    public void setTimerWheelEnable(boolean timerWheelEnable) {
+        this.timerWheelEnable = timerWheelEnable;
+    }
+
+    public boolean isTimerStopDequeue() {
+        return timerStopDequeue;
+    }
+
+    public int getTimerMetricSmallThreshold() {
+        return timerMetricSmallThreshold;
+    }
+
+    public void setTimerMetricSmallThreshold(int timerMetricSmallThreshold) {
+        this.timerMetricSmallThreshold = timerMetricSmallThreshold;
+    }
+
+    public int getTimerCongestNumEachSlot() {
+        return timerCongestNumEachSlot;
+    }
+    public void setTimerCongestNumEachSlot(int timerCongestNumEachSlot) {
+        // In order to get this value from messageStoreConfig properties file created before v4.4.1.
+        this.timerCongestNumEachSlot = timerCongestNumEachSlot;
+    }
+    public int getTimerFlushIntervalMs() {
+        return timerFlushIntervalMs;
+    }
+
+    public void setTimerFlushIntervalMs(final int timerFlushIntervalMs) {
+        this.timerFlushIntervalMs = timerFlushIntervalMs;
+    }
+    public void setTimerRollWindowSlot(final int timerRollWindowSlot) {
+        this.timerRollWindowSlot = timerRollWindowSlot;
+    }
+    public int getTimerProgressLogIntervalMs() {
+        return timerProgressLogIntervalMs;
+    }
+
+    public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {
+        this.timerProgressLogIntervalMs = timerProgressLogIntervalMs;
+    }
+
+    public boolean isTimerInterceptDelayLevel() {
+        return timerInterceptDelayLevel;
+    }
+
+    public void setTimerInterceptDelayLevel(boolean timerInterceptDelayLevel) {
+        this.timerInterceptDelayLevel = timerInterceptDelayLevel;
+    }
+
+    public int getTimerMaxDelaySec() {
+        return timerMaxDelaySec;
+    }
+    public void setTimerMaxDelaySec(final int timerMaxDelaySec) {
+        this.timerMaxDelaySec = timerMaxDelaySec;
+    }
+
+
 }

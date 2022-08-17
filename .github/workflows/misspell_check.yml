@@ -1,0 +1,17 @@
+name: Misspell Check
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [master, develop]
+jobs:
+  misspell-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install misspell
+        run: |
+          curl -L -o ./install-misspell.sh https://git.io/misspell
+          sh ./install-misspell.sh
+      - name: Run misspell
+        run: find . -type f -print0 | xargs -0 bin/misspell -error -i transfered,derivate

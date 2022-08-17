@@ -146,6 +146,39 @@ public class HATest {
 
         //shutdown slave, putMessage should return FLUSH_SLAVE_TIMEOUT
         slaveMessageStore.shutdown();
+
+        //wait to let master clean the slave's connection
+        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
+        for (long i = 0; i < totalMsgs; i++) {
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, result.getPutMessageStatus());
+        }
+    }
+
+    @Test
+    public void testSemiSyncReplicaWhenSlaveActingMaster() throws Exception {
+        long totalMsgs = 5;
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        for (long i = 0; i < totalMsgs; i++) {
+            MessageExtBrokerInner msg = buildMessage();
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(msg);
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+            //message has been replicated to slave's commitLog, but maybe not dispatch to ConsumeQueue yet
+            //so direct read from commitLog by physical offset
+            MessageExt slaveMsg = slaveMessageStore.lookMessageByOffset(result.getAppendMessageResult().getWroteOffset());
+            assertNotNull(slaveMsg);
+            assertTrue(Arrays.equals(msg.getBody(), slaveMsg.getBody()));
+            assertEquals(msg.getTopic(), slaveMsg.getTopic());
+            assertEquals(msg.getTags(), slaveMsg.getTags());
+            assertEquals(msg.getKeys(), slaveMsg.getKeys());
+        }
+
+        //shutdown slave, putMessage should return IN_SYNC_REPLICAS_NOT_ENOUGH
+        slaveMessageStore.shutdown();
         messageStore.setAliveReplicaNumInGroup(1);
 
         //wait to let master clean the slave's connection
@@ -155,6 +188,46 @@ public class HATest {
             PutMessageResult result = putResultFuture.get();
             assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, result.getPutMessageStatus());
         }
+
+        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+    }
+
+    @Test
+    public void testSemiSyncReplicaWhenAdaptiveDegradation() throws Exception {
+        long totalMsgs = 5;
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        messageStore.getMessageStoreConfig().setEnableAutoInSyncReplicas(true);
+        for (long i = 0; i < totalMsgs; i++) {
+            MessageExtBrokerInner msg = buildMessage();
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(msg);
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+            //message has been replicated to slave's commitLog, but maybe not dispatch to ConsumeQueue yet
+            //so direct read from commitLog by physical offset
+            MessageExt slaveMsg = slaveMessageStore.lookMessageByOffset(result.getAppendMessageResult().getWroteOffset());
+            assertNotNull(slaveMsg);
+            assertTrue(Arrays.equals(msg.getBody(), slaveMsg.getBody()));
+            assertEquals(msg.getTopic(), slaveMsg.getTopic());
+            assertEquals(msg.getTags(), slaveMsg.getTags());
+            assertEquals(msg.getKeys(), slaveMsg.getKeys());
+        }
+
+        //shutdown slave, putMessage should return IN_SYNC_REPLICAS_NOT_ENOUGH
+        slaveMessageStore.shutdown();
+        messageStore.setAliveReplicaNumInGroup(1);
+
+        //wait to let master clean the slave's connection
+        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
+        for (long i = 0; i < totalMsgs; i++) {
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+        }
+
+        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+        messageStore.getMessageStoreConfig().setEnableAutoInSyncReplicas(false);
     }
 
     @After

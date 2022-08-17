@@ -20,7 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Trace transfering bean
+ * Trace transferring bean
  */
 public class TraceTransferBean {
     private String transData;

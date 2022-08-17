@@ -37,24 +37,22 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
@@ -480,7 +478,8 @@ public class MQClientAPIImplTest {
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
         final CountDownLatch done = new CountDownLatch(1);
         mqClientAPI.popMessageAsync(brokerName, brokerAddr, new PopMessageRequestHeader(), 10 * 1000, new PopCallback() {
-            @Override public void onSuccess(PopResult popResult) {
+            @Override
+            public void onSuccess(PopResult popResult) {
                 assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
                 assertThat(popResult.getRestNum()).isEqualTo(1);
                 assertThat(popResult.getInvisibleTime()).isEqualTo(invisibleTime);
@@ -489,7 +488,8 @@ public class MQClientAPIImplTest {
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }
@@ -516,12 +516,14 @@ public class MQClientAPIImplTest {
 
         final CountDownLatch done = new CountDownLatch(1);
         mqClientAPI.ackMessageAsync(brokerAddr, 10 * 1000, new AckCallback() {
-            @Override public void onSuccess(AckResult ackResult) {
+            @Override
+            public void onSuccess(AckResult ackResult) {
                 assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }
@@ -556,12 +558,14 @@ public class MQClientAPIImplTest {
         requestHeader.setOffset(0L);
         requestHeader.setInvisibleTime(10 * 1000L);
         mqClientAPI.changeInvisibleTimeAsync(brokerName, brokerAddr, requestHeader, 10 * 1000, new AckCallback() {
-            @Override public void onSuccess(AckResult ackResult) {
+            @Override
+            public void onSuccess(AckResult ackResult) {
                 assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
                 done.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 Assertions.fail("want no exception but got one", e);
                 done.countDown();
             }
@@ -715,7 +719,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long offset = mqClientAPI.getMaxOffset(brokerAddr, topic, 0, 10000);
+        long offset = mqClientAPI.getMaxOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(offset).isEqualTo(100L);
     }
 
@@ -736,7 +740,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long offset = mqClientAPI.getMinOffset(brokerAddr, topic, 0, 10000);
+        long offset = mqClientAPI.getMinOffset(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(offset).isEqualTo(100L);
     }
 
@@ -757,7 +761,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        long t = mqClientAPI.getEarliestMsgStoretime(brokerAddr, topic, 0, 10000);
+        long t = mqClientAPI.getEarliestMsgStoretime(brokerAddr, new MessageQueue(topic, brokerName, 0), 10000);
         assertThat(t).isEqualTo(100L);
     }
 
