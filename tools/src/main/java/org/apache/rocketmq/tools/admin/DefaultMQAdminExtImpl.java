@@ -400,7 +400,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         final String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerRuntimeInfo(brokerAddr, timeoutMillis);
     }
-
+    
+    @Override
+    public KVTable fetchBrokerRuntimeStatsConcurrent(String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        return null;
+    }
+    
     @Override
     public ConsumeStats examineConsumeStats(
         String consumerGroup) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
