@@ -126,6 +126,10 @@ public interface MQAdminExt extends MQAdmin {
     KVTable fetchBrokerRuntimeStats(
         final String brokerAddr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, InterruptedException, MQBrokerException;
+    
+    KVTable fetchBrokerRuntimeStatsConcurrent(
+        final String brokerAddr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, InterruptedException, MQBrokerException;
 
     ConsumeStats examineConsumeStats(
         final String consumerGroup) throws RemotingException, MQClientException, InterruptedException,
