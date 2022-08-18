@@ -21,10 +21,14 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
+
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +40,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.NamedForkJoinWorkerThreadFactory;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -73,10 +77,15 @@ public class EscapeBridge {
         if (brokerController.getBrokerConfig().isEnableSlaveActingMaster() && brokerController.getBrokerConfig().isEnableRemoteEscape()) {
             String nameserver = this.brokerController.getNameServerList();
             if (nameserver != null && !nameserver.isEmpty()) {
-                this.defaultAsyncSenderExecutor = new ForkJoinPool(Runtime.getRuntime().availableProcessors(),
-                    new NamedForkJoinWorkerThreadFactory("AsyncEscapeBridgeSender_", brokerController.getBrokerIdentity()),
-                    null,
-                    false);
+                final BlockingQueue<Runnable> asyncSenderThreadPoolQueue = new LinkedBlockingQueue<>(50000);
+                this.defaultAsyncSenderExecutor = new ThreadPoolExecutor(
+                    Runtime.getRuntime().availableProcessors(),
+                    Runtime.getRuntime().availableProcessors(),
+                    1000 * 60,
+                    TimeUnit.MILLISECONDS,
+                    asyncSenderThreadPoolQueue,
+                    new ThreadFactoryImpl("AsyncEscapeBridgeExecutor_", this.brokerController.getBrokerIdentity())
+                );
                 LOG.info("init executor for escaping messages asynchronously success.");
             } else {
                 throw new RuntimeException("nameserver address is null or empty");
