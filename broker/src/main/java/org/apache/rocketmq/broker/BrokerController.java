@@ -95,6 +95,7 @@ import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
@@ -191,6 +192,7 @@ public class BrokerController {
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
     protected final EndTransactionProcessor endTransactionProcessor;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+    private final TopicRouteInfoManager topicRouteInfoManager;
     protected BrokerOuterAPI brokerOuterAPI;
     protected ScheduledExecutorService scheduledExecutorService;
     protected ScheduledExecutorService syncBrokerMemberGroupExecutorService;
@@ -385,6 +387,8 @@ public class BrokerController {
         this.brokerMemberGroup.getBrokerAddrs().put(this.brokerConfig.getBrokerId(), this.getBrokerAddr());
 
         this.escapeBridge = new EscapeBridge(this);
+
+        this.topicRouteInfoManager = new TopicRouteInfoManager(this);
 
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
@@ -1353,6 +1357,10 @@ public class BrokerController {
             escapeBridge.shutdown();
         }
 
+        if (this.topicRouteInfoManager != null) {
+            this.topicRouteInfoManager.shutdown();
+        }
+
         if (this.brokerPreOnlineService != null && !this.brokerPreOnlineService.isStopped()) {
             this.brokerPreOnlineService.shutdown();
         }
@@ -1482,6 +1490,10 @@ public class BrokerController {
 
         if (this.escapeBridge != null) {
             this.escapeBridge.start();
+        }
+
+        if (this.topicRouteInfoManager != null) {
+            this.topicRouteInfoManager.start();
         }
 
         if (this.brokerPreOnlineService != null) {
@@ -2251,6 +2263,10 @@ public class BrokerController {
 
     public TimerCheckpoint getTimerCheckpoint() {
         return timerCheckpoint;
+    }
+
+    public TopicRouteInfoManager getTopicRouteInfoManager() {
+        return this.topicRouteInfoManager;
     }
 
 }
