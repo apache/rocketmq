@@ -19,17 +19,14 @@ package org.apache.rocketmq.broker.failover;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
@@ -58,7 +55,6 @@ import org.apache.rocketmq.store.PutMessageStatus;
 public class EscapeBridge {
     protected static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long SEND_TIMEOUT = 3000L;
-    private static final int DEFAULT_RETRY_TIMES = 3;
     private static final long DEFAULT_PULL_TIMEOUT_MILLIS = 1000 * 10L;
     private final String innerProducerGroupName;
     private final String innerConsumerGroupName;
@@ -108,7 +104,7 @@ public class EscapeBridge {
 
             try {
                 messageExt.setWaitStoreMsgOK(false);
-                final SendResult sendResult = putMessageToRemoteBroker(messageExt, DEFAULT_RETRY_TIMES);
+                final SendResult sendResult = putMessageToRemoteBroker(messageExt);
                 return transformSendResult2PutResult(sendResult);
             } catch (Exception e) {
                 LOG.error("sendMessageInFailover to remote failed", e);
@@ -121,7 +117,7 @@ public class EscapeBridge {
         }
     }
 
-    private SendResult putMessageToRemoteBroker(MessageExtBrokerInner messageExt, final int retryTimes) {
+    private SendResult putMessageToRemoteBroker(MessageExtBrokerInner messageExt) {
         final TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             LOG.warn("putMessageToRemoteBroker: no route info of topic {} when escaping message, msgId={}",
@@ -130,49 +126,33 @@ public class EscapeBridge {
         }
 
         final long invokeID = RandomUtils.nextLong(0, Long.MAX_VALUE);
-        final long beginTimestampFirst = System.currentTimeMillis();
-        long beginTimestampPrev = beginTimestampFirst;
-        String lastBrokerName;
-        MessageQueue mq = null;
-        long endTimestamp;
-        int times = 0;
-        String[] brokersSent = new String[retryTimes];
-        for (; times < retryTimes + 1; times++) {
-            lastBrokerName = null == mq ? null : mq.getBrokerName();
-            MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
-            messageExt.setQueueId(mqSelected.getQueueId());
-            mq = mqSelected;
+        final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue();
+        messageExt.setQueueId(mqSelected.getQueueId());
 
-            String brokerNameToSend = mq.getBrokerName();
-            brokersSent[times] = brokerNameToSend;
-            String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
-            final SendResult sendResult;
-            try {
-                beginTimestampPrev = System.currentTimeMillis();
-                sendResult = this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBroker(
-                    brokerAddrToSend, lastBrokerName,
-                    messageExt, this.getProducerGroup(messageExt), SEND_TIMEOUT);
-                if (null != sendResult && SendStatus.SEND_OK.equals(sendResult.getSendStatus())) {
-                    return sendResult;
-                }
-            } catch (RemotingException | MQBrokerException e) {
-                endTimestamp = System.currentTimeMillis();
-                LOG.warn(String.format("putMessageToRemoteBroker exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s",
-                    invokeID, endTimestamp - beginTimestampPrev, mq), e);
-                LOG.warn(String.valueOf(messageExt));
-            } catch (InterruptedException e) {
-                endTimestamp = System.currentTimeMillis();
-                LOG.warn(String.format("putMessageToRemoteBroker exception, return null sendResult, InvokeID: %s, RT: %sms, Broker: %s",
-                    invokeID, endTimestamp - beginTimestampPrev, mq), e);
-                LOG.warn(String.valueOf(messageExt));
-                return null;
+        final String brokerNameToSend = mqSelected.getBrokerName();
+        final String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
+
+        final long beginTimestamp = System.currentTimeMillis();
+        try {
+            final SendResult sendResult = this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBroker(
+                brokerAddrToSend, brokerNameToSend,
+                messageExt, this.getProducerGroup(messageExt), SEND_TIMEOUT);
+            if (null != sendResult && SendStatus.SEND_OK.equals(sendResult.getSendStatus())) {
+                return sendResult;
+            } else {
+                LOG.error("Escaping failed! cost {}ms, Topic: {}, MsgId: {}, Broker: {}",
+                    System.currentTimeMillis() - beginTimestamp, messageExt.getTopic(),
+                    messageExt.getMsgId(), brokerNameToSend);
             }
-
+        } catch (RemotingException | MQBrokerException e) {
+            LOG.error(String.format("putMessageToRemoteBroker exception, MsgId: %s, InvokeID: %s, RT: %sms, Broker: %s",
+                messageExt.getMsgId(), invokeID, System.currentTimeMillis() - beginTimestamp, mqSelected), e);
+        } catch (InterruptedException e) {
+            LOG.error(String.format("putMessageToRemoteBroker interrupted, MsgId: %s, InvokeID: %s, RT: %sms, Broker: %s",
+                messageExt.getMsgId(), invokeID, System.currentTimeMillis() - beginTimestamp, mqSelected), e);
+            Thread.currentThread().interrupt();
         }
 
-        LOG.error("Escaping failed! send {} times, cost {}ms, Topic: {}, MsgId: {}, BrokersSent: {}",
-            times, System.currentTimeMillis() - beginTimestampFirst, messageExt.getTopic(),
-            messageExt.getMsgId(), Arrays.toString(brokersSent));
         return null;
     }
 
@@ -185,24 +165,19 @@ public class EscapeBridge {
             try {
                 messageExt.setWaitStoreMsgOK(false);
 
-                TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
+                final TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
                 final String producerGroup = getProducerGroup(messageExt);
-                final CompletableFuture<SendResult> retryFuture = wrapRetryableFuture(
-                    lastBroker -> {
-                        MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue(lastBroker);
-                        messageExt.setQueueId(mqSelected.getQueueId());
 
-                        String brokerNameToSend = mqSelected.getBrokerName();
-                        String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
-                        return this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBrokerAsync(brokerAddrToSend,
-                            brokerNameToSend, messageExt,
-                            producerGroup, SEND_TIMEOUT);
-                    },
-                    DEFAULT_RETRY_TIMES,
-                    null,
-                    defaultAsyncSenderExecutor);
+                final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue();
+                messageExt.setQueueId(mqSelected.getQueueId());
 
-                return retryFuture.exceptionally(throwable -> null)
+                final String brokerNameToSend = mqSelected.getBrokerName();
+                final String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
+                final CompletableFuture<SendResult> future = this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBrokerAsync(brokerAddrToSend,
+                    brokerNameToSend, messageExt,
+                    producerGroup, SEND_TIMEOUT);
+
+                return future.exceptionally(throwable -> null)
                     .thenApplyAsync(sendResult -> {
                         return transformSendResult2PutResult(sendResult);
                     }, this.defaultAsyncSenderExecutor)
@@ -221,41 +196,6 @@ public class EscapeBridge {
         }
     }
 
-    private static CompletableFuture<SendResult> wrapRetryableFuture(
-        Function<String, CompletableFuture<SendResult>> action, int retryTimes, String lastBrokerName,
-        Executor executor) {
-        CompletableFuture<SendResult> future = new CompletableFuture<>();
-        action.apply(lastBrokerName).whenCompleteAsync((sendResult, throwable) -> {
-            if (null != throwable || null == sendResult) {
-                if (retryTimes <= 0) {
-                    future.complete(null);
-                } else {
-                    retrySendMessageAsync(future, action, retryTimes - 1, lastBrokerName, executor);
-                }
-            } else {
-                future.complete(sendResult);
-            }
-        }, executor);
-        return future;
-    }
-
-    private static void retrySendMessageAsync(CompletableFuture<SendResult> future,
-        Function<String, CompletableFuture<SendResult>> action, int leftRetryTimes, String lastBrokerName,
-        Executor executor) {
-        action.apply(lastBrokerName).whenCompleteAsync((sendResult, throwable) -> {
-            if (null != throwable || null == sendResult) {
-                if (leftRetryTimes <= 0) {
-                    future.complete(null);
-                } else {
-                    LOG.info("retry escaping message async, sendRestult={}, current leftRetryTimes=", sendResult, leftRetryTimes);
-                    retrySendMessageAsync(future, action, leftRetryTimes - 1, lastBrokerName, executor);
-                }
-            } else {
-                LOG.info("escaping message async completed result={}, leftRetryTimes=", sendResult, leftRetryTimes);
-                future.complete(sendResult);
-            }
-        }, executor);
-    }
 
     private String getProducerGroup(MessageExtBrokerInner messageExt) {
         if (null == messageExt) {
