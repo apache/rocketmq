@@ -1791,16 +1791,6 @@ public class BrokerController {
         return needRegister;
     }
 
-    public String getNameServerList() {
-        if (this.brokerConfig.getNamesrvAddr() != null) {
-            this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
-            return this.brokerConfig.getNamesrvAddr();
-        } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
-            return this.brokerOuterAPI.fetchNameServerAddr();
-        }
-        return null;
-    }
-
     public void startService(long minBrokerId, String minBrokerAddr) {
         BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
             this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);

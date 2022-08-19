@@ -71,21 +71,16 @@ public class EscapeBridge {
 
     public void start() throws Exception {
         if (brokerController.getBrokerConfig().isEnableSlaveActingMaster() && brokerController.getBrokerConfig().isEnableRemoteEscape()) {
-            String nameserver = this.brokerController.getNameServerList();
-            if (nameserver != null && !nameserver.isEmpty()) {
-                final BlockingQueue<Runnable> asyncSenderThreadPoolQueue = new LinkedBlockingQueue<>(50000);
-                this.defaultAsyncSenderExecutor = new ThreadPoolExecutor(
-                    Runtime.getRuntime().availableProcessors(),
-                    Runtime.getRuntime().availableProcessors(),
-                    1000 * 60,
-                    TimeUnit.MILLISECONDS,
-                    asyncSenderThreadPoolQueue,
-                    new ThreadFactoryImpl("AsyncEscapeBridgeExecutor_", this.brokerController.getBrokerIdentity())
-                );
-                LOG.info("init executor for escaping messages asynchronously success.");
-            } else {
-                throw new RuntimeException("nameserver address is null or empty");
-            }
+            final BlockingQueue<Runnable> asyncSenderThreadPoolQueue = new LinkedBlockingQueue<>(50000);
+            this.defaultAsyncSenderExecutor = new ThreadPoolExecutor(
+                Runtime.getRuntime().availableProcessors(),
+                Runtime.getRuntime().availableProcessors(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                asyncSenderThreadPoolQueue,
+                new ThreadFactoryImpl("AsyncEscapeBridgeExecutor_", this.brokerController.getBrokerIdentity())
+            );
+            LOG.info("init executor for escaping messages asynchronously success.");
         }
     }
 
