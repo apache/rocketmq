@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.controller.elect;
 
-package org.apache.rocketmq.common.protocol.route;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import java.util.Set;
 
-import java.util.HashMap;
-import java.util.Map;
+public interface ElectPolicy {
 
-public class TopicRouteDatas extends RemotingSerializable {
+    /**
+     * elect a master
+     *
+     * @param clusterName       the brokerGroup belongs
+     * @param syncStateBrokers  all broker replicas in syncStateSet
+     * @param allReplicaBrokers all broker replicas
+     * @param oldMaster         old master
+     * @param preferBrokerAddr  the broker prefer to be elected
+     * @return new master's brokerAddr
+     */
+    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr);
 
-    private Map<String, TopicRouteData> topics = new HashMap<String, TopicRouteData>();
-
-    public Map<String, TopicRouteData> getTopics() {
-        return topics;
-    }
-
-    public void setTopics(Map<String, TopicRouteData> topics) {
-        this.topics = topics;
-    }
 }

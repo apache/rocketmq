@@ -38,6 +38,7 @@ import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.processor.ClientRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
+import org.apache.rocketmq.namesrv.route.ZoneRouteRPCHook;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -198,6 +199,7 @@ public class NamesrvController {
             }
         }
 
+        initialRpcHooks();
         return true;
     }
 
@@ -240,6 +242,10 @@ public class NamesrvController {
         }
     }
 
+    private void initialRpcHooks() {
+        this.remotingServer.registerRPCHook(new ZoneRouteRPCHook());
+    }
+    
     public void start() throws Exception {
         this.remotingServer.start();
         this.remotingClient.start();

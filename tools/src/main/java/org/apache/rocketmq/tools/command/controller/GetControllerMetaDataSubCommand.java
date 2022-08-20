@@ -26,7 +26,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetControllerMetaDataCommand implements SubCommand {
+public class GetControllerMetaDataSubCommand implements SubCommand {
     @Override
     public String commandName() {
         return "getControllerMetaData";
@@ -63,6 +63,7 @@ public class GetControllerMetaDataCommand implements SubCommand {
                     System.out.printf("\n#Peer:\t%s", peer);
                 }
             }
+            System.out.printf("\n");
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

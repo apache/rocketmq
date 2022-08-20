@@ -87,6 +87,11 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
+    <logger name="RocketmqController" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqNamesrvAppender"/>
+    </logger>
+
     <root>
         <level value="INFO"/>
         <appender-ref ref="DefaultAppender"/>

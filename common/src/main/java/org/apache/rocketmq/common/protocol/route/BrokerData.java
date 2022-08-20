@@ -30,7 +30,7 @@ public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
-
+    private String zoneName;
     private final Random random = new Random();
 
     /**
@@ -60,12 +60,19 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerAddrs = brokerAddrs;
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs,
-        boolean enableActingMaster) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
         this.enableActingMaster = enableActingMaster;
+    }
+
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster, String zoneName) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+        this.brokerAddrs = brokerAddrs;
+        this.enableActingMaster = enableActingMaster;
+        this.zoneName = zoneName;
     }
 
     /**
@@ -107,6 +114,14 @@ public class BrokerData implements Comparable<BrokerData> {
 
     public void setEnableActingMaster(boolean enableActingMaster) {
         this.enableActingMaster = enableActingMaster;
+    }
+
+    public String getZoneName() {
+        return zoneName;
+    }
+
+    public void setZoneName(String zoneName) {
+        this.zoneName = zoneName;
     }
 
     @Override

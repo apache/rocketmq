@@ -48,7 +48,7 @@ public interface Controller {
     void startScheduling();
 
     /**
-     * Stop scheduling controller events, this function only will be triggered when the controller shutdown leaderShip.
+     * Stop scheduling controller events, this function only will be triggered when the controller lose leadership.
      */
     void stopScheduling();
 

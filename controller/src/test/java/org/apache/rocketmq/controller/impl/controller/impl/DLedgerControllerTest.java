@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
@@ -175,11 +176,22 @@ public class DLedgerControllerTest {
         });
     }
 
+    public void setBrokerElectPolicy(DLedgerController controller, String... deathBroker) {
+        controller.setElectPolicy(new DefaultElectPolicy((clusterName, brokerAddress) -> {
+            for (String broker : deathBroker) {
+                if (broker.equals(brokerAddress)) {
+                    return false;
+                }
+            }
+            return true;
+        }, null));
+    }
+
     @Test
     public void testElectMaster() throws Exception {
         final DLedgerController leader = mockMetaData(false);
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
-        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
+        setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
         assertEquals(response.getMasterEpoch(), 2);
@@ -198,7 +210,7 @@ public class DLedgerControllerTest {
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
-        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
+        setBrokerElectPolicy(leader, "127.0.0.1:9000");
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
         final RemotingCommand resp = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).
@@ -238,7 +250,7 @@ public class DLedgerControllerTest {
         // However, event if the syncStateSet in statemachine is {"127.0.0.1:9000"}
         // the option {enableElectUncleanMaster = true}, so the controller sill can elect a new master
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
-        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
+        setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final CompletableFuture<RemotingCommand> future = leader.electMaster(electRequest);
         future.get(10, TimeUnit.SECONDS);
 
@@ -246,7 +258,7 @@ public class DLedgerControllerTest {
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
 
-         final HashSet<String> newSyncStateSet2 = new HashSet<>();
+        final HashSet<String> newSyncStateSet2 = new HashSet<>();
         newSyncStateSet2.add(replicaInfo.getMasterAddress());
         assertEquals(syncStateSet.getSyncStateSet(), newSyncStateSet2);
         assertNotEquals(replicaInfo.getMasterAddress(), "");

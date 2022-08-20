@@ -39,7 +39,7 @@ import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
-//The test is correct, but it takes too much time, so it is ignored for the time being
+//The test is correct, but it takes too much time and not core functions, so it is ignored for the time being
 @Ignore
 public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
 
@@ -136,6 +136,65 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
     }
 
     @Test
+    public void testLocalActing_timerMsg() throws Exception {
+        awaitUntilSlaveOK();
+        String topic = ScheduleSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
+        createTopic(topic);
+        DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUME_GROUP);
+        pushConsumer.subscribe(topic, "*");
+        AtomicInteger receivedMsgCount = new AtomicInteger(0);
+        AtomicInteger inTimeMsgCount = new AtomicInteger(0);
+        pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            long period = System.currentTimeMillis() - msgs.get(0).getBornTimestamp();
+            if (Math.abs(period - 30000) <= 1000) {
+                inTimeMsgCount.addAndGet(msgs.size());
+            }
+            receivedMsgCount.addAndGet(msgs.size());
+            msgs.forEach(x -> System.out.printf(x + "%n"));
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+        pushConsumer.start();
+
+        MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
+        int sendSuccess = 0;
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
+            Message msg = new Message(topic, MESSAGE_BODY);
+            msg.setDelayTimeSec(30);
+            SendResult sendResult = producer.send(msg, messageQueue);
+            if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
+                sendSuccess++;
+            }
+        }
+        final int finalSendSuccess = sendSuccess;
+        await().atMost(Duration.ofMinutes(2)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
+        System.out.printf("send success%n");
+
+        isolateBroker(master1With3Replicas);
+        brokerContainer1.removeBroker(new BrokerIdentity(
+            master1With3Replicas.getBrokerConfig().getBrokerClusterName(),
+            master1With3Replicas.getBrokerConfig().getBrokerName(),
+            master1With3Replicas.getBrokerConfig().getBrokerId()));
+
+        System.out.printf("Remove master1%n");
+
+        await().atMost(Duration.ofMinutes(1)).until(() -> receivedMsgCount.get() >= MESSAGE_COUNT && inTimeMsgCount.get() >= MESSAGE_COUNT * 0.95);
+
+        System.out.printf("consumer received %d msg, %d in time%n", receivedMsgCount.get(), inTimeMsgCount.get());
+
+        pushConsumer.shutdown();
+
+        //Add back master
+        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas.start();
+        cancelIsolatedBroker(master1With3Replicas);
+        System.out.printf("Add back master1%n");
+
+        awaitUntilSlaveOK();
+        // sleep a while to recover
+        Thread.sleep(20000);
+    }
+
+    @Test
     public void testRemoteActing_delayMsg() throws Exception {
         awaitUntilSlaveOK();
 
@@ -215,6 +274,85 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         awaitUntilSlaveOK();
         // sleep a while to recover
         Thread.sleep(30000);
+    }
+
+    @Test
+    public void testRemoteActing_timerMsg() throws Exception {
+        awaitUntilSlaveOK();
+
+        String topic = ScheduleSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
+        createTopic(topic);
+        AtomicInteger receivedMsgCount = new AtomicInteger(0);
+        AtomicInteger inTimeMsgCount = new AtomicInteger(0);
+        AtomicInteger master3MsgCount = new AtomicInteger(0);
+
+        MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
+        int sendSuccess = 0;
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
+            Message msg = new Message(topic, MESSAGE_BODY);
+            msg.setDelayTimeSec(30);
+            SendResult sendResult = producer.send(msg, messageQueue);
+            if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
+                sendSuccess++;
+            }
+        }
+        final int finalSendSuccess = sendSuccess;
+        await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
+        long sendCompleteTimeStamp = System.currentTimeMillis();
+        System.out.printf("send success%n");
+
+        DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUME_GROUP);
+        pushConsumer.subscribe(topic, "*");
+        pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            long period = System.currentTimeMillis() - sendCompleteTimeStamp;
+            // Remote Acting lead to born timestamp, msgId changed, it need to polish.
+            if (Math.abs(period - 30000) <= 3000) {
+                inTimeMsgCount.addAndGet(msgs.size());
+            }
+            if (msgs.get(0).getBrokerName().equals(master3With3Replicas.getBrokerConfig().getBrokerName())) {
+                master3MsgCount.addAndGet(msgs.size());
+            }
+            receivedMsgCount.addAndGet(msgs.size());
+            msgs.forEach(x -> System.out.printf("cost " + period + " " + x + "%n"));
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+        pushConsumer.start();
+
+        isolateBroker(master1With3Replicas);
+        brokerContainer1.removeBroker(new BrokerIdentity(
+            master1With3Replicas.getBrokerConfig().getBrokerClusterName(),
+            master1With3Replicas.getBrokerConfig().getBrokerName(),
+            master1With3Replicas.getBrokerConfig().getBrokerId()));
+        System.out.printf("Remove master1%n");
+
+        isolateBroker(master2With3Replicas);
+        brokerContainer2.removeBroker(new BrokerIdentity(
+            master2With3Replicas.getBrokerConfig().getBrokerClusterName(),
+            master2With3Replicas.getBrokerConfig().getBrokerName(),
+            master2With3Replicas.getBrokerConfig().getBrokerId()));
+        System.out.printf("Remove master2%n");
+
+        await().atMost(Duration.ofMinutes(1)).until(() -> receivedMsgCount.get() >= MESSAGE_COUNT && master3MsgCount.get() >= MESSAGE_COUNT && inTimeMsgCount.get() >= MESSAGE_COUNT * 0.95);
+
+        System.out.printf("consumer received %d msg, %d in time%n", receivedMsgCount.get(), inTimeMsgCount.get());
+
+        pushConsumer.shutdown();
+
+        //Add back master
+        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas.start();
+        cancelIsolatedBroker(master1With3Replicas);
+        System.out.printf("Add back master1%n");
+
+        //Add back master
+        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas.start();
+        cancelIsolatedBroker(master2With3Replicas);
+        System.out.printf("Add back master2%n");
+
+        awaitUntilSlaveOK();
+        // sleep a while to recover
+        Thread.sleep(20000);
     }
 
 }

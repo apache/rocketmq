@@ -55,16 +55,8 @@ public class NamesrvStartup {
     private static ControllerConfig controllerConfig = null;
 
     public static void main(String[] args) {
-        try {
-            parseCommandlineAndConfigFile(args);
-            createAndStartNamesrvController();
-            if (namesrvConfig.isEnableControllerInNamesrv()) {
-                createAndStartControllerManager();
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
+        main0(args);
+        controllerManagerMain();
     }
 
     public static NamesrvController main0(String[] args) {
@@ -77,6 +69,18 @@ public class NamesrvStartup {
             System.exit(-1);
         }
 
+        return null;
+    }
+
+    public static ControllerManager controllerManagerMain() {
+        try {
+            if (namesrvConfig.isEnableControllerInNamesrv()) {
+                return createAndStartControllerManager();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
         return null;
     }
 
@@ -237,7 +241,6 @@ public class NamesrvStartup {
         opt = new Option("p", "printConfigItem", false, "Print all config items");
         opt.setRequired(false);
         options.addOption(opt);
-
         return options;
     }
 

@@ -392,6 +392,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         return reputFromOffset;
     }
 
+    public int getLastEpoch() {
+        return this.epochCache.lastEpoch();
+    }
+
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
     }
@@ -410,7 +414,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             return AutoSwitchAcceptSocketService.class.getSimpleName();
         }
 
-        @Override protected HAConnection createConnection(SocketChannel sc) throws IOException {
+        @Override
+        protected HAConnection createConnection(SocketChannel sc) throws IOException {
             return new AutoSwitchHAConnection(AutoSwitchHAService.this, sc, AutoSwitchHAService.this.epochCache);
         }
     }
