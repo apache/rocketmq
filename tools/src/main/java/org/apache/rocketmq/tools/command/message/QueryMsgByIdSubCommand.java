@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -42,14 +43,18 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByIdSubCommand implements SubCommand {
-    public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
+    public static void queryById(final DefaultMQAdminExt admin, final String msgId, final Charset msgBodyCharset) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(msgId);
 
-        printMsg(admin, msg);
+        printMsg(admin, msg, msgBodyCharset);
     }
 
     public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
+        printMsg(admin, msg, null);
+    }
+
+    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg, final Charset msgBodyCharset) throws IOException {
         if (msg == null) {
             System.out.printf("%nMessage not found!");
             return;
@@ -136,6 +141,10 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             bodyTmpFilePath
         );
 
+        if (null != msgBodyCharset) {
+            System.out.printf("%-20s %s%n", "Message Body:", new String(msg.getBody(), msgBodyCharset));
+        }
+
         try {
             List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
             if (mtdList.isEmpty()) {
@@ -200,6 +209,10 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt = new Option("u", "unitName", true, "unit name");
         opt.setRequired(false);
         options.addOption(opt);
+        
+        opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
+        opt.setRequired(false);
+        options.addOption(opt);
 
         return options;
     }
@@ -242,9 +255,13 @@ public class QueryMsgByIdSubCommand implements SubCommand {
                     }
                 }
             } else {
+                Charset msgBodyCharset = null;
+                if (commandLine.hasOption('f')) {
+                    msgBodyCharset = Charset.forName(commandLine.getOptionValue('f').trim());
+                }
                 for (String msgId : msgIdArr) {
                     if (StringUtils.isNotBlank(msgId)) {
-                        queryById(defaultMQAdminExt, msgId.trim());
+                        queryById(defaultMQAdminExt, msgId.trim(), msgBodyCharset);
                     }
                 }
 
