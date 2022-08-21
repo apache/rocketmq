@@ -119,9 +119,9 @@ nextTransferFromWhere + size > currentTransferEpochEndOffset，则将 selectMapp
 
 1.AutoSwitchHaClient (Slave) 会向 Master 发送 HandShake 包, 如下:
 
-```
-current state + Two flags + slaveAddressLength + slaveAddress
-```
+![示意图](../image/controller/controller_design_3.png)
+
+`current state(4byte) + Two flags(4byte) + slaveAddressLength(4byte) + slaveAddress(50byte)`
 
 - Current state 代表当前的 HAConnectionState, 也即 HANDSHAKE。
 
@@ -131,9 +131,9 @@ current state + Two flags + slaveAddressLength + slaveAddress
 
 2.AutoSwitchHaConnection (Master) 会向 Slave 回送 HandShake 包, 如下:
 
-```
-current state + body size + offset + epoch + body
-```
+![示意图](../image/controller/controller_design_4.png)
+
+`current state(4byte) + body size(4byte) + offset(8byte) + epoch(4byte) + body`
 
 - Current state 代表当前的 HAConnectionState, 也即 HANDSHAKE。
 - Body size 代表了 body 的长度。
@@ -147,9 +147,9 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 1.AutoSwitchHaConnection (Master) 会不断的往 Slave 发送日志包, 如下:
 
-```
- current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset) + body
-```
+![示意图](../image/controller/controller_design_5.png)
+
+`current state(4byte) + body size(4byte) + offset(8byte) + epoch(4byte)  + epochStartOffset(8byte) + additionalInfo(confirmOffset) (8byte)+ body`
 
 - Current state 代表当前的 HAConnectionState, 也即 Transfer 。
 - Body size 代表了 body 的长度。
@@ -161,9 +161,9 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 2.AutoSwitchHaClient (Slave) 会向 Master 发送 ACK 包:
 
-```
- current state + maxOffset.
-```
+![示意图](../image/controller/controller_design_6.png)
+
+` current state(4byte) + maxOffset(8byte)`
 
 - Current state 代表当前的 HAConnectionState, 也即 Transfer 。
 - MaxOffset: 代表当前 Slave 的最大日志偏移量。
