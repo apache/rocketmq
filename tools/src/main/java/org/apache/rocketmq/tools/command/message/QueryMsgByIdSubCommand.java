@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -277,9 +278,14 @@ public class QueryMsgByIdSubCommand implements SubCommand {
     private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId,
         final String msgId) {
         try {
-            ConsumeMessageDirectlyResult result =
-                defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
-            System.out.printf("%s", result);
+            ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false, false);
+            if (ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
+                ConsumeMessageDirectlyResult result =
+                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+                System.out.printf("%s", result);
+            } else {
+                System.out.printf("this %s client is not push consumer ,not support direct push \n", clientId);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
