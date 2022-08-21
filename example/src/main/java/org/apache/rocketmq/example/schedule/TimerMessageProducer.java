@@ -46,7 +46,7 @@ public class TimerMessageProducer {
             message.setDeliverTimeMs(System.currentTimeMillis() + 10_000L);
             // Send the message
             SendResult result = producer.send(message);
-            System.out.print(result);
+            System.out.printf(result + "\n");
         }
 
         // Shutdown producer after use.
