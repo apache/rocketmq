@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -120,7 +119,6 @@ public class EscapeBridge {
             return null;
         }
 
-        final long invokeID = RandomUtils.nextLong(0, Long.MAX_VALUE);
         final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue();
         messageExt.setQueueId(mqSelected.getQueueId());
 
@@ -140,11 +138,11 @@ public class EscapeBridge {
                     messageExt.getMsgId(), brokerNameToSend);
             }
         } catch (RemotingException | MQBrokerException e) {
-            LOG.error(String.format("putMessageToRemoteBroker exception, MsgId: %s, InvokeID: %s, RT: %sms, Broker: %s",
-                messageExt.getMsgId(), invokeID, System.currentTimeMillis() - beginTimestamp, mqSelected), e);
+            LOG.error(String.format("putMessageToRemoteBroker exception, MsgId: %s, RT: %sms, Broker: %s",
+                messageExt.getMsgId(), System.currentTimeMillis() - beginTimestamp, mqSelected), e);
         } catch (InterruptedException e) {
-            LOG.error(String.format("putMessageToRemoteBroker interrupted, MsgId: %s, InvokeID: %s, RT: %sms, Broker: %s",
-                messageExt.getMsgId(), invokeID, System.currentTimeMillis() - beginTimestamp, mqSelected), e);
+            LOG.error(String.format("putMessageToRemoteBroker interrupted, MsgId: %s, RT: %sms, Broker: %s",
+                messageExt.getMsgId(), System.currentTimeMillis() - beginTimestamp, mqSelected), e);
             Thread.currentThread().interrupt();
         }
 
