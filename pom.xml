@@ -337,6 +337,13 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
                         <id>default-prepare-agent-integration</id>
                         <phase>pre-integration-test</phase>
                         <goals>
