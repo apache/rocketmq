@@ -62,7 +62,11 @@ java_library(
         "@maven//:io_grpc_grpc_stub",
         "@maven//:io_grpc_grpc_api",
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = [
+        "src/test/resources/rmq-proxy-home/conf/broker.conf",
+        "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
+        "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
+    ],
 )
 
 GenTestRules(
@@ -70,5 +74,8 @@ GenTestRules(
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
         ":tests",
+    ],
+    exclude_tests = [
+        "src/test/java/org/apache/rocketmq/proxy/config/InitConfigAndLoggerTest",
     ],
 )
