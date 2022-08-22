@@ -69,7 +69,13 @@ java_library(
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:com_google_guava_guava",
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = [
+        "src/test/resources/rmq-proxy-home/conf/broker.conf",
+        "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
+        "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
+        "src/test/resources/log4j.xml",
+        "src/test/resources/logback-test.xml",
+    ] + glob(["src/test/resources/schema/**/*.schema"]),
 )
 
 GenTestRules(
