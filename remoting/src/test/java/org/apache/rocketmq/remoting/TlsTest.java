@@ -70,6 +70,7 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerTrustC
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -325,7 +326,7 @@ public class TlsTest {
                     bos.write(buffer, 0, len);
                 }
             } catch (IOException e) {
-                new RuntimeException(e);
+                throw new RuntimeException(e);
             }
             return f.getAbsolutePath();
         } catch (IOException e) {
@@ -346,7 +347,7 @@ public class TlsTest {
 
     private void requestThenAssertResponse(RemotingClient remotingClient) throws Exception {
         RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
-        assertTrue(response != null);
+        assertNotNull(response);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
         assertThat(response.getExtFields().get("messageTitle")).isEqualTo("Welcome");

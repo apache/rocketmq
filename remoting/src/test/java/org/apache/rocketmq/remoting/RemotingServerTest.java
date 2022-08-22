@@ -34,6 +34,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class RemotingServerTest {
@@ -91,7 +92,7 @@ public class RemotingServerTest {
         requestHeader.setMessageTitle("Welcome");
         RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
         RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), request, 1000 * 3);
-        assertTrue(response != null);
+        assertNotNull(response);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
 
