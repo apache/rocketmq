@@ -1475,10 +1475,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
-    public static void main(String[] args) {
-        Arrays.asList(null);
-    }
-
     public boolean consumed(final MessageExt msg,
         final String group) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
 

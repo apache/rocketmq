@@ -19,6 +19,7 @@ java_library(
         "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_rocketmq_rocketmq_proto",
         "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_guava_guava",
     ],
 )
 

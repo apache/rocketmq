@@ -31,6 +31,8 @@ java_library(
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_reflections_reflections",
         "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:commons_cli_commons_cli",
+        "@maven//:com_google_guava_guava",
     ],
 )
 
@@ -56,7 +58,16 @@ java_library(
         "@maven//:io_netty_netty_all", 
         "@maven//:com_google_truth_truth",   
         "@maven//:log4j_log4j",   
-        "@maven//:io_grpc_grpc_testing",   
+        "@maven//:io_grpc_grpc_testing",  
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api", 
+        "@maven//:org_apache_rocketmq_rocketmq_proto", 
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_google_guava_guava",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

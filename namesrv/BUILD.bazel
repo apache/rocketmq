@@ -42,7 +42,11 @@ java_library(
         "//:test_deps",
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:commons_cli_commons_cli",
-        "@maven//:io_netty_netty_all",               
+        "@maven//:io_netty_netty_all",    
+        "@maven//:com_google_guava_guava",   
+        "@maven//:com_alibaba_fastjson",      
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",  
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
