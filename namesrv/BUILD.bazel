@@ -11,6 +11,7 @@ java_library(
         "//tools",
         "//client",
         "//common",
+        "//controller",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
@@ -22,6 +23,7 @@ java_library(
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_bouncycastle_bcpkix_jdk15on",
         "@maven//:commons_cli_commons_cli",
+        "@maven//:com_google_guava_guava",
     ],
 )
 

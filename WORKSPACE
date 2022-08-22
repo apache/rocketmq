@@ -23,12 +23,12 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 
 maven_install(
     artifacts = [
-        "junit:junit:4.12",
+        "junit:junit:4.13.2",
         "com.alibaba:fastjson:1.2.76",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
         "org.slf4j:slf4j-api:1.7.7",
-        "org.assertj:assertj-core:2.6.0",
+        "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
@@ -54,6 +54,8 @@ maven_install(
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
         "org.apache.rocketmq:rocketmq-proto:2.0.0",
         "com.google.protobuf:protobuf-java:3.21.5",
+        "com.conversantmedia:disruptor:1.2.10",
+        "javax.annotation:javax.annotation-api:1.3.2",
     ],
     fetch_sources = True,
     repositories = [

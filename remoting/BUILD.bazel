@@ -20,6 +20,7 @@ java_library(
         "//:test_deps",
         "@maven//:io_netty_netty_all",     
         "@maven//:com_google_code_gson_gson",   
+        "@maven//:com_alibaba_fastjson",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
