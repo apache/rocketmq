@@ -138,13 +138,11 @@ public class TopicRouteInfoManager {
         TopicRouteData old = this.topicRouteTable.get(topic);
         boolean changed = this.topicRouteDataIsChange(old, topicRouteData);
         if (!changed) {
-            changed = this.isNeedUpdateTopicRouteInfo(topic);
+            if (!this.isNeedUpdateTopicRouteInfo(topic)) {
+                return false;
+            }
         } else {
             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
-        }
-
-        if (!changed) {
-            return false;
         }
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
