@@ -53,6 +53,8 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -92,6 +94,11 @@ public class DefaultLitePullConsumerTest {
     private String topic = "LitePullConsumerTest";
     private String brokerName = "BrokerA";
     private boolean flag = false;
+
+    @BeforeClass
+    public static void setEnv() {
+        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+    }
 
     @Before
     public void init() throws Exception {
@@ -548,6 +555,11 @@ public class DefaultLitePullConsumerTest {
         assertThat(offset).isEqualTo(100);
     }
 
+    /**
+     * Disable this unit test case for now as it is too slow.
+     * @throws Exception
+     */
+    @Ignore
     @Test
     public void testConsumerAfterShutdown() throws Exception {
         DefaultLitePullConsumer defaultLitePullConsumer = createSubscribeLitePullConsumer();

@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class AclUtilsTest {
@@ -212,6 +213,7 @@ public class AclUtilsTest {
         Assert.assertEquals(AclUtils.expandIP("5::7:6", 6), "0005:0000:0000:0000:0007:0006");
     }
 
+    @Ignore
     @SuppressWarnings("unchecked")
     @Test
     public void getYamlDataObjectTest() {
@@ -220,6 +222,7 @@ public class AclUtilsTest {
         Assert.assertFalse(map.isEmpty());
     }
 
+    @Ignore
     @Test
     public void writeDataObject2YamlFileTest() throws IOException {
 
@@ -253,6 +256,7 @@ public class AclUtilsTest {
         transport.delete();
     }
 
+    @Ignore
     @Test
     public void updateExistedYamlFileTest() throws IOException {
 
@@ -287,6 +291,7 @@ public class AclUtilsTest {
         transport.delete();
     }
 
+    @Ignore
     @Test
     public void getYamlDataIgnoreFileNotFoundExceptionTest() {
 
@@ -295,6 +300,7 @@ public class AclUtilsTest {
     }
 
 
+    @Ignore
     @Test
     public void getAclRPCHookTest() {
 

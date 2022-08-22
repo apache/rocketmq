@@ -85,8 +85,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     private ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<Integer, NettyRemotingAbstract>();
 
-    private int port = 0;
-
     private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     private static final String TLS_HANDLER_NAME = "sslHandler";
     private static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
@@ -247,9 +245,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         try {
-            ChannelFuture sync = this.serverBootstrap.bind().sync();
+            ChannelFuture sync = this.serverBootstrap.bind(nettyServerConfig.getListenPort()).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
-            this.port = addr.getPort();
+            if (0 == nettyServerConfig.getListenPort()) {
+                this.nettyServerConfig.setListenPort(addr.getPort());
+            }
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
@@ -320,7 +320,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public int localListenPort() {
-        return this.port;
+        return this.nettyServerConfig.getListenPort();
     }
 
     @Override

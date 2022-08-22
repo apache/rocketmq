@@ -18,7 +18,7 @@
 package org.apache.rocketmq.test.client.consumer.broadcast.tag;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
+import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
@@ -31,8 +31,8 @@ import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class BroadCastTwoConsumerSubTagIT extends BaseBroadCastIT {
-    private static Logger logger = Logger.getLogger(BroadCastTwoConsumerSubTagIT.class);
+public class BroadcastTwoConsumerSubTagIT extends BaseBroadcast {
+    private static Logger logger = Logger.getLogger(BroadcastTwoConsumerSubTagIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 

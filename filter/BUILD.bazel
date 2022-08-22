@@ -1,0 +1,43 @@
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "filter",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common",
+        "//remoting",
+        "//logging", 
+        "//srvutil",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":filter",
+        "//common",
+        "//remoting",
+        "//:test_deps",
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:io_netty_netty_all",               
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+)

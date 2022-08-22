@@ -1,0 +1,60 @@
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "test",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//broker",
+        "//client",
+        "//common",
+        "//remoting",
+        "//logging",   
+        "//srvutil",
+        "//tools", 
+        "//namesrv",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:log4j_log4j",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:ch_qos_logback_logback_core",
+        "@maven//:com_google_truth_truth",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":test",
+        "//broker",
+        "//client",
+        "//common",
+        "//remoting",
+        "//logging",
+        "//tools",        
+        "//:test_deps",
+        "//store",
+        "//namesrv",
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:io_netty_netty_all", 
+        "@maven//:com_google_truth_truth",   
+        "@maven//:log4j_log4j",           
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    default_test_size = "large",
+    test_files = glob(["src/test/java/**/*IT.java"]),
+    deps = [
+        ":tests",
+    ],
+)

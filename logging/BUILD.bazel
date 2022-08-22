@@ -1,0 +1,8 @@
+java_library(
+    name = "logging",
+    srcs = glob(["src/main/java/**/*.java"]),
+    deps = [
+        "@maven//:org_slf4j_slf4j_api",
+    ],
+    visibility = ["//visibility:public"],
+)

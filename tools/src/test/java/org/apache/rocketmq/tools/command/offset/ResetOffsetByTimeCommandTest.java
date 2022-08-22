@@ -30,10 +30,6 @@ import org.junit.Test;
 
 public class ResetOffsetByTimeCommandTest {
 
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -41,7 +37,7 @@ public class ResetOffsetByTimeCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
     }
 
     @After
@@ -54,7 +50,8 @@ public class ResetOffsetByTimeCommandTest {
     public void testExecute() throws SubCommandException {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-s 1412131213231", "-f false"};
+        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-s 1412131213231", "-f false",
+            String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
@@ -63,6 +60,6 @@ public class ResetOffsetByTimeCommandTest {
     private ServerResponseMocker startOneBroker() {
         ResetOffsetBody resetOffsetBody = new ResetOffsetBody();
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, resetOffsetBody.encode());
+        return ServerResponseMocker.startServer(0, resetOffsetBody.encode());
     }
 }

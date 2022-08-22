@@ -220,7 +220,7 @@ public class MixAll {
             }
 
             if (result) {
-                return new String(data);
+                return new String(data, "UTF-8");
             }
         }
         return null;

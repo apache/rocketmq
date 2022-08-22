@@ -21,12 +21,14 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+@Ignore
 public class ServiceProviderTest {
 
     @Test

@@ -58,7 +58,7 @@ public class HATest {
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
-    private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
+    private String storePathRootParentDir = System.getProperty("java.io.tmpdir") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
 
@@ -70,6 +70,7 @@ public class HATest {
         masterMessageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         masterMessageStoreConfig.setStorePathRootDir(storePathRootDir + File.separator + "master");
         masterMessageStoreConfig.setStorePathCommitLog(storePathRootDir + File.separator + "master" + File.separator + "commitlog");
+        masterMessageStoreConfig.setHaListenPort(0);
         masterMessageStoreConfig.setTotalReplicas(2);
         masterMessageStoreConfig.setInSyncReplicas(2);
         buildMessageStoreConfig(masterMessageStoreConfig);
@@ -77,7 +78,7 @@ public class HATest {
         slaveStoreConfig.setBrokerRole(BrokerRole.SLAVE);
         slaveStoreConfig.setStorePathRootDir(storePathRootDir + File.separator + "slave");
         slaveStoreConfig.setStorePathCommitLog(storePathRootDir + File.separator + "slave" + File.separator + "commitlog");
-        slaveStoreConfig.setHaListenPort(10943);
+        slaveStoreConfig.setHaListenPort(0);
         slaveStoreConfig.setTotalReplicas(2);
         slaveStoreConfig.setInSyncReplicas(2);
         buildMessageStoreConfig(slaveStoreConfig);
@@ -88,6 +89,8 @@ public class HATest {
         assertTrue(load);
         assertTrue(slaveLoad);
         messageStore.start();
+
+        slaveMessageStore.updateHaMasterAddress("127.0.0.1:" + masterMessageStoreConfig.getHaListenPort());
         slaveMessageStore.start();
         slaveMessageStore.updateHaMasterAddress("127.0.0.1:10912");
         Thread.sleep(6000L);//because the haClient will wait 5s after the first connectMaster failed,sleep 6s

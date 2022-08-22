@@ -46,7 +46,7 @@ public class ConsumeQueueTest {
 
     private static final String topic = "abc";
     private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 8;
     private static final int cqFileSize = 10 * 20;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -119,7 +119,7 @@ public class ConsumeQueueTest {
         messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
-
+        messageStoreConfig.setHaListenPort(0);
         messageStoreConfig.setStorePathRootDir(storePath);
         messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
 

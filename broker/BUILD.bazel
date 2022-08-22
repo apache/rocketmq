@@ -1,0 +1,57 @@
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "broker",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//remoting",
+        "//logging",  
+        "//common",   
+        "//store",
+        "//client",
+        "//filter",
+        "//srvutil",
+        "//acl",
+        "//store:io_openmessaging_storage_dledger",   
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:commons_cli_commons_cli",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":broker",
+        "//acl",
+        "//client",
+        "//filter",
+        "//logging",
+        "//store",
+        "//common",
+        "//remoting",
+        "//:test_deps",
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:io_netty_netty_all",    
+        "@maven//:com_google_guava_guava",    
+        "@maven//:com_alibaba_fastjson",       
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+)
