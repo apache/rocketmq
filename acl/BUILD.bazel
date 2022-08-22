@@ -17,6 +17,8 @@ java_library(
         "@maven//:io_netty_netty_all",
         "@maven//:org_yaml_snakeyaml",
         "@maven//:commons_codec_commons_codec",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",
+        "@maven//:com_google_protobuf_protobuf_java",
     ],
 )
 

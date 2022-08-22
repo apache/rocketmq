@@ -46,10 +46,14 @@ maven_install(
         "commons-cli:commons-cli:1.2",
         "com.google.guava:guava:31.0.1-jre",
         "org.yaml:snakeyaml:1.30",
-        "commons-codec:commons-codec:1.9",
+        "commons-codec:commons-codec:1.13",
         "log4j:log4j:1.2.17",
         "com.google.truth:truth:0.30",
-        "org.bouncycastle:bcpkix-jdk15on:1.69"
+        "org.bouncycastle:bcpkix-jdk15on:1.69",
+        "com.google.code.gson:gson:2.8.9",
+        "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
+        "org.apache.rocketmq:rocketmq-proto:2.0.0",
+        "com.google.protobuf:protobuf-java:3.21.5",
     ],
     fetch_sources = True,
     repositories = [

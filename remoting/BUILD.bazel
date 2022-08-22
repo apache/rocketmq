@@ -18,7 +18,8 @@ java_library(
     deps = [
         ":remoting",
         "//:test_deps",
-        "@maven//:io_netty_netty_all",        
+        "@maven//:io_netty_netty_all",     
+        "@maven//:com_google_code_gson_gson",   
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

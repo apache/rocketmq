@@ -20,6 +20,8 @@ java_library(
         ":io_openmessaging_storage_dledger",
         "@maven//:net_java_dev_jna_jna",
         "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
     ],
 )
 
