@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.topic;
 
 import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -48,7 +49,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class TopicRouteInfoManager {
 
-    private static final long SEND_TIMEOUT = 3000L;
+    private static final long GET_TOPIC_ROUTE_TIMEOUT = 3000L;
     private static final long LOCK_TIMEOUT_MILLIS = 3000L;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
@@ -85,13 +86,13 @@ public class TopicRouteInfoManager {
     }
 
     private void updateTopicRouteInfoFromNameServer() {
-        final Set<String> topicSetForAssignmentMgr = this.brokerController.getAssignmentManager().getTopicSetForAssignment();
+        final Set<String> topicSetForPopAssignment = this.topicSubscribeInfoTable.keySet();
         final Set<String> topicSetForEscapeBridge = this.topicRouteTable.keySet();
-        final Set<String> topicsAll = Sets.union(topicSetForAssignmentMgr, topicSetForEscapeBridge);
+        final Set<String> topicsAll = Sets.union(topicSetForPopAssignment, topicSetForEscapeBridge);
 
         for (String topic : topicsAll) {
             boolean isNeedUpdatePublishInfo = topicSetForEscapeBridge.contains(topic);
-            boolean isNeedUpdateSubscribeInfo = topicSetForAssignmentMgr.contains(topic);
+            boolean isNeedUpdateSubscribeInfo = topicSetForPopAssignment.contains(topic);
             updateTopicRouteInfoFromNameServer(topic, isNeedUpdatePublishInfo, isNeedUpdateSubscribeInfo);
         }
     }
@@ -102,7 +103,7 @@ public class TopicRouteInfoManager {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     final TopicRouteData topicRouteData = this.brokerController.getBrokerOuterAPI()
-                        .getTopicRouteInfoFromNameServer(topic, SEND_TIMEOUT);
+                        .getTopicRouteInfoFromNameServer(topic, GET_TOPIC_ROUTE_TIMEOUT);
                     if (null == topicRouteData) {
                         log.warn("TopicRouteInfoManager: updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}.", topic);
                         return;
@@ -271,6 +272,14 @@ public class TopicRouteInfoManager {
     }
 
     public Set<MessageQueue> getTopicSubscribeInfo(String topic) {
-        return topicSubscribeInfoTable.get(topic);
+        Set<MessageQueue> queues = topicSubscribeInfoTable.get(topic);
+        if (null == queues || queues.isEmpty()) {
+            this.topicSubscribeInfoTable.put(topic, new HashSet<>());
+            this.updateTopicRouteInfoFromNameServer(topic, false, true);
+            queues = this.topicSubscribeInfoTable.get(topic);
+        }
+        return queues;
     }
+
+
 }

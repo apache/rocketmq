@@ -59,7 +59,6 @@ import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
-import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
 import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
@@ -172,7 +171,6 @@ public class BrokerController {
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
     protected final ProducerManager producerManager;
     protected final ScheduleMessageService scheduleMessageService;
-    protected final AssignmentManager assignmentManager;
     protected final ClientHousekeepingService clientHousekeepingService;
     protected final PullMessageProcessor pullMessageProcessor;
     protected final PeekMessageProcessor peekMessageProcessor;
@@ -324,7 +322,6 @@ public class BrokerController {
 
         this.filterServerManager = new FilterServerManager(this);
 
-        this.assignmentManager = new AssignmentManager(this);
         this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);
         this.clientManageProcessor = new ClientManageProcessor(this);
         this.slaveSynchronize = new SlaveSynchronize(this);
@@ -1242,10 +1239,6 @@ public class BrokerController {
             this.ackMessageProcessor.shutdownPopReviveService();
         }
 
-        if (this.assignmentManager != null) {
-            this.assignmentManager.shutdown();
-        }
-
         if (this.notificationProcessor != null) {
             this.notificationProcessor.shutdown();
         }
@@ -1454,10 +1447,6 @@ public class BrokerController {
 
         if (this.ackMessageProcessor != null) {
             this.ackMessageProcessor.startPopReviveService();
-        }
-
-        if (this.assignmentManager != null) {
-            this.assignmentManager.start();
         }
 
         if (this.topicQueueMappingCleanService != null) {
@@ -2153,14 +2142,6 @@ public class BrokerController {
 
     public ExecutorService getSendMessageExecutor() {
         return sendMessageExecutor;
-    }
-
-    public AssignmentManager getAssignmentManager() {
-        return assignmentManager;
-    }
-
-    public ClientManageProcessor getClientManageProcessor() {
-        return clientManageProcessor;
     }
 
     public SendMessageProcessor getSendMessageProcessor() {

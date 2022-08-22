@@ -27,8 +27,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
-import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.loadbalance.MessageRequestModeManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
@@ -163,18 +163,18 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final MessageModel messageModel, final String strategyName,
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody, final ChannelHandlerContext ctx) {
         Set<MessageQueue> assignedQueueSet = null;
-        AssignmentManager assignmentManager = brokerController.getAssignmentManager();
+        final TopicRouteInfoManager topicRouteInfoManager = this.brokerController.getTopicRouteInfoManager();
 
         switch (messageModel) {
             case BROADCASTING: {
-                assignedQueueSet = assignmentManager.getTopicSubscribeInfo(topic);
+                assignedQueueSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
                 if (assignedQueueSet == null) {
                     log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
                 }
                 break;
             }
             case CLUSTERING: {
-                Set<MessageQueue> mqSet = assignmentManager.getTopicSubscribeInfo(topic);
+                Set<MessageQueue> mqSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
