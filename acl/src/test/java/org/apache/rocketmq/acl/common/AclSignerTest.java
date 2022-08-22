@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.common;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class AclSignerTest {
