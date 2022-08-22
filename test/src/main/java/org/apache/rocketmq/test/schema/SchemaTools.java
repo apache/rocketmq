@@ -177,7 +177,7 @@ public class SchemaTools {
                 }
             });
             String key = String.format("Method %s(%s)", method.getName(), Arrays.stream(parameterTypes).map(Class::getName).collect(Collectors.joining(",")));
-            String value = String.format("%s throws (%s)",
+            String value = String.format("%s throws (%s): %s",
                 isPublicOrPrivate(method.getModifiers()),
                 method.getReturnType().getName(),
                 Arrays.stream(exceptionTypes).map(Class::getName).collect(Collectors.joining(",")));

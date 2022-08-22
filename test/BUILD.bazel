@@ -13,6 +13,7 @@ java_library(
         "//srvutil",
         "//tools", 
         "//namesrv",
+        "//controller",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
@@ -25,6 +26,9 @@ java_library(
         "@maven//:ch_qos_logback_logback_core",
         "@maven//:com_google_truth_truth",
         "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:org_awaitility_awaitility",
+        "@maven//:org_reflections_reflections",
+        "@maven//:com_google_protobuf_protobuf_java_util",
     ],
 )
 
@@ -43,10 +47,11 @@ java_library(
         "//:test_deps",
         "//store",
         "//namesrv",
+        "//controller",
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all", 
         "@maven//:com_google_truth_truth",   
-        "@maven//:log4j_log4j",           
+        "@maven//:log4j_log4j",      
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

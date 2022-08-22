@@ -123,7 +123,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
 
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-        int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
+        int queueIdInt = this.random.nextInt(subscriptionGroupConfig.getRetryQueueNums());
 
         int topicSysFlag = 0;
         if (requestHeader.isUnitMode()) {

@@ -25,6 +25,8 @@ java_library(
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_google_guava_guava",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
+        "@maven//:commons_io_commons_io",
+        "@maven//:commons_collections_commons_collections",
     ],
 )
 
