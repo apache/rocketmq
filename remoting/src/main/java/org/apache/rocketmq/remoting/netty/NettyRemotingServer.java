@@ -540,7 +540,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      * resources from its parent server.
      */
     class SubRemotingServer extends NettyRemotingAbstract implements RemotingServer {
-        private final int listenPort;
+        private volatile int listenPort;
         private volatile Channel serverChannel;
 
         SubRemotingServer(final int port, final int permitsOnway, final int permitsAsync) {
@@ -613,7 +613,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void start() {
             try {
+                if (listenPort < 0) {
+                    listenPort = 0;
+                }
                 this.serverChannel = NettyRemotingServer.this.serverBootstrap.bind(listenPort).sync().channel();
+                if (0 == listenPort) {
+                    InetSocketAddress addr = (InetSocketAddress) this.serverChannel.localAddress();
+                    this.listenPort = addr.getPort();
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException("this.subRemotingServer.serverBootstrap.bind().sync() InterruptedException", e);
             }
