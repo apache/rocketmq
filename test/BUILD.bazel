@@ -85,4 +85,7 @@ GenTestRules(
     deps = [
         ":tests",
     ],
+    exclude_tests = [
+        "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
+    ]
 )
