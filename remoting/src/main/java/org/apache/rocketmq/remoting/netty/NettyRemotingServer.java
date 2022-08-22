@@ -249,6 +249,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             if (0 == nettyServerConfig.getListenPort()) {
                 this.nettyServerConfig.setListenPort(addr.getPort());
+                log.debug("Server is listening {}", this.nettyServerConfig.getListenPort());
             }
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
