@@ -1,0 +1,74 @@
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "proxy",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//remoting",
+        "//logging",   
+        "//common",
+        "//client",
+        "//broker",
+        "//acl",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",     
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:commons_collections_commons_collections",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_github_ben_manes_caffeine_caffeine",
+        "@maven//:io_grpc_grpc_services",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:org_checkerframework_checker_qual",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":proxy",
+        "//remoting",
+        "//broker",
+        "//client",
+        "//common",
+        "//:test_deps",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",             
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",        
+        "@maven//:io_netty_netty_all",    
+        "@maven//:com_google_guava_guava",  
+        "@maven//:com_alibaba_fastjson",       
+        "@maven//:com_google_protobuf_protobuf_java",  
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api",
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+)
