@@ -71,7 +71,6 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnab
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsTest {

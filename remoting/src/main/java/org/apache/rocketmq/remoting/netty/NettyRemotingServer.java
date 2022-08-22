@@ -80,7 +80,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     /**
-     * NettyRemotingServer may holds multiple SubRemotingServer, each server will be stored in this container with a
+     * NettyRemotingServer may hold multiple SubRemotingServer, each server will be stored in this container with a
      * ListenPort key.
      */
     private ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<Integer, NettyRemotingAbstract>();
@@ -161,8 +161,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         loadSslContext();
-
-        this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
     }
 
     public void loadSslContext() {
@@ -251,6 +249,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 this.nettyServerConfig.setListenPort(addr.getPort());
                 log.debug("Server is listening {}", this.nettyServerConfig.getListenPort());
             }
+            this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
