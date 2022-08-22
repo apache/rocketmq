@@ -1213,6 +1213,9 @@ public class DefaultMessageStore implements MessageStore {
         if (this.haService != null) {
             this.haService.updateMasterAddress(newAddr);
         }
+        if (this.compactionService != null) {
+            this.compactionService.updateMasterAddress(newAddr);
+        }
     }
 
     @Override

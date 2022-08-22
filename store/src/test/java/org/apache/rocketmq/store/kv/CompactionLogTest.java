@@ -209,7 +209,7 @@ public class CompactionLogTest {
             CompactionLog.OffsetMap.class), any(MappedFileQueue.class), any(SparseConsumeQueue.class));
         doCallRealMethod().when(clog).shouldRetainMsg(any(MessageExt.class), any(CompactionLog.OffsetMap.class));
         List<MessageExt> compactResult = Lists.newArrayList();
-        when(clog.asyncPutMessage(any(SelectMappedBufferResult.class), any(MessageExt.class),
+        when(clog.asyncPutMessage(any(ByteBuffer.class), any(MessageExt.class),
             any(MappedFileQueue.class), any(SparseConsumeQueue.class)))
             .thenAnswer((Answer<CompletableFuture< PutMessageResult >>)invocation -> {
                 compactResult.add(invocation.getArgument(1));

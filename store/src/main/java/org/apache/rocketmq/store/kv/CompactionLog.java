@@ -63,7 +63,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.apache.rocketmq.store.CommitLog.BLANK_MAGIC_CODE;
@@ -80,38 +80,36 @@ public class CompactionLog {
     private final String compactionLogFilePath;
     private final String compactionCqFilePath;
     private final MessageStore defaultMessageStore;
+    private final CompactionStore compactionStore;
     private final MessageStoreConfig messageStoreConfig;
-
     private final CompactionAppendMsgCallback endMsgCallback;
-
     private final String topic;
     private final int queueId;
     private final int offsetMapMemorySize;
-
     private final PutMessageLock putMessageLock;
     private final PutMessageLock readMessageLock;
     private MappedFileQueue currentMappedFileQueue;
     private MappedFileQueue newMappedFileQueue;
-    private SparseConsumeQueue currentBcq;
-    private SparseConsumeQueue compactionBcq;
+    private SparseConsumeQueue currentScq;
+    private SparseConsumeQueue compactionScq;
     private CompactionPositionMgr positionMgr;
-    private AtomicBoolean compacting = new AtomicBoolean(false);
+    private AtomicReference<State> state;
 
-    public CompactionLog(final MessageStore messageStore, final String topic, final int queueId,
-        final int offsetMapMemorySize, CompactionPositionMgr positionMgr, String compactionLogStoreRootPath,
-        String compactionCqStoreRootPath)
+    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
         throws IOException {
         this.topic = topic;
         this.queueId = queueId;
-        this.offsetMapMemorySize = offsetMapMemorySize;
         this.defaultMessageStore = messageStore;
+        this.compactionStore = compactionStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
+        this.offsetMapMemorySize = compactionStore.getOffsetMapSize();
         this.compactionLogMappedFileSize = messageStoreConfig.getCompactionMappedFileSize();
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
-        this.compactionLogFilePath = Paths.get(compactionLogStoreRootPath, topic, String.valueOf(queueId)).toString();
-        this.compactionCqFilePath = compactionCqStoreRootPath;        // batch consume queue already separated
+        this.compactionLogFilePath = Paths.get(compactionStore.getCompactionLogPath(), topic, String.valueOf(queueId)).toString();
+        this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
+        this.positionMgr = compactionStore.getPositionMgr();
 
         this.currentMappedFileQueue = new MappedFileQueue(compactionLogFilePath, compactionLogMappedFileSize,
             defaultMessageStore.getAllocateMappedFileService());
@@ -121,13 +119,24 @@ public class CompactionLog {
         this.readMessageLock =
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() :
                 new PutMessageSpinLock();
-        this.positionMgr = positionMgr;
         this.endMsgCallback = new CompactionAppendEndMsgCallback();
+        this.state = new AtomicReference<>(State.INITIALIZING);
         this.load();
-        log.info("CompactionLog init completed.");
+        log.info("CompactionLog {}:{} init completed.", topic, queueId);
     }
 
     private void load() throws IOException, RuntimeException {
+        initLogAndCq();
+        if (defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
+            && currentMappedFileQueue.isMappedFilesEmpty()) {
+            log.info("{}:{} load compactionLog from remote master", topic, queueId);
+            loadFromRemoteAsync();
+        } else {
+            state.compareAndSet(State.INITIALIZING, State.NORMAL);
+        }
+    }
+
+    private void initLogAndCq() throws IOException, RuntimeException {
         if (!this.currentMappedFileQueue.load()) {
             throw new IOException("load compactionLog exception");
         }
@@ -137,17 +146,18 @@ public class CompactionLog {
     }
 
     private void loadCq() {
-        SparseConsumeQueue bcq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
+        SparseConsumeQueue scq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
             compactionCqMappedFileSize, defaultMessageStore);
-        bcq.load();
-        bcq.recover();
-        currentBcq = bcq;
+        scq.load();
+        scq.recover();
+        currentScq = scq;
     }
 
     private void recover() {
-        long maxCqPhysicOffset = currentBcq.getMaxPhysicOffset();
+        long maxCqPhysicOffset = currentScq.getMaxPhyOffsetInLog();
+        log.info("{}:{} max physical offset in compaction log is {}",
+            topic, queueId, maxCqPhysicOffset);
         if (maxCqPhysicOffset > 0) {
-            log.info("max cq physical offset is {}", maxCqPhysicOffset);
             this.currentMappedFileQueue.setFlushedWhere(maxCqPhysicOffset);
             this.currentMappedFileQueue.setCommittedWhere(maxCqPhysicOffset);
             this.currentMappedFileQueue.truncateDirtyFiles(maxCqPhysicOffset);
@@ -157,17 +167,158 @@ public class CompactionLog {
     void sanityCheck() throws RuntimeException {
         List<MappedFile> mappedFileList = currentMappedFileQueue.getMappedFiles();
         for (MappedFile file : mappedFileList) {
-            if (!currentBcq.containsOffsetFile(Long.parseLong(file.getFile().getName()))) {
+            if (!currentScq.containsOffsetFile(Long.parseLong(file.getFile().getName()))) {
                 throw new RuntimeException("log file mismatch with consumeQueue file " + file.getFileName());
             }
         }
 
-        List<MappedFile> cqMappedFileList = currentBcq.getMappedFileQueue().getMappedFiles();
+        List<MappedFile> cqMappedFileList = currentScq.getMappedFileQueue().getMappedFiles();
         for (MappedFile file: cqMappedFileList) {
             if (mappedFileList.stream().noneMatch(m -> Objects.equals(m.getFile().getName(), file.getFile().getName()))) {
                 throw new RuntimeException("consumeQueue file mismatch with log file " + file.getFileName());
             }
         }
+    }
+
+    private void putMessageFromRemote(byte[] bytes) {
+        if (newMappedFileQueue == null) {
+            newMappedFileQueue = new MappedFileQueue(compactionLogFilePath + File.separator + SUB_FOLDER,
+                compactionLogMappedFileSize,null);
+        }
+
+        if (compactionScq == null) {
+            compactionScq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath, compactionCqMappedFileSize,
+                defaultMessageStore, SUB_FOLDER);
+        }
+
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        // split bytebuffer to avoid encode message again
+        while (byteBuffer.hasRemaining()) {
+            int mark = byteBuffer.position();
+            ByteBuffer bb = byteBuffer.slice();
+            int size = bb.getInt();
+//            log.info("byteBuffer: {}, bb: {}, size: {}", byteBuffer, bb, size);
+            bb.limit(size);
+            bb.rewind();
+
+            MessageExt messageExt = MessageDecoder.decode(bb, false, false);
+            asyncPutMessage(bb, messageExt, newMappedFileQueue, compactionScq);
+
+            byteBuffer.position(mark + size);
+        }
+
+    }
+
+//    private PullMessageRequestHeader createPullMessageRequest() {
+//        int sysFlag = PullSysFlag.buildSysFlag(false, false, false, false, true);
+//
+//        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+//        requestHeader.setConsumerGroup(String.join("-", topic, String.valueOf(queueId), "pull", "group"));
+//        requestHeader.setTopic(topic);
+//        requestHeader.setQueueId(queueId);
+//        requestHeader.setMaxMsgNums(10);
+//        requestHeader.setSysFlag(sysFlag);
+//        requestHeader.setSuspendTimeoutMillis(1000 * 20L);
+//        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
+//        return requestHeader;
+//    }
+
+//    private boolean stopPull(long currPullOffset, SparseConsumeQueue scq, boolean noNewMsg) {
+//        return (currPullOffset >= scq.getMinOffsetInQueue() && scq.getMinOffsetInQueue() != -1) || noNewMsg;
+//    }
+
+    private void pullMessageFromMaster() throws Exception {
+
+        if (StringUtils.isBlank(compactionStore.getMasterAddr())) {
+            compactionStore.getCompactionSchedule().schedule(() -> {
+                try {
+                    pullMessageFromMaster();
+                } catch (Exception e) {
+                    log.error("pullMessageFromMaster exception: ", e);
+                }
+            }, 5, TimeUnit.SECONDS);
+            return;
+        }
+
+        try (MessageFetcher messageFetcher = new MessageFetcher()) {
+            messageFetcher.pullMessageFromMaster(topic, queueId, currentScq.getMinOffsetInQueue(),
+                compactionStore.getMasterAddr(), (currOffset, response) -> {
+                    if (currOffset < 0) {
+                        return;
+                    }
+                    putMessageFromRemote(response.getBody());
+                    positionMgr.setOffset(topic, queueId, currOffset);
+                });
+        }
+
+        //        long currentPullOffset = 0;
+//        boolean noNewMsg = false;
+//
+//        RemotingClient remotingClient = null;
+//        try {
+//            NettyClientConfig nettyClientConfig = new NettyClientConfig();
+//            nettyClientConfig.setUseTLS(false);
+//            remotingClient = new NettyRemotingClient(nettyClientConfig);
+//            remotingClient.start();
+//
+//            PullMessageRequestHeader requestHeader = createPullMessageRequest();
+//            while (stopPull(currentPullOffset, currentScq, noNewMsg)) {
+//                requestHeader.setQueueOffset(currentPullOffset);
+//
+//                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
+//                RemotingCommand response = remotingClient.invokeSync(compactionStore.getMasterAddr(), request, 1000 * 30L);
+//
+//
+//                PullMessageResponseHeader responseHeader = response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+//
+//                switch (response.getCode()) {
+//                    case ResponseCode.SUCCESS:
+//                        putMessageFromRemote(response.getBody());
+//                        currentPullOffset = responseHeader.getNextBeginOffset();
+//                        break;
+//                    case ResponseCode.PULL_NOT_FOUND:       // NO_NEW_MSG, need break loop
+//                        log.info("PULL_NOT_FOUND");
+//                        noNewMsg = true;
+//                        break;
+//                    case ResponseCode.PULL_RETRY_IMMEDIATELY:
+//                        log.info("PULL_RETRY_IMMEDIATE");
+//                        break;
+//                    case ResponseCode.PULL_OFFSET_MOVED:
+//                        log.info("PULL_OFFSET_MOVED");
+//                        break;
+//                    default:
+//                        log.warn("Pull Message error, response code: {}, remark: {}",
+//                            response.getCode(), response.getRemark());
+//                }
+//            }
+//        } catch (Exception e) {
+//            log.error("Pull Message error, ", e);
+//        } finally {
+//            if (remotingClient != null) {
+//                remotingClient.shutdown();
+//            }
+//        }
+
+//        positionMgr.setOffset(topic, queueId, currentPullOffset);
+        state.compareAndSet(State.INITIALIZING, State.NORMAL);
+    }
+    private void loadFromRemoteAsync() {
+        compactionStore.getCompactionSchedule().submit(() -> {
+            try {
+                pullMessageFromMaster();
+            } catch (Exception e) {
+                log.error("fetch message from master exception: ", e);
+            }
+        });
+
+        // update (currentStatus) = LOADING
+
+        // request => get (start, end)
+        // pull message => current message offset > end
+        // done
+        // positionMgr.persist();
+
+        // update (currentStatus) = RUNNING
     }
 
     private long nextOffsetCorrection(long oldOffset, long newOffset) {
@@ -266,25 +417,25 @@ public class CompactionLog {
         final OffsetMap offsetMap, final MappedFileQueue mappedFileQueue, final SparseConsumeQueue bcq)
         throws DigestException {
         if (shouldRetainMsg(msgExt, offsetMap)) {
-            asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
+            asyncPutMessage(selectMappedBufferResult.getByteBuffer(), msgExt, mappedFileQueue, bcq);
         }
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult) {
-        return asyncPutMessage(selectMappedBufferResult, currentMappedFileQueue, currentBcq);
+        return asyncPutMessage(selectMappedBufferResult, currentMappedFileQueue, currentScq);
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult,
         MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) {
         MessageExt msgExt = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer(), false, false);
-        return asyncPutMessage(selectMappedBufferResult, msgExt, mappedFileQueue, bcq);
+        return asyncPutMessage(selectMappedBufferResult.getByteBuffer(), msgExt, mappedFileQueue, bcq);
     }
 
-    public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult,
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
         final MessageExt msgExt, MappedFileQueue mappedFileQueue, SparseConsumeQueue bcq) {
 
         // fix duplicate
-        if (bcq.getMaxOffsetInQueue() >= msgExt.getQueueOffset()) {
+        if (bcq.getMaxOffsetInQueue() - 1 >= msgExt.getQueueOffset()) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
@@ -310,7 +461,7 @@ public class CompactionLog {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile();
 
             CompactionAppendMsgCallback callback = new CompactionAppendMessageCallback(msgExt, bcq);
-            AppendMessageResult result = mappedFile.appendMessage(selectMappedBufferResult.getByteBuffer(), callback);
+            AppendMessageResult result = mappedFile.appendMessage(msgBuffer, callback);
 
             switch (result.getStatus()) {
                 case PUT_OK:
@@ -323,7 +474,7 @@ public class CompactionLog {
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                     }
                     mappedFile = mappedFileQueue.getLastMappedFile();
-                    result = mappedFile.appendMessage(selectMappedBufferResult.getByteBuffer(), callback);
+                    result = mappedFile.appendMessage(msgBuffer, callback);
                     break;
                 default:
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
@@ -360,7 +511,7 @@ public class CompactionLog {
 
             final long maxOffsetPy = currentMappedFileQueue.getMaxOffset();
 
-            SparseConsumeQueue consumeQueue = currentBcq;
+            SparseConsumeQueue consumeQueue = currentScq;
             if (consumeQueue != null) {
                 minOffset = consumeQueue.getMinOffsetInQueue();
                 maxOffset = consumeQueue.getMaxOffsetInQueue();
@@ -485,7 +636,7 @@ public class CompactionLog {
         //exclude the last writing file
         for (int i = mappedFileList.size() - 2; i >= 0; i--) {
             MappedFile mf = mappedFileList.get(i);
-            long maxQueueOffset = currentBcq.getMaxMsgOffsetFromFile(mf.getFile().getName());
+            long maxQueueOffset = currentScq.getMaxMsgOffsetFromFile(mf.getFile().getName());
             if (maxQueueOffset <= positionMgr.getOffset(topic, queueId)) {
                 if (i < mappedFileList.size() - 2) {
                     // next to end
@@ -500,8 +651,8 @@ public class CompactionLog {
     }
 
     void doCompaction() {
-        if (!compacting.compareAndSet(false, true)) {
-            log.warn("compaction is running, skip this time.");
+        if (!state.compareAndSet(State.NORMAL, State.COMPACTING)) {
+            log.warn("compactionLog state is {}, skip this time", state.get());
             return;
         }
 
@@ -519,7 +670,7 @@ public class CompactionLog {
         } catch (Throwable e) {
             log.error("do compaction exception: ", e);
         }
-        compacting.set(false);
+        state.compareAndSet(State.COMPACTING, State.NORMAL);
     }
 
     protected OffsetMap getOffsetMap(List<MappedFile> mappedFileList) throws NoSuchAlgorithmException, DigestException {
@@ -563,7 +714,7 @@ public class CompactionLog {
     protected void compaction(List<MappedFile> mappedFileList, OffsetMap offsetMap) throws DigestException {
         newMappedFileQueue = new MappedFileQueue(compactionLogFilePath + File.separator + SUB_FOLDER,
             compactionLogMappedFileSize, null);
-        compactionBcq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
+        compactionScq = new SparseConsumeQueue(topic, queueId, compactionCqFilePath,
             compactionCqMappedFileSize, defaultMessageStore, SUB_FOLDER);
 
         for (MappedFile mappedFile : mappedFileList) {
@@ -577,7 +728,7 @@ public class CompactionLog {
                         // file end
                         break;
                     } else {
-                        checkAndPutMessage(smb, msgExt, offsetMap, newMappedFileQueue, compactionBcq);
+                        checkAndPutMessage(smb, msgExt, offsetMap, newMappedFileQueue, compactionScq);
                     }
                 } finally {
                     if (smb != null) {
@@ -618,7 +769,7 @@ public class CompactionLog {
             current.getMappedFiles().clear();
             current.getMappedFiles().addAll(compacted.getMappedFiles());
 
-            replaceCqFiles(currentBcq, compactionBcq, fileNameToReplace);
+            replaceCqFiles(currentScq, compactionScq, fileNameToReplace);
 
             log.info("replace file elapsed {} millisecs",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
@@ -658,16 +809,16 @@ public class CompactionLog {
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
     }
 
-    public SparseConsumeQueue getCurrentBcq() {
-        return currentBcq;
+    public SparseConsumeQueue getCurrentScq() {
+        return currentScq;
     }
 
-    public SparseConsumeQueue getCompactionBcq() {
-        return compactionBcq;
+    public SparseConsumeQueue getCompactionScq() {
+        return compactionScq;
     }
 
     public void flushCq(int flushLeastPages) {
-        currentBcq.flush(flushLeastPages);
+        currentScq.flush(flushLeastPages);
     }
 
     static class CompactionAppendEndMsgCallback implements CompactionAppendMsgCallback {
@@ -829,6 +980,12 @@ public class CompactionLog {
                 ((buf[offset + 2] & 0xFF) << 8) |
                 ((buf[offset + 3] & 0xFF));
         }
+    }
+
+    static enum State {
+        NORMAL,
+        INITIALIZING,
+        COMPACTING,
     }
 
 }

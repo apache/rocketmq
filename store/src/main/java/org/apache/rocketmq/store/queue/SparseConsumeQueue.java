@@ -274,6 +274,39 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             .anyMatch(mf -> Objects.equals(mf.getFile().getName(), fileName));
     }
 
+    public long getMaxPhyOffsetInLog() {
+        MappedFile lastMappedFile = mappedFileQueue.getLastMappedFile();
+        Long maxOffsetInLog = getMax(lastMappedFile, b -> b.getLong(0) + b.getInt(8));
+        if (maxOffsetInLog != null) {
+            return maxOffsetInLog;
+        } else {
+            return -1;
+        }
+    }
+
+    private <T> T getMax(MappedFile mappedFile, Function<ByteBuffer, T> function) {
+        if (mappedFile == null || mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
+            return null;
+        }
+
+        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+        for (int i = mappedFile.getReadPosition() - CQ_STORE_UNIT_SIZE; i >= 0; i -= CQ_STORE_UNIT_SIZE) {
+            byteBuffer.position(i);
+            long offset = byteBuffer.getLong();
+            int size = byteBuffer.getInt();
+            long tagsCode = byteBuffer.getLong();   //tagscode
+            long timestamp = byteBuffer.getLong();  //timestamp
+            long msgBaseOffset = byteBuffer.getLong();
+            short batchSize = byteBuffer.getShort();
+            if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
+                byteBuffer.position(i);     //reset position
+                return function.apply(byteBuffer);
+            }
+        }
+
+        return null;
+    }
+
     @Override
     protected BatchOffsetIndex getMaxMsgOffset(MappedFile mappedFile, boolean getBatchSize, boolean getStoreTime) {
         if (mappedFile == null || mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {

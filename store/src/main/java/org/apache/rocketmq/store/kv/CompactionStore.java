@@ -51,6 +51,7 @@ public class CompactionStore {
     private final int compactionInterval;
     private final int compactionThreadNum;
     private final int offsetMapSize;
+    private String masterAddr;
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -95,8 +96,7 @@ public class CompactionStore {
                             int queueId = Integer.parseInt(fileQueueId.getName());
 
                             if (Files.isDirectory(Paths.get(compactionCqPath, topic, String.valueOf(queueId)))) {
-                                CompactionLog log = new CompactionLog(defaultMessageStore, topic, queueId,
-                                    offsetMapSize, positionMgr, compactionLogPath, compactionCqPath);
+                                CompactionLog log = new CompactionLog(defaultMessageStore, this, topic, queueId);
                                 compactionLogTable.put(topic + "_" + queueId, log);
                                 compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.SECONDS);
                             } else {
@@ -114,21 +114,22 @@ public class CompactionStore {
     }
 
     public void putMessage(String topic, int queueId, SelectMappedBufferResult smr) throws Exception {
-        compactionLogTable.compute(topic + "_" + queueId, (k, v) -> {
+        CompactionLog clog = compactionLogTable.compute(topic + "_" + queueId, (k, v) -> {
             if (v == null) {
                 try {
-                    v = new CompactionLog(defaultMessageStore, topic, queueId, offsetMapSize, positionMgr,
-                        compactionLogPath, compactionCqPath);
+                    v = new CompactionLog(defaultMessageStore,this, topic, queueId);
                     compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.SECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);
                     return null;
                 }
             }
-
-            v.asyncPutMessage(smr);
             return v;
         });
+
+        if (clog != null) {
+            clog.asyncPutMessage(smr);
+        }
     }
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
@@ -143,9 +144,11 @@ public class CompactionStore {
     }
 
     public void flushCq(int flushLeastPages) {
-        compactionLogTable.values().forEach(log -> {
-            log.flushCq(flushLeastPages);
-        });
+        compactionLogTable.values().forEach(log -> log.flushCq(flushLeastPages));
+    }
+
+    public void updateMasterAddress(String addr) {
+        this.masterAddr = addr;
     }
 
     public void shutdown() {
@@ -160,4 +163,29 @@ public class CompactionStore {
             log.warn("wait compaction schedule shutdown interrupted. ");
         }
     }
+
+    public ScheduledExecutorService getCompactionSchedule() {
+        return compactionSchedule;
+    }
+
+    public String getCompactionLogPath() {
+        return compactionLogPath;
+    }
+
+    public String getCompactionCqPath() {
+        return compactionCqPath;
+    }
+
+    public CompactionPositionMgr getPositionMgr() {
+        return positionMgr;
+    }
+
+    public int getOffsetMapSize() {
+        return offsetMapSize;
+    }
+
+    public String getMasterAddr() {
+        return masterAddr;
+    }
+
 }
