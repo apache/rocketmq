@@ -23,21 +23,21 @@ import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
-public class BaseBroadcast extends BaseConf {
-    private static Logger logger = Logger.getLogger(BaseBroadcast.class);
+public class BaseBroadCastIT extends BaseConf {
+    private static Logger logger = Logger.getLogger(BaseBroadCastIT.class);
 
     public static RMQBroadCastConsumer getBroadCastConsumer(String nsAddr, String topic,
         String subExpression,
-        AbstractListener listener) {
+        AbstractListener listner) {
         String consumerGroup = initConsumerGroup();
-        return getBroadCastConsumer(nsAddr, consumerGroup, topic, subExpression, listener);
+        return getBroadCastConsumer(nsAddr, consumerGroup, topic, subExpression, listner);
     }
 
     public static RMQBroadCastConsumer getBroadCastConsumer(String nsAddr, String consumerGroup,
         String topic, String subExpression,
-        AbstractListener listener) {
+        AbstractListener listner) {
         RMQBroadCastConsumer consumer = ConsumerFactory.getRMQBroadCastConsumer(nsAddr,
-            consumerGroup, topic, subExpression, listener);
+            consumerGroup, topic, subExpression, listner);
 
         consumer.setDebug();
 

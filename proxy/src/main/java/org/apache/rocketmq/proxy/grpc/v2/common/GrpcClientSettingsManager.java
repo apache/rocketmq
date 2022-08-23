@@ -77,7 +77,8 @@ public class GrpcClientSettingsManager {
                 .setInitial(Durations.fromMillis(config.getGrpcClientProducerBackoffInitialMillis()))
                 .setMax(Durations.fromMillis(config.getGrpcClientProducerBackoffMaxMillis()))
                 .setMultiplier(config.getGrpcClientProducerBackoffMultiplier())
-                .build());
+                .build())
+            .build();
 
         builder.getPublishingBuilder()
             .setValidateMessageType(config.isEnableTopicMessageTypeCheck())

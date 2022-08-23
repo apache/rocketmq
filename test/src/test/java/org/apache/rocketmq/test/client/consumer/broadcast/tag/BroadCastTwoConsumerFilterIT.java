@@ -15,13 +15,14 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.test.client.consumer.broadcast.normal;
+package org.apache.rocketmq.test.client.consumer.broadcast.tag;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
+import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
+import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -30,15 +31,13 @@ import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class BroadcastNormalMsgNotReceiveIT extends BaseBroadcast {
-    private static Logger logger = Logger
-        .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
+public class BroadCastTwoConsumerFilterIT extends BaseBroadCastIT {
+    private static Logger logger = Logger.getLogger(BroadCastTwoConsumerSubTagIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
     @Before
     public void setUp() {
-        printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
@@ -50,24 +49,30 @@ public class BroadcastNormalMsgNotReceiveIT extends BaseBroadcast {
     }
 
     @Test
-    public void testNotConsumeAfterConsume() throws Exception {
-        int msgSize = 16;
+    public void testTwoConsumerFilter() {
+        int msgSize = 40;
+        String tag1 = "jueyin_tag_1";
+        String tag2 = "jueyin_tag_2";
 
-        String group = initConsumerGroup();
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
-            new RMQNormalListener(group + "_1"));
-        Thread.sleep(3000);
-        producer.send(msgSize);
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, topic, tag1,
+            new RMQNormalListener());
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
+            consumer1.getConsumerGroup(), topic, tag1, new RMQNormalListener());
+        TestUtils.waitForSeconds(waitTime);
+
+        producer.send(tag2, msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
+        producer.clearMsg();
+        producer.send(tag1, msgSize);
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
-
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
-        assertThat(consumer2.getListener().getAllMsgBody().size()).isEqualTo(0);
+        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            consumer2.getListener().getAllMsgBody()))
+            .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

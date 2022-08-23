@@ -175,7 +175,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private static int initValueIndex() {
         Random r = new Random();
-        return r.nextInt(999);
+
+        return Math.abs(r.nextInt() % 999) % 999;
     }
 
     @Override

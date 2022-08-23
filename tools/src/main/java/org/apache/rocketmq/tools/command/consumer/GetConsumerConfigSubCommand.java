@@ -60,11 +60,6 @@ public class GetConsumerConfigSubCommand implements SubCommand {
         DefaultMQAdminExt adminExt = new DefaultMQAdminExt(rpcHook);
         adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String groupName = commandLine.getOptionValue('g').trim();
-
-        if (commandLine.hasOption('n')) {
-            adminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
-        }
-
         try {
             adminExt.start();
             List<ConsumerConfigInfo> consumerConfigInfoList = new ArrayList<>();

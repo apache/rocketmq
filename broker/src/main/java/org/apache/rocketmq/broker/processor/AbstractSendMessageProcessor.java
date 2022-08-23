@@ -70,12 +70,15 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     protected List<ConsumeMessageHook> consumeMessageHookList;
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
-    protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());
+    protected final SocketAddress storeHost;
     private List<SendMessageHook> sendMessageHookList;
+    protected final BrokerController brokerController;
+
 
     public AbstractSendMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
+        this.storeHost = brokerController.getStoreHost();
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
@@ -123,7 +126,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
 
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-        int queueIdInt = this.random.nextInt(subscriptionGroupConfig.getRetryQueueNums());
+        int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
 
         int topicSysFlag = 0;
         if (requestHeader.isUnitMode()) {
@@ -290,7 +293,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     requestHeader.getOriginTopic(),
                     requestHeader.getGroup(),
                     uniqKey,
-                    "null");
+                    putMessageResult == null ? "null" : putMessageResult.getPutMessageStatus().toString());
             }
 
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -416,7 +419,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     }
 
     public SocketAddress getStoreHost() {
-        return brokerController.getStoreHost();
+        return storeHost;
     }
 
     protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,

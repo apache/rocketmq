@@ -1058,7 +1058,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         Validators.checkMessage(msg, defaultMQProducer);
 
                         if (!msg.getTopic().equals(mq.getTopic())) {
-                            throw new MQClientException("Topic of the message does not match its target message queue", null);
+                            throw new MQClientException("message's topic not equal mq's topic", null);
                         }
                         long costTime = System.currentTimeMillis() - beginStartTime;
                         if (timeout > costTime) {

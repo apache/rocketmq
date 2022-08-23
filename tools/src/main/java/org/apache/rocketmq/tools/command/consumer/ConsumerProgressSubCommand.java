@@ -99,10 +99,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        if (commandLine.hasOption('n')) {
-            defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
-        }
-
         try {
             defaultMQAdminExt.start();
 

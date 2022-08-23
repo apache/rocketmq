@@ -34,7 +34,6 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,10 +77,9 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LANGUAGE, JAVA);
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
-        
-        Assert.assertNotNull(Context.current()
-        .withValue(InterceptorConstants.METADATA, metadata)
-        .attach());
+        Context.current()
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach();
 
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
@@ -107,10 +105,9 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LANGUAGE, JAVA);
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
-
-        Assert.assertNotNull(Context.current()
-        .withValue(InterceptorConstants.METADATA, metadata)
-        .attach());
+        Context.current()
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach();
 
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
             .setEndpoints(grpcEndpoints)

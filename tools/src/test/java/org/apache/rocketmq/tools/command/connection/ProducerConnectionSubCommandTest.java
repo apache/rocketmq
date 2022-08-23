@@ -35,6 +35,10 @@ import static org.mockito.Mockito.mock;
 
 public class ProducerConnectionSubCommandTest {
 
+    private static final int NAME_SERVER_PORT = 45677;
+
+    private static final int BROKER_PORT = 45676;
+
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -42,7 +46,7 @@ public class ProducerConnectionSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
     }
 
     @After
@@ -55,7 +59,7 @@ public class ProducerConnectionSubCommandTest {
     public void testExecute() throws SubCommandException {
         ProducerConnectionSubCommand cmd = new ProducerConnectionSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-producer-group", "-t unit-test", String.format("-n localhost:%d", nameServerMocker.listenPort())};
+        String[] subargs = new String[] {"-g default-producer-group", "-t unit-test"};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
@@ -69,6 +73,6 @@ public class ProducerConnectionSubCommandTest {
         producerConnection.setConnectionSet(connectionSet);
 
         // start broker
-        return ServerResponseMocker.startServer(0, producerConnection.encode());
+        return ServerResponseMocker.startServer(BROKER_PORT, producerConnection.encode());
     }
 }

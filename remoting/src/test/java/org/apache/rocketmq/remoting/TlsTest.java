@@ -19,14 +19,9 @@ package org.apache.rocketmq.remoting;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.UUID;
-import java.io.InputStream;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -70,7 +65,7 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerTrustC
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsTest {
@@ -203,7 +198,7 @@ public class TlsTest {
     @Test
     public void serverRejectsSSLClient() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 5);
+            RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -216,7 +211,7 @@ public class TlsTest {
     @Test
     public void serverRejectsUntrustedClientCert() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 5);
+            RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -234,7 +229,7 @@ public class TlsTest {
     @Test
     public void noClientAuthFailure() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
+            RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -247,7 +242,7 @@ public class TlsTest {
     @Test
     public void clientRejectsUntrustedServerCert() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
+            RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -306,31 +301,8 @@ public class TlsTest {
     }
 
     private static String getCertsPath(String fileName) {
-        ClassLoader loader = TlsTest.class.getClassLoader();
-        InputStream stream = loader.getResourceAsStream("certs/" + fileName);
-        if (null == stream) {
-            throw new RuntimeException("File: " + fileName + " is not found");
-        }
-
-        try {
-            String[] segments = fileName.split("\\.");
-            File f = File.createTempFile(UUID.randomUUID().toString(), segments[1]);
-            f.deleteOnExit();
-    
-            try (BufferedInputStream bis = new BufferedInputStream(stream);
-                 BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f))) {
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = bis.read(buffer)) > 0) {
-                    bos.write(buffer, 0, len);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return f.getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        File resourcesDirectory = new File("src/test/resources/certs");
+        return resourcesDirectory.getAbsolutePath() + "/" + fileName;
     }
 
     private static RemotingCommand createRequest() {
@@ -345,8 +317,8 @@ public class TlsTest {
     }
 
     private void requestThenAssertResponse(RemotingClient remotingClient) throws Exception {
-        RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
-        assertNotNull(response);
+        RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 3);
+        assertTrue(response != null);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
         assertThat(response.getExtFields().get("messageTitle")).isEqualTo("Welcome");

@@ -22,7 +22,6 @@ import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
-import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -31,7 +30,7 @@ import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
+public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
     private static Logger logger = Logger
         .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
     private RMQNormalProducer producer = null;
@@ -51,28 +50,24 @@ public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
     }
 
     @Test
-    public void testStartTwoSameGroupConsumer() {
+    public void testNotConsumeAfterConsume() throws Exception {
         int msgSize = 16;
 
         String group = initConsumerGroup();
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
             new RMQNormalListener(group + "_1"));
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
-        TestUtils.waitForSeconds(waitTime);
-
+        Thread.sleep(3000);
         producer.send(msgSize);
-        Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
+        Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer2.getListener().getAllMsgBody()))
-            .containsExactlyElementsIn(producer.getAllMsgBody());
-    }
 
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
+            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
+        assertThat(consumer2.getListener().getAllMsgBody().size()).isEqualTo(0);
+    }
 }

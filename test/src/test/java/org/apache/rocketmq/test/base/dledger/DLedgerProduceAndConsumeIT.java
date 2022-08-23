@@ -38,6 +38,7 @@ import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.apache.rocketmq.test.base.IntegrationTestBase.nextPort;
 import static sun.util.locale.BaseLocale.SEP;
 
 public class DLedgerProduceAndConsumeIT {
@@ -56,7 +57,7 @@ public class DLedgerProduceAndConsumeIT {
         String baseDir =  IntegrationTestBase.createBaseDir();
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setHaListenPort(0);
+        storeConfig.setHaListenPort(nextPort());
         storeConfig.setMappedFileSizeCommitLog(10 * 1024 * 1024);
         storeConfig.setEnableDLegerCommitLog(true);
         storeConfig.setdLegerGroup(brokerName);
@@ -70,8 +71,7 @@ public class DLedgerProduceAndConsumeIT {
         String cluster = UUID.randomUUID().toString();
         String brokerName = UUID.randomUUID().toString();
         String selfId = "n0";
-        // TODO: We need to acquire the actual listening port after the peer has started.
-        String peers = String.format("n0-localhost:%d", 0);
+        String peers = String.format("n0-localhost:%d", nextPort());
         BrokerConfig brokerConfig = buildBrokerConfig(cluster, brokerName);
         MessageStoreConfig storeConfig = buildStoreConfig(brokerName, peers, selfId);
         BrokerController brokerController = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
