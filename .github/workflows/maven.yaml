@@ -1,4 +1,4 @@
-name: Build
+name: Build and Run Tests By Maven
 on:
   pull_request:
     types: [opened, reopened, synchronize]
