@@ -70,4 +70,7 @@ GenTestRules(
     deps = [
         ":tests",
     ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/controller/impl/controller/impl/DLedgerControllerTest",
+    ],
 )
