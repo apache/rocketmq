@@ -122,7 +122,7 @@ public class CompactionLogTest {
         msg.setTags(System.currentTimeMillis() + "TAG");
         msg.setKeys(String.valueOf(queueOffset % keyCount));
         msg.setBody(RandomStringUtils.randomAlphabetic(100).getBytes(StandardCharsets.UTF_8));
-        msg.setQueueId(queueOffset % 8);
+        msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
@@ -146,7 +146,7 @@ public class CompactionLogTest {
         doReturn(smfq).when(scq).getMappedFileQueue();
         CompactionLog clog = mock(CompactionLog.class);
         FieldUtils.writeField(clog, "currentMappedFileQueue", mfq, true);
-        FieldUtils.writeField(clog, "currentBcq", scq, true);
+        FieldUtils.writeField(clog, "currentScq", scq, true);
 
         doReturn(Lists.newArrayList()).when(mfq).getMappedFiles();
         doReturn(Lists.newArrayList()).when(smfq).getMappedFiles();
@@ -184,8 +184,8 @@ public class CompactionLogTest {
         Iterator<SelectMappedBufferResult> iterator = mock(Iterator.class);
         SelectMappedBufferResult smb = mock(SelectMappedBufferResult.class);
         when(iterator.hasNext()).thenAnswer((Answer<Boolean>)invocationOnMock -> queueOffset < 1024);
-        when(iterator.next()).thenReturn(smb);
-        when(smb.getByteBuffer()).thenAnswer((Answer<ByteBuffer>)invocation -> buildMessage());
+        when(iterator.next()).thenAnswer((Answer<SelectMappedBufferResult>)invocation ->
+            new SelectMappedBufferResult(0, buildMessage(), 0, null));
 
         MappedFile mf = mock(MappedFile.class);
         List<MappedFile> mappedFileList = Lists.newArrayList(mf);
@@ -218,6 +218,7 @@ public class CompactionLogTest {
             });
         queueOffset = 0;
         clog.compaction(mappedFileList, offsetMap);
+        compactResult.forEach(System.out::println);
         assertEquals(keyCount, compactResult.size());
         assertEquals(1014, compactResult.stream().mapToLong(MessageExt::getQueueOffset).min().orElse(1024));
         assertEquals(1023, compactResult.stream().mapToLong(MessageExt::getQueueOffset).max().orElse(0));
