@@ -32,7 +32,6 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class PlainPermissionManagerTest {
