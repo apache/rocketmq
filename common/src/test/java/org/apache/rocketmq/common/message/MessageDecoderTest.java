@@ -19,7 +19,6 @@ package org.apache.rocketmq.common.message;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -258,8 +257,6 @@ public class MessageDecoderTest {
         assertThat("abc").isEqualTo(decodedMsg.getTopic());
     }
 
-    @Ignore
-    @Test
     public void testNullValueProperty() throws Exception {
         MessageExt msg = new MessageExt();
         msg.setBody("x".getBytes());
