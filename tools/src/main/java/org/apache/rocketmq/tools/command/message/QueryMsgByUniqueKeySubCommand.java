@@ -181,13 +181,18 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
             if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
                 final String consumerGroup = commandLine.getOptionValue('g').trim();
                 final String clientId = commandLine.getOptionValue('d').trim();
-                ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false, false);
-                if (ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
+                ConsumerRunningInfo consumerRunningInfo = null;
+                try {
+                    consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false, false);
+                } catch (Exception e) {
+                    System.out.printf("get consumer runtime info for %s client failed \n", clientId);
+                }
+                if (consumerRunningInfo != null && ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
                     ConsumeMessageDirectlyResult result =
                             defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, topic, msgId);
                     System.out.printf("%s", result);
                 } else {
-                    System.out.printf("this %s client is not push consumer ,not support direct push \n", clientId);
+                    System.out.printf("get consumer info failed or this %s client is not push consumer ,not support direct push \n", clientId);
                 }
 
             } else {
