@@ -279,7 +279,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         final String msgId) {
         try {
             ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false, false);
-            if (ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
+            if (consumerRunningInfo != null && ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
                 ConsumeMessageDirectlyResult result =
                         defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
                 System.out.printf("%s", result);
