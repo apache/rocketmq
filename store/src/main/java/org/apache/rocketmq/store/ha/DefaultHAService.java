@@ -309,8 +309,13 @@ public class DefaultHAService implements HAService {
         public void shutdown(final boolean interrupt) {
             super.shutdown(interrupt);
             try {
-                this.serverSocketChannel.close();
-                this.selector.close();
+                if (null != this.serverSocketChannel) {
+                    this.serverSocketChannel.close();
+                }
+
+                if (null != this.selector) {
+                    this.selector.close();
+                }
             } catch (IOException e) {
                 log.error("AcceptSocketService shutdown exception", e);
             }

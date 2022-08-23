@@ -1434,7 +1434,7 @@ public class BrokerController {
             this.remotingServer.start();
 
             // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
-            if (0 == nettyServerConfig.getListenPort()) {
+            if (null != nettyServerConfig && 0 == nettyServerConfig.getListenPort()) {
                 nettyServerConfig.setListenPort(remotingServer.localListenPort());
             }
         }
