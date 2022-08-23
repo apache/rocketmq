@@ -65,7 +65,12 @@ java_library(
         "@maven//:com_google_guava_guava",    
         "@maven//:com_alibaba_fastjson",       
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = [
+        "src/test/resources/logback-test.xml",
+        "src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator",
+        "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener",
+        "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService",
+    ],
 )
 
 GenTestRules(
