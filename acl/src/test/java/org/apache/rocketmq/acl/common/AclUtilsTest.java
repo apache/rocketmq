@@ -27,7 +27,6 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AclUtilsTest {
