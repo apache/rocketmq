@@ -57,7 +57,6 @@ import java.util.Map;
  * <p> Case 2: Only conf/acl/plain_acl.yml exists;
  * <p> Case 3: Both conf/plain_acl.yml and conf/acl/plain_acl.yml exists.
  */
-@Ignore
 public class PlainAccessControlFlowTest {
     public static final String DEFAULT_TOPIC = "topic-acl";
 
