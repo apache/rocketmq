@@ -61,6 +61,5 @@ GenTestRules(
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/client/consumer/DefaultLitePullConsumerTest",
-        "src/test/java/org/apache/rocketmq/controller/impl/controller/impl/DLedgerControllerTest",
     ],
 )
