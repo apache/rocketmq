@@ -73,6 +73,8 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
         "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
         "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
+    ],
+    medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
     ],
 )
