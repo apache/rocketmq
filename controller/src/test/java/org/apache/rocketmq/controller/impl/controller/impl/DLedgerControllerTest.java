@@ -54,8 +54,9 @@ public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
 
-    public DLedgerController launchController(final String group, final String peers, final String selfId, String storeType, final boolean isEnableElectUncleanMaster) {
-        final String path = "/tmp" + File.separator + group + File.separator + selfId;
+    public DLedgerController launchController(final String group, final String peers, final String selfId,
+        String storeType, final boolean isEnableElectUncleanMaster) {
+        final String path = System.getProperty("java.io.tmpdir") + File.separator + group + File.separator + selfId;
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();
