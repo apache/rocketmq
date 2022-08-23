@@ -43,7 +43,7 @@ header:
     - 'distribution/NOTICE-BIN'
     - 'distribution/conf/rmq-proxy.json'
     - '*.bzl'
-    - '*.bazel'
+    - '**/*.bazel'
     - 'WORKSPACE'
     - '.bazelrc'
     - '.bazelversion'
