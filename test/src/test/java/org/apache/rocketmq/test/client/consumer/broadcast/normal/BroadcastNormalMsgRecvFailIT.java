@@ -18,20 +18,21 @@
 package org.apache.rocketmq.test.client.consumer.broadcast.normal;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
-import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class BroadCastNormalMsgRecvCrashIT extends BaseBroadCastIT {
+public class BroadcastNormalMsgRecvFailIT extends BaseBroadcast {
     private static Logger logger = Logger
         .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
     private RMQNormalProducer producer = null;
@@ -50,41 +51,24 @@ public class BroadCastNormalMsgRecvCrashIT extends BaseBroadCastIT {
         super.shutdown();
     }
 
+    @Ignore
     @Test
-    public void testStartTwoAndCrashOneLater() {
+    public void testStartTwoConsumerAndOneConsumerFail() {
         int msgSize = 16;
 
-        String group = initConsumerGroup();
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
-            new RMQNormalListener(group + "_1"));
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, topic, "*",
+            new RMQNormalListener());
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
-        TestUtils.waitForSeconds(waitTime);
+            consumer1.getConsumerGroup(), topic, "*",
+            new RMQNormalListener(ConsumeConcurrentlyStatus.RECONSUME_LATER));
 
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer2.getListener().getAllMsgBody()))
-            .containsExactlyElementsIn(producer.getAllMsgBody());
-
-        consumer2.shutdown();
-
-        producer.clearMsg();
-        consumer1.clearMsg();
-
-        producer.send(msgSize);
-        Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
-
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListener().getAllMsgBody()))
-            .containsExactlyElementsIn(producer.getAllMsgBody());
-
     }
 }

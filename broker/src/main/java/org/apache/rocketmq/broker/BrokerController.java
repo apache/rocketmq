@@ -414,7 +414,13 @@ public class BrokerController {
     protected void initializeRemotingServer() throws CloneNotSupportedException {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
         NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
-        fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
+
+        int listeningPort = nettyServerConfig.getListenPort() - 2;
+        if (listeningPort < 0) {
+            listeningPort = 0;
+        }
+        fastConfig.setListenPort(listeningPort);
+
         this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
     }
 
@@ -1426,11 +1432,18 @@ public class BrokerController {
 
         if (this.remotingServer != null) {
             this.remotingServer.start();
+
+            // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
+            if (null != nettyServerConfig && 0 == nettyServerConfig.getListenPort()) {
+                nettyServerConfig.setListenPort(remotingServer.localListenPort());
+            }
         }
 
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
         }
+
+        this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
             if (brokerAttachedPlugin != null) {

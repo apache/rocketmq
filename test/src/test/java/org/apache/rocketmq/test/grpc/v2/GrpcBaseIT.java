@@ -140,7 +140,11 @@ public class GrpcBaseIT extends BaseConf {
         if (mockProxyHomeURL != null) {
             mockProxyHome = mockProxyHomeURL.toURI().getPath();
         }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+
+        if (null != mockProxyHome) {
+            System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+        }
+
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setGrpcServerPort(port);

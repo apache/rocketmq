@@ -18,7 +18,6 @@ package org.apache.rocketmq.tools.command;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.ArrayList;
 import java.util.List;
 import java.nio.file.Files;
@@ -268,7 +267,7 @@ public class MQAdminStartup {
         initCommand(new ReElectMasterSubCommand());
     }
 
-    private static void initLogback() throws JoranException {
+    private static void initLogback() throws Exception {
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);

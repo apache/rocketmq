@@ -73,7 +73,7 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 3;
 
-    private static final String storePath = System.getProperty("user.home") + File.separator + "schedule_test#" + UUID.randomUUID();
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "schedule_test#" + UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -113,6 +113,8 @@ public class ScheduleMessageServiceTest {
         messageStoreConfig.setEnableConsumeQueueExt(true);
         messageStoreConfig.setStorePathRootDir(storePath);
         messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+        // Let OS pick an available port
+        messageStoreConfig.setHaListenPort(0);
 
         brokerConfig = new BrokerConfig();
         BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
