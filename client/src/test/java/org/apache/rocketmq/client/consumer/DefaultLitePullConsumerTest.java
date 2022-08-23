@@ -54,7 +54,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -555,11 +554,6 @@ public class DefaultLitePullConsumerTest {
         assertThat(offset).isEqualTo(100);
     }
 
-    /**
-     * Disable this unit test case for now as it is too slow.
-     * @throws Exception
-     */
-    @Ignore
     @Test
     public void testConsumerAfterShutdown() throws Exception {
         DefaultLitePullConsumer defaultLitePullConsumer = createSubscribeLitePullConsumer();
