@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.topic;
 
 import com.google.common.collect.Sets;
-import java.util.HashSet;
 import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -217,7 +216,6 @@ public class TopicRouteInfoManager {
     public TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
-            this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.updateTopicRouteInfoFromNameServer(topic, true, false);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
@@ -272,7 +270,6 @@ public class TopicRouteInfoManager {
     public Set<MessageQueue> getTopicSubscribeInfo(String topic) {
         Set<MessageQueue> queues = topicSubscribeInfoTable.get(topic);
         if (null == queues || queues.isEmpty()) {
-            this.topicSubscribeInfoTable.put(topic, new HashSet<>());
             this.updateTopicRouteInfoFromNameServer(topic, false, true);
             queues = this.topicSubscribeInfoTable.get(topic);
         }
