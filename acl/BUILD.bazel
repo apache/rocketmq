@@ -68,6 +68,5 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessControlFlowTest",
         "src/test/java/org/apache/rocketmq/acl/plain/PlainPermissionManagerTest",
         "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
-        "src/test/java/org/apache/rocketmq/acl/common/AclUtilsTest",
     ],
 )

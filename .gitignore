@@ -17,3 +17,4 @@ bazel-out
 bazel-bin
 bazel-rocketmq
 bazel-testlogs
+.vscode
