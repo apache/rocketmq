@@ -41,7 +41,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -51,16 +50,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-/**
- * TODO: Let OS pick an available port
- */
-@Ignore
 public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
 
-    public DLedgerController launchController(final String group, final String peers, final String selfId, String storeType, final boolean isEnableElectUncleanMaster) {
-        final String path = "/tmp" + File.separator + group + File.separator + selfId;
+    public DLedgerController launchController(final String group, final String peers, final String selfId,
+        String storeType, final boolean isEnableElectUncleanMaster) {
+        final String path = System.getProperty("java.io.tmpdir") + File.separator + group + File.separator + selfId;
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();

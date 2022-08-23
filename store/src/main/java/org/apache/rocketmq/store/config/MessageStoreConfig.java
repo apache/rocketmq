@@ -707,6 +707,10 @@ public class MessageStoreConfig {
     }
 
     public void setHaListenPort(int haListenPort) {
+        if (haListenPort < 0) {
+            this.haListenPort = 0;
+            return;
+        }
         this.haListenPort = haListenPort;
     }
 

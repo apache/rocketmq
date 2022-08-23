@@ -38,6 +38,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class DefaultHAService implements HAService {
 
@@ -66,8 +67,7 @@ public class DefaultHAService implements HAService {
     @Override
     public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
-        this.acceptSocketService =
-            new DefaultAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        this.acceptSocketService = new DefaultAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
             this.haClient = new DefaultHAClient(this.defaultMessageStore);
@@ -258,8 +258,8 @@ public class DefaultHAService implements HAService {
 
     class DefaultAcceptSocketService extends AcceptSocketService {
 
-        public DefaultAcceptSocketService(int port) {
-            super(port);
+        public DefaultAcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            super(messageStoreConfig);
         }
 
         @Override
@@ -284,8 +284,11 @@ public class DefaultHAService implements HAService {
         private ServerSocketChannel serverSocketChannel;
         private Selector selector;
 
-        public AcceptSocketService(final int port) {
-            this.socketAddressListen = new InetSocketAddress(port);
+        private final MessageStoreConfig messageStoreConfig;
+
+        public AcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            this.messageStoreConfig = messageStoreConfig;
+            this.socketAddressListen = new InetSocketAddress(messageStoreConfig.getHaListenPort());
         }
 
         /**
@@ -298,6 +301,10 @@ public class DefaultHAService implements HAService {
             this.selector = RemotingUtil.openSelector();
             this.serverSocketChannel.socket().setReuseAddress(true);
             this.serverSocketChannel.socket().bind(this.socketAddressListen);
+            if (0 == messageStoreConfig.getHaListenPort()) {
+                messageStoreConfig.setHaListenPort(this.serverSocketChannel.socket().getLocalPort());
+                log.info("OS picked up {} to listen for HA", messageStoreConfig.getHaListenPort());
+            }
             this.serverSocketChannel.configureBlocking(false);
             this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         }
