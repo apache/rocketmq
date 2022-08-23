@@ -218,7 +218,6 @@ public class CompactionLogTest {
             });
         queueOffset = 0;
         clog.compaction(mappedFileList, offsetMap);
-        compactResult.forEach(System.out::println);
         assertEquals(keyCount, compactResult.size());
         assertEquals(1014, compactResult.stream().mapToLong(MessageExt::getQueueOffset).min().orElse(1024));
         assertEquals(1023, compactResult.stream().mapToLong(MessageExt::getQueueOffset).max().orElse(0));
