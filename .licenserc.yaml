@@ -42,10 +42,6 @@ header:
     - 'distribution/LICENSE-BIN'
     - 'distribution/NOTICE-BIN'
     - 'distribution/conf/rmq-proxy.json'
-    - '**/*.bzl'
-    - '**/*.bazel'
-    - 'WORKSPACE'
-    - '.bazelrc'
     - '.bazelversion'
 
 
