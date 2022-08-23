@@ -202,10 +202,12 @@ public class AclUtilsTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testGetYamlDataObject() {
-        Map<String, Object> map = AclUtils.getYamlDataObject("src/test/resources/conf/plain_acl_correct.yml", Map.class);
-        Assert.assertNotNull(map);
-        Assert.assertFalse(map.isEmpty());
+    public void testGetYamlDataObject() throws IOException {
+        try (InputStream is = AclUtilsTest.class.getResourceAsStream("conf/plain_acl_correct.yml")) {
+            Map<String, Object> map = AclUtils.getYamlDataObject(is, Map.class);
+            Assert.assertNotNull(map);
+            Assert.assertFalse(map.isEmpty());
+        }
     }
 
     @Test
