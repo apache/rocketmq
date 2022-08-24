@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -88,6 +89,9 @@ public class CompactionLog {
     private final int offsetMapMemorySize;
     private final PutMessageLock putMessageLock;
     private final PutMessageLock readMessageLock;
+    private LogAndCq current;
+    private LogAndCq compacting;
+    private LogAndCq replicating;
     private MappedFileQueue currentMappedFileQueue;
     private MappedFileQueue newMappedFileQueue;
     private SparseConsumeQueue currentScq;
@@ -137,6 +141,8 @@ public class CompactionLog {
     }
 
     private void initLogAndCq() throws IOException, RuntimeException {
+        this.current = new LogAndCq();
+
         if (!this.currentMappedFileQueue.load()) {
             throw new IOException("load compactionLog exception");
         }
@@ -197,35 +203,18 @@ public class CompactionLog {
             int mark = byteBuffer.position();
             ByteBuffer bb = byteBuffer.slice();
             int size = bb.getInt();
-//            log.info("byteBuffer: {}, bb: {}, size: {}", byteBuffer, bb, size);
             bb.limit(size);
             bb.rewind();
 
             MessageExt messageExt = MessageDecoder.decode(bb, false, false);
-            asyncPutMessage(bb, messageExt, newMappedFileQueue, compactionScq);
+            if (currentMappedFileQueue.isMappedFilesEmpty() || messageExt.getQueueOffset() < currentScq.getMinOffsetInQueue()) {
+                asyncPutMessage(bb, messageExt, newMappedFileQueue, compactionScq);
+            }
 
             byteBuffer.position(mark + size);
         }
 
     }
-
-//    private PullMessageRequestHeader createPullMessageRequest() {
-//        int sysFlag = PullSysFlag.buildSysFlag(false, false, false, false, true);
-//
-//        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-//        requestHeader.setConsumerGroup(String.join("-", topic, String.valueOf(queueId), "pull", "group"));
-//        requestHeader.setTopic(topic);
-//        requestHeader.setQueueId(queueId);
-//        requestHeader.setMaxMsgNums(10);
-//        requestHeader.setSysFlag(sysFlag);
-//        requestHeader.setSuspendTimeoutMillis(1000 * 20L);
-//        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
-//        return requestHeader;
-//    }
-
-//    private boolean stopPull(long currPullOffset, SparseConsumeQueue scq, boolean noNewMsg) {
-//        return (currPullOffset >= scq.getMinOffsetInQueue() && scq.getMinOffsetInQueue() != -1) || noNewMsg;
-//    }
 
     private void pullMessageFromMaster() throws Exception {
 
@@ -251,53 +240,17 @@ public class CompactionLog {
                 });
         }
 
-        //        long currentPullOffset = 0;
-//        boolean noNewMsg = false;
-//
-//        RemotingClient remotingClient = null;
-//        try {
-//            NettyClientConfig nettyClientConfig = new NettyClientConfig();
-//            nettyClientConfig.setUseTLS(false);
-//            remotingClient = new NettyRemotingClient(nettyClientConfig);
-//            remotingClient.start();
-//
-//            PullMessageRequestHeader requestHeader = createPullMessageRequest();
-//            while (stopPull(currentPullOffset, currentScq, noNewMsg)) {
-//                requestHeader.setQueueOffset(currentPullOffset);
-//
-//                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
-//                RemotingCommand response = remotingClient.invokeSync(compactionStore.getMasterAddr(), request, 1000 * 30L);
-//
-//
-//                PullMessageResponseHeader responseHeader = response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
-//
-//                switch (response.getCode()) {
-//                    case ResponseCode.SUCCESS:
-//                        putMessageFromRemote(response.getBody());
-//                        currentPullOffset = responseHeader.getNextBeginOffset();
-//                        break;
-//                    case ResponseCode.PULL_NOT_FOUND:       // NO_NEW_MSG, need break loop
-//                        log.info("PULL_NOT_FOUND");
-//                        noNewMsg = true;
-//                        break;
-//                    case ResponseCode.PULL_RETRY_IMMEDIATELY:
-//                        log.info("PULL_RETRY_IMMEDIATE");
-//                        break;
-//                    case ResponseCode.PULL_OFFSET_MOVED:
-//                        log.info("PULL_OFFSET_MOVED");
-//                        break;
-//                    default:
-//                        log.warn("Pull Message error, response code: {}, remark: {}",
-//                            response.getCode(), response.getRemark());
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("Pull Message error, ", e);
-//        } finally {
-//            if (remotingClient != null) {
-//                remotingClient.shutdown();
-//            }
-//        }
+        // merge files
+        if (currentMappedFileQueue.isEmptyOrCurrentFileFull()) {
+            // replaceFiles() & replaceCqs()
+        } else {
+            try {
+                rollLogAndCq(currentMappedFileQueue, currentScq);
+                // doCompaction();
+            } catch (IOException e) {
+                log.error("roll log and cq exception: ", e);
+            }
+        }
 
 //        positionMgr.setOffset(topic, queueId, currentPullOffset);
         state.compareAndSet(State.INITIALIZING, State.NORMAL);
@@ -979,6 +932,15 @@ public class CompactionLog {
                 ((buf[offset + 1] & 0xFF) << 16) |
                 ((buf[offset + 2] & 0xFF) << 8) |
                 ((buf[offset + 3] & 0xFF));
+        }
+    }
+
+    static class LogAndCq {
+        MappedFileQueue log;
+        SparseConsumeQueue scq;
+        public LogAndCq() {
+            log = new MappedFileQueue();
+            scq = new SparseConsumeQueue();
         }
     }
 

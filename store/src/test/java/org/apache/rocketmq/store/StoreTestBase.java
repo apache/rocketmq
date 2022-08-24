@@ -46,7 +46,7 @@ public class StoreTestBase {
 
     protected Set<String> baseDirs = new HashSet<>();
 
-    private static AtomicInteger port = new AtomicInteger(30000);
+    private static AtomicInteger port = new AtomicInteger(40000);
 
     public static synchronized int nextPort() {
         return port.addAndGet(5);
