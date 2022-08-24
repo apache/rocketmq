@@ -210,14 +210,19 @@ public class AclUtilsTest {
         }
     }
 
+    private static String randomTmpFile() {
+        String tmpFileName = System.getProperty("java.io.tmpdir");
+        // https://rationalpi.wordpress.com/2007/01/26/javaiotmpdir-inconsitency/
+        if (!tmpFileName.endsWith(File.separator)) {
+            tmpFileName += File.separator;
+        }
+        tmpFileName += UUID.randomUUID() + ".yml";
+        return tmpFileName;
+    }
+
     @Test
     public void writeDataObject2YamlFileTest() throws IOException {
-        String targetFileName = System.getProperty("java.io.tmpdir");
-        if (!targetFileName.endsWith(File.separator)) {
-            targetFileName += File.separator;
-        }
-        targetFileName += UUID.randomUUID() + ".yml";
-
+        String targetFileName = randomTmpFile();
         File transport = new File(targetFileName);
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
@@ -247,7 +252,7 @@ public class AclUtilsTest {
 
     @Test
     public void updateExistedYamlFileTest() throws IOException {
-        String targetFileName = System.getProperty("java.io.tmpdir") + UUID.randomUUID() + ".yml";
+        String targetFileName = randomTmpFile();
         File transport = new File(targetFileName);
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
