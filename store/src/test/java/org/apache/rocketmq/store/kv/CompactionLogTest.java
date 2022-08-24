@@ -223,4 +223,9 @@ public class CompactionLogTest {
         assertEquals(1023, compactResult.stream().mapToLong(MessageExt::getQueueOffset).max().orElse(0));
     }
 
+    @Test
+    public void testReplaceFiles() {
+
+    }
+
 }

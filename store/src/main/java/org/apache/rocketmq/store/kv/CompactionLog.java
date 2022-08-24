@@ -187,7 +187,7 @@ public class CompactionLog {
 
         // merge files
         if (getLog().isEmptyOrCurrentFileFull()) {
-            // replaceFiles() & replaceCqs()
+            replaceFiles(replicating.getLog().getMappedFiles(), current, replicating);
         } else {
             try {
                 current.roll();
@@ -538,7 +538,7 @@ public class CompactionLog {
                 long startTime = System.nanoTime();
                 OffsetMap offsetMap = getOffsetMap(mappedFileList);
                 compaction(mappedFileList, offsetMap);
-                replaceFiles(mappedFileList, getLog(), compacting.getLog(), offsetMap);
+                replaceFiles(mappedFileList, current, compacting);
                 positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
                 log.info("this compaction elapsed {} milliseconds",
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
@@ -613,8 +613,11 @@ public class CompactionLog {
         putEndMessage(compacting.getLog());
     }
 
-    private void replaceFiles(List<MappedFile> mappedFileList, MappedFileQueue current,
-        MappedFileQueue compacted, OffsetMap offsetMap) {
+    protected void replaceFiles(List<MappedFile> mappedFileList, TopicPartitionLog current,
+        TopicPartitionLog newLog) {
+
+        MappedFileQueue dest = current.getLog();
+        MappedFileQueue src = newLog.getLog();
 
         long beginTime = System.nanoTime();
         List<String> fileNameToReplace = mappedFileList.stream()
@@ -623,7 +626,7 @@ public class CompactionLog {
 
         mappedFileList.forEach(MappedFile::renameToDelete);
 
-        compacted.getMappedFiles().forEach(mappedFile -> {
+        src.getMappedFiles().forEach(mappedFile -> {
             try {
                 mappedFile.moveToParent();
             } catch (IOException e) {
@@ -631,27 +634,27 @@ public class CompactionLog {
             }
         });
 
-        current.getMappedFiles().stream()
+        dest.getMappedFiles().stream()
             .filter(m -> !mappedFileList.contains(m))
-            .forEach(m -> compacted.getMappedFiles().add(m));
+            .forEach(m -> src.getMappedFiles().add(m));
 
         readMessageLock.lock();
         try {
             mappedFileList.forEach(mappedFile -> mappedFile.destroy(1000));
 
-            current.getMappedFiles().clear();
-            current.getMappedFiles().addAll(compacted.getMappedFiles());
+            dest.getMappedFiles().clear();
+            dest.getMappedFiles().addAll(src.getMappedFiles());
 
-            replaceCqFiles(getCQ(), compacting.getCQ(), fileNameToReplace);
+            replaceCqFiles(getCQ(), newLog.getCQ(), fileNameToReplace);
 
-            log.info("replace file elapsed {} millisecs",
+            log.info("replace file elapsed {} milliseconds",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
         } finally {
             readMessageLock.unlock();
         }
     }
 
-    private void replaceCqFiles(SparseConsumeQueue currentBcq, SparseConsumeQueue compactionBcq,
+    protected void replaceCqFiles(SparseConsumeQueue currentBcq, SparseConsumeQueue compactionBcq,
         List<String> fileNameToReplace) {
         long beginTime = System.nanoTime();
 
