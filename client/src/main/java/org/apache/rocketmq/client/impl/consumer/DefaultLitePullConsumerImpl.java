@@ -487,7 +487,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
      */
     public synchronized void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
         try {
-            if (topic == null || "".equals(topic)) {
+            if (StringUtils.isEmpty(topic)) {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
             }
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
