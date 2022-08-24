@@ -134,17 +134,6 @@ public class InnerBrokerController extends BrokerController {
     }
 
     @Override
-    public String getNameServerList() {
-        if (this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr() != null) {
-            this.brokerContainer.getBrokerOuterAPI().updateNameServerAddressList(brokerContainer.getBrokerContainerConfig().getNamesrvAddr());
-            return this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr();
-        } else if (this.brokerContainer.getBrokerContainerConfig().isFetchNamesrvAddrByAddressServer()) {
-            return this.brokerContainer.getBrokerOuterAPI().fetchNameServerAddr();
-        }
-        return null;
-    }
-
-    @Override
     public String getHAServerAddr() {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
     }

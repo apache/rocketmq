@@ -64,8 +64,6 @@ public class EscapeBridgeTest {
 
     private static final String BROKER_NAME = "broker_a";
 
-    private static final String NAMESERVER_ADDR = "127.0.0.1:9876";
-
     private static final String TEST_TOPIC = "TEST_TOPIC";
 
     private static final int DEFAULT_QUEUE_ID = 0;
@@ -81,7 +79,6 @@ public class EscapeBridgeTest {
         escapeBridge = new EscapeBridge(brokerController);
         messageExtBrokerInner = new MessageExtBrokerInner();
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
-        when(brokerController.getNameServerList()).thenReturn(NAMESERVER_ADDR);
         brokerConfig.setEnableSlaveActingMaster(true);
         brokerConfig.setEnableRemoteEscape(true);
         escapeBridge.start();
