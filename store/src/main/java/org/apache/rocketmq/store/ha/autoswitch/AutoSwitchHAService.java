@@ -262,6 +262,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
         return syncStateSet.size();
     }

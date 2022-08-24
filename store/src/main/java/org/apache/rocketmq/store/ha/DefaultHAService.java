@@ -63,6 +63,7 @@ public class DefaultHAService implements HAService {
     public DefaultHAService() {
     }
 
+    @Override
     public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
@@ -74,22 +75,26 @@ public class DefaultHAService implements HAService {
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
 
+    @Override
     public void updateMasterAddress(final String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateMasterAddress(newAddr);
         }
     }
 
+    @Override
     public void updateHaMasterAddress(String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateHaMasterAddress(newAddr);
         }
     }
 
+    @Override
     public void putRequest(final CommitLog.GroupCommitRequest request) {
         this.groupTransferService.putRequest(request);
     }
 
+    @Override
     public boolean isSlaveOK(final long masterPutWhere) {
         boolean result = this.connectionCount.get() > 0;
         result =
@@ -111,10 +116,12 @@ public class DefaultHAService implements HAService {
         }
     }
 
+    @Override
     public AtomicInteger getConnectionCount() {
         return connectionCount;
     }
 
+    @Override
     public void start() throws Exception {
         this.acceptSocketService.beginAccept();
         this.acceptSocketService.start();
@@ -138,6 +145,7 @@ public class DefaultHAService implements HAService {
         }
     }
 
+    @Override
     public void shutdown() {
         if (this.haClient != null) {
             this.haClient.shutdown();
@@ -162,14 +170,17 @@ public class DefaultHAService implements HAService {
         return defaultMessageStore;
     }
 
+    @Override
     public WaitNotifyObject getWaitNotifyObject() {
         return waitNotifyObject;
     }
 
+    @Override
     public AtomicLong getPush2SlaveMaxOffset() {
         return push2SlaveMaxOffset;
     }
 
+    @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
         int inSyncNums = 1;
         for (HAConnection conn : this.connectionList) {
