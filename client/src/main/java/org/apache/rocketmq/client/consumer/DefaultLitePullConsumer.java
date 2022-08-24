@@ -324,12 +324,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     /**
      * Offset specified by batch commit
-     * @param messageQueues
+     * @param offsetMap
      * @param persist
      */
     @Override
-    public void commitSync(Map<MessageQueue, Long> messageQueues, boolean persist) {
-        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
+    public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
     }
 
     /**

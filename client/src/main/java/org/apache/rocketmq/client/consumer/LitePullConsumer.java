@@ -189,10 +189,10 @@ public interface LitePullConsumer {
 
     /**
      * Offset specified by batch commit
-     * @param messageQueues
+     * @param offsetMap
      * @param persist
      */
-    void commitSync(Map<MessageQueue, Long> messageQueues, boolean persist);
+    void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist);
 
     void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
