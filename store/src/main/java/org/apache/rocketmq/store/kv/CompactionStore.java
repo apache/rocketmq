@@ -143,8 +143,8 @@ public class CompactionStore {
 
     }
 
-    public void flushCq(int flushLeastPages) {
-        compactionLogTable.values().forEach(log -> log.flushCq(flushLeastPages));
+    public void flushCQ(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flushCQ(flushLeastPages));
     }
 
     public void updateMasterAddress(String addr) {

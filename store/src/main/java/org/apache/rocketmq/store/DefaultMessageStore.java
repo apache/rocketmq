@@ -2358,7 +2358,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
 
-            compactionStore.flushCq(flushConsumeQueueLeastPages);
+            compactionStore.flushCQ(flushConsumeQueueLeastPages);
 
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
