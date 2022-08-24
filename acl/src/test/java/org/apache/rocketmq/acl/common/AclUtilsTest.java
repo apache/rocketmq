@@ -212,7 +212,12 @@ public class AclUtilsTest {
 
     @Test
     public void writeDataObject2YamlFileTest() throws IOException {
-        String targetFileName = System.getProperty("java.io.tmpdir") + UUID.randomUUID() + ".yml";
+        String targetFileName = System.getProperty("java.io.tmpdir");
+        if (!targetFileName.endsWith(File.separator)) {
+            targetFileName += File.separator;
+        }
+        targetFileName += UUID.randomUUID() + ".yml";
+
         File transport = new File(targetFileName);
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
