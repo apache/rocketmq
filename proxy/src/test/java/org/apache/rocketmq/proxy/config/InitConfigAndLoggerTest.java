@@ -22,6 +22,10 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.net.URL;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.assertj.core.util.Strings;
+
+import java.io.IOException;
+import java.io.InputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.LoggerFactory;
@@ -37,7 +41,11 @@ public class InitConfigAndLoggerTest {
         if (mockProxyHomeURL != null) {
             mockProxyHome = mockProxyHomeURL.toURI().getPath();
         }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+
+        if (!Strings.isNullOrEmpty(mockProxyHome)) {
+            System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+        }
+
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         initLogger();
@@ -56,8 +64,18 @@ public class InitConfigAndLoggerTest {
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();
-        //https://logback.qos.ch/manual/configuration.html
+        // https://logback.qos.ch/manual/configuration.html
         lc.setPackagingDataEnabled(false);
+
+        try (InputStream inputStream = InitConfigAndLoggerTest.class.getClassLoader()
+                .getResourceAsStream("rmq-proxy-home/conf/logback_proxy.xml")) {
+            if (null != inputStream) {
+                configurator.doConfigure(inputStream);
+                return;
+            }
+        } catch (IOException ignore) {
+        }
+
         configurator.doConfigure(mockProxyHome + "/conf/logback_proxy.xml");
     }
 }

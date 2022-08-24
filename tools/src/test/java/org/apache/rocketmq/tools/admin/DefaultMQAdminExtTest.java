@@ -481,6 +481,6 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
-        assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig"));
+        assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig")).isTrue();
     }
 }

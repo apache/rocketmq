@@ -80,12 +80,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     /**
-     * NettyRemotingServer may holds multiple SubRemotingServer, each server will be stored in this container with a
+     * NettyRemotingServer may hold multiple SubRemotingServer, each server will be stored in this container with a
      * ListenPort key.
      */
     private ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<Integer, NettyRemotingAbstract>();
-
-    private int port = 0;
 
     private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     private static final String TLS_HANDLER_NAME = "sslHandler";
@@ -163,8 +161,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         loadSslContext();
-
-        this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
     }
 
     public void loadSslContext() {
@@ -247,9 +243,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         try {
-            ChannelFuture sync = this.serverBootstrap.bind().sync();
+            ChannelFuture sync = this.serverBootstrap.bind(nettyServerConfig.getListenPort()).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
-            this.port = addr.getPort();
+            if (0 == nettyServerConfig.getListenPort()) {
+                this.nettyServerConfig.setListenPort(addr.getPort());
+                log.debug("Server is listening {}", this.nettyServerConfig.getListenPort());
+            }
+            this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
@@ -320,7 +320,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public int localListenPort() {
-        return this.port;
+        return this.nettyServerConfig.getListenPort();
     }
 
     @Override
@@ -540,7 +540,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      * resources from its parent server.
      */
     class SubRemotingServer extends NettyRemotingAbstract implements RemotingServer {
-        private final int listenPort;
+        private volatile int listenPort;
         private volatile Channel serverChannel;
 
         SubRemotingServer(final int port, final int permitsOnway, final int permitsAsync) {
@@ -613,7 +613,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void start() {
             try {
+                if (listenPort < 0) {
+                    listenPort = 0;
+                }
                 this.serverChannel = NettyRemotingServer.this.serverBootstrap.bind(listenPort).sync().channel();
+                if (0 == listenPort) {
+                    InetSocketAddress addr = (InetSocketAddress) this.serverChannel.localAddress();
+                    this.listenPort = addr.getPort();
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException("this.subRemotingServer.serverBootstrap.bind().sync() InterruptedException", e);
             }

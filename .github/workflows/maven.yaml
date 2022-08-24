@@ -1,9 +1,9 @@
-name: Build
+name: Build and Run Tests By Maven
 on:
   pull_request:
     types: [opened, reopened, synchronize]
   push:
-    branches: [master, develop]
+    branches: [master, develop, bazel]
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
