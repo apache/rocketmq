@@ -30,7 +30,9 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -52,6 +54,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestException;
@@ -61,6 +64,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -68,6 +72,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.apache.rocketmq.store.kv.CompactionLog.COMPACTING_SUB_FOLDER;
 
 public class CompactionLogTest {
     CompactionLog clog;
@@ -225,13 +230,35 @@ public class CompactionLogTest {
     }
 
     @Test
-    public void testReplaceFiles() {
-        //TODO
+    public void testReplaceFiles() throws IOException, IllegalAccessException {
         CompactionLog clog = mock(CompactionLog.class);
         doCallRealMethod().when(clog).replaceFiles(anyList(), any(CompactionLog.TopicPartitionLog.class),
             any(CompactionLog.TopicPartitionLog.class));
+        doCallRealMethod().when(clog).replaceCqFiles(any(SparseConsumeQueue.class),
+            any(SparseConsumeQueue.class), anyList());
 
+        CompactionLog.TopicPartitionLog dest = mock(CompactionLog.TopicPartitionLog.class);
+        MappedFileQueue destMFQ = mock(MappedFileQueue.class);
+        when(dest.getLog()).thenReturn(destMFQ);
+        List<MappedFile> destFiles = Lists.newArrayList();
+        when(destMFQ.getMappedFiles()).thenReturn(destFiles);
 
+        List<MappedFile> srcFiles = Lists.newArrayList();
+        String fileName = logPath + File.separator + COMPACTING_SUB_FOLDER + File.separator + String.format("%010d", 0);
+        MappedFile mf = new DefaultMappedFile(fileName, 1024);
+        srcFiles.add(mf);
+        MappedFileQueue srcMFQ = mock(MappedFileQueue.class);
+        when(srcMFQ.getMappedFiles()).thenReturn(srcFiles);
+        CompactionLog.TopicPartitionLog src = mock(CompactionLog.TopicPartitionLog.class);
+        when(src.getLog()).thenReturn(srcMFQ);
+
+        FieldUtils.writeField(clog, "readMessageLock", new PutMessageSpinLock(), true);
+
+        clog.replaceFiles(Lists.newArrayList(), dest, src);
+        assertEquals(destFiles.size(), 1);
+        destFiles.forEach(f -> {
+            assertFalse(f.getFileName().contains(COMPACTING_SUB_FOLDER));
+        });
     }
 
 }
