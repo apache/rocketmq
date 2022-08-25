@@ -96,12 +96,20 @@ java_library(
 
 GenTestRules(
     name = "GeneratedTestRules",
-    default_test_size = "large",
     test_files = glob(["src/test/java/**/*IT.java"]),
     deps = [
         ":tests",
     ],
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
-    ]
+    ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/test/base/dledger/DLedgerProduceAndConsumeIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/topic/MulConsumerMulTopicIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/transaction/TransactionalMsgIT",
+        "src/test/java/org/apache/rocketmq/test/delay/NormalMsgDelayIT",
+        "src/test/java/org/apache/rocketmq/test/grpc/v2/ClusterGrpcIT",
+        "src/test/java/org/apache/rocketmq/test/grpc/v2/LocalGrpcIT",
+        "src/test/java/org/apache/rocketmq/test/statictopic/StaticTopicIT",
+    ],
 )
