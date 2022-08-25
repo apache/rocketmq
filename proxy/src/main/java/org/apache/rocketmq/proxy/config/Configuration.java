@@ -48,7 +48,7 @@ public class Configuration {
         final String testResource = "rmq-proxy-home/conf/" + configFileName;
         try (InputStream inputStream = Configuration.class.getClassLoader().getResourceAsStream(testResource)) {
             if (null != inputStream) {
-              return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+                return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
             }
         }
 
