@@ -1,4 +1,4 @@
-name: Build and Run Tests By Maven
+name: Build and Run Tests by Maven
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -20,6 +20,6 @@ jobs:
         with:
           java-version: ${{ matrix.jdk }}
           distribution: "adopt"
-          cache: maven
+          cache: "maven"
       - name: Build with Maven
-        run: mvn -B package -T 1C --file pom.xml
+        run: mvn -B package -T 2C --file pom.xml
