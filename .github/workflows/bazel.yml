@@ -1,4 +1,4 @@
-name: Build and Run Tests By Bazel
+name: Build and Run Tests by Bazel
 on:
   pull_request_target:
     types: [opened, reopened, synchronize]
@@ -9,7 +9,7 @@ on:
       - bazel
 jobs:
   build:
-    name: "Java (${{ matrix.os }})"
+    name: "bazel-compile (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
