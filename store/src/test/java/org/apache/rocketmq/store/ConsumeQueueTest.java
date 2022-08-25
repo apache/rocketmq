@@ -457,7 +457,7 @@ public class ConsumeQueueTest {
         int message_size = 100;
         for (int i = 0; i < max; ++i) {
             DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, message_size * i, message_size, 0, 0, i, null, null, 0, 0, null);
-            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest, false);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
         }
 
         consumeQueue.setMinLogicOffset(0L);
