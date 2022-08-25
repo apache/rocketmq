@@ -25,7 +25,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
@@ -59,7 +62,8 @@ public class DLedgerControllerTest {
 
     public DLedgerController launchController(final String group, final String peers, final String selfId,
         String storeType, final boolean isEnableElectUncleanMaster) {
-        final String path = System.getProperty("java.io.tmpdir") + File.separator + group + File.separator + selfId;
+        String tmpdir = System.getProperty("java.io.tmpdir");
+        final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();
@@ -96,9 +100,20 @@ public class DLedgerControllerTest {
     public boolean registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
         boolean isFirstRegisteredBroker) throws Exception {
         // Register new broker
-        final RegisterBrokerToControllerRequestHeader registerRequest =
-            new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
-        final RemotingCommand response = leader.registerBroker(registerRequest).get(10, TimeUnit.SECONDS);
+        final RegisterBrokerToControllerRequestHeader registerRequest = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
+        RemotingCommand response = await().atMost(Duration.ofSeconds(20)).until(() -> {
+            try {
+                final RemotingCommand responseInner = leader.registerBroker(registerRequest).get(2, TimeUnit.SECONDS);
+                if (responseInner == null || responseInner.getCode() != ResponseCode.SUCCESS) {
+                    return null;
+                }
+                return responseInner;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }, item -> item != null);
+
         final RegisterBrokerToControllerResponseHeader registerResult = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
         System.out.println("------------- Register broker done, the result is :" + registerResult);
 
@@ -113,7 +128,9 @@ public class DLedgerControllerTest {
         final AlterSyncStateSetRequestHeader alterRequest =
             new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch)).get(10, TimeUnit.SECONDS);
-
+        if (null == response || response.getCode() != ResponseCode.SUCCESS) {
+            return false;
+        }
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(getInfoResponse.getBody(), SyncStateSet.class);
@@ -129,8 +146,11 @@ public class DLedgerControllerTest {
         DLedgerController c1 = controllers.get(0);
         DLedgerController dLedgerController = await().atMost(Duration.ofSeconds(10)).until(() -> {
             String leaderId = c1.getMemberState().getLeaderId();
+            if (null == leaderId) {
+                return null;
+            }
             for (DLedgerController controller : controllers) {
-                if (controller.getMemberState().getSelfId().equals(leaderId)) {
+                if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
                     System.out.println("New leader " + leaderId);
                     return controller;
                 }

@@ -58,7 +58,8 @@ public class ControllerManagerTest {
     private NettyRemotingClient remotingClient1;
 
     public ControllerManager launchManager(final String group, final String peers, final String selfId) {
-        final String path = System.getProperty("java.io.tmpdir") + File.separator + group + File.separator + selfId;
+        String tmpdir = System.getProperty("java.io.tmpdir");
+        final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();
@@ -97,9 +98,12 @@ public class ControllerManagerTest {
 
         ControllerManager manager = await().atMost(Duration.ofSeconds(10)).until(() -> {
             String leaderId = c1.getMemberState().getLeaderId();
+            if (null == leaderId) {
+                return null;
+            }
             for (ControllerManager controllerManager : controllers) {
                 final DLedgerController controller = (DLedgerController) controllerManager.getController();
-                if (controller.getMemberState().getSelfId().equals(leaderId)) {
+                if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
                     System.out.println("New leader " + leaderId);
                     return controllerManager;
                 }
@@ -122,7 +126,8 @@ public class ControllerManagerTest {
      */
     public RegisterBrokerToControllerResponseHeader registerBroker(
         final String controllerAddress, final String clusterName,
-        final String brokerName, final String address, final RemotingClient client, final long heartbeatTimeoutMillis) throws Exception {
+        final String brokerName, final String address, final RemotingClient client,
+        final long heartbeatTimeoutMillis) throws Exception {
 
         final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address);
         // Timeout = 3000
@@ -148,11 +153,11 @@ public class ControllerManagerTest {
         String leaderAddr = "localhost" + ":" + leader.getController().getRemotingServer().localListenPort();
 
         // Register two broker, the first one is master.
-        final RegisterBrokerToControllerResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient,1000L);
+        final RegisterBrokerToControllerResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient, 1000L);
         assert responseHeader1 != null;
         assertEquals(responseHeader1.getBrokerId(), MixAll.MASTER_ID);
 
-        final RegisterBrokerToControllerResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1,4000L);
+        final RegisterBrokerToControllerResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1, 4000L);
         assert responseHeader2 != null;
         assertEquals(responseHeader2.getBrokerId(), 2);
 
