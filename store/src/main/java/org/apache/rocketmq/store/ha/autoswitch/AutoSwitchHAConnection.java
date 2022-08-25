@@ -193,9 +193,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                             this.waitForRunning(10);
                             continue;
                         case TRANSFER:
-                            if (this.pushCommitLogDataToSlave()) {
-                                this.waitForRunning(10);
-                            } else {
+                            if (!this.pushCommitLogDataToSlave()) {
                                 close();
                             }
                             continue;
@@ -245,6 +243,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 }
                 doNettyTransferData(0);
                 this.releaseData();
+                this.waitForRunning(50);
                 return;
             }
 
