@@ -62,6 +62,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -225,6 +226,11 @@ public class CompactionLogTest {
 
     @Test
     public void testReplaceFiles() {
+        //TODO
+        CompactionLog clog = mock(CompactionLog.class);
+        doCallRealMethod().when(clog).replaceFiles(anyList(), any(CompactionLog.TopicPartitionLog.class),
+            any(CompactionLog.TopicPartitionLog.class));
+
 
     }
 

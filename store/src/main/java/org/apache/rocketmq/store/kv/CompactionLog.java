@@ -107,7 +107,8 @@ public class CompactionLog {
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
-        this.compactionLogFilePath = Paths.get(compactionStore.getCompactionLogPath(), topic, String.valueOf(queueId)).toString();
+        this.compactionLogFilePath = Paths.get(compactionStore.getCompactionLogPath(),
+            topic, String.valueOf(queueId)).toString();
         this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
         this.positionMgr = compactionStore.getPositionMgr();
 
@@ -181,18 +182,26 @@ public class CompactionLog {
                         return;
                     }
                     putMessageFromRemote(response.getBody());
-                    positionMgr.setOffset(topic, queueId, currOffset);
+//                    positionMgr.setOffset(topic, queueId, currOffset);
                 });
         }
 
         // merge files
         if (getLog().isEmptyOrCurrentFileFull()) {
-            replaceFiles(replicating.getLog().getMappedFiles(), current, replicating);
+            replaceFiles(getLog().getMappedFiles(), current, replicating);
         } else {
             try {
                 current.roll();
-                // doCompaction();
-            } catch (IOException e) {
+                // doCompaction with current and replicating
+                List<MappedFile> toCompactFiles = Lists.newArrayList();
+                // combine current and replicating to mappedFileList
+                toCompactFiles.addAll(replicating.getLog().getMappedFiles());   //all from replicating
+                List<MappedFile> currFiles = getLog().getMappedFiles();
+                toCompactFiles.addAll(currFiles.subList(0, currFiles.size()));  //exclude the last one from current
+                compactAndReplace(toCompactFiles);
+                // cleanReplicatingResource
+                replicating.clean(false);
+            } catch (Throwable e) {
                 log.error("roll log and cq exception: ", e);
             }
         }
@@ -526,6 +535,18 @@ public class CompactionLog {
         return Collections.emptyList();
     }
 
+    void compactAndReplace(List<MappedFile> toCompactFiles) throws Throwable {
+        if (CollectionUtils.isNotEmpty(toCompactFiles)) {
+            long startTime = System.nanoTime();
+            OffsetMap offsetMap = getOffsetMap(toCompactFiles);
+            compaction(toCompactFiles, offsetMap);
+            replaceFiles(toCompactFiles, current, compacting);
+            positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
+            log.info("this compaction elapsed {} milliseconds",
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+        }
+    }
+
     void doCompaction() {
         if (!state.compareAndSet(State.NORMAL, State.COMPACTING)) {
             log.warn("compactionLog state is {}, skip this time", state.get());
@@ -533,16 +554,7 @@ public class CompactionLog {
         }
 
         try {
-            List<MappedFile> mappedFileList = getCompactionFile();
-            if (CollectionUtils.isNotEmpty(mappedFileList)) {
-                long startTime = System.nanoTime();
-                OffsetMap offsetMap = getOffsetMap(mappedFileList);
-                compaction(mappedFileList, offsetMap);
-                replaceFiles(mappedFileList, current, compacting);
-                positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
-                log.info("this compaction elapsed {} milliseconds",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
-            }
+            compactAndReplace(getCompactionFile());
         } catch (Throwable e) {
             log.error("do compaction exception: ", e);
         }
@@ -923,7 +935,8 @@ public class CompactionLog {
                 }
             }
         }
-        public void roll() throws IOException {
+
+        public synchronized void roll() throws IOException {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             if (mappedFile == null) {
                 throw new IOException("create new file error");
@@ -940,6 +953,25 @@ public class CompactionLog {
         public boolean isEmptyOrCurrentFileFull() {
             return mappedFileQueue.isEmptyOrCurrentFileFull() ||
                 consumeQueue.getMappedFileQueue().isEmptyOrCurrentFileFull();
+        }
+
+        public void clean(MappedFileQueue mappedFileQueue) throws IOException {
+            if (mappedFileQueue.isMappedFilesEmpty()) {
+                mappedFileQueue.destroy();
+            } else {
+                throw new IOException("directory " + mappedFileQueue.getStorePath() + " maybe not empty.");
+            }
+        }
+
+        public void clean(boolean force) throws IOException {
+            //clean and delete sub_folder
+            if (force) {
+                mappedFileQueue.destroy();
+                consumeQueue.getMappedFileQueue().destroy();
+            } else {
+                clean(mappedFileQueue);
+                clean(consumeQueue.getMappedFileQueue());
+            }
         }
 
         public MappedFileQueue getLog() {
