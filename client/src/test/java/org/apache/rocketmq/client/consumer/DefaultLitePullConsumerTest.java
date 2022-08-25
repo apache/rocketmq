@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.consumer;
 
+import java.util.ArrayList;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -704,7 +705,9 @@ public class DefaultLitePullConsumerTest {
                         messageClientExt.setOffsetMsgId("234");
                         messageClientExt.setBornHost(new InetSocketAddress(8080));
                         messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(messageClientExt));
+                        List<MessageExt> list = new ArrayList<MessageExt>();
+                        list.add(messageClientExt);
+                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, list);
                         return pullResult;
                     }
                 });
