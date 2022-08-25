@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface LitePullConsumer {
@@ -53,6 +54,14 @@ public interface LitePullConsumer {
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
     /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    void subscribe(final String topic, final String subExpression, final MessageQueueListener messageQueueListener) throws MQClientException;
+
+    /**
      * Subscribe some topic with selector.
      *
      * @param selector message selector({@link MessageSelector}), can be null.
@@ -66,6 +75,14 @@ public interface LitePullConsumer {
      * @param topic Message topic that needs to be unsubscribe.
      */
     void unsubscribe(final String topic);
+
+
+    /**
+     * subscribe mode, get assigned MessageQueue
+     * @return
+     * @throws MQClientException
+     */
+    Set<MessageQueue> assignment() throws MQClientException;
 
     /**
      * Manually assign a list of message queues to this consumer. This interface does not allow for incremental
@@ -170,6 +187,12 @@ public interface LitePullConsumer {
      */
     void commitSync();
 
+    /**
+     * Offset specified by batch commit
+     * @param offsetMap
+     * @param persist
+     */
+    void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist);
 
     void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
