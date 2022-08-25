@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl.controller.impl;
 
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,14 +27,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
@@ -43,6 +45,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -124,17 +127,17 @@ public class DLedgerControllerTest {
             return null;
         }
         DLedgerController c1 = controllers.get(0);
-        while (c1.getMemberState().getLeaderId() == null) {
-            Thread.sleep(1000);
-        }
-        String leaderId = c1.getMemberState().getLeaderId();
-        System.out.println("New leader " + leaderId);
-        for (DLedgerController controller : controllers) {
-            if (controller.getMemberState().getSelfId().equals(leaderId)) {
-                return controller;
+        DLedgerController dLedgerController = await().atMost(Duration.ofSeconds(10)).until(() -> {
+            String leaderId = c1.getMemberState().getLeaderId();
+            for (DLedgerController controller : controllers) {
+                if (controller.getMemberState().getSelfId().equals(leaderId)) {
+                    System.out.println("New leader " + leaderId);
+                    return controller;
+                }
             }
-        }
-        return null;
+            return null;
+        }, item -> item != null);
+        return dLedgerController;
     }
 
     public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
@@ -271,16 +274,22 @@ public class DLedgerControllerTest {
     public void testChangeControllerLeader() throws Exception {
         final DLedgerController leader = mockMetaData(false);
         leader.shutdown();
-        Thread.sleep(2000);
         this.controllers.remove(leader);
         // Wait leader again
         final DLedgerController newLeader = waitLeader(this.controllers);
         assertNotNull(newLeader);
 
-        final RemotingCommand resp = newLeader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
-        final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
-        final SyncStateSet syncStateSetResult = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
+        RemotingCommand response = await().atMost(Duration.ofSeconds(10)).until(() -> {
+            final RemotingCommand resp = newLeader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
+            if (resp.getCode() == ResponseCode.SUCCESS) {
 
+                return resp;
+            }
+            return null;
+
+        }, item -> item != null);
+        final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) response.readCustomHeader();
+        final SyncStateSet syncStateSetResult = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
         assertEquals(replicaInfo.getMasterAddress(), "127.0.0.1:9000");
         assertEquals(replicaInfo.getMasterEpoch(), 1);
 
