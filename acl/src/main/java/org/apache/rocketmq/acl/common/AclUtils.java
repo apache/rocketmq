@@ -17,14 +17,11 @@
 package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -239,82 +236,38 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
-        Yaml yaml = new Yaml();
-        FileInputStream fis = null;
-        try {
-            fis = new FileInputStream(new File(path));
-            return yaml.loadAs(fis, clazz);
+        try (FileInputStream fis = new FileInputStream(path)) {
+            return getYamlDataObject(fis, clazz);
         } catch (FileNotFoundException ignore) {
             return null;
         } catch (Exception e) {
-            throw new AclException(e.getMessage());
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ignore) {
-                }
-            }
+            throw new AclException(e.getMessage(), e);
+        }
+    }
+
+    public static <T> T getYamlDataObject(InputStream fis, Class<T> clazz) {
+        Yaml yaml = new Yaml();
+        try {
+            return yaml.loadAs(fis, clazz);
+        } catch (Exception e) {
+            throw new AclException(e.getMessage(), e);
         }
     }
 
     public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
         Yaml yaml = new Yaml();
-        PrintWriter pw = null;
-        try {
-            pw = new PrintWriter(new FileWriter(path));
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
             String dumpAsMap = yaml.dumpAsMap(dataMap);
             pw.print(dumpAsMap);
             pw.flush();
         } catch (Exception e) {
-            throw new AclException(e.getMessage());
-        } finally {
-            if (pw != null) {
-                pw.close();
-            }
+            throw new AclException(e.getMessage(), e);
         }
         return true;
     }
 
-    public static boolean copyFile(String from, String to) {
-        FileChannel input = null;
-        FileChannel output = null;
-        try {
-            input = new FileInputStream(new File(from)).getChannel();
-            output = new FileOutputStream(new File(to)).getChannel();
-            output.transferFrom(input, 0, input.size());
-            return true;
-        } catch (Exception e) {
-            log.error("file copy error. from={}, to={}", from, to, e);
-        } finally {
-            closeFileChannel(input);
-            closeFileChannel(output);
-        }
-        return false;
-    }
-
-    public static boolean moveFile(String from, String to) {
-        try {
-            File file = new File(from);
-            return file.renameTo(new File(to));
-        } catch (Exception e) {
-            log.error("file move error. from={}, to={}", from, to, e);
-        }
-        return false;
-    }
-
-    private static void closeFileChannel(FileChannel fileChannel) {
-        if (fileChannel != null) {
-            try {
-                fileChannel.close();
-            } catch (IOException e) {
-                log.error("Close file channel error.", e);
-            }
-        }
-    }
-
     public static RPCHook getAclRPCHook(String fileName) {
-        JSONObject yamlDataObject = null;
+        JSONObject yamlDataObject;
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
                     JSONObject.class);
@@ -322,9 +275,23 @@ public class AclUtils {
             log.error("Convert yaml file to data object error, ", e);
             return null;
         }
+        return buildRpcHook(yamlDataObject);
+    }
 
+    public static RPCHook getAclRPCHook(InputStream inputStream) {
+        JSONObject yamlDataObject = null;
+        try {
+            yamlDataObject = AclUtils.getYamlDataObject(inputStream, JSONObject.class);
+        } catch (Exception e) {
+            log.error("Convert yaml file to data object error, ", e);
+            return null;
+        }
+        return buildRpcHook(yamlDataObject);
+    }
+
+    private static RPCHook buildRpcHook(JSONObject yamlDataObject) {
         if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            log.warn("Cannot find conf file :{}, acl isn't be enabled.", fileName);
+            log.warn("Failed to parse configuration to enable ACL.");
             return null;
         }
 
@@ -332,8 +299,7 @@ public class AclUtils {
         String secretKey = yamlDataObject.getString(AclConstants.CONFIG_SECRET_KEY);
 
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
-            log.warn("AccessKey or secretKey is blank, the acl is not enabled.");
-
+            log.warn("Failed to enable ACL. Either AccessKey or secretKey is blank");
             return null;
         }
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));

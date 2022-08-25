@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -50,6 +51,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.assertj.core.util.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,6 +100,8 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
+        messageStoreConfig.setHaListenPort(0);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
         boolean load = master.load();
@@ -134,6 +138,10 @@ public class DefaultMessageStoreTest {
     }
 
     private MessageStore buildMessageStore() throws Exception {
+        return buildMessageStore(null);
+    }
+
+    private MessageStore buildMessageStore(String storePathRootDir) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
@@ -141,8 +149,16 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStoreConfig.setHaListenPort(0);
+        if (Strings.isNullOrEmpty(storePathRootDir)) {
+            UUID uuid = UUID.randomUUID();
+            storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-" + uuid.toString();
+        }
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        return new DefaultMessageStore(messageStoreConfig,
+                new BrokerStatsManager("simpleTest", true),
+                new MyMessageArrivingListener(),
+                new BrokerConfig());
     }
 
     private MessageStore buildMessageStoreMutiPath() throws Exception {
@@ -652,14 +668,15 @@ public class DefaultMessageStoreTest {
 
         //1.just reboot
         messageStore.shutdown();
-        messageStore = buildMessageStore();
+        String storeRootDir = ((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir();
+        messageStore = buildMessageStore(storeRootDir);
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
         assertTrue(maxPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(maxCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
-        //2.damage commitlog and reboot normal
+        //2.damage commit-log and reboot normal
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -679,10 +696,10 @@ public class DefaultMessageStoreTest {
         messageStore.shutdown();
 
         //damage last message
-        damageCommitlog(secondLastPhyOffset);
+        damageCommitLog((DefaultMessageStore) messageStore, secondLastPhyOffset);
 
         //reboot
-        messageStore = buildMessageStore();
+        messageStore = buildMessageStore(storeRootDir);
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -708,14 +725,14 @@ public class DefaultMessageStoreTest {
         messageStore.shutdown();
 
         //damage last message
-        damageCommitlog(secondLastPhyOffset);
+        damageCommitLog((DefaultMessageStore) messageStore, secondLastPhyOffset);
         //add abort file
         String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
         File file = new File(fileName);
         UtilAll.ensureDirOK(file.getParent());
         file.createNewFile();
 
-        messageStore = buildMessageStore();
+        messageStore = buildMessageStore(storeRootDir);
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -747,24 +764,23 @@ public class DefaultMessageStoreTest {
         return false;
     }
 
-    private void damageCommitlog(long offset) throws Exception {
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+    private void damageCommitLog(DefaultMessageStore store, long offset) throws Exception {
+        assertThat(store).isNotNull();
+        MessageStoreConfig messageStoreConfig = store.getMessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
-
-        FileChannel fileChannel = new RandomAccessFile(file, "rw").getChannel();
-        MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
-
-        int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
-        int topicLenIndex = (int) offset + 84 + bodyLen + 4;
-        mappedByteBuffer.position(topicLenIndex);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-
-        mappedByteBuffer.force();
-        fileChannel.force(true);
-        fileChannel.close();
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw");
+             FileChannel fileChannel = raf.getChannel()) {
+            MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
+            int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
+            int topicLenIndex = (int) offset + 84 + bodyLen + 4;
+            mappedByteBuffer.position(topicLenIndex);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.force();
+            fileChannel.force(true);
+        }
     }
 
     @Test

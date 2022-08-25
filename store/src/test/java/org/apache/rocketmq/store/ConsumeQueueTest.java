@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,7 +48,7 @@ public class ConsumeQueueTest {
 
     private static final String topic = "abc";
     private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 8;
     private static final int cqFileSize = 10 * 20;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -119,7 +121,7 @@ public class ConsumeQueueTest {
         messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
-
+        messageStoreConfig.setHaListenPort(0);
         messageStoreConfig.setStorePathRootDir(storePath);
         messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
 
@@ -428,5 +430,51 @@ public class ConsumeQueueTest {
             master.destroy();
             UtilAll.deleteFile(new File(storePath));
         }
+    }
+
+    @Test
+    public void testCorrectMinOffset() {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "test_correct_min_offset");
+        tmpDir.deleteOnExit();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        int max = 10000;
+        int message_size = 100;
+        for (int i = 0; i < max; ++i) {
+            DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, message_size * i, message_size, 0, 0, i, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+        }
+
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset(100);
+        consumeQueue.correctMinOffset(2000);
+        Assert.assertEquals(20, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset((max - 1) * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * message_size);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+
+        consumeQueue.setMinLogicOffset(max * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * message_size);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+        consumeQueue.destroy();
     }
 }

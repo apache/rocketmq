@@ -32,4 +32,12 @@ github:
     rebase: true
   protected_branches:
     master: {}
-    develop: {}
+    develop:
+      required_status_checks:
+        contexts:
+          - misspell-check
+          - check-license
+          - maven-compile (ubuntu-18.04, JDK-8)
+          - bazel-compile (ubuntu-18.04)
+          - bazel-compile (ubuntu-20.04)
+          - bazel-compile (ubuntu-22.04)

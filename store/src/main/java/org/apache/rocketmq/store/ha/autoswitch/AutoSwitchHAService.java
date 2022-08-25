@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -69,7 +70,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
         this.epochCache.initCacheFromFile();
         this.defaultMessageStore = defaultMessageStore;
-        this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
@@ -262,6 +263,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
         return syncStateSet.size();
     }
@@ -392,14 +394,18 @@ public class AutoSwitchHAService extends DefaultHAService {
         return reputFromOffset;
     }
 
+    public int getLastEpoch() {
+        return this.epochCache.lastEpoch();
+    }
+
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
 
-        public AutoSwitchAcceptSocketService(int port) {
-            super(port);
+        public AutoSwitchAcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            super(messageStoreConfig);
         }
 
         @Override
