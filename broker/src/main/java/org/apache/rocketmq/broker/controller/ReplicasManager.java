@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.MixAll;
@@ -44,6 +45,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
+
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
 /**
  * The manager of broker replicas, including: 0.regularly syncing controller metadata, change controller leader address,
@@ -95,7 +98,6 @@ public class ReplicasManager {
         return this.haService.getConfirmOffset();
     }
 
-
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
@@ -116,7 +118,8 @@ public class ReplicasManager {
                     }
                     retryTimes++;
                     LOGGER.warn("Failed to start replicasManager, retry times:{}, current state:{}, try it again", retryTimes, this.state);
-                } while (!startBasicService());
+                }
+                while (!startBasicService());
 
                 LOGGER.info("Start replicasManager success, retry times:{}", retryTimes);
             });
@@ -286,8 +289,8 @@ public class ReplicasManager {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
             final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
-                    this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
-                    this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
+                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
+                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -343,6 +346,16 @@ public class ReplicasManager {
                         if (isMasterState()) {
                             changeSyncStateSet(syncStateSet.getSyncStateSet(), syncStateSet.getSyncStateSetEpoch());
                         }
+                    }
+                }
+            } catch (final MQBrokerException exception) {
+                LOGGER.warn("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), exception);
+                if (exception.getResponseCode() == CONTROLLER_BROKER_METADATA_NOT_EXIST) {
+                    try {
+                        registerBrokerToController();
+                        TimeUnit.SECONDS.sleep(2);
+                    } catch (InterruptedException ignore) {
+
                     }
                 }
             } catch (final Exception e) {

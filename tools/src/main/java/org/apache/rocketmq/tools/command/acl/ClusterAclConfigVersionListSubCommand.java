@@ -80,7 +80,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
                 printClusterBaseInfo(defaultMQAdminExt, addr);
 
-                System.out.printf("get broker's plain access config version success.%n", addr);
+                System.out.printf("get broker's plain access config version success. Address:%s %n", addr);
                 return;
 
             } else if (commandLine.hasOption('c')) {

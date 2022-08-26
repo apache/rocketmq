@@ -128,6 +128,7 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class BrokerOuterAPI {
@@ -1172,6 +1173,9 @@ public class BrokerOuterAPI {
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
+            }
+            case CONTROLLER_BROKER_METADATA_NOT_EXIST: {
+                throw new MQBrokerException(response.getCode(), response.getRemark());
             }
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());

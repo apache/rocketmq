@@ -114,6 +114,10 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 queueId = Integer.valueOf(commandLine.getOptionValue('q'));
             }
 
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+            }
+
             defaultMQAdminExt.start();
 
             if (brokerAddr != null && queueId > -1) {

@@ -49,9 +49,9 @@ public class MultiDispatchTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "unitteststore1");
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1");
         messageStoreConfig.setStorePathCommitLog(
-            System.getProperty("user.home") + File.separator + "unitteststore1" + File.separator + "commitlog");
+            System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1" + File.separator + "commitlog");
 
         messageStoreConfig.setEnableLmq(true);
         messageStoreConfig.setEnableMultiDispatch(true);
@@ -64,7 +64,7 @@ public class MultiDispatchTest {
 
     @After
     public void destroy() {
-        UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "unitteststore1"));
+        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1"));
     }
 
     @Test

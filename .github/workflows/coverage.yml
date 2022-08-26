@@ -14,8 +14,9 @@ jobs:
         with:
           java-version: "8"
           distribution: "adopt"
+          cache: "maven"
       - name: Generate coverage report
-        run: mvn -B test --file pom.xml
+        run: mvn -B test -T 2C --file pom.xml
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:

@@ -1050,7 +1050,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         Validators.checkMessage(msg, defaultMQProducer);
 
                         if (!msg.getTopic().equals(mq.getTopic())) {
-                            throw new MQClientException("message's topic not equal mq's topic", null);
+                            throw new MQClientException("Topic of the message does not match its target message queue", null);
                         }
                         try {
                             sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null,
