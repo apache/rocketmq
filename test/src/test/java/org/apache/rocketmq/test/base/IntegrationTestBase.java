@@ -56,14 +56,11 @@ public class IntegrationTestBase {
     public static volatile int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
-    private static final AtomicInteger port = new AtomicInteger(40000);
-
-    public static synchronized int nextPort() {
-        return port.addAndGet(random.nextInt(10) + 10);
-    }
     protected static Random random = new Random();
 
     static {
+
+        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -99,7 +96,7 @@ public class IntegrationTestBase {
     }
 
     public static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + SEP + "unitteststore-" + UUID.randomUUID();
+        String baseDir = System.getProperty("java.io.tmpdir") + SEP + "unitteststore-" + UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             logger.info(String.format("[%s] has already existed, please back up and remove it for integration tests", baseDir));
@@ -116,7 +113,7 @@ public class IntegrationTestBase {
         namesrvConfig.setKvConfigPath(baseDir + SEP + "namesrv" + SEP + "kvConfig.json");
         namesrvConfig.setConfigStorePath(baseDir + SEP + "namesrv" + SEP + "namesrv.properties");
 
-        nameServerNettyServerConfig.setListenPort(nextPort());
+        nameServerNettyServerConfig.setListenPort(0);
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
             Truth.assertThat(namesrvController.initialize()).isTrue();
@@ -154,8 +151,8 @@ public class IntegrationTestBase {
     public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        nettyServerConfig.setListenPort(nextPort());
-        storeConfig.setHaListenPort(nextPort());
+        nettyServerConfig.setListenPort(0);
+        storeConfig.setHaListenPort(0);
         BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
         try {
             Truth.assertThat(brokerController.initialize()).isTrue();

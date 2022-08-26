@@ -100,8 +100,6 @@ public class TimerMessageStoreTest {
 
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = messageStore.load();
-        List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
-
         assertTrue(load);
         messageStore.start();
     }

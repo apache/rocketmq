@@ -168,18 +168,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
 
     @Test
     public void testLocalActing_notAckSlave() throws Exception {
-//        master1With3Replicas.getBrokerConfig().setReviveMaxSlow(0L);
-//        master1With3Replicas.getBrokerConfig().setReviveInterval(0L);
-//        //master1With3Replicas.getMessageStoreConfig().setMessageDelayLevel("1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s");
-//
-//        master2With3Replicas.getBrokerConfig().setReviveMaxSlow(0L);
-//        master2With3Replicas.getBrokerConfig().setReviveInterval(0L);
-//        //master2With3Replicas.getMessageStoreConfig().setMessageDelayLevel("1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s");
-//
-//        master3With3Replicas.getBrokerConfig().setReviveMaxSlow(0L);
-//        master3With3Replicas.getBrokerConfig().setReviveInterval(0L);
-//        //master3With3Replicas.getMessageStoreConfig().setMessageDelayLevel("1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s 1s");
-
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
         String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);

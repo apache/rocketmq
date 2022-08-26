@@ -250,6 +250,11 @@ public class NamesrvController {
         this.remotingServer.start();
         this.remotingClient.start();
 
+        // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
+        if (0 == nettyServerConfig.getListenPort()) {
+            nettyServerConfig.setListenPort(this.remotingServer.localListenPort());
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.start();
         }

@@ -26,11 +26,9 @@ import org.junit.Test;
 
 public class CleanUnusedTopicCommandTest extends ServerResponseMocker {
 
-    private static final int PORT = 45678;
-
     @Override
     protected int getPort() {
-        return PORT;
+        return 0;
     }
 
     @Override
@@ -42,7 +40,7 @@ public class CleanUnusedTopicCommandTest extends ServerResponseMocker {
     public void testExecute() throws SubCommandException {
         CleanUnusedTopicCommand cmd = new CleanUnusedTopicCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-b 127.0.0.1:" + PORT, "-c default-cluster"};
+        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort(), "-c default-cluster"};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
