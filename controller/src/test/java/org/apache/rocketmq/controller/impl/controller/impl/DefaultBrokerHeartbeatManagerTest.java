@@ -44,7 +44,7 @@ public class DefaultBrokerHeartbeatManagerTest {
             System.out.println("Broker shutdown:" + brokerAddress);
             latch.countDown();
         });
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:7000", 1L, 3000L, null);
+        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:7000", 1L, 3000L, null, 1, 1L);
         assertTrue(latch.await(5000, TimeUnit.MILLISECONDS));
         this.heartbeatManager.shutdown();
     }

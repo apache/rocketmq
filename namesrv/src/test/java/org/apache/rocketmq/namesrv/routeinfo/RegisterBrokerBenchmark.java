@@ -145,6 +145,7 @@ public class RegisterBrokerBenchmark {
         routeInfoManager.registerBroker("DefaultCluster" + index,
             "127.0.0.1:500" + index,
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
+            "",
             null,
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);
     }
@@ -167,6 +168,7 @@ public class RegisterBrokerBenchmark {
         routeInfoManager.registerBroker("DefaultCluster" + index,
             "127.0.0.1:500" + index,
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
+            "",
             null,
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);
     }

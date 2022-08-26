@@ -780,8 +780,7 @@ public class CommitLog implements Swappable {
             msg.setStoreTimestamp(System.currentTimeMillis());
         }
 
-        // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
+        // Set the message body CRC (consider the most appropriate setting on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
         AppendMessageResult result = null;

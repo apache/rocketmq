@@ -60,6 +60,7 @@ import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -796,7 +797,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (!hasConsumed) {
-            HashMap<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
+            Map<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                 MessageQueue queue = new MessageQueue(topic, queueData.getBrokerName(), i);
                 OffsetWrapper offsetWrapper = new OffsetWrapper();
@@ -1106,7 +1107,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return adminToolExecute(new AdminToolHandler() {
             @Override
             public AdminToolResult doExecute() throws Exception {
-                final List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
+                final List<QueueTimeSpan> spanSet = new CopyOnWriteArrayList<>();
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
 
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
@@ -1474,10 +1475,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
-    public static void main(String[] args) {
-        Arrays.asList(null);
-    }
-
     public boolean consumed(final MessageExt msg,
         final String group) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
 
@@ -1794,6 +1791,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName,
+        String brokerName, String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerAddr);
+    }
+
+    @Override
     public GroupForbidden updateAndGetGroupReadForbidden(String brokerAddr, String groupName, String topicName,
         Boolean readable) throws RemotingException, InterruptedException, MQBrokerException {
         UpdateGroupForbiddenRequestHeader requestHeader = new UpdateGroupForbiddenRequestHeader();
@@ -1823,7 +1826,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mqClientInstance.getMQClientAPIImpl().getControllerConfig(controllerServers, timeoutMillis);
     }
 
-    @Override public void updateControllerConfig(Properties properties,
+    @Override
+    public void updateControllerConfig(Properties properties,
         List<String> controllers) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
         RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
         this.mqClientInstance.getMQClientAPIImpl().updateControllerConfig(properties, controllers, timeoutMillis);

@@ -14,21 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.util;
+package org.apache.rocketmq.controller.elect;
 
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
 
-public final class MsgUtil {
-    private MsgUtil() {
-    }
+import java.util.Set;
 
-    public static void setMessageDeliverTime(BrokerController brokerController, Message msgInner, long timeMillis) {
-        msgInner.setDelayTimeLevel(brokerController.getScheduleMessageService().computeDelayLevel(timeMillis));
-    }
+public interface ElectPolicy {
 
-    public static long getMessageDeliverTime(BrokerController brokerController, MessageExt msgInner) {
-        return brokerController.getScheduleMessageService().computeDeliverTimestamp(msgInner.getDelayTimeLevel(), msgInner.getStoreTimestamp());
-    }
+    /**
+     * elect a master
+     *
+     * @param clusterName       the brokerGroup belongs
+     * @param syncStateBrokers  all broker replicas in syncStateSet
+     * @param allReplicaBrokers all broker replicas
+     * @param oldMaster         old master
+     * @param preferBrokerAddr  the broker prefer to be elected
+     * @return new master's brokerAddr
+     */
+    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr);
+
 }
