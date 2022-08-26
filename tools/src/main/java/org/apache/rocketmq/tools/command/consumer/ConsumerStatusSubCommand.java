@@ -77,6 +77,10 @@ public class ConsumerStatusSubCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+        if (commandLine.hasOption('n')) {
+            defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+        }
+
         try {
             defaultMQAdminExt.start();
             String group = commandLine.getOptionValue('g').trim();

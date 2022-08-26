@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -43,7 +44,8 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
     private String groupPerms;
     
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 
@@ -109,5 +111,19 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
 
     public void setGroupPerms(String groupPerms) {
         this.groupPerms = groupPerms;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("accessKey", accessKey)
+            .add("secretKey", secretKey)
+            .add("whiteRemoteAddress", whiteRemoteAddress)
+            .add("admin", admin)
+            .add("defaultTopicPerm", defaultTopicPerm)
+            .add("defaultGroupPerm", defaultGroupPerm)
+            .add("topicPerms", topicPerms)
+            .add("groupPerms", groupPerms)
+            .toString();
     }
 }

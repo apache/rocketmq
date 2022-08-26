@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class Consumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws MQClientException {
         CommandLine commandLine = buildCommandline(args);
         if (commandLine != null) {
             String group = commandLine.getOptionValue('g');

@@ -50,18 +50,18 @@ public class RemoteAddressStrategyFactory {
                 String[] strArray = StringUtils.split(remoteAddr, ":");
                 String last = strArray[strArray.length - 1];
                 if (!last.startsWith("{")) {
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress: %s", remoteAddr));
                 }
                 return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
                 // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
                 if (strArray.length < 4) {
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s) ", remoteAddr));
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s): %s ", remoteAddr));
                 }
                 String lastStr = strArray[strArray.length - 1];
                 if (!lastStr.startsWith("{")) {
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress: %s", remoteAddr));
                 }
                 return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, lastStr));
             }
