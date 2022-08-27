@@ -408,6 +408,7 @@ public class DefaultMQProducerTest {
         RequestCallback requestCallback = new RequestCallback() {
             @Override
             public void onSuccess(Message message) {
+                assertThat(message).isExactlyInstanceOf(MessageExt.class);
                 assertThat(message.getTopic()).isEqualTo("FooBar");
                 assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
                 assertThat(message.getFlag()).isEqualTo(1);
