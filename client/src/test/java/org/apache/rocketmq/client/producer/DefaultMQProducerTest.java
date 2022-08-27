@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -377,15 +378,19 @@ public class DefaultMQProducerTest {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
                     }
+                    MessageExt responseMsg = new MessageExt();
+                    responseMsg.setTopic(message.getTopic());
+                    responseMsg.setBody(message.getBody());
                     for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                         RequestResponseFuture future = entry.getValue();
-                        future.putResponseMessage(message);
+                        future.putResponseMessage(responseMsg);
                     }
                 }
             }
         }).start();
         Message result = producer.request(message, 3 * 1000L);
         finish.getAndSet(true);
+        assertThat(result).isExactlyInstanceOf(MessageExt.class);
         assertThat(result.getTopic()).isEqualTo("FooBar");
         assertThat(result.getBody()).isEqualTo(new byte[] {'a'});
     }
@@ -403,6 +408,7 @@ public class DefaultMQProducerTest {
         RequestCallback requestCallback = new RequestCallback() {
             @Override
             public void onSuccess(Message message) {
+                assertThat(message).isExactlyInstanceOf(MessageExt.class);
                 assertThat(message.getTopic()).isEqualTo("FooBar");
                 assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
                 assertThat(message.getFlag()).isEqualTo(1);
@@ -416,11 +422,15 @@ public class DefaultMQProducerTest {
         producer.request(message, requestCallback, 3 * 1000L);
         ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
         assertThat(responseMap).isNotNull();
+
+        MessageExt responseMsg = new MessageExt();
+        responseMsg.setTopic(message.getTopic());
+        responseMsg.setBody(message.getBody());
+        responseMsg.setFlag(1);
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
             future.setSendRequestOk(true);
-            message.setFlag(1);
-            future.getRequestCallback().onSuccess(message);
+            future.getRequestCallback().onSuccess(responseMsg);
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
