@@ -18,13 +18,13 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -39,7 +39,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class ConsumeQueueTest {
 
@@ -181,7 +183,7 @@ public class ConsumeQueueTest {
         return master;
     }
 
-    protected void putMsg(DefaultMessageStore master) throws Exception {
+    protected void putMsg(DefaultMessageStore master) {
         long totalMsgs = 200;
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -193,7 +195,7 @@ public class ConsumeQueueTest {
         }
     }
 
-    protected void putMsgMultiQueue(DefaultMessageStore master) throws Exception {
+    protected void putMsgMultiQueue(DefaultMessageStore master) {
         for (long i = 0; i < 1; i++) {
             master.putMessage(buildMessageMultiQueue());
         }
@@ -285,7 +287,6 @@ public class ConsumeQueueTest {
         try {
             messageStore = genForMultiQueue();
 
-
             int totalMessages = 10;
 
             for (int i = 0; i < totalMessages; i++) {
@@ -294,7 +295,7 @@ public class ConsumeQueueTest {
             Thread.sleep(5);
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
+            Method method = ((ConsumeQueue) cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
 
             assertThat(method).isNotNull();
 
@@ -307,7 +308,7 @@ public class ConsumeQueueTest {
 
             assertThat(cq).isNotNull();
 
-            Object dispatchResult = method.invoke(cq,  dispatchRequest);
+            Object dispatchResult = method.invoke(cq, dispatchRequest);
 
             ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
@@ -383,15 +384,17 @@ public class ConsumeQueueTest {
         });
 
         try {
-            try {
-                putMsg(master);
-                Thread.sleep(3000L);//wait ConsumeQueue create success.
-            } catch (Exception e) {
-                e.printStackTrace();
-                assertThat(Boolean.FALSE).isTrue();
-            }
 
-            ConsumeQueueInterface cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            putMsg(master);
+            final DefaultMessageStore master1 = master;
+            ConsumeQueueInterface cq = await().atMost(3, SECONDS).until(() -> {
+                ConcurrentMap<Integer, ConsumeQueueInterface> map = master1.getConsumeQueueTable().get(topic);
+                if (map == null) {
+                    return null;
+                }
+                ConsumeQueueInterface anInterface = map.get(queueId);
+                return anInterface;
+            }, item -> null != item);
 
             assertThat(cq).isNotNull();
 
