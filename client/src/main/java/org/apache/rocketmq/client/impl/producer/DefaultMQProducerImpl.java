@@ -1374,7 +1374,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
-                    requestResponseFuture.putResponseMessage(msg);
                 }
 
                 @Override
