@@ -140,7 +140,11 @@ public class GrpcBaseIT extends BaseConf {
         if (mockProxyHomeURL != null) {
             mockProxyHome = mockProxyHomeURL.toURI().getPath();
         }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+
+        if (null != mockProxyHome) {
+            System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+        }
+
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setGrpcServerPort(port);
@@ -752,6 +756,7 @@ public class GrpcBaseIT extends BaseConf {
     public Settings buildSimpleConsumerClientSettings(String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
             .setSubscription(Subscription.newBuilder()
                 .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
@@ -765,6 +770,7 @@ public class GrpcBaseIT extends BaseConf {
     public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
             .setBackoffPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(maxDeliveryAttempts)
                 .build())

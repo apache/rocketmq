@@ -20,28 +20,29 @@ public enum MetricCollectorMode {
     /**
      * Do not collect the metric from clients.
      */
-    OFF(0),
+    OFF("off"),
     /**
      * Collect the metric from clients to the given address.
      */
-    ON(1),
+    ON("on"),
     /**
      * Collect the metric by the proxy itself.
      */
-    PROXY(2);
-    private final int ordinal;
+    PROXY("proxy");
 
-    MetricCollectorMode(int ordinal) {
-        this.ordinal = ordinal;
+    private final String modeString;
+
+    MetricCollectorMode(String modeString) {
+        this.modeString = modeString;
     }
 
-    public int getOrdinal() {
-        return ordinal;
+    public String getModeString() {
+        return modeString;
     }
 
-    public static MetricCollectorMode getEnumByOrdinal(int ordinal) {
+    public static MetricCollectorMode getEnumByString(String modeString) {
         for (MetricCollectorMode mode : MetricCollectorMode.values()) {
-            if (mode.ordinal == ordinal) {
+            if (mode.modeString.equals(modeString.toLowerCase())) {
                 return mode;
             }
         }

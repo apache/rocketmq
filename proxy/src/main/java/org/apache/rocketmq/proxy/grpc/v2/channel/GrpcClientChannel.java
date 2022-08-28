@@ -20,17 +20,23 @@ import apache.rocketmq.v2.PrintThreadStackTraceCommand;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.VerifyMessageCommand;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
+import com.google.protobuf.TextFormat;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.ChannelId;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
@@ -40,12 +46,13 @@ import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends ProxyChannel {
-
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected static final String SEPARATOR = "@";
 
     private final GrpcChannelManager grpcChannelManager;
 
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
+    private final Object telemetryWriteLock = new Object();
     private final String group;
     private final String clientId;
 
@@ -101,6 +108,10 @@ public class GrpcClientChannel extends ProxyChannel {
         this.telemetryCommandRef.set(future);
     }
 
+    protected void clearClientObserver(StreamObserver<TelemetryCommand> future) {
+        this.telemetryCommandRef.compareAndSet(future, null);
+    }
+
     @Override
     public boolean isOpen() {
         return this.telemetryCommandRef.get() != null;
@@ -120,7 +131,7 @@ public class GrpcClientChannel extends ProxyChannel {
     protected CompletableFuture<Void> processOtherMessage(Object msg) {
         if (msg instanceof TelemetryCommand) {
             TelemetryCommand response = (TelemetryCommand) msg;
-            this.getTelemetryCommandStreamObserver().onNext(response);
+            this.writeTelemetryCommand(response);
         }
         return CompletableFuture.completedFuture(null);
     }
@@ -130,7 +141,7 @@ public class GrpcClientChannel extends ProxyChannel {
         MessageExt messageExt, TransactionData transactionData, CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
         CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
-            this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
+            this.writeTelemetryCommand(TelemetryCommand.newBuilder()
                 .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                     .setTransactionId(transactionData.getTransactionId())
                     .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
@@ -152,7 +163,7 @@ public class GrpcClientChannel extends ProxyChannel {
         if (!header.isJstackEnable()) {
             return CompletableFuture.completedFuture(null);
         }
-        this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
+        this.writeTelemetryCommand(TelemetryCommand.newBuilder()
             .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
                 .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))
                 .build())
@@ -164,7 +175,7 @@ public class GrpcClientChannel extends ProxyChannel {
     protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,
         MessageExt messageExt, CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
-        this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
+        this.writeTelemetryCommand(TelemetryCommand.newBuilder()
             .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
                 .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))
                 .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
@@ -189,7 +200,34 @@ public class GrpcClientChannel extends ProxyChannel {
         return localAddress;
     }
 
-    public StreamObserver<TelemetryCommand> getTelemetryCommandStreamObserver() {
-        return this.telemetryCommandRef.get();
+    public void writeTelemetryCommand(TelemetryCommand command) {
+        StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
+        if (observer == null) {
+            log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+            return;
+        }
+        synchronized (this.telemetryWriteLock) {
+            observer = this.telemetryCommandRef.get();
+            if (observer == null) {
+                log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+                return;
+            }
+            try {
+                observer.onNext(command);
+            } catch (StatusRuntimeException | IllegalStateException exception) {
+                log.warn("write telemetry failed. command:{}", command, exception);
+                this.clearClientObserver(observer);
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("group", group)
+            .add("clientId", clientId)
+            .add("remoteAddress", getRemoteAddress())
+            .add("localAddress", getLocalAddress())
+            .toString();
     }
 }

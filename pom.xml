@@ -126,7 +126,10 @@
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
         <rocketmq-proto.version>2.0.0</rocketmq-proto.version>
         <grpc.version>1.45.0</grpc.version>
-        <protobuf-java-util.version>3.20.1</protobuf-java-util.version>
+        <protobuf.version>3.20.1</protobuf.version>
+        <disruptor.version>1.2.10</disruptor.version>
+        <org.relection.version>0.9.11</org.relection.version>
+        <caffeine.version>2.9.3</caffeine.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -212,7 +215,8 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
+                        <dependencyConvergence/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -331,6 +335,13 @@
                         <configuration>
                             <destFile>${project.build.directory}/jacoco.exec</destFile>
                         </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
                     </execution>
                     <execution>
                         <id>default-prepare-agent-integration</id>
@@ -492,6 +503,20 @@
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
                 <version>${rocketmq-proto.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-protobuf</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-stub</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
@@ -574,11 +599,6 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.openmessaging.storage</groupId>
-                <artifactId>dledger</artifactId>
-                <version>${dleger.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
@@ -634,6 +654,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
@@ -701,11 +727,23 @@
                 <groupId>io.jaegertracing</groupId>
                 <artifactId>jaeger-core</artifactId>
                 <version>${jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.gson</groupId>
+                        <artifactId>gson</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.jaegertracing</groupId>
                 <artifactId>jaeger-client</artifactId>
                 <version>${jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.openmessaging.storage</groupId>
@@ -744,6 +782,18 @@
                 <groupId>com.google.truth</groupId>
                 <artifactId>truth</artifactId>
                 <version>${truth.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <!--only used in the test module-->
+            <dependency>
+                <groupId>org.reflections</groupId>
+                <artifactId>reflections</artifactId>
+                <version>${org.relection.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
@@ -754,6 +804,12 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-protobuf</artifactId>
                 <version>${grpc.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
@@ -774,7 +830,23 @@
             <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf-java-util.version}</version>
+                <version>${protobuf.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.conversantmedia</groupId>
+                <artifactId>disruptor</artifactId>
+                <version>${disruptor.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

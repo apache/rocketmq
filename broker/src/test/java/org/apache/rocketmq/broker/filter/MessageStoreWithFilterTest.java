@@ -61,7 +61,7 @@ public class MessageStoreWithFilterTest {
 
     private static final String topic = "topic";
     private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 1024 * 256;
     private static final int cqFileSize = 300000 * 20;
     private static final int cqExtFileSize = 300000 * 128;
@@ -353,7 +353,8 @@ public class MessageStoreWithFilterTest {
         putMsg(master, topicCount, msgPerTopic);
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
-            @Override public void run() throws Throwable {
+            @Override
+            public void run() throws Throwable {
                 for (int i = 0; i < topicCount; i++) {
                     final String realTopic = topic + i;
                     GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,

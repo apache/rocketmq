@@ -168,21 +168,22 @@ public class ClusterTransactionService extends AbstractTransactionService {
         if (clusterHeartbeatData.isEmpty()) {
             return;
         }
+        Map<String, String> brokerAddrNameMap = new ConcurrentHashMap<>();
         Set<Map.Entry<String, List<HeartbeatData>>> clusterEntry = clusterHeartbeatData.entrySet();
         for (Map.Entry<String, List<HeartbeatData>> entry : clusterEntry) {
-            sendHeartBeatToCluster(entry.getKey(), entry.getValue());
+            sendHeartBeatToCluster(entry.getKey(), entry.getValue(), brokerAddrNameMap);
         }
+        this.brokerAddrNameMapRef.set(brokerAddrNameMap);
     }
 
     public Map<String, Set<ClusterData>> getGroupClusterData() {
         return groupClusterData;
     }
 
-    protected void sendHeartBeatToCluster(String clusterName, List<HeartbeatData> heartbeatDataList) {
+    protected void sendHeartBeatToCluster(String clusterName, List<HeartbeatData> heartbeatDataList, Map<String, String> brokerAddrNameMap) {
         if (heartbeatDataList == null) {
             return;
         }
-        Map<String, String> brokerAddrNameMap = new ConcurrentHashMap<>();
         for (HeartbeatData heartbeatData : heartbeatDataList) {
             sendHeartBeatToCluster(clusterName, heartbeatData, brokerAddrNameMap);
         }

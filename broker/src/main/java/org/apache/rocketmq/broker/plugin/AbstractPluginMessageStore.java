@@ -53,6 +53,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
@@ -276,7 +277,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         return next.getConsumeQueue(topic, queueId);
     }
 
-    @Override public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
+    @Override
+    public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
         return next.findConsumeQueue(topic, queueId);
     }
 
@@ -311,39 +313,48 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         return next.getStateMachineVersion();
     }
 
-    @Override public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
+    @Override
+    public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
         return next.putMessages(messageExtBatch);
     }
 
-    @Override public HARuntimeInfo getHARuntimeInfo() {
+    @Override
+    public HARuntimeInfo getHARuntimeInfo() {
         return next.getHARuntimeInfo();
     }
 
-    @Override public boolean getLastMappedFile(long startOffset) {
+    @Override
+    public boolean getLastMappedFile(long startOffset) {
         return next.getLastMappedFile(startOffset);
     }
 
-    @Override public void updateHaMasterAddress(String newAddr) {
+    @Override
+    public void updateHaMasterAddress(String newAddr) {
         next.updateHaMasterAddress(newAddr);
     }
 
-    @Override public void updateMasterAddress(String newAddr) {
+    @Override
+    public void updateMasterAddress(String newAddr) {
         next.updateMasterAddress(newAddr);
     }
 
-    @Override public long slaveFallBehindMuch() {
+    @Override
+    public long slaveFallBehindMuch() {
         return next.slaveFallBehindMuch();
     }
 
-    @Override public long getFlushedWhere() {
+    @Override
+    public long getFlushedWhere() {
         return next.getFlushedWhere();
     }
 
-    @Override public MessageStore getMasterStoreInProcess() {
+    @Override
+    public MessageStore getMasterStoreInProcess() {
         return next.getMasterStoreInProcess();
     }
 
-    @Override public void setMasterStoreInProcess(MessageStore masterStoreInProcess) {
+    @Override
+    public void setMasterStoreInProcess(MessageStore masterStoreInProcess) {
         next.setMasterStoreInProcess(masterStoreInProcess);
     }
 
@@ -352,59 +363,73 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         return next.getData(offset, size, byteBuffer);
     }
 
-    @Override public void setAliveReplicaNumInGroup(int aliveReplicaNums) {
+    @Override
+    public void setAliveReplicaNumInGroup(int aliveReplicaNums) {
         next.setAliveReplicaNumInGroup(aliveReplicaNums);
     }
 
-    @Override public int getAliveReplicaNumInGroup() {
+    @Override
+    public int getAliveReplicaNumInGroup() {
         return next.getAliveReplicaNumInGroup();
     }
 
-    @Override public void wakeupHAClient() {
+    @Override
+    public void wakeupHAClient() {
         next.wakeupHAClient();
     }
 
-    @Override public long getMasterFlushedOffset() {
+    @Override
+    public long getMasterFlushedOffset() {
         return next.getMasterFlushedOffset();
     }
 
-    @Override public long getBrokerInitMaxOffset() {
+    @Override
+    public long getBrokerInitMaxOffset() {
         return next.getBrokerInitMaxOffset();
     }
 
-    @Override public void setMasterFlushedOffset(long masterFlushedOffset) {
+    @Override
+    public void setMasterFlushedOffset(long masterFlushedOffset) {
         next.setMasterFlushedOffset(masterFlushedOffset);
     }
 
-    @Override public void setBrokerInitMaxOffset(long brokerInitMaxOffset) {
+    @Override
+    public void setBrokerInitMaxOffset(long brokerInitMaxOffset) {
         next.setBrokerInitMaxOffset(brokerInitMaxOffset);
     }
 
-    @Override public byte[] calcDeltaChecksum(long from, long to) {
+    @Override
+    public byte[] calcDeltaChecksum(long from, long to) {
         return next.calcDeltaChecksum(from, to);
     }
 
-    @Override public HAService getHaService() {
+    @Override
+    public HAService getHaService() {
         return next.getHaService();
     }
 
-    @Override public boolean truncateFiles(long offsetToTruncate) {
+    @Override
+    public boolean truncateFiles(long offsetToTruncate) {
         return next.truncateFiles(offsetToTruncate);
     }
 
-    @Override public boolean isOffsetAligned(long offset) {
+    @Override
+    public boolean isOffsetAligned(long offset) {
         return next.isOffsetAligned(offset);
     }
 
-    @Override public RunningFlags getRunningFlags() {
+    @Override
+    public RunningFlags getRunningFlags() {
         return next.getRunningFlags();
     }
 
-    @Override public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
+    @Override
+    public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
         next.setSendMessageBackHook(sendMessageBackHook);
     }
 
-    @Override public SendMessageBackHook getSendMessageBackHook() {
+    @Override
+    public SendMessageBackHook getSendMessageBackHook() {
         return next.getSendMessageBackHook();
     }
 
@@ -414,11 +439,13 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         return next.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize, messageFilter);
     }
 
-    @Override public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
+    @Override
+    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         return next.lookMessageByOffset(commitLogOffset, size);
     }
 
-    @Override public List<SelectMappedBufferResult> getBulkCommitLogData(long offset, int size) {
+    @Override
+    public List<SelectMappedBufferResult> getBulkCommitLogData(long offset, int size) {
         return next.getBulkCommitLogData(offset, size);
     }
 
@@ -528,11 +555,28 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         next.setPhysicalOffset(phyOffset);
     }
 
-    @Override public boolean isMappedFilesEmpty() {
+    @Override
+    public boolean isMappedFilesEmpty() {
         return next.isMappedFilesEmpty();
     }
 
-    @Override public boolean isShutdown() {
+    @Override
+    public TimerMessageStore getTimerMessageStore() {
+        return next.getTimerMessageStore();
+    }
+
+    @Override
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        next.setTimerMessageStore(timerMessageStore);
+    }
+
+    @Override
+    public long getTimingMessageCount(String topic) {
+        return next.getTimingMessageCount(topic);
+    }
+
+    @Override
+    public boolean isShutdown() {
         return next.isShutdown();
     }
 }

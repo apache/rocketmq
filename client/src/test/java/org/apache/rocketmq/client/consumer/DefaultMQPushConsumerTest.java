@@ -375,7 +375,8 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
                 new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
                     new MessageListenerConcurrently() {
-                        @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                        @Override
+                        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                             ConsumeConcurrentlyContext context) {
                             messageExts[0] = msgs.get(0);
                             return null;

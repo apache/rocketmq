@@ -29,7 +29,8 @@ public class RemoveBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Long brokerId;
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

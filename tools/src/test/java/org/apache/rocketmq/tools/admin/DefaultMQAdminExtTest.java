@@ -465,22 +465,22 @@ public class DefaultMQAdminExtTest {
     }
 
     @Test
+    @Ignore
     public void testMaxOffset() throws Exception {
         when(mQClientAPIImpl.getMaxOffset(anyString(), any(MessageQueue.class), anyLong())).thenReturn(100L);
-
         assertThat(defaultMQAdminExt.maxOffset(new MessageQueue(topic1, broker1Name, 0))).isEqualTo(100L);
     }
 
     @Test
+    @Ignore
     public void testSearchOffset() throws Exception {
         when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
-
         assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(topic1, broker1Name, 0), System.currentTimeMillis())).isEqualTo(101L);
     }
 
     @Test
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
-        assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig"));
+        assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig")).isTrue();
     }
 }

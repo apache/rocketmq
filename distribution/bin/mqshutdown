@@ -87,5 +87,5 @@ case $1 in
     echo "Send shutdown request to mqproxy(${pid}) OK"
     ;;
     *)
-    echo "Useage: mqshutdown broker | namesrv | controller | proxy"
+    echo "Usage: mqshutdown broker | namesrv | controller | proxy"
 esac

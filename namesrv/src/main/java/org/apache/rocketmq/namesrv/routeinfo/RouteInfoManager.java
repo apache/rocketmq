@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -207,16 +208,17 @@ public class RouteInfoManager {
     }
 
     public RegisterBrokerResult registerBroker(
-        final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
-        final long brokerId,
-        final String haServerAddr,
-        final Long timeoutMillis,
-        final TopicConfigSerializeWrapper topicConfigWrapper,
-        final List<String> filterServerList,
-        final Channel channel) {
-        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
+            final String clusterName,
+            final String brokerAddr,
+            final String brokerName,
+            final long brokerId,
+            final String haServerAddr,
+            final String zoneName,
+            final Long timeoutMillis,
+            final TopicConfigSerializeWrapper topicConfigWrapper,
+            final List<String> filterServerList,
+            final Channel channel) {
+        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, zoneName, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
     }
 
     public RegisterBrokerResult registerBroker(
@@ -225,6 +227,7 @@ public class RouteInfoManager {
         final String brokerName,
         final long brokerId,
         final String haServerAddr,
+        final String zoneName,
         final Long timeoutMillis,
         final Boolean enableActingMaster,
         final TopicConfigSerializeWrapper topicConfigWrapper,
@@ -248,8 +251,9 @@ public class RouteInfoManager {
                 }
 
                 boolean isOldVersionBroker = enableActingMaster == null;
-                brokerData.setEnableActingMaster(!isOldVersionBroker && enableActingMaster);
-
+                brokerData.setEnableActingMaster(isOldVersionBroker ? false : enableActingMaster);
+                brokerData.setZoneName(zoneName);
+                
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
 
                 boolean isMinBrokerIdChanged = false;
@@ -285,8 +289,14 @@ public class RouteInfoManager {
                     }
                 }
 
+                if (!brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
+                    log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
+                            topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
+                    return null;
+                }
+
                 String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
-                registerFirst = registerFirst || (null == oldAddr);
+                registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
                 boolean isMaster = MixAll.MASTER_ID == brokerId;
                 boolean isPrimeSlave = !isOldVersionBroker && !isMaster
@@ -488,7 +498,6 @@ public class RouteInfoManager {
     }
 
     private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
-        Set<String> changedTopics = new HashSet<>();
         int topicCnt = 0;
 
         Iterator<Entry<String, Map<String, QueueData>>> itTopic = this.topicQueueTable.entrySet().iterator();
@@ -682,8 +691,11 @@ public class RouteInfoManager {
                     for (String brokerName : brokerNameSet) {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
-                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
-                                .getBrokerAddrs().clone(), brokerData.isEnableActingMaster());
+                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), 
+                                brokerData.getBrokerName(),
+                                (HashMap<Long, String>) brokerData.getBrokerAddrs().clone(),
+                                brokerData.isEnableActingMaster(), brokerData.getZoneName());
+
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
                             if (!filterServerTable.isEmpty()) {
@@ -992,7 +1004,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getSystemTopicList Exception", e);
         }
 
         return topicList;
@@ -1021,7 +1033,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getTopicsByCluster Exception", e);
         }
 
         return topicList;
@@ -1047,7 +1059,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getUnitTopics Exception", e);
         }
 
         return topicList;
@@ -1073,7 +1085,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubTopicList Exception", e);
         }
 
         return topicList;
@@ -1100,7 +1112,7 @@ public class RouteInfoManager {
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("getHasUnitSubUnUnitTopicList Exception", e);
         }
 
         return topicList;

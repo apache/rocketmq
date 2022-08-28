@@ -32,6 +32,8 @@
 - 当前副本组的存活副本数
 - Master Commitlog和Slave CommitLog的高度差
 
+> **注意：自动降级只在slaveActingMaster模式开启后才生效**
+
 通过Nameserver的反向通知以及GetBrokerMemberGroup请求可以获取当前副本组的存活信息，而Master与Slave的Commitlog高度差也可以通过HA服务中的位点记录计算出来。将增加以下参数完成自动降级：
 
 - **minInSyncReplicas**：最小需保持同步的副本组数量，仅在enableAutoInSyncReplicas为true时生效，默认为1
@@ -64,7 +66,7 @@ private int calcNeedAckNums(int inSyncReplicas) {
 
 ## 兼容性
 
-用户需要设置正确的参数才能完成正确的向后兼容。举个例子，假设用户原集群为两副本同步复制，在没有修改任何参数的情况下，升级到RocketMQ 5的版本，由于totalReplicas、inSyncReplicas默认都为1，将降级为异步复制，如果需要和以前行为保持一致，则需要将totalReplicas和inSyncReplicas均设置为2。
+** 用户需要设置正确的参数才能完成正确的向后兼容。举个例子，假设用户原集群为两副本同步复制，在没有修改任何参数的情况下，升级到RocketMQ 5的版本，由于totalReplicas、inSyncReplicas默认都为1，将降级为异步复制，如果需要和以前行为保持一致，则需要将totalReplicas和inSyncReplicas均设置为2。**
 
 
 参考文档: [原RIP](https://github.com/apache/rocketmq/wiki/RIP-34-Support-quorum-write-and-adaptive-degradation-in-master-slave-architecture)

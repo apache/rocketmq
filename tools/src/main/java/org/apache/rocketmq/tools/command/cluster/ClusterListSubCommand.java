@@ -178,9 +178,9 @@ public class ClusterListSubCommand implements SubCommand {
     }
 
     private void printClusterBaseInfo(final Set<String> clusterNames,
-        final DefaultMQAdminExt defaultMQAdminExt,
-        final ClusterInfo clusterInfo) {
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s %10s%n",
+                                      final DefaultMQAdminExt defaultMQAdminExt,
+                                      final ClusterInfo clusterInfo) {
+        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %16s  %-22s  %-11s  %-12s  %-8s  %-10s%n",
             "#Cluster Name",
             "#Broker Name",
             "#BID",
@@ -188,6 +188,7 @@ public class ClusterListSubCommand implements SubCommand {
             "#Version",
             "#InTPS(LOAD)",
             "#OutTPS(LOAD)",
+            "#Timer(Progress)",
             "#PCWait(ms)",
             "#Hour",
             "#SPACE",
@@ -217,12 +218,17 @@ public class ClusterListSubCommand implements SubCommand {
                         String pageCacheLockTimeMills = "";
                         String earliestMessageTimeStamp = "";
                         String commitLogDiskRatio = "";
+                        long timerReadBehind = 0;
+                        long timerOffsetBehind = 0;
+                        long timerCongestNum = 0;
+                        float timerEnqueueTps = 0.0f;
+                        float timerDequeueTps = 0.0f;
                         boolean isBrokerActive = false;
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             isBrokerActive = Boolean.parseBoolean(kvTable.getTable().get("brokerActive"));
                             String putTps = kvTable.getTable().get("putTps");
-                            String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+                            String getTransferredTps = kvTable.getTable().get("getTransferredTps");
                             sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
                             pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
 
@@ -235,6 +241,15 @@ public class ClusterListSubCommand implements SubCommand {
                             earliestMessageTimeStamp = kvTable.getTable().get("earliestMessageTimeStamp");
                             commitLogDiskRatio = kvTable.getTable().get("commitLogDiskRatio");
 
+                            try {
+                                timerReadBehind = Long.parseLong(kvTable.getTable().get("timerReadBehind"));
+                                timerOffsetBehind = Long.parseLong(kvTable.getTable().get("timerOffsetBehind"));
+                                timerCongestNum = Long.parseLong(kvTable.getTable().get("timerCongestNum"));
+                                timerEnqueueTps = Float.parseFloat(kvTable.getTable().get("timerEnqueueTps"));
+                                timerDequeueTps = Float.parseFloat(kvTable.getTable().get("timerDequeueTps"));
+                            } catch (Throwable ignored) {
+                            }
+
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
                                 String[] tpss = putTps.split(" ");
@@ -244,7 +259,7 @@ public class ClusterListSubCommand implements SubCommand {
                             }
 
                             {
-                                String[] tpss = getTransferedTps.split(" ");
+                                String[] tpss = getTransferredTps.split(" ");
                                 if (tpss.length > 0) {
                                     out = Double.parseDouble(tpss[0]);
                                 }
@@ -265,7 +280,7 @@ public class ClusterListSubCommand implements SubCommand {
                             space = Double.parseDouble(commitLogDiskRatio);
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s %10s%n",
+                        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %16s  %-22s  %11s  %-12s  %-8s  %10s%n",
                             clusterName,
                             brokerName,
                             next1.getKey(),
@@ -273,6 +288,7 @@ public class ClusterListSubCommand implements SubCommand {
                             version,
                             String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
                             String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
+                            String.format("%d-%d(%.1fw, %.1f, %.1f)", timerReadBehind, timerOffsetBehind, timerCongestNum / 10000.0f, timerEnqueueTps, timerDequeueTps),
                             pageCacheLockTimeMills,
                             String.format("%2.2f", hour),
                             String.format("%.4f", space),

@@ -23,6 +23,7 @@ import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.Permission;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -61,14 +63,14 @@ public class RouteActivity extends AbstractMessingActivity {
             validateTopic(request.getTopic());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
+            String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
-                ctx,
-                addressList,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
+                ctx, addressList, topicName);
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
 
+            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(topicName);
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
@@ -76,7 +78,7 @@ public class RouteActivity extends AbstractMessingActivity {
                     break;
                 }
                 for (Broker broker : brokerIdMap.values()) {
-                    messageQueueList.addAll(this.genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
+                    messageQueueList.addAll(this.genMessageQueueFromQueueData(queueData, request.getTopic(), topicMessageType, broker));
                 }
             }
 
@@ -205,7 +207,7 @@ public class RouteActivity extends AbstractMessingActivity {
         return brokerMap;
     }
 
-    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, Broker broker) {
+    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, TopicMessageType topicMessageType, Broker broker) {
         List<MessageQueue> messageQueueList = new ArrayList<>();
 
         int r = 0;
@@ -227,6 +229,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ)
+                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -235,6 +238,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.WRITE)
+                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -243,10 +247,26 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ_WRITE)
+                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
 
         return messageQueueList;
+    }
+
+    private MessageType parseTopicMessageType(TopicMessageType topicMessageType) {
+        switch (topicMessageType) {
+            case NORMAL:
+                return MessageType.NORMAL;
+            case FIFO:
+                return MessageType.FIFO;
+            case TRANSACTION:
+                return MessageType.TRANSACTION;
+            case DELAY:
+                return MessageType.DELAY;
+            default:
+                return MessageType.MESSAGE_TYPE_UNSPECIFIED;
+        }
     }
 }

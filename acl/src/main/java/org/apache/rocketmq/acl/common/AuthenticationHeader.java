@@ -218,7 +218,8 @@ public class AuthenticationHeader {
         this.requestCode = requestCode;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("remoteAddress", remoteAddress)
             .add("tenantId", tenantId)

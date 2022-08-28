@@ -18,13 +18,19 @@
 package org.apache.rocketmq.proxy.service.transaction;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
@@ -33,12 +39,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 public class ClusterTransactionServiceTest extends BaseServiceTest {
@@ -100,6 +108,51 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
     @Test
     public void testScanProducerHeartBeat() throws Exception {
+        Mockito.reset(this.topicRouteService);
+        String BROKER_NAME2 = "broker-2-01";
+        String CLUSTER_NAME2 = "broker-2";
+        String BROKER_ADDR2 = "127.0.0.2:10911";
+
+        BrokerData brokerData = new BrokerData();
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName(BROKER_NAME2);
+        brokerData.setCluster(CLUSTER_NAME2);
+        brokerData.setBrokerName(BROKER_NAME2);
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR2);
+        brokerData.setBrokerAddrs(brokerAddrs);
+        topicRouteData.getQueueDatas().add(queueData);
+        topicRouteData.getBrokerDatas().add(brokerData);
+        when(this.topicRouteService.getAllMessageQueueView(eq(TOPIC))).thenReturn(new MessageQueueView(TOPIC, topicRouteData));
+
+        TopicRouteData clusterTopicRouteData = new TopicRouteData();
+        QueueData clusterQueueData = new QueueData();
+        BrokerData clusterBrokerData = new BrokerData();
+
+        clusterQueueData.setBrokerName(BROKER_NAME);
+        clusterTopicRouteData.setQueueDatas(Lists.newArrayList(clusterQueueData));
+        clusterBrokerData.setCluster(CLUSTER_NAME);
+        clusterBrokerData.setBrokerName(BROKER_NAME);
+        brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR);
+        clusterBrokerData.setBrokerAddrs(brokerAddrs);
+        clusterTopicRouteData.setBrokerDatas(Lists.newArrayList(clusterBrokerData));
+        when(this.topicRouteService.getAllMessageQueueView(eq(CLUSTER_NAME))).thenReturn(new MessageQueueView(CLUSTER_NAME, clusterTopicRouteData));
+
+        TopicRouteData clusterTopicRouteData2 = new TopicRouteData();
+        QueueData clusterQueueData2 = new QueueData();
+        BrokerData clusterBrokerData2 = new BrokerData();
+
+        clusterQueueData2.setBrokerName(BROKER_NAME2);
+        clusterTopicRouteData2.setQueueDatas(Lists.newArrayList(clusterQueueData2));
+        clusterBrokerData2.setCluster(CLUSTER_NAME2);
+        clusterBrokerData2.setBrokerName(BROKER_NAME2);
+        brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR2);
+        clusterBrokerData2.setBrokerAddrs(brokerAddrs);
+        clusterTopicRouteData2.setBrokerDatas(Lists.newArrayList(clusterBrokerData2));
+        when(this.topicRouteService.getAllMessageQueueView(eq(CLUSTER_NAME2))).thenReturn(new MessageQueueView(CLUSTER_NAME2, clusterTopicRouteData2));
+
         ConfigurationManager.getProxyConfig().setTransactionHeartbeatBatchNum(2);
         this.clusterTransactionService.start();
         Set<String> groupSet = new HashSet<>();
@@ -119,18 +172,21 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
         this.clusterTransactionService.scanProducerHeartBeat();
 
-        await().atMost(Duration.ofSeconds(1)).until(() -> brokerAddrArgumentCaptor.getAllValues().size() == 2);
+        await().atMost(Duration.ofSeconds(1)).until(() -> brokerAddrArgumentCaptor.getAllValues().size() == 4);
 
-        assertEquals(Lists.newArrayList(BROKER_ADDR, BROKER_ADDR), brokerAddrArgumentCaptor.getAllValues());
+        assertEquals(Lists.newArrayList(BROKER_ADDR, BROKER_ADDR, BROKER_ADDR2, BROKER_ADDR2),
+            brokerAddrArgumentCaptor.getAllValues().stream().sorted().collect(Collectors.toList()));
+
         List<HeartbeatData> heartbeatDataList = heartbeatDataArgumentCaptor.getAllValues();
-        for (ProducerData producerData : heartbeatDataList.get(0).getProducerDataSet()) {
-            groupSet.remove(producerData.getGroupName());
-        }
 
-        for (ProducerData producerData : heartbeatDataList.get(1).getProducerDataSet()) {
-            groupSet.remove(producerData.getGroupName());
+        for (final HeartbeatData heartbeatData : heartbeatDataList) {
+            for (ProducerData producerData : heartbeatData.getProducerDataSet()) {
+                groupSet.remove(producerData.getGroupName());
+            }
         }
 
         assertTrue(groupSet.isEmpty());
+        assertEquals(BROKER_NAME2, this.clusterTransactionService.getBrokerNameByAddr(BROKER_ADDR2));
+        assertEquals(BROKER_NAME, this.clusterTransactionService.getBrokerNameByAddr(BROKER_ADDR));
     }
 }

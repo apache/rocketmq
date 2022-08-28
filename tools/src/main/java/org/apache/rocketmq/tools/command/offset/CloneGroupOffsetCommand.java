@@ -38,7 +38,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "clone offset from other group.";
+        return "Clone offset from other group.";
     }
 
     @Override

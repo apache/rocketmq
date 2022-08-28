@@ -1,4 +1,5 @@
 # Dledger集群搭建
+> 该模式为4.x的切换方式，建议采用 5.x [自动主从切换](../controller/design.md)
 ---
 ## 前言
 该文档主要介绍如何部署自动容灾切换的 RocketMQ-on-DLedger Group。

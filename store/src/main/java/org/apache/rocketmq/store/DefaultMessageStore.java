@@ -90,6 +90,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public class DefaultMessageStore implements MessageStore {
@@ -134,6 +135,7 @@ public class DefaultMessageStore implements MessageStore {
     private volatile boolean shutdown = true;
 
     private StoreCheckpoint storeCheckpoint;
+    private TimerMessageStore timerMessageStore;
 
     private AtomicLong printTimes = new AtomicLong(0);
 
@@ -813,7 +815,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            this.storeStatsService.getGetMessageTransferedMsgCount().add(1);
+                            this.storeStatsService.getGetMessageTransferredMsgCount().add(1);
                             getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -888,6 +890,16 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return -1;
+    }
+
+    @Override
+    public TimerMessageStore getTimerMessageStore() {
+        return this.timerMessageStore;
+    }
+
+    @Override
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        this.timerMessageStore = timerMessageStore;
     }
 
     @Override
@@ -1632,6 +1644,15 @@ public class DefaultMessageStore implements MessageStore {
 
         LOGGER.info("Recover end total:{} recoverCq:{} recoverClog:{} recoverOffset:{}",
             recoverOffsetEnd - recoverCqStart, recoverCqEnd - recoverCqStart, recoverClogEnd - recoverCqEnd, recoverOffsetEnd - recoverClogEnd);
+    }
+
+    @Override
+    public long getTimingMessageCount(String topic) {
+        if (null == timerMessageStore) {
+            return 0L;
+        } else {
+            return timerMessageStore.getTimerMetrics().getTimingCount(topic);
+        }
     }
 
     @Override
@@ -2582,15 +2603,18 @@ public class DefaultMessageStore implements MessageStore {
         return putMessageHookList;
     }
 
-    @Override public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
+    @Override
+    public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
         this.sendMessageBackHook = sendMessageBackHook;
     }
 
-    @Override public SendMessageBackHook getSendMessageBackHook() {
+    @Override
+    public SendMessageBackHook getSendMessageBackHook() {
         return sendMessageBackHook;
     }
 
-    @Override public boolean isShutdown() {
+    @Override
+    public boolean isShutdown() {
         return shutdown;
     }
 }

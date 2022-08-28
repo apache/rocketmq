@@ -18,7 +18,7 @@
 package org.apache.rocketmq.test.client.consumer.broadcast.normal;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
+import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
+public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadcast {
     private static Logger logger = Logger
         .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
     private RMQNormalProducer producer = null;
@@ -39,7 +39,7 @@ public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
 
     @Before
     public void setUp() {
-        printSeperator();
+        printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);

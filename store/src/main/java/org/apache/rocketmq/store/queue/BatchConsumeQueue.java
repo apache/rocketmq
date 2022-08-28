@@ -449,7 +449,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         final int maxRetries = 30;
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         if (request.getMsgBaseOffset() < 0 || request.getBatchSize() < 0) {
-            log.warn("[NOTIFYME]unexpected dispacth request in batch consume queue topic:{} queue:{} offset:{}", topic, queueId, request.getCommitLogOffset());
+            log.warn("[NOTIFYME]unexpected dispatch request in batch consume queue topic:{} queue:{} offset:{}", topic, queueId, request.getCommitLogOffset());
             return;
         }
         for (int i = 0; i < maxRetries && canWrite; i++) {

@@ -286,7 +286,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
     private void changePopInvisibleTime(final MessageExt msg, String consumerGroup, int delayLevel) {
         if (0 == delayLevel) {
-            delayLevel = 3 + msg.getReconsumeTimes();
+            delayLevel = msg.getReconsumeTimes();
         }
 
         int[] delayLevelTable = this.defaultMQPushConsumerImpl.getPopDelayLevel();
