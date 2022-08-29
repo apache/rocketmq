@@ -26,13 +26,13 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.LifecycleAwareServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-public class FileWatchService extends ServiceThread {
+public class FileWatchService extends LifecycleAwareServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private final List<String> watchFiles;
@@ -47,10 +47,10 @@ public class FileWatchService extends ServiceThread {
         this.watchFiles = new ArrayList<>();
         this.fileCurrentHash = new ArrayList<>();
 
-        for (int i = 0; i < watchFiles.length; i++) {
-            if (!Strings.isNullOrEmpty(watchFiles[i]) && new File(watchFiles[i]).exists()) {
-                this.watchFiles.add(watchFiles[i]);
-                this.fileCurrentHash.add(hash(watchFiles[i]));
+        for (String file : watchFiles) {
+            if (!Strings.isNullOrEmpty(file) && new File(file).exists()) {
+                this.watchFiles.add(file);
+                this.fileCurrentHash.add(hash(file));
             }
         }
     }
@@ -61,7 +61,7 @@ public class FileWatchService extends ServiceThread {
     }
 
     @Override
-    public void run() {
+    public void run0() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
@@ -72,8 +72,8 @@ public class FileWatchService extends ServiceThread {
                     String newHash;
                     try {
                         newHash = hash(watchFiles.get(i));
-                    } catch (Exception ignored) {
-                        log.warn(this.getServiceName() + " service has exception when calculate the file hash. ", ignored);
+                    } catch (Exception e) {
+                        log.warn(this.getServiceName() + " service has exception when calculate the file hash. ", e);
                         continue;
                     }
                     if (!newHash.equals(fileCurrentHash.get(i))) {

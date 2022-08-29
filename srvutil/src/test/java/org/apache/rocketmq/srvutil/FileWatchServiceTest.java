@@ -47,6 +47,7 @@ public class FileWatchServiceTest {
             }
         });
         fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
         modifyFile(file);
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
@@ -64,6 +65,7 @@ public class FileWatchServiceTest {
             }
         });
         fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
         file.delete();
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isFalse();
@@ -87,6 +89,7 @@ public class FileWatchServiceTest {
                 }
             });
         fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
         fileA.delete();
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isFalse();
@@ -114,6 +117,7 @@ public class FileWatchServiceTest {
             }
         });
         fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
         modifyFile(fileA);
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
@@ -133,6 +137,7 @@ public class FileWatchServiceTest {
                 }
             });
         fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
         modifyFile(fileA);
         modifyFile(fileB);
         boolean result = waitSemaphore.tryAcquire(2, 1000, TimeUnit.MILLISECONDS);
