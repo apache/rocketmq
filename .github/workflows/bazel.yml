@@ -1,6 +1,6 @@
 name: Build and Run Tests by Bazel
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize]
   push:
     branches:
