@@ -109,11 +109,9 @@ load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
 
 buildbuddy(name = "buildbuddy_toolchain")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
 http_archive(
     name = "rbe_default",
-    # sha256 = "c0d428774cbe70d477e1d07581d863f8dbff4ba6a66d20502d7118354a814bea",
+    sha256 = "bd55bd8b2ffa850b5683367e7ab0756d6f51088866b2a81e4c07b6e87d04d8c5",
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 

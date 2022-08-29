@@ -29,6 +29,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -39,6 +40,7 @@ import org.junit.Before;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
+import org.junit.BeforeClass;
 
 /**
  * mock server response for command
@@ -48,6 +50,11 @@ public abstract class ServerResponseMocker {
     private int listenPort;
 
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+
+    @BeforeClass
+    public static void setLogHome() {
+        System.setProperty(ClientLogger.CLIENT_LOG_ROOT, System.getProperty("java.io.tmpdir"));
+    }
 
     @Before
     public void before() {
