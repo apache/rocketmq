@@ -208,16 +208,17 @@ public class RouteInfoManager {
     }
 
     public RegisterBrokerResult registerBroker(
-        final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
-        final long brokerId,
-        final String haServerAddr,
-        final Long timeoutMillis,
-        final TopicConfigSerializeWrapper topicConfigWrapper,
-        final List<String> filterServerList,
-        final Channel channel) {
-        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
+            final String clusterName,
+            final String brokerAddr,
+            final String brokerName,
+            final long brokerId,
+            final String haServerAddr,
+            final String zoneName,
+            final Long timeoutMillis,
+            final TopicConfigSerializeWrapper topicConfigWrapper,
+            final List<String> filterServerList,
+            final Channel channel) {
+        return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, zoneName, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
     }
 
     public RegisterBrokerResult registerBroker(
@@ -226,6 +227,7 @@ public class RouteInfoManager {
         final String brokerName,
         final long brokerId,
         final String haServerAddr,
+        final String zoneName,
         final Long timeoutMillis,
         final Boolean enableActingMaster,
         final TopicConfigSerializeWrapper topicConfigWrapper,
@@ -250,7 +252,8 @@ public class RouteInfoManager {
 
                 boolean isOldVersionBroker = enableActingMaster == null;
                 brokerData.setEnableActingMaster(isOldVersionBroker ? false : enableActingMaster);
-
+                brokerData.setZoneName(zoneName);
+                
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
 
                 boolean isMinBrokerIdChanged = false;
@@ -284,6 +287,12 @@ public class RouteInfoManager {
                             return result;
                         }
                     }
+                }
+
+                if (!brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
+                    log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
+                            topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
+                    return null;
                 }
 
                 String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
@@ -682,8 +691,11 @@ public class RouteInfoManager {
                     for (String brokerName : brokerNameSet) {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
-                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
-                                .getBrokerAddrs().clone(), brokerData.isEnableActingMaster());
+                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), 
+                                brokerData.getBrokerName(),
+                                (HashMap<Long, String>) brokerData.getBrokerAddrs().clone(),
+                                brokerData.isEnableActingMaster(), brokerData.getZoneName());
+
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
                             if (!filterServerTable.isEmpty()) {

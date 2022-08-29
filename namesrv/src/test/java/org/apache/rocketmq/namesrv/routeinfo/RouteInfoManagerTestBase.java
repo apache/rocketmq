@@ -148,6 +148,7 @@ public class RouteInfoManagerTestBase {
                 brokerAddr,
                 brokerName,
                 brokerId,
+                "",
                 haServerAddr,
                 null,
                 topicConfigSerializeWrapper,

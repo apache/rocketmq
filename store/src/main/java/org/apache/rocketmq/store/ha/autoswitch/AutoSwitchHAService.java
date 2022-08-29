@@ -58,6 +58,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnection;
@@ -352,6 +353,16 @@ public class AutoSwitchHAService implements HAService {
             }
         }
         return confirmOffset;
+    }
+
+    public void updateConfirmOffsetWhenSlaveAck(final String slaveAddress) {
+        if (this.syncStateSet.contains(slaveAddress)) {
+            this.confirmOffset = computeConfirmOffset();
+        }
+    }
+
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        return syncStateSet.size();
     }
 
     @Override

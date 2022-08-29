@@ -629,7 +629,8 @@ public class RouteInfoManager_NewTest {
 
     private RegisterBrokerResult registerBrokerWithNormalTopic(BrokerBasicInfo brokerInfo, String... topics) {
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
-
+        TopicConfig baseTopic = new TopicConfig("baseTopic");
+        topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
         for (final String topic : topics) {
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setWriteQueueNums(8);
@@ -646,6 +647,9 @@ public class RouteInfoManager_NewTest {
     private RegisterBrokerResult registerBrokerWithOrderTopic(BrokerBasicInfo brokerBasicInfo, String... topics) {
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
 
+        TopicConfig baseTopic = new TopicConfig("baseTopic");
+        baseTopic.setOrder(true);
+        topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
         for (final String topic : topics) {
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setWriteQueueNums(8);
@@ -660,7 +664,9 @@ public class RouteInfoManager_NewTest {
 
     private RegisterBrokerResult registerBrokerWithGlobalOrderTopic(BrokerBasicInfo brokerBasicInfo, String... topics) {
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
-
+        TopicConfig baseTopic = new TopicConfig("baseTopic", 1, 1);
+        baseTopic.setOrder(true);
+        topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
         for (final String topic : topics) {
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setWriteQueueNums(1);
@@ -678,7 +684,8 @@ public class RouteInfoManager_NewTest {
 
         if (topicConfigConcurrentHashMap == null) {
             topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
-
+            TopicConfig baseTopic = new TopicConfig("baseTopic");
+            topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
             for (final String topic : topics) {
                 TopicConfig topicConfig = new TopicConfig();
                 topicConfig.setWriteQueueNums(8);
@@ -700,6 +707,7 @@ public class RouteInfoManager_NewTest {
             brokerInfo.brokerName,
             brokerInfo.brokerId,
             brokerInfo.haAddr,
+            "",
             null,
             brokerInfo.enableActingMaster,
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);

@@ -25,7 +25,6 @@ on:
 jobs:
   check-license:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - name: Check License Header

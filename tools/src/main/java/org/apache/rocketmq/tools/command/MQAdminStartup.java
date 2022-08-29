@@ -18,11 +18,10 @@ package org.apache.rocketmq.tools.command;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-import java.util.ArrayList;
-import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -43,7 +42,7 @@ import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
-import org.apache.rocketmq.tools.command.broker.GetBrokerEpochCommand;
+import org.apache.rocketmq.tools.command.broker.GetBrokerEpochSubCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
@@ -60,12 +59,16 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
-import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataCommand;
+import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerDataSubCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
+import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
+import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
-import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
+import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -257,11 +260,16 @@ public class MQAdminStartup {
         initCommand(new HAStatusSubCommand());
 
         initCommand(new GetSyncStateSetSubCommand());
-        initCommand(new GetBrokerEpochCommand());
-        initCommand(new GetControllerMetaDataCommand());
+        initCommand(new GetBrokerEpochSubCommand());
+        initCommand(new GetControllerMetaDataSubCommand());
+
+        initCommand(new GetControllerConfigSubCommand());
+        initCommand(new UpdateControllerConfigSubCommand());
+        initCommand(new ReElectMasterSubCommand());
+        initCommand(new CleanControllerBrokerDataSubCommand());
     }
 
-    private static void initLogback() throws JoranException {
+    private static void initLogback() throws Exception {
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
@@ -278,7 +286,7 @@ public class MQAdminStartup {
         System.out.printf("The most commonly used mqadmin commands are:%n");
 
         for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-20s %s%n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-25s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.%n");

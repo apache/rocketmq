@@ -49,7 +49,7 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "send msg to broker.";
+        return "Send msg to broker.";
     }
 
     @Override

@@ -1269,7 +1269,7 @@ public class MQClientInstance {
         final String consumerGroup,
         final String brokerName) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
-        if (null != mqConsumerInner) {
+        if (null != mqConsumerInner && mqConsumerInner instanceof DefaultMQPushConsumerImpl) {
             DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
 
             ConsumeMessageDirectlyResult result = consumer.getConsumeMessageService().consumeMessageDirectly(msg, brokerName);
@@ -1325,4 +1325,6 @@ public class MQClientInstance {
         }
         return data;
     }
+
+
 }
