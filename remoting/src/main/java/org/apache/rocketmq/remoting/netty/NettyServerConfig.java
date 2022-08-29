@@ -41,6 +41,13 @@ public class NettyServerConfig implements Cloneable {
      */
     private boolean useEpollNativeSelector = false;
 
+    /**
+     * mac: support
+     * freeBSD: need compile libnetty_transport_native_kqueue_x86_64.so by self
+     * openBSD: not support now, libnetty_transport_native_kqueue cannot be compiled successfully because the sendfile function is missing
+     */
+    private boolean useKqueueNativeSelector = false;
+
     public int getListenPort() {
         return listenPort;
     }
@@ -135,6 +142,14 @@ public class NettyServerConfig implements Cloneable {
 
     public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
         this.useEpollNativeSelector = useEpollNativeSelector;
+    }
+
+    public boolean isUseKqueueNativeSelector() {
+        return useKqueueNativeSelector;
+    }
+
+    public void setUseKqueueNativeSelector(boolean useKqueueNativeSelector) {
+        this.useKqueueNativeSelector = useKqueueNativeSelector;
     }
 
     @Override

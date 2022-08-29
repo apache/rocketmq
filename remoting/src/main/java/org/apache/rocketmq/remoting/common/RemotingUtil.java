@@ -42,14 +42,30 @@ public class RemotingUtil {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
+    private static boolean isFreeBSDPlatform = false;
+    private static boolean isOpenBSDPlatform = false;
+    private static boolean isMacPlatform = false;
 
     static {
+
         if (OS_NAME != null && OS_NAME.toLowerCase().contains("linux")) {
             isLinuxPlatform = true;
         }
 
         if (OS_NAME != null && OS_NAME.toLowerCase().contains("windows")) {
             isWindowsPlatform = true;
+        }
+
+        if (OS_NAME != null && OS_NAME.toLowerCase().contains("mac")) {
+            isMacPlatform = true;
+        }
+
+        if (OS_NAME != null && OS_NAME.toLowerCase().contains("freebsd")) {
+            isFreeBSDPlatform = true;
+        }
+
+        if (OS_NAME != null && OS_NAME.toLowerCase().contains("openbsd")) {
+            isOpenBSDPlatform = true;
         }
     }
 
@@ -79,6 +95,25 @@ public class RemotingUtil {
             } catch (final Exception e) {
                 // ignore
             }
+        } else if (isBSDFamilyPlatform()) {
+            try {
+                final Class<?> providerClazz = Class.forName("sun.nio.ch.KQueueSelectorProvider");
+                if (providerClazz != null) {
+                    try {
+                        final Method method = providerClazz.getMethod("provider");
+                        if (method != null) {
+                            final SelectorProvider selectorProvider = (SelectorProvider) method.invoke(null);
+                            if (selectorProvider != null) {
+                                result = selectorProvider.openSelector();
+                            }
+                        }
+                    } catch (final Exception e) {
+                        log.warn("Open kQueue Selector for BSD-family OS platform exception", e);
+                    }
+                }
+            } catch (final Exception e) {
+                // ignore
+            }
         }
 
         if (result == null) {
@@ -91,6 +126,12 @@ public class RemotingUtil {
     public static boolean isLinuxPlatform() {
         return isLinuxPlatform;
     }
+
+    // BSD-family OS, including FreeBSD, OpenBSD, and Mac, which still take up markets in the traffic-intensive nodes.
+    public static boolean isBSDFamilyPlatform() {
+        return isMacPlatform || isFreeBSDPlatform || isOpenBSDPlatform;
+    }
+
 
     public static String getLocalAddress() {
         try {
