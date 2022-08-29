@@ -54,9 +54,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-        if (this.brokerController.getMessageStore() != null) {
-            this.brokerController.getMessageStore().setTruncateFilesHook(this::truncateConsumerOffsetTable);
-        }
+        this.brokerController.getMessageStore().setTruncateFilesHook(this::truncateConsumerOffsetTable);
     }
 
     public void cleanOffset(String group) {
