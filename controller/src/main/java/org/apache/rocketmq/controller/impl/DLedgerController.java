@@ -21,6 +21,7 @@ import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerLeaderElector;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.MemberState;
+import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
@@ -431,6 +432,16 @@ public class DLedgerController implements Controller {
                                     this.currentRole = MemberState.Role.LEADER;
                                     DLedgerController.this.startScheduling();
                                     break;
+                                }
+                                if (!DLedgerController.this.getMemberState().isLeader()) {
+                                    // now is not a leader
+                                    log.error("Append a initial log failed because current state is not leader");
+                                    break;
+                                }
+                                log.error("Controller leader append initial log failed, try again");
+                                tryTimes++;
+                                if (tryTimes % 3 == 0) {
+                                    log.warn("Controller leader append initial log failed too many times, please wait a while");
                                 }
                             } catch (final Throwable e) {
                                 log.error("Error happen when controller leader append initial request to dledger", e);
