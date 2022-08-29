@@ -14,56 +14,86 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.controller;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetControllerMetaDataSubCommand implements SubCommand {
+public class CleanControllerBrokerDataSubCommand implements SubCommand {
+
     @Override
     public String commandName() {
-        return "getControllerMetaData";
+        return "cleanBrokerData";
     }
 
     @Override
     public String commandDesc() {
-        return "Get controller cluster's metadata";
+        return "Clean data of broker on controller";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("a", "controllerAddress", true, "the address of controller");
+
+        Option opt = new Option("a", "controllerAddress", true, "The address of controller");
         opt.setRequired(true);
         options.addOption(opt);
+
+        opt = new Option("b", "brokerAddress", true, "The address of the broker which requires to clean metadata. eg: 192.168.0.1:30911;192.168.0.2:30911");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("n", "brokerName", true, "The broker name of the replicas that require to be manipulated");
+        opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("c", "clusterName", true, "the clusterName of broker");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("l", "cleanLivingBroker", false, " whether clean up living brokers,default value is false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
+
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+
         String controllerAddress = commandLine.getOptionValue('a').trim();
+        String brokerName = commandLine.getOptionValue('n').trim();
+        String clusterName = null;
+        String brokerAddress = null;
+
+        if (commandLine.hasOption('c')) {
+            clusterName = commandLine.getOptionValue('c').trim();
+        }
+        if (commandLine.hasOption('b')) {
+            brokerAddress = commandLine.getOptionValue('b').trim();
+        }
+        boolean isCleanLivingBroker = false;
+        if (commandLine.hasOption('l')) {
+            isCleanLivingBroker = true;
+        }
+
+        if (!isCleanLivingBroker && StringUtils.isEmpty(clusterName)) {
+            throw new IllegalArgumentException("cleanLivingBroker option is false,clusterName option can not be empty.");
+        }
+
         try {
             defaultMQAdminExt.start();
-            final GetMetaDataResponseHeader metaData = defaultMQAdminExt.getControllerMetaData(controllerAddress);
-            System.out.printf("\n#ControllerGroup\t%s", metaData.getGroup());
-            System.out.printf("\n#ControllerLeaderId\t%s", metaData.getControllerLeaderId());
-            System.out.printf("\n#ControllerLeaderAddress\t%s", metaData.getControllerLeaderAddress());
-            final String peers = metaData.getPeers();
-            if (StringUtils.isNotEmpty(peers)) {
-                final String[] peerList = peers.split(";");
-                for (String peer : peerList) {
-                    System.out.printf("\n#Peer:\t%s", peer);
-                }
-            }
-            System.out.printf("\n");
+            defaultMQAdminExt.cleanControllerBrokerData(controllerAddress, clusterName, brokerName, brokerAddress, isCleanLivingBroker);
+            System.out.printf("clear broker %s data from controller success! \n", brokerName);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

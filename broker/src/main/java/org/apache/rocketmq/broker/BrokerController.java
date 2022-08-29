@@ -678,7 +678,7 @@ public class BrokerController {
                     LOG.error("ScheduledTask refresh metadata exception", e);
                 }
             }
-        }, 1, 5, TimeUnit.SECONDS);
+        }, 10, 5, TimeUnit.SECONDS);
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());

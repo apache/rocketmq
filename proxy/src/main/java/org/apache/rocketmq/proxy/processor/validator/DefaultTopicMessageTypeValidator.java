@@ -25,7 +25,8 @@ public class DefaultTopicMessageTypeValidator implements TopicMessageTypeValidat
 
     public void validate(TopicMessageType topicMessageType, TopicMessageType messageType) {
         if (messageType.equals(TopicMessageType.UNSPECIFIED) || !messageType.equals(topicMessageType)) {
-            throw new ProxyException(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, messageType.name() + " " + topicMessageType.name());
+            String errorInfo = String.format("TopicMessageType validate failed, topic type is %s, message type is %s", topicMessageType, messageType);
+            throw new ProxyException(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, errorInfo);
         }
     }
 }

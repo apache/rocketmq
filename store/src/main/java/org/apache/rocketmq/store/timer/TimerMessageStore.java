@@ -240,12 +240,11 @@ public class TimerMessageStore {
                 Slot slotEach = timerWheel.getSlot(currTime + j * precisionMs);
                 periodTotal += slotEach.num;
             }
-            LOGGER.info("%d period's total num: %d\n", timerDist.get(i), periodTotal);
+            LOGGER.debug("{} period's total num: {}", timerDist.get(i), periodTotal);
             this.timerMetrics.updateDistPair(timerDist.get(i), periodTotal);
         }
         long endTime = System.currentTimeMillis();
-        LOGGER.info("Total cost Time:%d%n", endTime - startTime);
-
+        LOGGER.debug("Total cost Time: {}", endTime - startTime);
     }
 
     public void recover() {
