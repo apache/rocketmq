@@ -577,9 +577,8 @@ public class MQClientInstance {
                 if (addr == null) {
                     continue;
                 }
-                if (consumerEmpty) {
-                    if (id != MixAll.MASTER_ID)
-                        continue;
+                if (consumerEmpty && MixAll.MASTER_ID != id) {
+                    continue;
                 }
 
                 try {
