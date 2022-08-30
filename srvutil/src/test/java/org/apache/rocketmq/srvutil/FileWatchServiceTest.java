@@ -110,7 +110,7 @@ public class FileWatchServiceTest {
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
         modifyFile(fileA);
-        boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
+        boolean result = waitSemaphore.tryAcquire(1, 2000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
         fileWatchService.shutdown();
     }
