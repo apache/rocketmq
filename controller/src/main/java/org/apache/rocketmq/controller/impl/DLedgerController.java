@@ -210,16 +210,16 @@ public class DLedgerController implements Controller {
     /**
      * Append the request to dledger, wait the dledger to commit the request.
      */
-    private boolean appendToDledgerAndWait(final AppendEntryRequest request) throws Throwable {
+    private boolean appendToDLedgerAndWait(final AppendEntryRequest request) throws Throwable {
         if (request != null) {
             request.setGroup(this.dLedgerConfig.getGroup());
             request.setRemoteId(this.dLedgerConfig.getSelfId());
 
-            final AppendFuture<AppendEntryResponse> dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dledgerFuture.getPos() == -1) {
+            final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (dLedgerFuture.getPos() == -1) {
                 return false;
             }
-            dledgerFuture.get(5, TimeUnit.SECONDS);
+            dLedgerFuture.get(5, TimeUnit.SECONDS);
             return true;
         }
         return false;
@@ -358,7 +358,7 @@ public class DLedgerController implements Controller {
                 if (!eventBytes.isEmpty()) {
                     final BatchAppendEntryRequest request = new BatchAppendEntryRequest();
                     request.setBatchMsgs(eventBytes);
-                    appendSuccess = appendToDledgerAndWait(request);
+                    appendSuccess = appendToDLedgerAndWait(request);
                 }
             } else {
                 if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
@@ -366,7 +366,7 @@ public class DLedgerController implements Controller {
                     // So we still need to propose an empty request to dledger.
                     final AppendEntryRequest request = new AppendEntryRequest();
                     request.setBody(new byte[0]);
-                    appendSuccess = appendToDledgerAndWait(request);
+                    appendSuccess = appendToDLedgerAndWait(request);
                 }
             }
             if (appendSuccess) {
@@ -433,7 +433,7 @@ public class DLedgerController implements Controller {
                             final AppendEntryRequest request = new AppendEntryRequest();
                             request.setBody(new byte[0]);
                             try {
-                                if (appendToDledgerAndWait(request)) {
+                                if (appendToDLedgerAndWait(request)) {
                                     this.currentRole = MemberState.Role.LEADER;
                                     DLedgerController.this.startScheduling();
                                     break;
