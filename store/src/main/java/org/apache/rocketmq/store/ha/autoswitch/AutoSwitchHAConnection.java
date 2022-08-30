@@ -41,7 +41,7 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Header protocol in syncing msg from master. Format: current state + body size + offset + epoch  +
-     * epochStartOffset + additionalInfo(confirmOffset). If the msg is hankeShakeMsg, the body size = EpochEntrySize *
+     * epochStartOffset + additionalInfo(confirmOffset). If the msg is handShakeMsg, the body size = EpochEntrySize *
      * EpochEntryNums, the offset is maxOffset in master.
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
