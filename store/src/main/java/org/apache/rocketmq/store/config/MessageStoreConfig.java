@@ -44,7 +44,7 @@ public class MessageStoreConfig {
     // CompactionLog consumeQueue file size, default is 10M
     private int compactionCqMappedFileSize = 10 * 1024 * 1024;
 
-    private int compactionScheduleInternal = 15 * 60 * 60;
+    private int compactionScheduleInternal = 15 * 60 * 1000;
 
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 

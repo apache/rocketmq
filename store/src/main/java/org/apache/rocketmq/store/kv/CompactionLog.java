@@ -154,6 +154,8 @@ public class CompactionLog {
             MessageExt messageExt = MessageDecoder.decode(bb, false, false);
             if (getLog().isMappedFilesEmpty() || messageExt.getQueueOffset() < getCQ().getMinOffsetInQueue()) {
                 asyncPutMessage(bb, messageExt, replicating);
+            } else {
+                break;
             }
 
             byteBuffer.position(mark + size);
@@ -187,8 +189,10 @@ public class CompactionLog {
         }
 
         // merge files
-        if (getLog().isEmptyOrCurrentFileFull()) {
+        if (getLog().isMappedFilesEmpty()) {
             replaceFiles(getLog().getMappedFiles(), current, replicating);
+        } else if (replicating.getLog().isMappedFilesEmpty()) {
+            ;   //break
         } else {
             try {
                 current.roll();
@@ -199,12 +203,13 @@ public class CompactionLog {
                 List<MappedFile> currFiles = getLog().getMappedFiles();
                 toCompactFiles.addAll(currFiles.subList(0, currFiles.size()));  //exclude the last one from current
                 compactAndReplace(toCompactFiles);
-                // cleanReplicatingResource
-                replicating.clean(false);
             } catch (Throwable e) {
                 log.error("roll log and cq exception: ", e);
             }
         }
+
+        // cleanReplicatingResource
+        replicating.clean(false);
 
 //        positionMgr.setOffset(topic, queueId, currentPullOffset);
         state.compareAndSet(State.INITIALIZING, State.NORMAL);

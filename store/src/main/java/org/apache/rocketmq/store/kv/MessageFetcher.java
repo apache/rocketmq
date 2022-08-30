@@ -64,14 +64,14 @@ public class MessageFetcher implements AutoCloseable {
         this.client.shutdown();
     }
 
-    private PullMessageRequestHeader createPullMessageRequest(String topic, int queueId, long subVersion) {
+    private PullMessageRequestHeader createPullMessageRequest(String topic, int queueId, long queueOffset, long subVersion) {
         int sysFlag = PullSysFlag.buildSysFlag(false, false, false, false, true);
 
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(String.join("-", topic, String.valueOf(queueId), "pull", "group"));
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
-//        requestHeader.setQueueOffset(queueOffset);
+        requestHeader.setQueueOffset(queueOffset);
         requestHeader.setMaxMsgNums(10);
         requestHeader.setSysFlag(sysFlag);
         requestHeader.setCommitOffset(0L);
@@ -145,9 +145,10 @@ public class MessageFetcher implements AutoCloseable {
             String groupName = String.join("-", topic, String.valueOf(queueId), "pull", "group");
             prepare(masterAddr, topic, groupName, subVersion);
 
-            PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, subVersion);
-            while (stopPull(currentPullOffset, endOffset, noNewMsg)) {
-                requestHeader.setQueueOffset(currentPullOffset);
+//            PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, subVersion, currentPullOffset);
+            while (!stopPull(currentPullOffset, endOffset, noNewMsg)) {
+//                requestHeader.setQueueOffset(currentPullOffset);
+                PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, currentPullOffset, subVersion);
 
                 RemotingCommand
                     request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
@@ -182,7 +183,7 @@ public class MessageFetcher implements AutoCloseable {
             }
             pullDone(masterAddr, groupName);
         } catch (Exception e) {
-            log.error("Pull Message error, ", e);
+//            log.error("Pull Message error, ", e);
             throw e;
         } finally {
             if (client != null) {

@@ -118,7 +118,7 @@ public class CompactionStore {
             if (v == null) {
                 try {
                     v = new CompactionLog(defaultMessageStore,this, topic, queueId);
-                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.SECONDS);
+                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);
                     return null;
