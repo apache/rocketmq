@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class LifecycleAwareServiceThread extends ServiceThread {
@@ -34,12 +35,22 @@ public abstract class LifecycleAwareServiceThread extends ServiceThread {
 
     public abstract void run0();
 
+    /**
+     * Take spurious wakeup into account.
+     *
+     * @param timeout amount of time in milliseconds
+     * @throws InterruptedException if interrupted
+     */
     public void awaitStarted(long timeout) throws InterruptedException {
+        long expire = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
         synchronized (started) {
-            if (started.get()) {
-                return;
+            while (!started.get()) {
+                long duration = expire - System.nanoTime();
+                if (duration < TimeUnit.MILLISECONDS.toNanos(1)) {
+                    break;
+                }
+                started.wait(TimeUnit.NANOSECONDS.toMillis(duration));
             }
-            started.wait(timeout);
         }
     }
 }
