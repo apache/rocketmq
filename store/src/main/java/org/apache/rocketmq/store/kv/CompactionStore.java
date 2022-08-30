@@ -98,7 +98,7 @@ public class CompactionStore {
                             if (Files.isDirectory(Paths.get(compactionCqPath, topic, String.valueOf(queueId)))) {
                                 CompactionLog log = new CompactionLog(defaultMessageStore, this, topic, queueId);
                                 compactionLogTable.put(topic + "_" + queueId, log);
-                                compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.SECONDS);
+                                compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
                             } else {
                                 log.error("{}:{} compactionLog mismatch with compactionCq", topic, queueId);
                             }

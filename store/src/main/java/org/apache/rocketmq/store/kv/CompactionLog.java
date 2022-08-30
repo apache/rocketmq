@@ -148,8 +148,12 @@ public class CompactionLog {
             int mark = byteBuffer.position();
             ByteBuffer bb = byteBuffer.slice();
             int size = bb.getInt();
-            bb.limit(size);
-            bb.rewind();
+            if (size < 0 || size > byteBuffer.capacity()) {
+                break;
+            } else {
+                bb.limit(size);
+                bb.rewind();
+            }
 
             MessageExt messageExt = MessageDecoder.decode(bb, false, false);
             if (getLog().isMappedFilesEmpty() || messageExt.getQueueOffset() < getCQ().getMinOffsetInQueue()) {
