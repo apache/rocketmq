@@ -440,10 +440,16 @@ public class DLedgerController implements Controller {
                                 }
                             } catch (final Throwable e) {
                                 log.error("Error happen when controller leader append initial request to dledger", e);
-                                tryTimes++;
-                                if (tryTimes % 3 == 0) {
-                                    log.warn("Controller leader append initial log failed too many times, please wait a while");
-                                }
+                            }
+                            if (!DLedgerController.this.getMemberState().isLeader()) {
+                                // now is not a leader
+                                log.error("Append a initial log failed because current state is not leader");
+                                break;
+                            }
+                            tryTimes++;
+                            log.error(String.format("Controller leader append initial log failed, try %d times", tryTimes));
+                            if (tryTimes % 3 == 0) {
+                                log.warn("Controller leader append initial log failed too many times, please wait a while");
                             }
                         }
                         break;
