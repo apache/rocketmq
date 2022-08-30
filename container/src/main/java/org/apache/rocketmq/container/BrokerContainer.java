@@ -181,7 +181,7 @@ public class BrokerContainer implements IBrokerContainer {
                     LOG.error("ScheduledTask refresh metadata exception", e);
                 }
             }
-        }, 1, 5, TimeUnit.SECONDS);
+        }, 10, 5, TimeUnit.SECONDS);
 
         return true;
     }

@@ -53,7 +53,7 @@ public class BrokerStartup {
     public static CommandLine commandLine = null;
     public static String configFile = null;
     public static InternalLogger log;
-    public static SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
+    public static final SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
 
     public static void main(String[] args) {
         start(createBrokerController(args));

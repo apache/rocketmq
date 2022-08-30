@@ -44,12 +44,12 @@ public class ConsumerOffsetManagerTest {
     @Test
     public void cleanOffsetByTopic_NotExist(){
         consumerOffsetManager.cleanOffsetByTopic("InvalidTopic");
-        assertThat(consumerOffsetManager.getOffsetTable().containsKey(key));
+        assertThat(consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
     }
 
     @Test
     public void cleanOffsetByTopic_Exist(){
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
-        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(key));
+        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
     }
 }

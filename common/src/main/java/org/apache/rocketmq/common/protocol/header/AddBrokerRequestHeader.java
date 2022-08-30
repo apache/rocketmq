@@ -26,7 +26,8 @@ public class AddBrokerRequestHeader implements CommandCustomHeader {
     private String configPath;
 
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

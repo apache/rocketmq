@@ -46,7 +46,8 @@ public class SyncStateSet extends RemotingSerializable {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "SyncStateSet{" +
             "syncStateSet=" + syncStateSet +
             ", syncStateSetEpoch=" + syncStateSetEpoch +

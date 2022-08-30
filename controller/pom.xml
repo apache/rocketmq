@@ -26,6 +26,10 @@
     <artifactId>rocketmq-controller</artifactId>
     <name>rocketmq-controller ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.openmessaging.storage</groupId>

@@ -74,7 +74,7 @@ Transfer 阶段:
 
 - Slave ⽐较获取到的 Master EpochCahce <Startoffset，Endoffset>，从后往前依次和本地进行比对, 如果二者的 Epoch 与 StartOffset 相等,  则该 Epoch 有效，截断位点为两者中较⼩的 Endoffset，截断后修正⾃⼰的<Epoch , Startoffset> 信息，进⼊Transfer 阶 段；如果不相等，对比 Slave 前⼀个epoch，直到找到截断位点。
 
-```
+```java
 slave：TreeMap<Epoch, Pair<startOffset,endOffset>> epochMap;
 Iterator iterator = epochMap.entrySet().iterator();
 truncateOffset = -1;
@@ -82,14 +82,14 @@ truncateOffset = -1;
 //Epoch为从⼤到⼩排序
 while (iterator.hasNext()) {
     Map.Entry<Epoch, Pair<startOffset,endOffset>> curEntry = iterator.next();
-    Pair<startOffset,endOffset> masterOffset=
-    findMasterOffsetByEpoch(curEntry.getKey());
-    
-    if(masterOffset != null && 
-            curEntry.getKey().getObejct1() == masterOffset.getObejct1()) {
-        truncateOffset = Math.min(curEntry.getKey().getObejct2(), masterOffset.getObejct2());
-        break;
-   }
+    Pair<startOffset,endOffset> masterOffset=
+    findMasterOffsetByEpoch(curEntry.getKey());
+    
+    if(masterOffset != null && 
+            curEntry.getKey().getObejct1() == masterOffset.getObejct1()) {
+        truncateOffset = Math.min(curEntry.getKey().getObejct2(), masterOffset.getObejct2());
+        break;
+   }
 }
 ```
 
@@ -119,9 +119,9 @@ nextTransferFromWhere + size > currentTransferEpochEndOffset，则将 selectMapp
 
 1.AutoSwitchHaClient (Slave) 会向 Master 发送 HandShake 包, 如下:
 
-```
-current state + Two flags + slaveAddressLength + slaveAddress
-```
+![示意图](../image/controller/controller_design_3.png)
+
+`current state(4byte) + Two flags(4byte) + slaveAddressLength(4byte) + slaveAddress(50byte)`
 
 - Current state 代表当前的 HAConnectionState, 也即 HANDSHAKE。
 
@@ -131,9 +131,9 @@ current state + Two flags + slaveAddressLength + slaveAddress
 
 2.AutoSwitchHaConnection (Master) 会向 Slave 回送 HandShake 包, 如下:
 
-```
-current state + body size + offset + epoch + body
-```
+![示意图](../image/controller/controller_design_4.png)
+
+`current state(4byte) + body size(4byte) + offset(8byte) + epoch(4byte) + body`
 
 - Current state 代表当前的 HAConnectionState, 也即 HANDSHAKE。
 - Body size 代表了 body 的长度。
@@ -147,9 +147,9 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 1.AutoSwitchHaConnection (Master) 会不断的往 Slave 发送日志包, 如下:
 
-```
- current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset) + body
-```
+![示意图](../image/controller/controller_design_5.png)
+
+`current state(4byte) + body size(4byte) + offset(8byte) + epoch(4byte)  + epochStartOffset(8byte) + additionalInfo(confirmOffset) (8byte)+ body`
 
 - Current state 代表当前的 HAConnectionState, 也即 Transfer 。
 - Body size 代表了 body 的长度。
@@ -161,9 +161,9 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 2.AutoSwitchHaClient (Slave) 会向 Master 发送 ACK 包:
 
-```
- current state + maxOffset.
-```
+![示意图](../image/controller/controller_design_6.png)
+
+` current state(4byte) + maxOffset(8byte)`
 
 - Current state 代表当前的 HAConnectionState, 也即 Transfer 。
 - MaxOffset: 代表当前 Slave 的最大日志偏移量。
@@ -172,7 +172,7 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 ### 基本流程
 
-ELectMaster 主要是在某 Broker 副本组的 Master 下线或不可访问时，重新从 SyncStateSet 列表⾥⾯选出⼀个新的 Master，该事件由 Controller ⾃身发起。
+ELectMaster 主要是在某 Broker 副本组的 Master 下线或不可访问时，重新从 SyncStateSet 列表⾥⾯选出⼀个新的 Master，该事件由 Controller ⾃身或者通过运维命令`electMaster` 发起Master选举。
 
 无论 Controller 是独立部署, 还是嵌入在 Namesrv 中, 其都会监听每个 Broker 的连接通道, 如果某个 Broker channel inActive 了, 就会判断该 Broker 是否为 Master, 如果是, 则会触发选主的流程。
 
@@ -194,7 +194,7 @@ Shrink SyncStateSet ，指把 SyncStateSet 副本集合中那些与Master差距�
 
 - Master 端通过定时任务扫描每一个 HaConnection, 如果 (cur_time - connection.lastCaughtUpTimeMs) > haMaxTimeSlaveNotCatchUp，则该 Slave 是 Out-of-sync 的。
 
-- 如果检测到 Slave out of sync , master 会立刻和 Controller 上报, 从而 Shrink SyncStateSet。
+- 如果检测到 Slave out of sync , master 会立刻向 Controller 上报SyncStateSet, 从而 Shrink SyncStateSet。
 
 #### Expand
 

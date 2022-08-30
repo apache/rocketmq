@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.CustomizedBackoff;
 import apache.rocketmq.v2.ExponentialBackoff;
+import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
@@ -35,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -46,6 +48,19 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(this.messagingProcessor);
+    }
+
+    @Test
+    public void testGetProducerData() {
+        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
+
+        this.grpcClientSettingsManager.updateClientSettings(CLIENT_ID, Settings.newBuilder()
+            .setBackoffPolicy(RetryPolicy.getDefaultInstance())
+            .setPublishing(Publishing.getDefaultInstance())
+            .build());
+        Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
+        assertNotEquals(settings.getBackoffPolicy(), settings.getBackoffPolicy().getDefaultInstanceForType());
+        assertNotEquals(settings.getPublishing(), settings.getPublishing().getDefaultInstanceForType());
     }
 
     @Test

@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
@@ -41,7 +42,7 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Header protocol in syncing msg from master. Format: current state + body size + offset + epoch  +
-     * epochStartOffset + additionalInfo(confirmOffset). If the msg is hankeShakeMsg, the body size = EpochEntrySize *
+     * epochStartOffset + additionalInfo(confirmOffset). If the msg is handShakeMsg, the body size = EpochEntrySize *
      * EpochEntryNums, the offset is maxOffset in master.
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
@@ -99,14 +100,16 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.flowMonitor = new FlowMonitor(haService.getDefaultMessageStore().getMessageStoreConfig());
     }
 
-    @Override public void start() {
+    @Override
+    public void start() {
         changeCurrentState(HAConnectionState.HANDSHAKE);
         this.flowMonitor.start();
         this.readSocketService.start();
         this.writeSocketService.start();
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
         changeCurrentState(HAConnectionState.SHUTDOWN);
         this.flowMonitor.shutdown(true);
         this.writeSocketService.shutdown(true);
@@ -114,7 +117,8 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.close();
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         if (this.socketChannel != null) {
             try {
                 this.socketChannel.close();
@@ -137,27 +141,33 @@ public class AutoSwitchHAConnection implements HAConnection {
         return slaveAddress;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return currentState;
     }
 
-    @Override public SocketChannel getSocketChannel() {
+    @Override
+    public SocketChannel getSocketChannel() {
         return socketChannel;
     }
 
-    @Override public String getClientAddress() {
+    @Override
+    public String getClientAddress() {
         return clientAddress;
     }
 
-    @Override public long getSlaveAckOffset() {
+    @Override
+    public long getSlaveAckOffset() {
         return slaveAckOffset;
     }
 
-    @Override public long getTransferredByteInSecond() {
+    @Override
+    public long getTransferredByteInSecond() {
         return flowMonitor.getTransferredByteInSecond();
     }
 
-    @Override public long getTransferFromWhere() {
+    @Override
+    public long getTransferFromWhere() {
         return this.writeSocketService.getNextTransferFromWhere();
     }
 
@@ -304,7 +314,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 final byte[] addressData = new byte[addressLength];
                                 byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
                                 byteBufferRead.get(addressData);
-                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
+                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData, StandardCharsets.UTF_8);
 
                                 isSlaveSendHandshake = true;
                                 byteBufferRead.position(readSocketPos);
@@ -597,7 +607,8 @@ public class AutoSwitchHAConnection implements HAConnection {
             }
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             AutoSwitchHAConnection.LOGGER.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {

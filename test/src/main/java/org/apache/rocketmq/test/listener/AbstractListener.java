@@ -28,7 +28,7 @@ import org.apache.rocketmq.test.clientinterface.MQCollector;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class AbstractListener extends MQCollector implements MessageListener {
-    public static Logger logger = Logger.getLogger(AbstractListener.class);
+    public static final Logger logger = Logger.getLogger(AbstractListener.class);
     protected boolean isDebug = true;
     protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;

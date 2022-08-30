@@ -118,7 +118,7 @@ public class Producer {
         }
 
         /*
-         * Shut down once the producer instance is not longer in use.
+         * Shut down once the producer instance is no longer in use.
          */
         producer.shutdown();
     }

@@ -36,10 +36,8 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * @deprecated
- * Default pulling consumer.
- * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumer} is recommend to use
- * in the scenario of actively pulling messages.
+ * @deprecated Default pulling consumer. This class will be removed in 2022, and a better implementation {@link
+ * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
  */
 @Deprecated
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
@@ -109,6 +107,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public DefaultMQPullConsumer(final String namespace, final String consumerGroup) {
         this(namespace, consumerGroup, null);
     }
+
     /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
@@ -127,7 +126,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, Map<String, String> attributes) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum,
+        Map<String, String> attributes) throws MQClientException {
         createTopic(key, withNamespace(newTopic), queueNum, 0, null);
     }
 
@@ -136,7 +136,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag,
+        Map<String, String> attributes) throws MQClientException {
         this.defaultMQPullConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 
@@ -352,7 +353,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize, PullCallback pullCallback,
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize,
+        PullCallback pullCallback,
         long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, maxSize, pullCallback, timeout);
@@ -459,5 +461,9 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
+    }
+
+    public void persist(MessageQueue mq) {
+        this.getOffsetStore().persist(queueWithNamespace(mq));
     }
 }

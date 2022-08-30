@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -94,10 +95,10 @@ public final class TestUtil {
         try {
             byte[] b = new byte[1024];
             int n = System.in.read(b);
-            String s = new String(b, 0, n - 1).replace("\r", "").replace("\n", "");
+            String s = new String(b, 0, n - 1, StandardCharsets.UTF_8).replace("\r", "").replace("\n", "");
             while (!s.equals(keyWord)) {
                 n = System.in.read(b);
-                s = new String(b, 0, n - 1);
+                s = new String(b, 0, n - 1, StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
             e.printStackTrace();

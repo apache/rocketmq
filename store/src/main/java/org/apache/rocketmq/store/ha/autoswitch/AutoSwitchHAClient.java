@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -131,7 +132,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         init();
     }
 
-    @Override public String getServiceName() {
+    @Override
+    public String getServiceName() {
         if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
             return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + AutoSwitchHAClient.class.getSimpleName();
         }
@@ -149,14 +151,16 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
     }
 
-    @Override public void updateMasterAddress(String newAddress) {
+    @Override
+    public void updateMasterAddress(String newAddress) {
         String currentAddr = this.masterAddress.get();
         if (!StringUtils.equals(newAddress, currentAddr) && masterAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master address, OLD: " + currentAddr + " NEW: " + newAddress);
         }
     }
 
-    @Override public void updateHaMasterAddress(String newAddress) {
+    @Override
+    public void updateHaMasterAddress(String newAddress) {
         String currentAddr = this.masterHaAddress.get();
         if (!StringUtils.equals(newAddress, currentAddr) && masterHaAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
@@ -164,27 +168,33 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
     }
 
-    @Override public String getMasterAddress() {
+    @Override
+    public String getMasterAddress() {
         return this.masterAddress.get();
     }
 
-    @Override public String getHaMasterAddress() {
+    @Override
+    public String getHaMasterAddress() {
         return this.masterHaAddress.get();
     }
 
-    @Override public long getLastReadTimestamp() {
+    @Override
+    public long getLastReadTimestamp() {
         return this.lastReadTimestamp;
     }
 
-    @Override public long getLastWriteTimestamp() {
+    @Override
+    public long getLastWriteTimestamp() {
         return this.lastWriteTimestamp;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return this.currentState;
     }
 
-    @Override public void changeCurrentState(HAConnectionState haConnectionState) {
+    @Override
+    public void changeCurrentState(HAConnectionState haConnectionState) {
         LOGGER.info("change state to {}", haConnectionState);
         this.currentState = haConnectionState;
     }
@@ -194,7 +204,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.waitForRunning(1000 * 5);
     }
 
-    @Override public void closeMaster() {
+    @Override
+    public void closeMaster() {
         if (null != this.socketChannel) {
             try {
                 SelectionKey sk = this.socketChannel.keyFor(this.selector);
@@ -219,11 +230,13 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
     }
 
-    @Override public long getTransferredByteInSecond() {
+    @Override
+    public long getTransferredByteInSecond() {
         return this.flowMonitor.getTransferredByteInSecond();
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
         changeCurrentState(HAConnectionState.SHUTDOWN);
         // Shutdown thread firstly
         this.flowMonitor.shutdown();
@@ -256,7 +269,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         // Address length
         this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
         // Slave address
-        this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes());
+        this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes(StandardCharsets.UTF_8));
 
         this.handshakeHeaderBuffer.flip();
         return this.haWriter.write(this.socketChannel, this.handshakeHeaderBuffer);
@@ -333,7 +346,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return this.reportSlaveMaxOffset();
     }
 
-    @Override public void run() {
+    @Override
+    public void run() {
         LOGGER.info(this.getServiceName() + " service started");
 
         this.flowMonitor.start();

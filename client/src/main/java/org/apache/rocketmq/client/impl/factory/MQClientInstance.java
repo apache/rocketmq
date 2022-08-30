@@ -187,7 +187,8 @@ public class MQClientInstance {
             ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
             info.getMessageQueueList().addAll(mqEndPoints.keySet());
             Collections.sort(info.getMessageQueueList(), new Comparator<MessageQueue>() {
-                @Override public int compare(MessageQueue o1, MessageQueue o2) {
+                @Override
+                public int compare(MessageQueue o1, MessageQueue o2) {
                     return MixAll.compareInteger(o1.getQueueId(), o2.getQueueId());
                 }
             });
@@ -1269,7 +1270,7 @@ public class MQClientInstance {
         final String consumerGroup,
         final String brokerName) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
-        if (null != mqConsumerInner) {
+        if (null != mqConsumerInner && mqConsumerInner instanceof DefaultMQPushConsumerImpl) {
             DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
 
             ConsumeMessageDirectlyResult result = consumer.getConsumeMessageService().consumeMessageDirectly(msg, brokerName);
@@ -1325,4 +1326,6 @@ public class MQClientInstance {
         }
         return data;
     }
+
+
 }

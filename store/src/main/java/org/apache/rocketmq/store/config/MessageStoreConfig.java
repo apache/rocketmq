@@ -62,7 +62,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
-    private static boolean timerWheelEnable = true;
+    private boolean timerWheelEnable = true;
 
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
@@ -187,7 +187,7 @@ public class MessageStoreConfig {
     private String haMasterAddress = null;
     private int haMaxGapNotInSync = 1024 * 1024 * 256;
     @ImportantField
-    private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    private volatile BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     // Used by GroupTransferService to sync messages from master to slave
@@ -707,6 +707,10 @@ public class MessageStoreConfig {
     }
 
     public void setHaListenPort(int haListenPort) {
+        if (haListenPort < 0) {
+            this.haListenPort = 0;
+            return;
+        }
         this.haListenPort = haListenPort;
     }
 
@@ -1437,7 +1441,7 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
-    public static boolean isTimerWheelEnable() {
+    public  boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
     public void setTimerWheelEnable(boolean timerWheelEnable) {

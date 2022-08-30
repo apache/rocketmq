@@ -19,12 +19,16 @@ package org.apache.rocketmq.test.schema;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -164,18 +168,20 @@ public class SchemaTools {
             }
             Class<?>[] parameterTypes = method.getParameterTypes();
             Arrays.sort(parameterTypes, new Comparator<Class<?>>() {
-                @Override public int compare(Class<?> o1, Class<?> o2) {
+                @Override
+                public int compare(Class<?> o1, Class<?> o2) {
                     return o1.getName().compareTo(o2.getName());
                 }
             });
             Class<?>[] exceptionTypes = method.getExceptionTypes();
             Arrays.sort(exceptionTypes, new Comparator<Class<?>>() {
-                @Override public int compare(Class<?> o1, Class<?> o2) {
+                @Override
+                public int compare(Class<?> o1, Class<?> o2) {
                     return o1.getName().compareTo(o2.getName());
                 }
             });
             String key = String.format("Method %s(%s)", method.getName(), Arrays.stream(parameterTypes).map(Class::getName).collect(Collectors.joining(",")));
-            String value = String.format("%s throws (%s)",
+            String value = String.format("%s throws (%s): %s",
                 isPublicOrPrivate(method.getModifiers()),
                 method.getReturnType().getName(),
                 Arrays.stream(exceptionTypes).map(Class::getName).collect(Collectors.joining(",")));
@@ -199,9 +205,11 @@ public class SchemaTools {
     public static void write(Map<String, TreeMap<String, String>> schemaMap, String base, String label) throws Exception {
         for (Map.Entry<String, TreeMap<String, String>> entry : schemaMap.entrySet()) {
             TreeMap<String, String> map = entry.getValue();
-            File file = new File(String.format("%s/%s/%s.schema", base, label, entry.getKey()));
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write("/*\n" +
+            final String fileName = String.format("%s/%s/%s.schema", base, label, entry.getKey());
+            File file = new File(fileName);
+            FileOutputStream fileStream = new FileOutputStream(file);
+            Writer writer = new OutputStreamWriter(fileStream, StandardCharsets.UTF_8);
+            writer.write("/*\n" +
                 " * Licensed to the Apache Software Foundation (ASF) under one or more\n" +
                 " * contributor license agreements.  See the NOTICE file distributed with\n" +
                 " * this work for additional information regarding copyright ownership.\n" +
@@ -218,9 +226,9 @@ public class SchemaTools {
                 " * limitations under the License.\n" +
                 " */\n\n\n");
             for (Map.Entry<String, String> kv: map.entrySet()) {
-                fileWriter.append(String.format("%s : %s\n", kv.getKey(), kv.getValue()));
+                writer.append(String.format("%s : %s\n", kv.getKey(), kv.getValue()));
             }
-            fileWriter.close();
+            writer.close();
         }
     }
 
@@ -228,7 +236,7 @@ public class SchemaTools {
         File dir = new File(String.format("%s/%s", base, label));
         Map<String, TreeMap<String, String>> schemaMap = new TreeMap<>();
         for (File file: dir.listFiles()) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
             String line = null;
             TreeMap<String, String> kvs = new TreeMap<>();
             while ((line = br.readLine()) != null) {
