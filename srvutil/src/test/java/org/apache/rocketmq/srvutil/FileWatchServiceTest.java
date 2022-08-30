@@ -20,6 +20,8 @@ package org.apache.rocketmq.srvutil;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
@@ -39,18 +41,16 @@ public class FileWatchServiceTest {
     public void watchSingleFile() throws Exception {
         final File file = tempFolder.newFile();
         final Semaphore waitSemaphore = new Semaphore(0);
-        FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath()}, new FileWatchService.Listener() {
-            @Override
-            public void onChanged(String path) {
-                assertThat(file.getAbsolutePath()).isEqualTo(path);
-                waitSemaphore.release();
-            }
+        FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath()}, path -> {
+            assertThat(file.getAbsolutePath()).isEqualTo(path);
+            waitSemaphore.release();
         });
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
         modifyFile(file);
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
+        fileWatchService.shutdown();
     }
 
     @Test
@@ -58,48 +58,42 @@ public class FileWatchServiceTest {
         File file = tempFolder.newFile();
         final Semaphore waitSemaphore = new Semaphore(0);
         FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath()},
-            new FileWatchService.Listener() {
-            @Override
-            public void onChanged(String path) {
-                waitSemaphore.release();
-            }
-        });
+            path -> waitSemaphore.release());
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
-        file.delete();
+        assertThat(file.delete()).isTrue();
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isFalse();
-        file.createNewFile();
+        assertThat(file.createNewFile()).isTrue();
         modifyFile(file);
         result = waitSemaphore.tryAcquire(1, 2000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
+        fileWatchService.shutdown();
     }
 
     @Test
     public void watchTwoFile_FileDeleted() throws Exception {
         File fileA = tempFolder.newFile();
         File fileB = tempFolder.newFile();
+        Files.write(fileA.toPath(), "Hello, World!".getBytes(StandardCharsets.UTF_8));
+        Files.write(fileB.toPath(), "Hello, World!".getBytes(StandardCharsets.UTF_8));
         final Semaphore waitSemaphore = new Semaphore(0);
         FileWatchService fileWatchService = new FileWatchService(
             new String[] {fileA.getAbsolutePath(), fileB.getAbsolutePath()},
-            new FileWatchService.Listener() {
-                @Override
-                public void onChanged(String path) {
-                    waitSemaphore.release();
-                }
-            });
+            path -> waitSemaphore.release());
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
-        fileA.delete();
+        assertThat(fileA.delete()).isTrue();
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isFalse();
         modifyFile(fileB);
         result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
-        fileA.createNewFile();
+        assertThat(fileA.createNewFile()).isTrue();
         modifyFile(fileA);
         result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
+        fileWatchService.shutdown();
     }
 
     @Test
@@ -109,18 +103,16 @@ public class FileWatchServiceTest {
         final Semaphore waitSemaphore = new Semaphore(0);
         FileWatchService fileWatchService = new FileWatchService(
             new String[] {fileA.getAbsolutePath(), fileB.getAbsolutePath()},
-            new FileWatchService.Listener() {
-            @Override
-            public void onChanged(String path) {
+            path -> {
                 assertThat(path).isEqualTo(fileA.getAbsolutePath());
                 waitSemaphore.release();
-            }
-        });
+            });
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
         modifyFile(fileA);
         boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
+        fileWatchService.shutdown();
     }
 
     @Test
@@ -130,12 +122,7 @@ public class FileWatchServiceTest {
         final Semaphore waitSemaphore = new Semaphore(0);
         FileWatchService fileWatchService = new FileWatchService(
             new String[] {fileA.getAbsolutePath(), fileB.getAbsolutePath()},
-            new FileWatchService.Listener() {
-                @Override
-                public void onChanged(String path) {
-                    waitSemaphore.release();
-                }
-            });
+            path -> waitSemaphore.release());
         fileWatchService.start();
         fileWatchService.awaitStarted(1000);
         modifyFile(fileA);
