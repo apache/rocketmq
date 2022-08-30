@@ -529,7 +529,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 }
 
                 if (result.getOffsetTable().isEmpty()) {
-                    AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                    return AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the "
+                        + "consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
                 }
                 return AdminToolResult.success(result);
             }
