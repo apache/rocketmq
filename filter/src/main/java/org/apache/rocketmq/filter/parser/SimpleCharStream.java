@@ -19,6 +19,8 @@
 /* JavaCCOptions:STATIC=false,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package org.apache.rocketmq.filter.parser;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * An implementation of interface CharStream, where the stream is assumed to
  * contain only ASCII characters (without unicode processing).
@@ -331,7 +333,7 @@ public class SimpleCharStream {
     public SimpleCharStream(java.io.InputStream dstream, String encoding, int startline,
         int startcolumn, int buffersize) throws java.io.UnsupportedEncodingException {
         this(encoding == null ?
-            new java.io.InputStreamReader(dstream) :
+            new java.io.InputStreamReader(dstream, StandardCharsets.UTF_8) :
             new java.io.InputStreamReader(dstream, encoding), startline, startcolumn, buffersize);
     }
 
@@ -340,7 +342,7 @@ public class SimpleCharStream {
      */
     public SimpleCharStream(java.io.InputStream dstream, int startline,
         int startcolumn, int buffersize) {
-        this(new java.io.InputStreamReader(dstream), startline, startcolumn, buffersize);
+        this(new java.io.InputStreamReader(dstream, StandardCharsets.UTF_8), startline, startcolumn, buffersize);
     }
 
     /**
@@ -379,7 +381,7 @@ public class SimpleCharStream {
     public void ReInit(java.io.InputStream dstream, String encoding, int startline,
         int startcolumn, int buffersize) throws java.io.UnsupportedEncodingException {
         ReInit(encoding == null ?
-            new java.io.InputStreamReader(dstream) :
+            new java.io.InputStreamReader(dstream, StandardCharsets.UTF_8) :
             new java.io.InputStreamReader(dstream, encoding), startline, startcolumn, buffersize);
     }
 
@@ -388,7 +390,7 @@ public class SimpleCharStream {
      */
     public void ReInit(java.io.InputStream dstream, int startline,
         int startcolumn, int buffersize) {
-        ReInit(new java.io.InputStreamReader(dstream), startline, startcolumn, buffersize);
+        ReInit(new java.io.InputStreamReader(dstream, StandardCharsets.UTF_8), startline, startcolumn, buffersize);
     }
 
     /**

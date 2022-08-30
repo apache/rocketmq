@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
@@ -313,7 +314,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 final byte[] addressData = new byte[addressLength];
                                 byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
                                 byteBufferRead.get(addressData);
-                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
+                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData, StandardCharsets.UTF_8);
 
                                 isSlaveSendHandshake = true;
                                 byteBufferRead.position(readSocketPos);

@@ -59,9 +59,9 @@ public class BrokerContainerStartup {
     public static CommandLine commandLine = null;
     public static String configFile = null;
     public static InternalLogger log;
-    public static SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
+    public static final SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
     public static String rocketmqHome = null;
-    public static JoranConfigurator configurator = new JoranConfigurator();
+    public static final JoranConfigurator configurator = new JoranConfigurator();
 
     public static void main(String[] args) {
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));

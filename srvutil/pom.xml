@@ -27,6 +27,9 @@
     <artifactId>rocketmq-srvutil</artifactId>
     <name>rocketmq-srvutil ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
 
     <dependencies>
         <dependency>

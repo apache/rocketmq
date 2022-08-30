@@ -53,11 +53,11 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.reflections.Reflections;
 
 public class SchemaDefiner {
-    public static Map<Class<?>, Set<String>> ignoredFields = new HashMap<>();
+    public static final Map<Class<?>, Set<String>> ignoredFields = new HashMap<>();
     //Use name as the key instead of X.class directly. X.class is not equal to field.getType().
-    public static Set<String> fieldClassNames = new HashSet<>();
-    public static List<Class<?>> apiClassList = new ArrayList<>();
-    public static List<Class<?>> protocolClassList = new ArrayList<>();
+    public static final Set<String> fieldClassNames = new HashSet<>();
+    public static final List<Class<?>> apiClassList = new ArrayList<>();
+    public static final List<Class<?>> protocolClassList = new ArrayList<>();
 
     public static void doLoad() {
         {

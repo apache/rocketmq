@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.consistenthash;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
@@ -122,7 +123,7 @@ public class ConsistentHashRouter<T extends Node> {
         @Override
         public long hash(String key) {
             instance.reset();
-            instance.update(key.getBytes());
+            instance.update(key.getBytes(StandardCharsets.UTF_8));
             byte[] digest = instance.digest();
 
             long h = 0;

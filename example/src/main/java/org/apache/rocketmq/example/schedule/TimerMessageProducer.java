@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.example.schedule;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
@@ -37,7 +38,7 @@ public class TimerMessageProducer {
         producer.start();
         int totalMessagesToSend = 10;
         for (int i = 0; i < totalMessagesToSend; i++) {
-            Message message = new Message(TOPIC, ("Hello scheduled message " + i).getBytes());
+            Message message = new Message(TOPIC, ("Hello scheduled message " + i).getBytes(StandardCharsets.UTF_8));
             // This message will be delivered to consumer 10 seconds later.
             //message.setDelayTimeSec(10);
             // The effect is the same as the above

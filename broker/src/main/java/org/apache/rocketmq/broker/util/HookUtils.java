@@ -127,7 +127,7 @@ public class HookUtils {
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             if (!isRolledTimerMessage(msg)) {
                 if (checkIfTimerMessage(msg)) {
-                    if (!MessageStoreConfig.isTimerWheelEnable()) {
+                    if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }
