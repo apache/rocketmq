@@ -192,7 +192,7 @@ public class CompactionLog {
         if (getLog().isMappedFilesEmpty()) {
             replaceFiles(getLog().getMappedFiles(), current, replicating);
         } else if (replicating.getLog().isMappedFilesEmpty()) {
-            ;   //break
+            log.info("replicating message is empty");   //break
         } else {
             try {
                 current.roll();
