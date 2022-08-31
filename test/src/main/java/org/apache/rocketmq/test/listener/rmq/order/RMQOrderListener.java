@@ -71,9 +71,9 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         for (MessageExt msg : msgs) {
             if (isDebug) {
                 if (listenerName != null && listenerName != "") {
-                    logger.info(listenerName + ": " + msg);
+                    LOGGER.info(listenerName + ": " + msg);
                 } else {
-                    logger.info(msg);
+                    LOGGER.info(msg);
                 }
             }
 

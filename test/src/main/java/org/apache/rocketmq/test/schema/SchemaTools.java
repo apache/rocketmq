@@ -20,7 +20,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -38,8 +37,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import static org.apache.rocketmq.test.schema.SchemaDefiner.fieldClassNames;
-import static org.apache.rocketmq.test.schema.SchemaDefiner.ignoredFields;
+import static org.apache.rocketmq.test.schema.SchemaDefiner.FIELD_CLASS_NAMES;
+import static org.apache.rocketmq.test.schema.SchemaDefiner.IGNORED_FIELDS;
 
 public class SchemaTools {
     public static final String PATH_API = "api";
@@ -119,9 +118,9 @@ public class SchemaTools {
             }
             String key = String.format("Field %s", field.getName());
             boolean ignore = false;
-            for (Class<?> tmpClass: ignoredFields.keySet()) {
+            for (Class<?> tmpClass: IGNORED_FIELDS.keySet()) {
                 if (tmpClass.isAssignableFrom(apiClass)
-                    && ignoredFields.get(tmpClass).contains(field.getName())) {
+                    && IGNORED_FIELDS.get(tmpClass).contains(field.getName())) {
                     ignore = true;
                     //System.out.printf("Ignore AAA:%s %s %s\n", apiClass.getName(), field.getName(), field.getType().getName());
                     break;
@@ -129,7 +128,7 @@ public class SchemaTools {
             }
             if (!field.getType().isEnum()
                 && !field.getType().isPrimitive()
-                && !fieldClassNames.contains(field.getType().getName())) {
+                && !FIELD_CLASS_NAMES.contains(field.getType().getName())) {
                 //System.out.printf("Ignore BBB:%s %s %s\n", apiClass.getName(), field.getName(), field.getType().getName());
                 ignore = true;
             }

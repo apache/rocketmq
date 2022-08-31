@@ -22,7 +22,6 @@ import com.google.common.io.Files;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -32,7 +31,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.io.IOException;
-import java.io.FileWriter;
 import java.io.Writer;
 import java.io.BufferedWriter;
 import java.io.File;
