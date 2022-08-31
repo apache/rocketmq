@@ -132,7 +132,7 @@ public class MessageFetcher implements AutoCloseable {
     }
 
     private boolean stopPull(long currPullOffset, long endOffset) {
-        return (currPullOffset >= endOffset && endOffset != -1);
+        return currPullOffset >= endOffset && endOffset != -1;
     }
 
     public void pullMessageFromMaster(String topic, int queueId, long endOffset,

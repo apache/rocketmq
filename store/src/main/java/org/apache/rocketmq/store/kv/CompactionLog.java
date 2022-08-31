@@ -157,7 +157,7 @@ public class CompactionLog {
 
             MessageExt messageExt = MessageDecoder.decode(bb, false, false);
             long messageOffset = messageExt.getQueueOffset();
-            long minOffsetInQueue = getCQ().getMinOffsetInQueue();;
+            long minOffsetInQueue = getCQ().getMinOffsetInQueue();
             if (getLog().isMappedFilesEmpty() || messageOffset < minOffsetInQueue) {
                 asyncPutMessage(bb, messageExt, replicating);
             } else {
