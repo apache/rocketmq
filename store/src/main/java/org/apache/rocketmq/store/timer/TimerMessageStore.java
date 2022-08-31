@@ -439,7 +439,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.brokerIdentity.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     long minPy = messageStore.getMinPhyOffset();
@@ -455,7 +455,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.brokerIdentity.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     if (storeConfig.isTimerEnableCheckMetrics()) {

@@ -561,42 +561,42 @@ public class MQClientInstance {
             return;
         }
 
-        if (!this.brokerAddrTable.isEmpty()) {
-            long times = this.sendHeartbeatTimesTotal.getAndIncrement();
-            Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, HashMap<Long, String>> entry = it.next();
-                String brokerName = entry.getKey();
-                HashMap<Long, String> oneTable = entry.getValue();
-                if (oneTable != null) {
-                    for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
-                        Long id = entry1.getKey();
-                        String addr = entry1.getValue();
-                        if (addr != null) {
-                            if (consumerEmpty) {
-                                if (id != MixAll.MASTER_ID)
-                                    continue;
-                            }
+        if (this.brokerAddrTable.isEmpty()) {
+            return;
+        }
+        long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+        for (Entry<String, HashMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
+            String brokerName = brokerClusterInfo.getKey();
+            HashMap<Long, String> oneTable = brokerClusterInfo.getValue();
+            if (oneTable == null) {
+                continue;
+            }
+            for (Entry<Long, String> singleBrokerInstance : oneTable.entrySet()) {
+                Long id = singleBrokerInstance.getKey();
+                String addr = singleBrokerInstance.getValue();
+                if (addr == null) {
+                    continue;
+                }
+                if (consumerEmpty && MixAll.MASTER_ID != id) {
+                    continue;
+                }
 
-                            try {
-                                int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
-                                if (!this.brokerVersionTable.containsKey(brokerName)) {
-                                    this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
-                                }
-                                this.brokerVersionTable.get(brokerName).put(addr, version);
-                                if (times % 20 == 0) {
-                                    log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
-                                    log.info(heartbeatData.toString());
-                                }
-                            } catch (Exception e) {
-                                if (this.isBrokerInNameServer(addr)) {
-                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
-                                } else {
-                                    log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                        id, addr, e);
-                                }
-                            }
-                        }
+                try {
+                    int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
+                    if (!this.brokerVersionTable.containsKey(brokerName)) {
+                        this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
+                    }
+                    this.brokerVersionTable.get(brokerName).put(addr, version);
+                    if (times % 20 == 0) {
+                        log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
+                        log.info(heartbeatData.toString());
+                    }
+                } catch (Exception e) {
+                    if (this.isBrokerInNameServer(addr)) {
+                        log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
+                    } else {
+                        log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
+                                id, addr, e);
                     }
                 }
             }

@@ -53,74 +53,74 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.reflections.Reflections;
 
 public class SchemaDefiner {
-    public static Map<Class<?>, Set<String>> ignoredFields = new HashMap<>();
+    public static final Map<Class<?>, Set<String>> IGNORED_FIELDS = new HashMap<>();
     //Use name as the key instead of X.class directly. X.class is not equal to field.getType().
-    public static Set<String> fieldClassNames = new HashSet<>();
-    public static List<Class<?>> apiClassList = new ArrayList<>();
-    public static List<Class<?>> protocolClassList = new ArrayList<>();
+    public static final Set<String> FIELD_CLASS_NAMES = new HashSet<>();
+    public static final List<Class<?>> API_CLASS_LIST = new ArrayList<>();
+    public static final List<Class<?>> PROTOCOL_CLASS_LIST = new ArrayList<>();
 
     public static void doLoad() {
         {
-            ignoredFields.put(ClientConfig.class, Sets.newHashSet("namesrvAddr", "clientIP", "clientCallbackExecutorThreads"));
-            ignoredFields.put(DefaultLitePullConsumer.class, Sets.newHashSet("consumeTimestamp"));
-            ignoredFields.put(DefaultMQPushConsumer.class, Sets.newHashSet("consumeTimestamp"));
-            fieldClassNames.add(String.class.getName());
-            fieldClassNames.add(Long.class.getName());
-            fieldClassNames.add(Integer.class.getName());
-            fieldClassNames.add(Short.class.getName());
-            fieldClassNames.add(Byte.class.getName());
-            fieldClassNames.add(Double.class.getName());
-            fieldClassNames.add(Float.class.getName());
-            fieldClassNames.add(Boolean.class.getName());
+            IGNORED_FIELDS.put(ClientConfig.class, Sets.newHashSet("namesrvAddr", "clientIP", "clientCallbackExecutorThreads"));
+            IGNORED_FIELDS.put(DefaultLitePullConsumer.class, Sets.newHashSet("consumeTimestamp"));
+            IGNORED_FIELDS.put(DefaultMQPushConsumer.class, Sets.newHashSet("consumeTimestamp"));
+            FIELD_CLASS_NAMES.add(String.class.getName());
+            FIELD_CLASS_NAMES.add(Long.class.getName());
+            FIELD_CLASS_NAMES.add(Integer.class.getName());
+            FIELD_CLASS_NAMES.add(Short.class.getName());
+            FIELD_CLASS_NAMES.add(Byte.class.getName());
+            FIELD_CLASS_NAMES.add(Double.class.getName());
+            FIELD_CLASS_NAMES.add(Float.class.getName());
+            FIELD_CLASS_NAMES.add(Boolean.class.getName());
         }
         {
             //basic
-            apiClassList.add(DefaultMQPushConsumer.class);
-            apiClassList.add(DefaultMQProducer.class);
-            apiClassList.add(DefaultMQPullConsumer.class);
-            apiClassList.add(DefaultLitePullConsumer.class);
-            apiClassList.add(DefaultMQAdminExt.class);
+            API_CLASS_LIST.add(DefaultMQPushConsumer.class);
+            API_CLASS_LIST.add(DefaultMQProducer.class);
+            API_CLASS_LIST.add(DefaultMQPullConsumer.class);
+            API_CLASS_LIST.add(DefaultLitePullConsumer.class);
+            API_CLASS_LIST.add(DefaultMQAdminExt.class);
 
             //argument
-            apiClassList.add(Message.class);
-            apiClassList.add(MessageQueue.class);
-            apiClassList.add(SendCallback.class);
-            apiClassList.add(PullCallback.class);
-            apiClassList.add(MessageQueueSelector.class);
-            apiClassList.add(AllocateMessageQueueStrategy.class);
+            API_CLASS_LIST.add(Message.class);
+            API_CLASS_LIST.add(MessageQueue.class);
+            API_CLASS_LIST.add(SendCallback.class);
+            API_CLASS_LIST.add(PullCallback.class);
+            API_CLASS_LIST.add(MessageQueueSelector.class);
+            API_CLASS_LIST.add(AllocateMessageQueueStrategy.class);
             //result
-            apiClassList.add(MessageExt.class);
-            apiClassList.add(SendResult.class);
-            apiClassList.add(SendStatus.class);
-            apiClassList.add(PullResult.class);
-            apiClassList.add(PullStatus.class);
+            API_CLASS_LIST.add(MessageExt.class);
+            API_CLASS_LIST.add(SendResult.class);
+            API_CLASS_LIST.add(SendStatus.class);
+            API_CLASS_LIST.add(PullResult.class);
+            API_CLASS_LIST.add(PullStatus.class);
             //listener and context
-            apiClassList.add(MessageListener.class);
-            apiClassList.add(MessageListenerConcurrently.class);
-            apiClassList.add(ConsumeConcurrentlyContext.class);
-            apiClassList.add(ConsumeConcurrentlyStatus.class);
-            apiClassList.add(MessageListenerOrderly.class);
-            apiClassList.add(ConsumeOrderlyContext.class);
-            apiClassList.add(ConsumeOrderlyStatus.class);
+            API_CLASS_LIST.add(MessageListener.class);
+            API_CLASS_LIST.add(MessageListenerConcurrently.class);
+            API_CLASS_LIST.add(ConsumeConcurrentlyContext.class);
+            API_CLASS_LIST.add(ConsumeConcurrentlyStatus.class);
+            API_CLASS_LIST.add(MessageListenerOrderly.class);
+            API_CLASS_LIST.add(ConsumeOrderlyContext.class);
+            API_CLASS_LIST.add(ConsumeOrderlyStatus.class);
             //hook and context
-            apiClassList.add(RPCHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.FilterMessageHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.SendMessageHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.CheckForbiddenHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.ConsumeMessageHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.EndTransactionHook.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.FilterMessageContext.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.SendMessageContext.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.ConsumeMessageContext.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.ConsumeMessageContext.class);
-            apiClassList.add(org.apache.rocketmq.client.hook.EndTransactionContext.class);
+            API_CLASS_LIST.add(RPCHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.FilterMessageHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.SendMessageHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.CheckForbiddenHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.ConsumeMessageHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.EndTransactionHook.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.FilterMessageContext.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.SendMessageContext.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.ConsumeMessageContext.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.ConsumeMessageContext.class);
+            API_CLASS_LIST.add(org.apache.rocketmq.client.hook.EndTransactionContext.class);
 
         }
         {
-            protocolClassList.add(RequestCode.class);
+            PROTOCOL_CLASS_LIST.add(RequestCode.class);
             Reflections reflections = new Reflections("org.apache.rocketmq");
             for (Class<?> protocolClass: reflections.getSubTypesOf(CommandCustomHeader.class)) {
-                protocolClassList.add(protocolClass);
+                PROTOCOL_CLASS_LIST.add(protocolClass);
             }
         }
 

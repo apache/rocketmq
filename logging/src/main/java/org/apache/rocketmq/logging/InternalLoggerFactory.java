@@ -38,7 +38,7 @@ public abstract class InternalLoggerFactory {
 
     private static String loggerType = null;
 
-    public static ThreadLocal<String> brokerIdentity = new ThreadLocal<String>();
+    public static final ThreadLocal<String> BROKER_IDENTITY = new ThreadLocal<String>();
 
     private static ConcurrentHashMap<String, InternalLoggerFactory> loggerFactoryCache = new ConcurrentHashMap<String, InternalLoggerFactory>();
 
