@@ -33,8 +33,13 @@ public class NameServerInstanceTest {
     public void startup() throws Exception {
         nettyServerConfig.setListenPort(9876);
         nameSrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
-        boolean initResult = nameSrvController.initialize();
-        assertThat(initResult).isTrue();
+        Exception exception = null;
+        try {
+            nameSrvController.initialize();
+        } catch (Exception e) {
+            exception = e;
+        }
+        assertThat(exception == null).isTrue();
         nameSrvController.start();
     }
 

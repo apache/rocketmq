@@ -163,11 +163,7 @@ public class NamesrvStartup {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 
-        boolean initResult = controller.initialize();
-        if (!initResult) {
-            controller.shutdown();
-            System.exit(-3);
-        }
+        controller.initialize();
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
             controller.shutdown();
@@ -201,11 +197,7 @@ public class NamesrvStartup {
             throw new IllegalArgumentException("ControllerManager is null");
         }
 
-        boolean initResult = controllerManager.initialize();
-        if (!initResult) {
-            controllerManager.shutdown();
-            System.exit(-3);
-        }
+        controllerManager.initialize();
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
             controllerManager.shutdown();

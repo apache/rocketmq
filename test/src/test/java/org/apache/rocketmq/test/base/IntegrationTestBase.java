@@ -116,7 +116,13 @@ public class IntegrationTestBase {
         nameServerNettyServerConfig.setListenPort(0);
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
-            Truth.assertThat(namesrvController.initialize()).isTrue();
+            Exception exception = null;
+            try {
+                namesrvController.initialize();
+            } catch (Exception e) {
+                exception = e;
+            }
+            Truth.assertThat(exception == null).isTrue();
             logger.info("Name Server Start:{}", nameServerNettyServerConfig.getListenPort());
             namesrvController.start();
         } catch (Exception e) {

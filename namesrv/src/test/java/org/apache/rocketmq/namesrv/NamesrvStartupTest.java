@@ -37,7 +37,13 @@ public class NamesrvStartupTest {
 
     @Before
     public void setUp() throws Exception {
-        Mockito.when(namesrvController.initialize()).thenReturn(true);
+        Exception exception = null;
+        try {
+            namesrvController.initialize();
+        } catch (Exception e) {
+            exception = e;
+        }
+        Mockito.when(exception == null).thenReturn(true);
     }
 
     @Test

@@ -273,7 +273,13 @@ public class ContainerIntegrationTestBase {
         nameServerNettyServerConfig.setListenPort(generatePort(10000, 10000));
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
-            Assert.assertTrue(namesrvController.initialize());
+            Exception exception = null;
+            try {
+                namesrvController.initialize();
+            } catch (Exception e) {
+                exception = e;
+            }
+            Assert.assertTrue(exception == null);
             LOG.info("Name Server Start:{}", nameServerNettyServerConfig.getListenPort());
             namesrvController.start();
         } catch (Exception e) {

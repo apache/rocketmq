@@ -77,11 +77,23 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         this.controllerConfig = buildControllerConfig("n0", peers);
         this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig());
-        assertTrue(namesrvController.initialize());
+        Exception exception = null;
+        try {
+            namesrvController.initialize();
+        } catch (Exception e) {
+            exception = e;
+        }
+        assertTrue(exception == null);
         namesrvController.start();
 
         this.controllerManager = new ControllerManager(controllerConfig, new NettyServerConfig(), new NettyClientConfig());
-        assertTrue(controllerManager.initialize());
+        Exception exception1 = null;
+        try {
+            controllerManager.initialize();
+        } catch (Exception e) {
+            exception1 = e;
+        }
+        assertTrue(exception1 == null);
         controllerManager.start();
 
         this.namesrvAddress = "127.0.0.1:" + namesrvPort + ";";

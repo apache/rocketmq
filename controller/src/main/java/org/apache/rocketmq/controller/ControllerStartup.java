@@ -135,11 +135,7 @@ public class ControllerStartup {
             throw new IllegalArgumentException("ControllerManager is null");
         }
 
-        boolean initResult = controller.initialize();
-        if (!initResult) {
-            controller.shutdown();
-            System.exit(-3);
-        }
+        controller.initialize();
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
             controller.shutdown();

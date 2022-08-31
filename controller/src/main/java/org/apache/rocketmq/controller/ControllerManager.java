@@ -75,7 +75,7 @@ public class ControllerManager {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
     }
 
-    public boolean initialize() {
+    public void initialize() {
         this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
         this.controllerRequestExecutor = new ThreadPoolExecutor(
                 this.controllerConfig.getControllerThreadPoolNums(),
@@ -103,7 +103,6 @@ public class ControllerManager {
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
-        return true;
     }
 
     /**
