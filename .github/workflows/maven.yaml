@@ -21,5 +21,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
           distribution: "adopt"
           cache: "maven"
+      - name: Docker PS
+        run: docker ps
       - name: Build with Maven
         run: mvn -B package -T 2C --file pom.xml
