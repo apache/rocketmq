@@ -997,7 +997,9 @@ public class CompactionLog {
             if (mappedFileQueue.isMappedFilesEmpty()) {
                 mappedFileQueue.destroy();
             } else {
-                throw new IOException("directory " + mappedFileQueue.getStorePath() + " maybe not empty.");
+                log.error("directory {} with {} not empty.",
+                    mappedFileQueue.getStorePath(), mappedFileQueue.getMappedFiles());
+                throw new IOException("directory " + mappedFileQueue.getStorePath() + " not empty.");
             }
         }
 
