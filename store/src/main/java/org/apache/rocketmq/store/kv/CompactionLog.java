@@ -225,8 +225,8 @@ public class CompactionLog {
             }
         }
 
-        // cleanReplicatingResource
-        replicating.clean(false);
+        // cleanReplicatingResource, force clean cq
+        replicating.clean(false, true);
 
 //        positionMgr.setOffset(topic, queueId, currentPullOffset);
         state.compareAndSet(State.INITIALIZING, State.NORMAL);
@@ -1001,15 +1001,15 @@ public class CompactionLog {
             }
         }
 
-        public void clean(boolean force) throws IOException {
+        public void clean(boolean forceCleanLog, boolean forceCleanCq) throws IOException {
             //clean and delete sub_folder
-            if (force) {
+            if (forceCleanLog) {
                 mappedFileQueue.destroy();
             } else {
                 clean(mappedFileQueue);
             }
 
-            if (force) {
+            if (forceCleanCq) {
                 consumeQueue.getMappedFileQueue().destroy();
             } else {
                 clean(consumeQueue.getMappedFileQueue());
