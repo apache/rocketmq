@@ -661,6 +661,13 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 } else {
                                     this.nextTransferFromWhere = slaveRequestOffset;
                                 }
+
+                                // nextTransferFromWhere is not found. It may be empty disk and no message is entered
+                                if (this.nextTransferFromWhere == -1) {
+                                    sendHeartbeatIfNeeded();
+                                    waitForRunning(500);
+                                    break;
+                                }
                                 // Setup initial transferEpoch
                                 EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByOffset(this.nextTransferFromWhere);
                                 if (epochEntry == null) {
