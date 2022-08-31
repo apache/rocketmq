@@ -528,20 +528,16 @@ public class CompactionLog {
         }
 
         //exclude the last writing file
-        for (int i = mappedFileList.size() - 2; i >= 0; i--) {
+        List<MappedFile> toCompactionFileList = Lists.newArrayList();
+        for (int i = 0; i <= mappedFileList.size() - 2; i++) {
             MappedFile mf = mappedFileList.get(i);
-            long maxQueueOffset = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
-            if (maxQueueOffset <= positionMgr.getOffset(topic, queueId)) {
-                if (i < mappedFileList.size() - 2) {
-                    // next to end
-                    return mappedFileList.subList(i + 1, mappedFileList.size() - 2);
-                } else {
-                    return Collections.emptyList();
-                }
+            long maxQueueOffsetInFile = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
+            if (maxQueueOffsetInFile > positionMgr.getOffset(topic, queueId)) {
+                toCompactionFileList.add(mf);
             }
         }
 
-        return Collections.emptyList();
+        return toCompactionFileList;
     }
 
     void compactAndReplace(List<MappedFile> toCompactFiles) throws Throwable {
