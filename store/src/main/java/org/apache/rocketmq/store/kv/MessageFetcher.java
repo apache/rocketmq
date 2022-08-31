@@ -135,8 +135,8 @@ public class MessageFetcher implements AutoCloseable {
         return currPullOffset >= endOffset && endOffset != -1;
     }
 
-    public void pullMessageFromMaster(String topic, int queueId, long endOffset,
-        String masterAddr, BiFunction<Long,RemotingCommand,Boolean> responseHandler) throws Exception {
+    public void pullMessageFromMaster(String topic, int queueId, long endOffset, String masterAddr,
+        BiFunction<Long, RemotingCommand, Boolean> responseHandler) throws Exception {
         long currentPullOffset = 0;
 
         try {

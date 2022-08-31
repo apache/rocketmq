@@ -205,17 +205,23 @@ public class CompactionLog {
         } else if (replicating.getLog().isMappedFilesEmpty()) {
             log.info("replicating message is empty");   //break
         } else {
+            List<MappedFile> toCompactFiles = Lists.newArrayList(replicating.getLog().getMappedFiles());
+            putMessageLock.lock();
             try {
-                current.roll();
-                // doCompaction with current and replicating
-                List<MappedFile> toCompactFiles = Lists.newArrayList();
                 // combine current and replicating to mappedFileList
-                toCompactFiles.addAll(replicating.getLog().getMappedFiles());   //all from replicating
-                List<MappedFile> currFiles = getLog().getMappedFiles();
-                toCompactFiles.addAll(currFiles.subList(0, currFiles.size()));  //exclude the last one from current
-                compactAndReplace(toCompactFiles);
+                toCompactFiles.addAll(getLog().getMappedFiles());  //all from current
+                current.roll(toCompactFiles.size() * compactionLogMappedFileSize);
             } catch (Throwable e) {
                 log.error("roll log and cq exception: ", e);
+            } finally {
+                putMessageLock.unlock();
+            }
+
+            try {
+                // doCompaction with current and replicating
+                compactAndReplace(toCompactFiles);
+            } catch (Throwable e) {
+                log.error("do merge replicating and current exception: ", e);
             }
         }
 
@@ -550,7 +556,7 @@ public class CompactionLog {
     void compactAndReplace(List<MappedFile> toCompactFiles) throws Throwable {
         if (CollectionUtils.isNotEmpty(toCompactFiles)) {
             long startTime = System.nanoTime();
-            OffsetMap offsetMap = getOffsetMap(toCompactFiles);
+            OffsetMap offsetMap = getOffsetMap(toCompactFiles); //what if offsetMap can't hold the whole compactFiles
             compaction(toCompactFiles, offsetMap);
             replaceFiles(toCompactFiles, current, compacting);
             positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
@@ -644,8 +650,13 @@ public class CompactionLog {
         MappedFileQueue src = newLog.getLog();
 
         long beginTime = System.nanoTime();
-        List<String> fileNameToReplace = mappedFileList.stream()
-            .map(m -> m.getFile().getName())
+//        List<String> fileNameToReplace = mappedFileList.stream()
+//            .map(m -> m.getFile().getName())
+//            .collect(Collectors.toList());
+
+        List<String> fileNameToReplace = dest.getMappedFiles().stream()
+            .filter(mappedFileList::contains)
+            .map(mf -> mf.getFile().getName())
             .collect(Collectors.toList());
 
         mappedFileList.forEach(MappedFile::renameToDelete);
@@ -962,6 +973,21 @@ public class CompactionLog {
             }
         }
 
+        public synchronized void roll(int baseOffset) throws IOException {
+
+            MappedFile mappedFile = mappedFileQueue.tryCreateMappedFile(baseOffset);
+            if (mappedFile == null) {
+                throw new IOException("create new file error");
+            }
+
+            MappedFile cqFile = consumeQueue.createFile(baseOffset);
+            if (cqFile == null) {
+                mappedFile.destroy(1000);
+                mappedFileQueue.getMappedFiles().remove(mappedFile);
+                throw new IOException("create new consumeQueue file error");
+            }
+        }
+
         public boolean isEmptyOrCurrentFileFull() {
             return mappedFileQueue.isEmptyOrCurrentFileFull() ||
                 consumeQueue.getMappedFileQueue().isEmptyOrCurrentFileFull();
@@ -979,9 +1005,13 @@ public class CompactionLog {
             //clean and delete sub_folder
             if (force) {
                 mappedFileQueue.destroy();
-                consumeQueue.getMappedFileQueue().destroy();
             } else {
                 clean(mappedFileQueue);
+            }
+
+            if (force) {
+                consumeQueue.getMappedFileQueue().destroy();
+            } else {
                 clean(consumeQueue.getMappedFileQueue());
             }
         }
