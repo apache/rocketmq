@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.admin;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -29,14 +30,17 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
@@ -77,11 +81,15 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
+import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -119,7 +127,7 @@ public class DefaultMQAdminExtTest {
     private static TopicRouteData topicRouteData = new TopicRouteData();
     private static KVTable kvTable = new KVTable();
     private static ClusterInfo clusterInfo = new ClusterInfo();
-    private static ServerResponseMocker brokerMocker = mock(ServerResponseMocker.class);
+    private static BrokerController brokerMocker;
     private static ServerResponseMocker nameServerMocker = mock(ServerResponseMocker.class);
     
     @BeforeClass
@@ -347,8 +355,9 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testexamineConsumerConnectionInfoConcurrent() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-    
-        awaitUtilDefaultMQAdminExtStart(cluster);
+        
+        String namesrv = "127.0.0.1:" + NAME_SERVER_PORT;
+        awaitUtilDefaultMQAdminExtStart(cluster, namesrv);
     
         defaultMQAdminExt.setNamesrvAddr("localhost:"+NAME_SERVER_PORT);
     
@@ -525,19 +534,25 @@ public class DefaultMQAdminExtTest {
     }
     
     
-    protected static void awaitUtilDefaultMQAdminExtStart(String cluster) {
-        await().atMost(Duration.ofSeconds(10000))
-            .until(() -> {
-                boolean done = true;
-                try {
-                    brokerMocker = startOneBroker();
-                    nameServerMocker = startNameServer(cluster);
-                    defaultMQAdminExtImpl.start();
-                } catch (Exception ex){
-                    done = false;
-                }
-                return done;
-            });
+    protected static void awaitUtilDefaultMQAdminExtStart(String cluster, String namesrv) {
+        defaultMQAdminExt.setNamesrvAddr(namesrv);
+        try {
+            defaultMQAdminExt.start();
+            await().atMost(Duration.ofSeconds(10000))
+                .until(() -> {
+                    boolean done = true;
+                    try {
+                        brokerMocker = startOneBroker(namesrv);
+                        nameServerMocker = startNameServer(cluster);
+                        brokerMocker.getBrokerOuterAPI().refreshMetadata();
+                    } catch (Exception ex){
+                        done = false;
+                    }
+                    return done;
+                });
+        } catch (MQClientException e) {
+            e.printStackTrace();
+        }
     }
     
     private static ServerResponseMocker startNameServer(String cluster) {
@@ -565,13 +580,49 @@ public class DefaultMQAdminExtTest {
     }
     
     
-    private static ServerResponseMocker startOneBroker() {
-        ConsumerConnection consumerConnection = new ConsumerConnection();
-        HashSet<Connection> connectionSet = new HashSet<>();
-        Connection connection = mock(Connection.class);
-        connectionSet.add(connection);
-        consumerConnection.setConnectionSet(connectionSet);
-        // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, consumerConnection.encode());
+    private static BrokerController startOneBroker(String namesrv) {
+        String baseDir = createBaseDir();
+        BrokerConfig brokerConfig = new BrokerConfig();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        brokerConfig.setBrokerName(broker1Name);
+        brokerConfig.setBrokerIP1("127.0.0.1");
+        brokerConfig.setNamesrvAddr(namesrv);
+        brokerConfig.setEnablePropertyFilter(true);
+        brokerConfig.setLoadBalancePollNameServerInterval(500);
+        storeConfig.setStorePathRootDir(baseDir);
+        storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
+        storeConfig.setMappedFileSizeCommitLog(1024 * 1024 * 100);
+        storeConfig.setMaxIndexNum(1000);
+        storeConfig.setMaxHashSlotNum(1000 * 4);
+        storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
+        storeConfig.setMaxTransferCountOnMessageInMemory(1024);
+        storeConfig.setMaxTransferCountOnMessageInDisk(1024);
+        return createAndStartBroker(storeConfig, brokerConfig);
     }
+    
+    public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        nettyServerConfig.setListenPort(NAME_SERVER_PORT);
+        storeConfig.setHaListenPort(NAME_SERVER_PORT);
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
+        try {
+            Assertions.assertThat(brokerController.initialize()).isTrue();
+            brokerController.start();
+        } catch (Throwable t) {
+            System.exit(1);
+        }
+        return brokerController;
+    }
+    
+    public static String createBaseDir() {
+        String baseDir = System.getProperty("user.home") + File.separator + "unitteststore-" + UUID.randomUUID();
+        final File file = new File(baseDir);
+        if (file.exists()) {
+            System.exit(1);
+        }
+        return baseDir;
+    }
+    
+    
 }
