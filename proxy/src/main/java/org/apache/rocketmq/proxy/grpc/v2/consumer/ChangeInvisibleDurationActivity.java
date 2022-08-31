@@ -57,7 +57,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
 
             MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, request.getMessageId(), receiptHandle.getReceiptHandle());
             if (messageReceiptHandle != null) {
-                receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandle());
+                receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             }
             return this.messagingProcessor.changeInvisibleTime(
                 ctx,
