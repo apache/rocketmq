@@ -141,7 +141,7 @@ public class CompactionLog {
     }
 
 
-    private void putMessageFromRemote(byte[] bytes) {
+    private boolean putMessageFromRemote(byte[] bytes) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         // split bytebuffer to avoid encode message again
         while (byteBuffer.hasRemaining()) {
@@ -156,14 +156,20 @@ public class CompactionLog {
             }
 
             MessageExt messageExt = MessageDecoder.decode(bb, false, false);
-            if (getLog().isMappedFilesEmpty() || messageExt.getQueueOffset() < getCQ().getMinOffsetInQueue()) {
+            long messageOffset = messageExt.getQueueOffset();
+            long minOffsetInQueue = getCQ().getMinOffsetInQueue();;
+            if (getLog().isMappedFilesEmpty() || messageOffset < minOffsetInQueue) {
                 asyncPutMessage(bb, messageExt, replicating);
             } else {
-                break;
+                log.info("{}:{} message offset {} >= minOffsetInQueue {}, stop pull...",
+                    topic, queueId, messageOffset, minOffsetInQueue);
+                return false;
             }
 
             byteBuffer.position(mark + size);
         }
+
+        return true;
 
     }
 
@@ -185,9 +191,10 @@ public class CompactionLog {
             messageFetcher.pullMessageFromMaster(topic, queueId, getCQ().getMinOffsetInQueue(),
                 compactionStore.getMasterAddr(), (currOffset, response) -> {
                     if (currOffset < 0) {
-                        return;
+                        log.info("{}:{} current offset {}, stop pull...", topic, queueId, currOffset);
+                        return false;
                     }
-                    putMessageFromRemote(response.getBody());
+                    return putMessageFromRemote(response.getBody());
 //                    positionMgr.setOffset(topic, queueId, currOffset);
                 });
         }

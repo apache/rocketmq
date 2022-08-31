@@ -46,12 +46,12 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 public class MessageFetcher implements AutoCloseable {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private RemotingClient client;
+    private final RemotingClient client;
     public MessageFetcher() {
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyClientConfig.setUseTLS(false);
@@ -131,22 +131,24 @@ public class MessageFetcher implements AutoCloseable {
         return false;
     }
 
-    private boolean stopPull(long currPullOffset, long endOffset, boolean noNewMsg) {
-        return (currPullOffset >= endOffset && endOffset != -1) || noNewMsg;
+    private boolean stopPull(long currPullOffset, long endOffset) {
+        return (currPullOffset >= endOffset && endOffset != -1);
     }
 
     public void pullMessageFromMaster(String topic, int queueId, long endOffset,
-        String masterAddr, BiConsumer<Long,RemotingCommand> op) throws Exception {
+        String masterAddr, BiFunction<Long,RemotingCommand,Boolean> responseHandler) throws Exception {
         long currentPullOffset = 0;
-        boolean noNewMsg = false;
 
         try {
             long subVersion = System.currentTimeMillis();
             String groupName = String.join("-", topic, String.valueOf(queueId), "pull", "group");
             prepare(masterAddr, topic, groupName, subVersion);
 
+
+            boolean noNewMsg = false;
+            boolean keepPull = true;
 //            PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, subVersion, currentPullOffset);
-            while (!stopPull(currentPullOffset, endOffset, noNewMsg)) {
+            while (!stopPull(currentPullOffset, endOffset)) {
 //                requestHeader.setQueueOffset(currentPullOffset);
                 PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, currentPullOffset, subVersion);
 
@@ -163,28 +165,32 @@ public class MessageFetcher implements AutoCloseable {
                 switch (response.getCode()) {
                     case ResponseCode.SUCCESS:
                         long curOffset = responseHeader.getNextBeginOffset() - 1;
-                        op.accept(curOffset, response);
+                        keepPull = responseHandler.apply(curOffset, response);
                         currentPullOffset = responseHeader.getNextBeginOffset();
                         break;
                     case ResponseCode.PULL_NOT_FOUND:       // NO_NEW_MSG, need break loop
-                        log.info("PULL_NOT_FOUND");
+                        log.info("PULL_NOT_FOUND, topic:{}, queueId:{}, pullOffset:{},",
+                            topic, queueId, currentPullOffset);
                         noNewMsg = true;
                         break;
                     case ResponseCode.PULL_RETRY_IMMEDIATELY:
-                        log.info("PULL_RETRY_IMMEDIATE");
+                        log.info("PULL_RETRY_IMMEDIATE, topic:{}, queueId:{}, pullOffset:{},",
+                            topic, queueId, currentPullOffset);
                         break;
                     case ResponseCode.PULL_OFFSET_MOVED:
-                        log.info("PULL_OFFSET_MOVED");
+                        log.info("PULL_OFFSET_MOVED, topic:{}, queueId:{}, pullOffset:{},",
+                            topic, queueId, currentPullOffset);
                         break;
                     default:
                         log.warn("Pull Message error, response code: {}, remark: {}",
                             response.getCode(), response.getRemark());
                 }
+
+                if (noNewMsg || !keepPull) {
+                    break;
+                }
             }
             pullDone(masterAddr, groupName);
-        } catch (Exception e) {
-//            log.error("Pull Message error, ", e);
-            throw e;
         } finally {
             if (client != null) {
                 client.closeChannels(Lists.newArrayList(masterAddr));
