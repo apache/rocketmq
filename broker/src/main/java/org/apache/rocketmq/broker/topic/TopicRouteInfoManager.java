@@ -135,7 +135,7 @@ public class TopicRouteInfoManager {
 
     private boolean updateTopicRouteTable(String topic, TopicRouteData topicRouteData) {
         TopicRouteData old = this.topicRouteTable.get(topic);
-        boolean changed = this.topicRouteDataIsChange(old, topicRouteData);
+        boolean changed = topicRouteData.topicRouteDataIsChange(old);
         if (!changed) {
             if (!this.isNeedUpdateTopicRouteInfo(topic)) {
                 return false;
@@ -178,19 +178,6 @@ public class TopicRouteInfoManager {
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
         final TopicPublishInfo prev = this.topicPublishInfoTable.get(topic);
         return null == prev || !prev.ok();
-    }
-
-    private boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
-        if (olddata == null || nowdata == null)
-            return true;
-        TopicRouteData old = new TopicRouteData(olddata);
-        TopicRouteData now = new TopicRouteData(nowdata);
-        Collections.sort(old.getQueueDatas());
-        Collections.sort(old.getBrokerDatas());
-        Collections.sort(now.getQueueDatas());
-        Collections.sort(now.getBrokerDatas());
-        return !old.equals(now);
-
     }
 
     private void cleanNoneRouteTopic(String topic) {
@@ -275,6 +262,4 @@ public class TopicRouteInfoManager {
         }
         return queues;
     }
-
-
 }

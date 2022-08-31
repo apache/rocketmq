@@ -20,10 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -115,6 +112,18 @@ public class TopicRouteData extends RemotingSerializable {
         }
 
         return topicRouteData;
+    }
+
+    public boolean topicRouteDataIsChange(TopicRouteData oldData) {
+        if (oldData == null)
+            return true;
+        TopicRouteData old = new TopicRouteData(oldData);
+        TopicRouteData now = new TopicRouteData(this);
+        Collections.sort(old.getQueueDatas());
+        Collections.sort(old.getBrokerDatas());
+        Collections.sort(now.getQueueDatas());
+        Collections.sort(now.getBrokerDatas());
+        return !old.equals(now);
     }
 
     public List<QueueData> getQueueDatas() {
