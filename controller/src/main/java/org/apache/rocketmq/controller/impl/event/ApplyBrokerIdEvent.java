@@ -21,11 +21,13 @@ package org.apache.rocketmq.controller.impl.event;
  * Triggered by the RegisterBrokerApi.
  */
 public class ApplyBrokerIdEvent implements EventMessage {
+    private final String clusterName;
     private final String brokerName;
     private final String brokerAddress;
     private final long newBrokerId;
 
-    public ApplyBrokerIdEvent(String brokerName, String brokerAddress, long newBrokerId) {
+    public ApplyBrokerIdEvent(String clusterName, String brokerName, String brokerAddress, long newBrokerId) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
         this.newBrokerId = newBrokerId;
@@ -48,10 +50,15 @@ public class ApplyBrokerIdEvent implements EventMessage {
         return newBrokerId;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
     @Override
     public String toString() {
         return "ApplyBrokerIdEvent{" +
-            "brokerName='" + brokerName + '\'' +
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +
             ", newBrokerId=" + newBrokerId +
             '}';
