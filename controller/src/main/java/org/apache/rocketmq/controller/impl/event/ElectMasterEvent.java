@@ -25,21 +25,19 @@ public class ElectMasterEvent implements EventMessage {
     private final boolean newMasterElected;
     private final String brokerName;
     private final String newMasterAddress;
-    private final String clusterName;
 
     public ElectMasterEvent(boolean newMasterElected, String brokerName) {
-        this(newMasterElected, brokerName, "", "");
+        this(newMasterElected, brokerName, "");
     }
 
     public ElectMasterEvent(String brokerName, String newMasterAddress) {
-        this(true, brokerName, newMasterAddress, "");
+        this(true, brokerName, newMasterAddress);
     }
 
-    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress, String clusterName) {
+    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress) {
         this.newMasterElected = newMasterElected;
         this.brokerName = brokerName;
         this.newMasterAddress = newMasterAddress;
-        this.clusterName = clusterName;
     }
 
     @Override
@@ -59,17 +57,12 @@ public class ElectMasterEvent implements EventMessage {
         return newMasterAddress;
     }
 
-    public String getClusterName() {
-        return clusterName;
-    }
-
     @Override
     public String toString() {
         return "ElectMasterEvent{" +
-            "isNewMasterElected=" + newMasterElected +
+            "newMasterElected=" + newMasterElected +
             ", brokerName='" + brokerName + '\'' +
             ", newMasterAddress='" + newMasterAddress + '\'' +
-            ", clusterName='" + clusterName + '\'' +
             '}';
     }
 }
