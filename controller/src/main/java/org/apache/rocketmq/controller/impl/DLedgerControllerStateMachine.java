@@ -36,13 +36,13 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final ReplicasInfoManager replicasInfoManager;
     private final EventSerializer eventSerializer;
-    private final String dledgerId;
+    private final String dLedgerId;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
-        final EventSerializer eventSerializer, final String dledgerId) {
+        final EventSerializer eventSerializer, final String dLedgerId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
-        this.dledgerId = dledgerId;
+        this.dLedgerId = dLedgerId;
     }
 
     @Override
@@ -57,7 +57,7 @@ public class DLedgerControllerStateMachine implements StateMachine {
             }
             applyingSize++;
         }
-        log.info("Apply {} events on controller {}", applyingSize, this.dledgerId);
+        log.info("Apply {} events on controller {}", applyingSize, this.dLedgerId);
     }
 
     @Override
