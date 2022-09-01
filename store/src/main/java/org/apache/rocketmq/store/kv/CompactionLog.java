@@ -994,13 +994,14 @@ public class CompactionLog {
         }
 
         public void clean(MappedFileQueue mappedFileQueue) throws IOException {
-            if (mappedFileQueue.isMappedFilesEmpty()) {
-                mappedFileQueue.destroy();
-            } else {
-                log.error("directory {} with {} not empty.",
-                    mappedFileQueue.getStorePath(), mappedFileQueue.getMappedFiles());
-                throw new IOException("directory " + mappedFileQueue.getStorePath() + " not empty.");
+            for (MappedFile mf : mappedFileQueue.getMappedFiles()) {
+                if (mf.getFile().exists()) {
+                    log.error("directory {} with {} not empty.", mappedFileQueue.getStorePath(), mf.getFileName());
+                    throw new IOException("directory " + mappedFileQueue.getStorePath() + " not empty.");
+                }
             }
+
+            mappedFileQueue.destroy();
         }
 
         public void clean(boolean forceCleanLog, boolean forceCleanCq) throws IOException {
