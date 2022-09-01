@@ -17,8 +17,11 @@
 
 package org.apache.rocketmq.common;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.logging.InternalLogger;
 
 import java.io.IOException;
@@ -222,7 +225,7 @@ public class Configuration {
     }
 
     public void persistBrokerConf(Properties from) {
-        FileReader reader = null;
+        BufferedReader reader = null;
         try {
             readWriteLock.readLock().lockInterruptibly();
             String fileName = this.getStorePath();
@@ -231,7 +234,7 @@ public class Configuration {
                 file.createNewFile();
             }
             Properties properties = new Properties();
-            reader = new FileReader(fileName);
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
             properties.load(reader);
             merge(from, properties);
             final String str = MixAll.properties2String(properties);
