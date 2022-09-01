@@ -76,6 +76,14 @@ public interface Controller {
     CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request);
 
     /**
+     * Broker try to elect itself as the master
+     *
+     * @param request ElectMasterRequestMaster
+     * @return RemotingCommand(ElectMasterResponseHeader)
+     */
+    CompletableFuture<RemotingCommand> brokerTryElectMaster(final ElectMasterRequestHeader request);
+
+    /**
      * Register api when a replicas of a broker startup.
      *
      * @param request RegisterBrokerRequest

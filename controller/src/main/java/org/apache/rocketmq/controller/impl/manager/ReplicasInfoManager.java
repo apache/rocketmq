@@ -153,6 +153,50 @@ public class ReplicasInfoManager {
         return result;
     }
 
+    public ControllerResult<ElectMasterResponseHeader> brokerTryElectMaster(final ElectMasterRequestHeader request) {
+        final String brokerName = request.getBrokerName();
+        final String brokerAddress = request.getBrokerAddress();
+        final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
+        ElectMasterResponseHeader response = result.getResponse();
+        if (!isContainsBroker(brokerName)) {
+            // this broker set hasn't been registered
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker hasn't been registered");
+            return result;
+        }
+        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+        if (syncStateInfo.isMasterExist()) {
+            // the master still exist
+            response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+            response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
+            response.setNewMasterAddress(syncStateInfo.getMasterAddress());
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, "Broker master still exist, try elect a new master failed");
+            return result;
+        }
+        final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
+        String newMaster;
+        if (syncStateInfo.isFirstTimeForElect()) {
+            // If never have a master in this broker set, in other words, it is the first time to elect a master
+            // elect it as the first master
+            newMaster = brokerAddress;
+        } else {
+            // if this broker set already elect a master now or in past
+            // try elect it
+            newMaster = syncStateSet.contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster() ? brokerAddress : null;
+        }
+        if (StringUtils.isEmpty(newMaster)) {
+            // try elect failed
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_TRY_ELECT_FAILED, "Broker try to elect itself as master failed");
+            return result;
+        }
+        // if newMaster is elected, append it in DLedger to update the state machine
+        response.setNewMasterAddress(brokerAddress);
+        response.setMasterEpoch(syncStateInfo.getMasterEpoch() + 1);
+        response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch() + 1);
+        response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
+        result.addEvent(new ElectMasterEvent(brokerName, brokerAddress));
+        return result;
+    }
+
     public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request,
         final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();

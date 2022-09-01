@@ -63,6 +63,10 @@ public class SyncStateInfo {
         this.syncStateSetEpoch++;
     }
 
+    public boolean isFirstTimeForElect() {
+        return this.masterEpoch == 0;
+    }
+
     public boolean isMasterExist() {
         return !this.masterAddress.isEmpty();
     }
