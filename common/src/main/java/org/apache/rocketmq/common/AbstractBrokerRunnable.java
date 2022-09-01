@@ -35,7 +35,7 @@ public abstract class AbstractBrokerRunnable implements Runnable {
     public void run() {
         if (brokerIdentity.isInBrokerContainer()) {
             // set threadlocal broker identity to forward logging to corresponding broker
-            InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName());
+            InnerLoggerFactory.BROKER_IDENTITY.set(brokerIdentity.getCanonicalName());
         }
         run2();
     }

@@ -509,9 +509,16 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         // Normal transfer method
         private void buildTransferHeaderBuffer(long nextOffset, int bodySize) {
+
             EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+
             if (entry == null) {
-                LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
+
+                // If broker is started on empty disk and no message entered (nextOffset = -1 and currentTransferEpoch = -1), do not output error log when sending heartbeat
+                if (nextOffset != -1 || currentTransferEpoch != -1 || bodySize > 0) {
+                    LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
+                }
+
                 if (bodySize > 0) {
                     return;
                 }
@@ -660,6 +667,13 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     }
                                 } else {
                                     this.nextTransferFromWhere = slaveRequestOffset;
+                                }
+
+                                // nextTransferFromWhere is not found. It may be empty disk and no message is entered
+                                if (this.nextTransferFromWhere == -1) {
+                                    sendHeartbeatIfNeeded();
+                                    waitForRunning(500);
+                                    break;
                                 }
                                 // Setup initial transferEpoch
                                 EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByOffset(this.nextTransferFromWhere);
