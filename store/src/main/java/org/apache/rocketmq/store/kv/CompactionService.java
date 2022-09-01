@@ -107,11 +107,15 @@ public class CompactionService extends ServiceThread {
         }
     }
 
-    @Override
-    public void start() {
-        compactionStore.load();
-        super.start();
+    public void load(boolean exitOK) {
+        compactionStore.load(exitOK);
     }
+
+//    @Override
+//    public void start() {
+//        compactionStore.load();
+//        super.start();
+//    }
 
     @Override
     public void shutdown() {

@@ -211,8 +211,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
-        this.compactionService.start();
-
         this.scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
 
@@ -349,6 +347,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
+        this.compactionService.start();
         this.storeStatsService.start();
 
         if (this.haService != null) {

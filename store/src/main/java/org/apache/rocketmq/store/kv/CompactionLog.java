@@ -120,12 +120,12 @@ public class CompactionLog {
                 new PutMessageSpinLock();
         this.endMsgCallback = new CompactionAppendEndMsgCallback();
         this.state = new AtomicReference<>(State.INITIALIZING);
-        this.load();
+//        this.load();
         log.info("CompactionLog {}:{} init completed.", topic, queueId);
     }
 
-    private void load() throws IOException, RuntimeException {
-        initLogAndCq();
+    public void load(boolean exitOk) throws IOException, RuntimeException {
+        initLogAndCq(exitOk);
         if (defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
             && getLog().isMappedFilesEmpty()) {
             log.info("{}:{} load compactionLog from remote master", topic, queueId);
@@ -135,9 +135,9 @@ public class CompactionLog {
         }
     }
 
-    private void initLogAndCq() throws IOException, RuntimeException {
+    private void initLogAndCq(boolean exitOk) throws IOException, RuntimeException {
         current = new TopicPartitionLog(this);
-        current.init();
+        current.init(exitOk);
     }
 
 
@@ -186,7 +186,7 @@ public class CompactionLog {
             return;
         }
 
-        replicating = new TopicPartitionLog(this, REPLICATING_SUB_FOLDER, false);
+        replicating = new TopicPartitionLog(this, REPLICATING_SUB_FOLDER);
         try (MessageFetcher messageFetcher = new MessageFetcher()) {
             messageFetcher.pullMessageFromMaster(topic, queueId, getCQ().getMinOffsetInQueue(),
                 compactionStore.getMasterAddr(), (currOffset, response) -> {
@@ -624,7 +624,7 @@ public class CompactionLog {
     }
 
     protected void compaction(List<MappedFile> mappedFileList, OffsetMap offsetMap) throws DigestException {
-        compacting = new TopicPartitionLog(this, COMPACTING_SUB_FOLDER, false);
+        compacting = new TopicPartitionLog(this, COMPACTING_SUB_FOLDER);
 
         for (MappedFile mappedFile : mappedFileList) {
             Iterator<SelectMappedBufferResult> iterator = mappedFile.iterator(0);
@@ -911,13 +911,12 @@ public class CompactionLog {
         SparseConsumeQueue consumeQueue;
 
         public TopicPartitionLog(CompactionLog compactionLog) {
-            this(compactionLog, null, true);
+            this(compactionLog, null);
         }
-        public TopicPartitionLog(CompactionLog compactionLog, String subFolder, Boolean allocate) {
+        public TopicPartitionLog(CompactionLog compactionLog, String subFolder) {
             if (StringUtils.isBlank(subFolder)) {
                 mappedFileQueue = new MappedFileQueue(compactionLog.compactionLogFilePath,
-                    compactionLog.compactionLogMappedFileSize,
-                    allocate ? compactionLog.defaultMessageStore.getAllocateMappedFileService() : null);
+                    compactionLog.compactionLogMappedFileSize, null);
                 consumeQueue = new SparseConsumeQueue(compactionLog.topic, compactionLog.queueId,
                     compactionLog.compactionCqFilePath, compactionLog.compactionCqMappedFileSize,
                     compactionLog.defaultMessageStore);
@@ -930,15 +929,30 @@ public class CompactionLog {
             }
         }
 
-        public void init() throws IOException, RuntimeException {
+        public void shutdown() {
+            mappedFileQueue.shutdown(1000 * 30);
+            consumeQueue.getMappedFileQueue().shutdown(1000 * 30);
+        }
+
+        public void init(boolean exitOk) throws IOException, RuntimeException {
             if (!mappedFileQueue.load()) {
+                shutdown();
                 throw new IOException("load log exception");
             }
 
-            consumeQueue.load();
-            consumeQueue.recover();
-            recover();
-            sanityCheck();
+            if (!consumeQueue.load()) {
+                shutdown();
+                throw new IOException("load consume queue exception");
+            }
+
+            try {
+                consumeQueue.recover();
+                recover();
+                sanityCheck();
+            } catch (Exception e) {
+                shutdown();
+                throw e;
+            }
         }
 
         private void recover() {

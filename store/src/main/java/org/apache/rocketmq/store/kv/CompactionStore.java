@@ -76,7 +76,7 @@ public class CompactionStore {
         this.compactionInterval = defaultMessageStore.getMessageStoreConfig().getCompactionScheduleInternal();
     }
 
-    public void load() {
+    public void load(boolean exitOk) {
         File logRoot = new File(compactionLogPath);
         File[] fileTopicList = logRoot.listFiles();
         if (fileTopicList != null) {
@@ -97,13 +97,15 @@ public class CompactionStore {
 
                             if (Files.isDirectory(Paths.get(compactionCqPath, topic, String.valueOf(queueId)))) {
                                 CompactionLog log = new CompactionLog(defaultMessageStore, this, topic, queueId);
+                                log.load(exitOk);
                                 compactionLogTable.put(topic + "_" + queueId, log);
                                 compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
                             } else {
                                 log.error("{}:{} compactionLog mismatch with compactionCq", topic, queueId);
                             }
                         } catch (Exception e) {
-                            log.warn("build bcq {}:{} exception: ",fileTopic.getName(), fileQueueId.getName(), e);
+                            log.error("load compactionLog {}:{} exception: ",
+                                fileTopic.getName(), fileQueueId.getName(), e);
                             continue;
                         }
                     }
@@ -118,6 +120,7 @@ public class CompactionStore {
             if (v == null) {
                 try {
                     v = new CompactionLog(defaultMessageStore,this, topic, queueId);
+                    v.load(true);
                     compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);
