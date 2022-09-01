@@ -27,7 +27,8 @@ public class UpdateGlobalWhiteAddrsConfigRequestHeader implements CommandCustomH
     @CFNotNull
     private String aclFileFullPath;
 
-    @Override public void checkFields() throws RemotingCommandException {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
     }
 

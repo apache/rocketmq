@@ -16,20 +16,26 @@
  */
 package org.apache.rocketmq.broker.slave;
 
-import java.io.IOException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.loadbalance.MessageRequestModeManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+import java.io.IOException;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMetrics;
+
 public class SlaveSynchronize {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
     private volatile String masterAddr = null;
 
@@ -42,7 +48,10 @@ public class SlaveSynchronize {
     }
 
     public void setMasterAddr(String masterAddr) {
-        this.masterAddr = masterAddr;
+        if (!StringUtils.equals(this.masterAddr, masterAddr)) {
+            LOGGER.info("Update master address from {} to {}", this.masterAddr, masterAddr);
+            this.masterAddr = masterAddr;
+        }
     }
 
     public void syncAll() {
@@ -50,13 +59,18 @@ public class SlaveSynchronize {
         this.syncConsumerOffset();
         this.syncDelayOffset();
         this.syncSubscriptionGroupConfig();
+        this.syncMessageRequestMode();
+
+        if (brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+            this.syncTimerMetrics();
+        }
     }
 
     private void syncTopicConfig() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                TopicConfigSerializeWrapper topicWrapper =
+                TopicConfigAndMappingSerializeWrapper topicWrapper =
                     this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
                     .equals(topicWrapper.getDataVersion())) {
@@ -67,11 +81,19 @@ public class SlaveSynchronize {
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
                         .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
-
-                    log.info("Update slave topic config from master, {}", masterAddrBak);
                 }
+                if (topicWrapper.getTopicQueueMappingDetailMap() != null
+                        && !topicWrapper.getMappingDataVersion().equals(this.brokerController.getTopicQueueMappingManager().getDataVersion())) {
+                    this.brokerController.getTopicQueueMappingManager().getDataVersion()
+                            .assignNewOne(topicWrapper.getMappingDataVersion());
+                    this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable().clear();
+                    this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable()
+                            .putAll(topicWrapper.getTopicQueueMappingDetailMap());
+                    this.brokerController.getTopicQueueMappingManager().persist();
+                }
+                LOGGER.info("Update slave topic config from master, {}", masterAddrBak);
             } catch (Exception e) {
-                log.error("SyncTopicConfig Exception, {}", masterAddrBak, e);
+                LOGGER.error("SyncTopicConfig Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -84,10 +106,11 @@ public class SlaveSynchronize {
                     this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
+                this.brokerController.getConsumerOffsetManager().getDataVersion().assignNewOne(offsetWrapper.getDataVersion());
                 this.brokerController.getConsumerOffsetManager().persist();
-                log.info("Update slave consumer offset from master, {}", masterAddrBak);
+                LOGGER.info("Update slave consumer offset from master, {}", masterAddrBak);
             } catch (Exception e) {
-                log.error("SyncConsumerOffset Exception, {}", masterAddrBak, e);
+                LOGGER.error("SyncConsumerOffset Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -105,13 +128,14 @@ public class SlaveSynchronize {
                             .getMessageStoreConfig().getStorePathRootDir());
                     try {
                         MixAll.string2File(delayOffset, fileName);
+                        this.brokerController.getScheduleMessageService().load();
                     } catch (IOException e) {
-                        log.error("Persist file Exception, {}", fileName, e);
+                        LOGGER.error("Persist file Exception, {}", fileName, e);
                     }
                 }
-                log.info("Update slave delay offset from master, {}", masterAddrBak);
+                LOGGER.info("Update slave delay offset from master, {}", masterAddrBak);
             } catch (Exception e) {
-                log.error("SyncDelayOffset Exception, {}", masterAddrBak, e);
+                LOGGER.error("SyncDelayOffset Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -134,10 +158,66 @@ public class SlaveSynchronize {
                     subscriptionGroupManager.getSubscriptionGroupTable().putAll(
                         subscriptionWrapper.getSubscriptionGroupTable());
                     subscriptionGroupManager.persist();
-                    log.info("Update slave Subscription Group from master, {}", masterAddrBak);
+                    LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);
                 }
             } catch (Exception e) {
-                log.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
+                LOGGER.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
+            }
+        }
+    }
+
+    private void syncMessageRequestMode() {
+        String masterAddrBak = this.masterAddr;
+        if (masterAddrBak != null  && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
+            try {
+                MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper =
+                        this.brokerController.getBrokerOuterAPI().getAllMessageRequestMode(masterAddrBak);
+
+                MessageRequestModeManager messageRequestModeManager =
+                        this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager();
+                messageRequestModeManager.getMessageRequestModeMap().clear();
+                messageRequestModeManager.getMessageRequestModeMap().putAll(
+                        messageRequestModeSerializeWrapper.getMessageRequestModeMap()
+                );
+                messageRequestModeManager.persist();
+                LOGGER.info("Update slave Message Request Mode from master, {}", masterAddrBak);
+            } catch (Exception e) {
+                LOGGER.error("SyncMessageRequestMode Exception, {}", masterAddrBak, e);
+            }
+        }
+    }
+
+    public void syncTimerCheckPoint() {
+        String masterAddrBak = this.masterAddr;
+        if (masterAddrBak != null) {
+            try {
+                TimerCheckpoint checkpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(masterAddrBak);
+                if (null != this.brokerController.getTimerCheckpoint()) {
+                    this.brokerController.getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
+                    this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
+                }
+            } catch (Exception e) {
+                LOGGER.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
+            }
+        }
+    }
+
+    private void syncTimerMetrics() {
+        String masterAddrBak = this.masterAddr;
+        if (masterAddrBak != null) {
+            try {
+                if (null != brokerController.getMessageStore().getTimerMessageStore()) {
+                    TimerMetrics.TimerMetricsSerializeWrapper metricsSerializeWrapper =
+                        this.brokerController.getBrokerOuterAPI().getTimerMetrics(masterAddrBak);
+                    if (!brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().getDataVersion().equals(metricsSerializeWrapper.getDataVersion())) {
+                        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().getDataVersion().assignNewOne(metricsSerializeWrapper.getDataVersion());
+                        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().getTimingCount().clear();
+                        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().getTimingCount().putAll(metricsSerializeWrapper.getTimingCount());
+                        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().persist();
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.error("SyncTimerMetrics Exception, {}", masterAddrBak, e);
             }
         }
     }
