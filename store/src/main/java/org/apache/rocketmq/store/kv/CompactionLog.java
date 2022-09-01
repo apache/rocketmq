@@ -685,6 +685,7 @@ public class CompactionLog {
 
             dest.getMappedFiles().clear();
             dest.getMappedFiles().addAll(src.getMappedFiles());
+            src.getMappedFiles().clear();
 
             replaceCqFiles(getCQ(), newLog.getCQ(), fileNameToReplace);
 
@@ -721,6 +722,8 @@ public class CompactionLog {
 
         currentMq.getMappedFiles().clear();
         currentMq.getMappedFiles().addAll(compactMq.getMappedFiles());
+        compactMq.getMappedFiles().clear();
+
         currentBcq.refresh();
         log.info("replace consume queue file elapsed {} millsecs.",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime));
