@@ -93,7 +93,7 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
             any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
         when(receiptHandleProcessor.removeReceiptHandle(anyString(), anyString(), anyString(), anyString()))
-            .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0, 3000));
+            .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0));
 
         ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
             createContext(),
