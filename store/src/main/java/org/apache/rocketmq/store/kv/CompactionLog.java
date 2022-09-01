@@ -403,6 +403,13 @@ public class CompactionLog {
         return null;
     }
 
+    private boolean validateCqUnit(CqUnit cqUnit) {
+        return cqUnit.getPos() >= 0
+            && cqUnit.getSize() > 0
+            && cqUnit.getQueueOffset() >= 0
+            && cqUnit.getBatchNum() > 0;
+    }
+
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize) {
         readMessageLock.lock();
@@ -465,13 +472,11 @@ public class CompactionLog {
                             long nextPhyFileStartOffset = Long.MIN_VALUE;
                             while (bufferConsumeQueue.hasNext() && nextBeginOffset < maxOffset) {
                                 CqUnit cqUnit = bufferConsumeQueue.next();
-                                long offsetPy = cqUnit.getPos();
-                                int sizePy = cqUnit.getSize();
-
-                                if (offsetPy < 0) {
-                                    // indicate that the mapped file ended
+                                if (!validateCqUnit(cqUnit)) {
                                     break;
                                 }
+                                long offsetPy = cqUnit.getPos();
+                                int sizePy = cqUnit.getSize();
 
                                 boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
