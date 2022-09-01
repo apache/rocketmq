@@ -76,7 +76,7 @@ public class CompactionStore {
         this.compactionInterval = defaultMessageStore.getMessageStoreConfig().getCompactionScheduleInternal();
     }
 
-    public void load(boolean exitOk) {
+    public void load(boolean exitOk) throws Exception {
         File logRoot = new File(compactionLogPath);
         File[] fileTopicList = logRoot.listFiles();
         if (fileTopicList != null) {
@@ -106,7 +106,8 @@ public class CompactionStore {
                         } catch (Exception e) {
                             log.error("load compactionLog {}:{} exception: ",
                                 fileTopic.getName(), fileQueueId.getName(), e);
-                            continue;
+                            throw new Exception("load compactionLog " + fileTopic.getName()
+                                + ":" + fileQueueId.getName() + " exception: " + e.getMessage());
                         }
                     }
                 }

@@ -107,8 +107,14 @@ public class CompactionService extends ServiceThread {
         }
     }
 
-    public void load(boolean exitOK) {
-        compactionStore.load(exitOK);
+    public boolean load(boolean exitOK) {
+        try {
+            compactionStore.load(exitOK);
+            return true;
+        } catch (Exception e) {
+            log.error("load compaction store error ", e);
+            return false;
+        }
     }
 
 //    @Override
