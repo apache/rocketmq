@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
@@ -62,16 +61,14 @@ public class BatchUnRegisterService extends ServiceThread {
     public void run() {
         while (!this.isStopped()) {
             try {
-                final UnRegisterBrokerRequestHeader request = unRegisterQueue.poll(3, TimeUnit.SECONDS);
-                if (request != null) {
-                    Set<UnRegisterBrokerRequestHeader> unRegisterRequests = new HashSet<>();
-                    unRegisterQueue.drainTo(unRegisterRequests);
+                final UnRegisterBrokerRequestHeader request = unRegisterQueue.take();
+                Set<UnRegisterBrokerRequestHeader> unRegisterRequests = new HashSet<>();
+                unRegisterQueue.drainTo(unRegisterRequests);
 
-                    // Add polled request
-                    unRegisterRequests.add(request);
+                // Add polled request
+                unRegisterRequests.add(request);
 
-                    this.routeInfoManager.unRegisterBroker(unRegisterRequests);
-                }
+                this.routeInfoManager.unRegisterBroker(unRegisterRequests);
             } catch (Throwable e) {
                 log.error("Handle unregister broker request failed", e);
             }
