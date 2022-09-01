@@ -207,7 +207,7 @@ public class DefaultMessageStoreTest {
         long ipv4HostMsgs = 10;
         long ipv6HostMsgs = 10;
         long totalMsgs = ipv4HostMsgs + ipv6HostMsgs;
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
         for (long i = 0; i < ipv4HostMsgs; i++) {
             multiPathMessageStore.putMessage(buildMessage());
