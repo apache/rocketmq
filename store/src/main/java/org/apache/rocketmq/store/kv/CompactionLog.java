@@ -205,11 +205,13 @@ public class CompactionLog {
         } else if (replicating.getLog().isMappedFilesEmpty()) {
             log.info("replicating message is empty");   //break
         } else {
+            List<MappedFile> newFiles = Lists.newArrayList();
             List<MappedFile> toCompactFiles = Lists.newArrayList(replicating.getLog().getMappedFiles());
             putMessageLock.lock();
             try {
                 // combine current and replicating to mappedFileList
-                toCompactFiles.addAll(getLog().getMappedFiles());  //all from current
+                newFiles = Lists.newArrayList(getLog().getMappedFiles());
+                toCompactFiles.addAll(newFiles);  //all from current
                 current.roll(toCompactFiles.size() * compactionLogMappedFileSize);
             } catch (Throwable e) {
                 log.error("roll log and cq exception: ", e);
@@ -219,7 +221,7 @@ public class CompactionLog {
 
             try {
                 // doCompaction with current and replicating
-                compactAndReplace(toCompactFiles);
+                compactAndReplace(new FileList(toCompactFiles, newFiles));
             } catch (Throwable e) {
                 log.error("do merge replicating and current exception: ", e);
             }
@@ -539,32 +541,39 @@ public class CompactionLog {
         }
     }
 
-    List<MappedFile> getCompactionFile() {
+    FileList getCompactionFile() {
         List<MappedFile> mappedFileList = Lists.newArrayList(getLog().getMappedFiles());
         if (mappedFileList.size() < 2) {
-            return Collections.emptyList();
+            return null;
         }
 
+        List<MappedFile> toCompactFiles = mappedFileList.subList(0, mappedFileList.size() - 1);
+
         //exclude the last writing file
-        List<MappedFile> toCompactionFileList = Lists.newArrayList();
-        for (int i = 0; i <= mappedFileList.size() - 2; i++) {
+        List<MappedFile> newFiles = Lists.newArrayList();
+        for (int i = 0; i < mappedFileList.size() - 1; i++) {
             MappedFile mf = mappedFileList.get(i);
             long maxQueueOffsetInFile = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
             if (maxQueueOffsetInFile > positionMgr.getOffset(topic, queueId)) {
-                toCompactionFileList.add(mf);
+                newFiles.add(mf);
             }
         }
 
-        return toCompactionFileList;
+        if (newFiles.isEmpty()) {
+            return null;
+        }
+
+        return new FileList(toCompactFiles, newFiles);
     }
 
-    void compactAndReplace(List<MappedFile> toCompactFiles) throws Throwable {
-        if (CollectionUtils.isNotEmpty(toCompactFiles)) {
+    void compactAndReplace(FileList compactFiles) throws Throwable {
+        if (CollectionUtils.isNotEmpty(compactFiles.newFiles)) {
             long startTime = System.nanoTime();
-            OffsetMap offsetMap = getOffsetMap(toCompactFiles); //what if offsetMap can't hold the whole compactFiles
-            compaction(toCompactFiles, offsetMap);
-            replaceFiles(toCompactFiles, current, compacting);
+            OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles); //what if offsetMap can't hold the whole compactFiles
+            compaction(compactFiles.toCompactFiles, offsetMap);
+            replaceFiles(compactFiles.toCompactFiles, current, compacting);
             positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
+            positionMgr.persist();
             compacting.clean(false, false);
             log.info("this compaction elapsed {} milliseconds",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
@@ -1055,6 +1064,15 @@ public class CompactionLog {
         NORMAL,
         INITIALIZING,
         COMPACTING,
+    }
+
+    static class FileList {
+        List<MappedFile> newFiles;
+        List<MappedFile> toCompactFiles;
+        public FileList(List<MappedFile> toCompactFiles, List<MappedFile> newFiles) {
+            this.toCompactFiles = toCompactFiles;
+            this.newFiles = newFiles;
+        }
     }
 
 }
