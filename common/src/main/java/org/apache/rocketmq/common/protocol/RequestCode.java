@@ -269,4 +269,11 @@ public class RequestCode {
      * get config from controller
      */
     public static final int GET_CONTROLLER_CONFIG = 1010;
+
+    /**
+     * clean broker data
+     */
+    public static final int CLEAN_BROKER_DATA = 1011;
+
+
 }

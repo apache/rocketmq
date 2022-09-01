@@ -65,7 +65,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
-    private static boolean timerWheelEnable = true;
+    private boolean timerWheelEnable = true;
 
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
@@ -1482,7 +1482,7 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
-    public static boolean isTimerWheelEnable() {
+    public  boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
     public void setTimerWheelEnable(boolean timerWheelEnable) {

@@ -27,6 +27,10 @@
     <artifactId>rocketmq-logging</artifactId>
     <name>rocketmq-logging ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>

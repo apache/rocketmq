@@ -17,12 +17,11 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
+import java.util.Random;
 import org.apache.rocketmq.common.UtilAll;
 import org.junit.After;
 import org.junit.Test;
-
-import java.io.File;
-import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +29,7 @@ public class ConsumeQueueExtTest {
 
     private static final String topic = "abc";
     private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int bitMapLength = 64;
     private static final int unitSizeWithBitMap = ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + bitMapLength / Byte.SIZE;
     private static final int cqExtFileSize = 10 * unitSizeWithBitMap;

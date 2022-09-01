@@ -1,30 +1,21 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE
- * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
- * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.store;
-
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.config.BrokerRole;
-import org.apache.rocketmq.store.config.FlushDiskType;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -33,34 +24,51 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.HAConnectionState;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class HATest {
-    private final String StoreMessage = "Once, there was a chance for me!";
-    private int QUEUE_TOTAL = 100;
-    private AtomicInteger QueueId = new AtomicInteger(0);
-    private SocketAddress BornHost;
-    private SocketAddress StoreHost;
-    private byte[] MessageBody;
+    private final String storeMessage = "Once, there was a chance for me!";
+    private int queueTotal = 100;
+    private AtomicInteger queueId = new AtomicInteger(0);
+    private SocketAddress bornHost;
+    private SocketAddress storeHost;
+    private byte[] messageBody;
 
     private MessageStore messageStore;
     private MessageStore slaveMessageStore;
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
-    private String storePathRootParentDir = System.getProperty("java.io.tmpdir") + File.separator +
-        UUID.randomUUID().toString().replace("-", "");
+    private String storePathRootParentDir = System.getProperty("java.io.tmpdir") + File.separator + UUID.randomUUID();
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
 
     @Before
     public void init() throws Exception {
-        StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
-        BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+        storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+        bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         masterMessageStoreConfig = new MessageStoreConfig();
         masterMessageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         masterMessageStoreConfig.setStorePathRootDir(storePathRootDir + File.separator + "master");
@@ -68,6 +76,8 @@ public class HATest {
         masterMessageStoreConfig.setHaListenPort(0);
         masterMessageStoreConfig.setTotalReplicas(2);
         masterMessageStoreConfig.setInSyncReplicas(2);
+        masterMessageStoreConfig.setHaHousekeepingInterval(2 * 1000);
+        masterMessageStoreConfig.setHaSendHeartbeatInterval(1000);
         buildMessageStoreConfig(masterMessageStoreConfig);
         slaveStoreConfig = new MessageStoreConfig();
         slaveStoreConfig.setBrokerRole(BrokerRole.SLAVE);
@@ -76,6 +86,8 @@ public class HATest {
         slaveStoreConfig.setHaListenPort(0);
         slaveStoreConfig.setTotalReplicas(2);
         slaveStoreConfig.setInSyncReplicas(2);
+        slaveStoreConfig.setHaHousekeepingInterval(2 * 1000);
+        slaveStoreConfig.setHaSendHeartbeatInterval(1000);
         buildMessageStoreConfig(slaveStoreConfig);
         messageStore = buildMessageStore(masterMessageStoreConfig, 0L);
         slaveMessageStore = buildMessageStore(slaveStoreConfig, 1L);
@@ -88,45 +100,38 @@ public class HATest {
         slaveMessageStore.updateHaMasterAddress("127.0.0.1:" + masterMessageStoreConfig.getHaListenPort());
         slaveMessageStore.start();
         slaveMessageStore.updateHaMasterAddress("127.0.0.1:" + masterMessageStoreConfig.getHaListenPort());
-        Thread.sleep(6000L);//because the haClient will wait 5s after the first connectMaster failed,sleep 6s
+        await().atMost(6, SECONDS).until(() -> slaveMessageStore.getHaService().getHAClient().getCurrentState() == HAConnectionState.TRANSFER);
     }
 
     @Test
     public void testHandleHA() {
         long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
         }
-
-        for (int i = 0; i < 100 && isCommitLogAvailable((DefaultMessageStore) messageStore); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) {
-            }
-        }
-
-        for (int i = 0; i < 100 && isCommitLogAvailable((DefaultMessageStore) slaveMessageStore); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) {
-            }
-        }
-
         for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertEquals(GetMessageStatus.FOUND, result.getStatus());
-            result.release();
+            final long index = i;
+            Boolean exist = await().atMost(Duration.ofSeconds(5)).until(() -> {
+                GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, index, 1024 * 1024, null);
+                if (result == null) {
+                    return false;
+                }
+                boolean flag = GetMessageStatus.FOUND == result.getStatus();
+                result.release();
+                return flag;
+
+            }, item -> item);
+            assertTrue(exist);
         }
     }
 
     @Test
     public void testSemiSyncReplica() throws Exception {
         long totalMsgs = 5;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             MessageExtBrokerInner msg = buildMessage();
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(msg);
@@ -141,12 +146,11 @@ public class HATest {
             assertEquals(msg.getTags(), slaveMsg.getTags());
             assertEquals(msg.getKeys(), slaveMsg.getKeys());
         }
-
         //shutdown slave, putMessage should return FLUSH_SLAVE_TIMEOUT
         slaveMessageStore.shutdown();
 
         //wait to let master clean the slave's connection
-        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
+        await().atMost(Duration.ofSeconds(3)).until(() -> messageStore.getHaService().getConnectionCount().get() == 0);
         for (long i = 0; i < totalMsgs; i++) {
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
             PutMessageResult result = putResultFuture.get();
@@ -157,9 +161,9 @@ public class HATest {
     @Test
     public void testSemiSyncReplicaWhenSlaveActingMaster() throws Exception {
         long totalMsgs = 5;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
-        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes();
+        ((DefaultMessageStore) messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
         for (long i = 0; i < totalMsgs; i++) {
             MessageExtBrokerInner msg = buildMessage();
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(msg);
@@ -187,15 +191,15 @@ public class HATest {
             assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, result.getPutMessageStatus());
         }
 
-        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+        ((DefaultMessageStore) messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
     }
 
     @Test
     public void testSemiSyncReplicaWhenAdaptiveDegradation() throws Exception {
         long totalMsgs = 5;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
-        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes();
+        ((DefaultMessageStore) messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
         messageStore.getMessageStoreConfig().setEnableAutoInSyncReplicas(true);
         for (long i = 0; i < totalMsgs; i++) {
             MessageExtBrokerInner msg = buildMessage();
@@ -217,20 +221,20 @@ public class HATest {
         messageStore.setAliveReplicaNumInGroup(1);
 
         //wait to let master clean the slave's connection
-        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
+        await().atMost(Duration.ofSeconds(3)).until(() -> messageStore.getHaService().getConnectionCount().get() == 0);
         for (long i = 0; i < totalMsgs; i++) {
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
             PutMessageResult result = putResultFuture.get();
             assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
         }
 
-        ((DefaultMessageStore)messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+        ((DefaultMessageStore) messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
         messageStore.getMessageStoreConfig().setEnableAutoInSyncReplicas(false);
     }
 
     @After
     public void destroy() throws Exception {
-        Thread.sleep(5000L);
+
         slaveMessageStore.shutdown();
         slaveMessageStore.destroy();
         messageStore.shutdown();
@@ -258,13 +262,13 @@ public class HATest {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("FooBar");
         msg.setTags("TAG1");
-        msg.setBody(MessageBody);
+        msg.setBody(messageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }

@@ -171,12 +171,8 @@ public class EscapeBridge {
                     producerGroup, SEND_TIMEOUT);
 
                 return future.exceptionally(throwable -> null)
-                    .thenApplyAsync(sendResult -> {
-                        return transformSendResult2PutResult(sendResult);
-                    }, this.defaultAsyncSenderExecutor)
-                    .exceptionally(throwable -> {
-                        return transformSendResult2PutResult(null);
-                    });
+                    .thenApplyAsync(sendResult -> transformSendResult2PutResult(sendResult), this.defaultAsyncSenderExecutor)
+                    .exceptionally(throwable -> transformSendResult2PutResult(null));
 
             } catch (Exception e) {
                 LOG.error("sendMessageInFailover to remote failed", e);

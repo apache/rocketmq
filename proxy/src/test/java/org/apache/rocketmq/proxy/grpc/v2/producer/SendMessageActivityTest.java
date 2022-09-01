@@ -696,6 +696,64 @@ public class SendMessageActivityTest extends BaseActivityTest {
             }
         });
 
+        // set the key of user property with control character
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .putUserProperties("\u0000", "hello")
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, e.getCode());
+                throw e;
+            }
+        });
+
+        // set the value of user property with control character
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .putUserProperties("p", "\u0000")
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, e.getCode());
+                throw e;
+            }
+        });
+
         // empty message id
         assertThrows(GrpcProxyException.class, () -> {
             try {

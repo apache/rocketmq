@@ -35,8 +35,8 @@ public class SchemaTest {
 
     public void generate() throws Exception {
         SchemaDefiner.doLoad();
-        SchemaTools.write(SchemaTools.generate(SchemaDefiner.apiClassList), BASE_SCHEMA_PATH, "api");
-        SchemaTools.write(SchemaTools.generate(SchemaDefiner.protocolClassList), BASE_SCHEMA_PATH, "protocol");
+        SchemaTools.write(SchemaTools.generate(SchemaDefiner.API_CLASS_LIST), BASE_SCHEMA_PATH, "api");
+        SchemaTools.write(SchemaTools.generate(SchemaDefiner.PROTOCOL_CLASS_LIST), BASE_SCHEMA_PATH, "protocol");
     }
 
     @Test
@@ -50,8 +50,8 @@ public class SchemaTest {
         }
         Map<String, Map<String, String>> schemaFromCode = new HashMap<>();
         {
-            schemaFromCode.putAll(SchemaTools.generate(SchemaDefiner.apiClassList));
-            schemaFromCode.putAll(SchemaTools.generate(SchemaDefiner.protocolClassList));
+            schemaFromCode.putAll(SchemaTools.generate(SchemaDefiner.API_CLASS_LIST));
+            schemaFromCode.putAll(SchemaTools.generate(SchemaDefiner.PROTOCOL_CLASS_LIST));
         }
 
         Map<String, String> fileChanges = new TreeMap<>();

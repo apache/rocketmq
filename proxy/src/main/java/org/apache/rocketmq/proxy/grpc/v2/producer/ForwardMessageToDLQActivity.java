@@ -50,7 +50,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
             String handleString = request.getReceiptHandle();
             MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, request.getMessageId(), request.getReceiptHandle());
             if (messageReceiptHandle != null) {
-                handleString = messageReceiptHandle.getReceiptHandle();
+                handleString = messageReceiptHandle.getReceiptHandleStr();
             }
             ReceiptHandle receiptHandle = ReceiptHandle.decode(handleString);
 

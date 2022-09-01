@@ -449,6 +449,7 @@ public interface MQAdminExt extends MQAdmin {
      * manual trigger broker elect master
      *
      * @param controllerAddr controller address
+     * @param clusterName    cluster name
      * @param brokerName     broker name
      * @param brokerAddr     broker address
      * @return
@@ -457,6 +458,13 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      */
     ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr)
-        throws RemotingException, InterruptedException, MQBrokerException;
+        String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException;
+
+    /**
+     * clean controller broker meta data
+     *
+     */
+    void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
+        String brokerAddr, boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
+
 }

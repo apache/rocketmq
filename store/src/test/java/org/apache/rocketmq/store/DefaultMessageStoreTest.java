@@ -65,7 +65,7 @@ import static org.junit.Assert.assertTrue;
 public class DefaultMessageStoreTest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final String messageTopic = "FooBar";
-    private int QUEUE_TOTAL = 100;
+    private int queueTotal = 100;
     private AtomicInteger queueId = new AtomicInteger(0);
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -92,7 +92,7 @@ public class DefaultMessageStoreTest {
 
     @Test(expected = OverlappingFileLockException.class)
     public void test_repeat_restart() throws Exception {
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -156,9 +156,9 @@ public class DefaultMessageStoreTest {
         }
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         return new DefaultMessageStore(messageStoreConfig,
-                new BrokerStatsManager("simpleTest", true),
-                new MyMessageArrivingListener(),
-                new BrokerConfig());
+            new BrokerStatsManager("simpleTest", true),
+            new MyMessageArrivingListener(),
+            new BrokerConfig());
     }
 
     private MessageStore buildMessageStoreMutiPath() throws Exception {
@@ -182,7 +182,7 @@ public class DefaultMessageStoreTest {
         long ipv4HostMsgs = 10;
         long ipv6HostMsgs = 10;
         long totalMsgs = ipv4HostMsgs + ipv6HostMsgs;
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
         for (long i = 0; i < ipv4HostMsgs; i++) {
             messageStore.putMessage(buildMessage());
@@ -491,7 +491,7 @@ public class DefaultMessageStoreTest {
         msg.setKeys("Hello");
         msg.setBody(messageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
@@ -508,7 +508,7 @@ public class DefaultMessageStoreTest {
         msg.setBody(messageBody);
         msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornHostV6Flag();
         msg.setStoreHostAddressV6Flag();
@@ -540,7 +540,7 @@ public class DefaultMessageStoreTest {
         msgExtBatch.setKeys("Hello");
         msgExtBatch.setBody(msgBatch.getBody());
         msgExtBatch.setKeys(String.valueOf(System.currentTimeMillis()));
-        msgExtBatch.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msgExtBatch.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msgExtBatch.setSysFlag(0);
         msgExtBatch.setBornTimestamp(System.currentTimeMillis());
         msgExtBatch.setStoreHost(storeHost);
@@ -551,7 +551,7 @@ public class DefaultMessageStoreTest {
     @Test
     public void testGroupCommit() throws Exception {
         long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
@@ -827,9 +827,8 @@ public class DefaultMessageStoreTest {
         ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
     }
 
-
     @Test
-    public void testPutMsgWhenAdaptiveDegradation () {
+    public void testPutMsgWhenAdaptiveDegradation() {
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) this.messageStore).getMessageStoreConfig();
         messageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStoreConfig.setTotalReplicas(2);
@@ -844,7 +843,6 @@ public class DefaultMessageStoreTest {
         ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
         messageStoreConfig.setEnableAutoInSyncReplicas(false);
     }
-
 
     @Test
     public void testGetBulkCommitLogData() {
@@ -870,7 +868,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testPutLongMessage() throws Exception{
+    public void testPutLongMessage() throws Exception {
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
@@ -895,7 +893,7 @@ public class DefaultMessageStoreTest {
 
         //message properties length more than properties maxSize
         messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
-        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE+1]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE + 1]));
         PutMessageResult encodeResult4 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
         assertTrue(encodeResult4.getPutMessageStatus() == PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
 
@@ -908,7 +906,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testDynamicMaxMessageSize(){
+    public void testDynamicMaxMessageSize() {
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
         int originMaxMessageSize = messageStoreConfig.getMaxMessageSize();
