@@ -560,6 +560,7 @@ public class CompactionLog {
             compaction(toCompactFiles, offsetMap);
             replaceFiles(toCompactFiles, current, compacting);
             positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
+            compacting.clean(false, false);
             log.info("this compaction elapsed {} milliseconds",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
         }
