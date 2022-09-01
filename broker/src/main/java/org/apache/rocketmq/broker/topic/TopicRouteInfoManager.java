@@ -33,7 +33,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
