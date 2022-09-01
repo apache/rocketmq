@@ -343,7 +343,18 @@ public class DLedgerController implements Controller {
             final ControllerResult<T> result = this.supplier.get();
             log.info("Event queue run event {}, get the result {}", this.name, result);
             boolean appendSuccess = true;
-            if (this.isWriteEvent) {
+
+            if (!this.isWriteEvent || result.getEvents() == null || result.getEvents().isEmpty()) {
+                // read event, or write event with empty events in response which also equals to read event
+                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
+                    // Now the dledger don't have the function of Read-Index or Lease-Read,
+                    // So we still need to propose an empty request to dledger.
+                    final AppendEntryRequest request = new AppendEntryRequest();
+                    request.setBody(new byte[0]);
+                    appendSuccess = appendToDLedgerAndWait(request);
+                }
+            } else {
+                // write event
                 final List<EventMessage> events = result.getEvents();
                 final List<byte[]> eventBytes = new ArrayList<>(events.size());
                 for (final EventMessage event : events) {
@@ -356,19 +367,13 @@ public class DLedgerController implements Controller {
                 }
                 // Append events to dledger
                 if (!eventBytes.isEmpty()) {
+                    // batch append events
                     final BatchAppendEntryRequest request = new BatchAppendEntryRequest();
                     request.setBatchMsgs(eventBytes);
                     appendSuccess = appendToDLedgerAndWait(request);
                 }
-            } else {
-                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
-                    // Now the dledger don't have the function of Read-Index or Lease-Read,
-                    // So we still need to propose an empty request to dledger.
-                    final AppendEntryRequest request = new AppendEntryRequest();
-                    request.setBody(new byte[0]);
-                    appendSuccess = appendToDLedgerAndWait(request);
-                }
             }
+
             if (appendSuccess) {
                 final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
                 if (result.getBody() != null) {
