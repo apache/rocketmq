@@ -59,7 +59,7 @@ GenTestRules(
     deps = [
         ":tests",
     ],
-    medium_tests = [
+    exclude_tests = [
         "src/test/java/org/apache/rocketmq/client/consumer/DefaultLitePullConsumerTest",
     ],
 )

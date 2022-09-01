@@ -19,12 +19,15 @@ package org.apache.rocketmq.test.schema;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -34,8 +37,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import static org.apache.rocketmq.test.schema.SchemaDefiner.fieldClassNames;
-import static org.apache.rocketmq.test.schema.SchemaDefiner.ignoredFields;
+import static org.apache.rocketmq.test.schema.SchemaDefiner.FIELD_CLASS_NAMES;
+import static org.apache.rocketmq.test.schema.SchemaDefiner.IGNORED_FIELDS;
 
 public class SchemaTools {
     public static final String PATH_API = "api";
@@ -115,9 +118,9 @@ public class SchemaTools {
             }
             String key = String.format("Field %s", field.getName());
             boolean ignore = false;
-            for (Class<?> tmpClass: ignoredFields.keySet()) {
+            for (Class<?> tmpClass: IGNORED_FIELDS.keySet()) {
                 if (tmpClass.isAssignableFrom(apiClass)
-                    && ignoredFields.get(tmpClass).contains(field.getName())) {
+                    && IGNORED_FIELDS.get(tmpClass).contains(field.getName())) {
                     ignore = true;
                     //System.out.printf("Ignore AAA:%s %s %s\n", apiClass.getName(), field.getName(), field.getType().getName());
                     break;
@@ -125,7 +128,7 @@ public class SchemaTools {
             }
             if (!field.getType().isEnum()
                 && !field.getType().isPrimitive()
-                && !fieldClassNames.contains(field.getType().getName())) {
+                && !FIELD_CLASS_NAMES.contains(field.getType().getName())) {
                 //System.out.printf("Ignore BBB:%s %s %s\n", apiClass.getName(), field.getName(), field.getType().getName());
                 ignore = true;
             }
@@ -201,9 +204,11 @@ public class SchemaTools {
     public static void write(Map<String, TreeMap<String, String>> schemaMap, String base, String label) throws Exception {
         for (Map.Entry<String, TreeMap<String, String>> entry : schemaMap.entrySet()) {
             TreeMap<String, String> map = entry.getValue();
-            File file = new File(String.format("%s/%s/%s.schema", base, label, entry.getKey()));
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write("/*\n" +
+            final String fileName = String.format("%s/%s/%s.schema", base, label, entry.getKey());
+            File file = new File(fileName);
+            FileOutputStream fileStream = new FileOutputStream(file);
+            Writer writer = new OutputStreamWriter(fileStream, StandardCharsets.UTF_8);
+            writer.write("/*\n" +
                 " * Licensed to the Apache Software Foundation (ASF) under one or more\n" +
                 " * contributor license agreements.  See the NOTICE file distributed with\n" +
                 " * this work for additional information regarding copyright ownership.\n" +
@@ -220,9 +225,9 @@ public class SchemaTools {
                 " * limitations under the License.\n" +
                 " */\n\n\n");
             for (Map.Entry<String, String> kv: map.entrySet()) {
-                fileWriter.append(String.format("%s : %s\n", kv.getKey(), kv.getValue()));
+                writer.append(String.format("%s : %s\n", kv.getKey(), kv.getValue()));
             }
-            fileWriter.close();
+            writer.close();
         }
     }
 
@@ -230,7 +235,7 @@ public class SchemaTools {
         File dir = new File(String.format("%s/%s", base, label));
         Map<String, TreeMap<String, String>> schemaMap = new TreeMap<>();
         for (File file: dir.listFiles()) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
             String line = null;
             TreeMap<String, String> kvs = new TreeMap<>();
             while ((line = br.readLine()) != null) {

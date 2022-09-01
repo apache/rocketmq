@@ -479,7 +479,6 @@ public abstract class RebalanceImpl {
         final boolean isOrder) {
         boolean changed = false;
 
-        Map<MessageQueue, MessageQueue> upgradeMqTable = new HashMap<MessageQueue, MessageQueue>();
         // drop process queues no longer belong me
         HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<MessageQueue, ProcessQueue>(this.processQueueTable.size());
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();

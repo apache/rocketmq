@@ -22,6 +22,7 @@ import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 
 public class SimpleProducer {
@@ -43,7 +44,7 @@ public class SimpleProducer {
         System.out.printf("Producer startup OK%n");
 
         {
-            Message message = producer.createBytesMessage(QUEUE, "OMS_HELLO_BODY".getBytes());
+            Message message = producer.createBytesMessage(QUEUE, "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8));
 
             SendResult sendResult = producer.send(message);
             //final Void aVoid = result.get(3000L);
@@ -52,7 +53,8 @@ public class SimpleProducer {
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         {
-            final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage(QUEUE, "OMS_HELLO_BODY".getBytes()));
+            final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage(QUEUE,
+                "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
             result.addListener(future -> {
                 if (future.getThrowable() != null) {
                     System.out.printf("Send async message Failed, error: %s%n", future.getThrowable().getMessage());
@@ -64,7 +66,7 @@ public class SimpleProducer {
         }
 
         {
-            producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes()));
+            producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
             System.out.printf("Send oneway message OK%n");
         }
 

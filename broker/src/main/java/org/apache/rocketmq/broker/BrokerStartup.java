@@ -53,7 +53,7 @@ public class BrokerStartup {
     public static CommandLine commandLine = null;
     public static String configFile = null;
     public static InternalLogger log;
-    public static SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
+    public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
 
     public static void main(String[] args) {
         start(createBrokerController(args));
@@ -117,10 +117,10 @@ public class BrokerStartup {
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
-                    configFileHelper.setFile(file);
+                    CONFIG_FILE_HELPER.setFile(file);
                     configFile = file;
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
-                    properties = configFileHelper.loadConfig();
+                    properties = CONFIG_FILE_HELPER.loadConfig();
                 }
             }
 

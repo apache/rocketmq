@@ -76,7 +76,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
 
         String savedHandleStr = buildReceiptHandle("topic", System.currentTimeMillis(),3000);
         when(receiptHandleProcessor.removeReceiptHandle(anyString(), anyString(), anyString(), anyString()))
-            .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0, 3000));
+            .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0));
 
         ForwardMessageToDeadLetterQueueResponse response = this.forwardMessageToDLQActivity.forwardMessageToDeadLetterQueue(
             createContext(),

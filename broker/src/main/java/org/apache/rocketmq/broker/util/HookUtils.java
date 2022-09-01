@@ -37,7 +37,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class HookUtils {
@@ -127,7 +126,7 @@ public class HookUtils {
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             if (!isRolledTimerMessage(msg)) {
                 if (checkIfTimerMessage(msg)) {
-                    if (!MessageStoreConfig.isTimerWheelEnable()) {
+                    if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }

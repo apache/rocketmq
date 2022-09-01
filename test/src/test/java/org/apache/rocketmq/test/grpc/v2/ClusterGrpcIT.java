@@ -49,7 +49,7 @@ public class ClusterGrpcIT extends GrpcBaseIT {
         messagingProcessor.start();
         grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
         grpcMessagingApplication.start();
-        setUpServer(grpcMessagingApplication, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
+        setUpServer(grpcMessagingApplication, 0, true);
 
         await().atMost(Duration.ofSeconds(40)).until(() -> {
             Map<String, BrokerData> brokerDataMap = MQAdminTestUtils.getCluster(nsAddr).getBrokerAddrTable();

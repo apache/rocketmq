@@ -111,4 +111,6 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int CONTROLLER_BROKER_METADATA_NOT_EXIST = 2008;
 
+    public static final int CONTROLLER_INVALID_CLEAN_BROKER_METADATA = 2009;
+
 }

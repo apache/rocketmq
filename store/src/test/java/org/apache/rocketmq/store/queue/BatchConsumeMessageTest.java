@@ -17,26 +17,6 @@
 
 package org.apache.rocketmq.store.queue;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.common.utils.QueueTypeUtils;
-import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -45,6 +25,25 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -209,12 +208,18 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(190, messageStore.getMaxOffsetInQueue(topic, 0));
 
-        Thread.sleep(5 * 1000);
         int maxBatchDeleteFilesNum = messageStore.getMessageStoreConfig().getMaxBatchDeleteFilesNum();
         messageStore.getCommitLog().deleteExpiredFile(1L, 100, 12000, true, maxBatchDeleteFilesNum);
         Assert.assertEquals(80, messageStore.getOffsetInQueueByTime(topic, 0, timeMid));
-        Thread.sleep(70 * 1000);
-        Assert.assertEquals(180, messageStore.getOffsetInQueueByTime(topic, 0, timeMid));
+
+        // can set periodic interval for executing  DefaultMessageStore.this.cleanFilesPeriodically() method, we can execute following code.
+        // default periodic interval is 60s, This code snippet will take 60 seconds。
+        /*final long a = timeMid;
+        await().atMost(Duration.ofMinutes(2)).until(()->{
+            long time = messageStore.getOffsetInQueueByTime(topic, 0, a);
+            return 180 ==time;
+        });
+        Assert.assertEquals(180, messageStore.getOffsetInQueueByTime(topic, 0, timeMid));*/
     }
 
     @Test
@@ -290,7 +295,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 timeStart = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }
             if (i == 30) {
-                timeMid = putMessageResult.getAppendMessageResult().getStoreTimestamp();;
+                timeMid = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }
 
         }

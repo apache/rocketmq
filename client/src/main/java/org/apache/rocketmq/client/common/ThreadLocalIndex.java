@@ -27,10 +27,9 @@ public class ThreadLocalIndex {
     public int incrementAndGet() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
-            index = Math.abs(random.nextInt());
+            index = random.nextInt();
             this.threadLocalIndex.set(index);
         }
-
         this.threadLocalIndex.set(++index);
         return Math.abs(index & POSITIVE_MASK);
     }

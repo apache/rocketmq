@@ -60,7 +60,7 @@ public class ExtraInfoUtil {
         if (extraInfoStrs == null || extraInfoStrs.length < 4) {
             throw new IllegalArgumentException("getReviveQid fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Integer.valueOf(extraInfoStrs[3]);
+        return Integer.parseInt(extraInfoStrs[3]);
     }
 
     public static String getRealTopic(String[] extraInfoStrs, String topic, String cid) {
@@ -85,14 +85,14 @@ public class ExtraInfoUtil {
         if (extraInfoStrs == null || extraInfoStrs.length < 7) {
             throw new IllegalArgumentException("getQueueId fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Integer.valueOf(extraInfoStrs[6]);
+        return Integer.parseInt(extraInfoStrs[6]);
     }
 
     public static long getQueueOffset(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 8) {
             throw new IllegalArgumentException("getQueueOffset fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[7]);
+        return Long.parseLong(extraInfoStrs[7]);
     }
 
     public static String buildExtraInfo(long ckQueueOffset, long popTime, long invisibleTime, int reviveQid, String topic, String brokerName, int queueId) {

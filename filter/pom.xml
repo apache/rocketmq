@@ -28,6 +28,10 @@
     <artifactId>rocketmq-filter</artifactId>
     <name>rocketmq-filter ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -52,19 +53,19 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
             msgIndex.getAndIncrement();
             if (isDebug) {
                 if (listenerName != null && !listenerName.isEmpty()) {
-                    logger.info(listenerName + ":" + msgIndex.get() + ":"
+                    LOGGER.info(listenerName + ":" + msgIndex.get() + ":"
                         + String.format("msgid:%s broker:%s queueId:%s offset:%s",
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
                         msg.getQueueOffset()));
                 } else {
-                    logger.info(msg);
+                    LOGGER.info(msg);
                 }
             }
 
-            msgBodys.addData(new String(msg.getBody()));
+            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
             if (originMsgIndex != null) {
-                originMsgIndex.put(new String(msg.getBody()), msg);
+                originMsgIndex.put(new String(msg.getBody(), StandardCharsets.UTF_8), msg);
             }
         }
         return consumeStatus;

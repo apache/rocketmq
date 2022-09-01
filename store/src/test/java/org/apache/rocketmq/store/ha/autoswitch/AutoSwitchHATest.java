@@ -21,6 +21,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -46,15 +48,15 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchHATest {
-    private final String StoreMessage = "Once, there was a chance for me!";
+    private final String storeMessage = "Once, there was a chance for me!";
     private final int defaultMappedFileSize = 1024 * 1024;
-    private int QUEUE_TOTAL = 100;
+    private int queueTotal = 100;
     private AtomicInteger QueueId = new AtomicInteger(0);
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
@@ -68,16 +70,15 @@ public class AutoSwitchHATest {
     private MessageStoreConfig storeConfig3;
     private String store1HaAddress;
     private String store2HaAddress;
-    private String store3HaAddress;
 
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
-    private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
-        UUID.randomUUID().toString().replace("-", "");
+    private String tmpdir = System.getProperty("java.io.tmpdir");
+    private String storePathRootParentDir = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + UUID.randomUUID();
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
 
     public void init(int mappedFileSize) throws Exception {
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
+        queueTotal = 1;
+        MessageBody = storeMessage.getBytes();
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
@@ -117,7 +118,6 @@ public class AutoSwitchHATest {
         storeConfig3.setInSyncReplicas(2);
         buildMessageStoreConfig(storeConfig3, mappedFileSize);
         messageStore3 = buildMessageStore(storeConfig3, 3L);
-        this.store3HaAddress = "127.0.0.1:10980";
 
         assertTrue(messageStore1.load());
         assertTrue(messageStore2.load());
@@ -132,8 +132,8 @@ public class AutoSwitchHATest {
     }
 
     public void init(int mappedFileSize, boolean allAckInSyncStateSet) throws Exception {
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
+        queueTotal = 1;
+        MessageBody = storeMessage.getBytes();
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
@@ -167,34 +167,38 @@ public class AutoSwitchHATest {
         ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
     }
 
-    private void changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
+    private boolean changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
         DefaultMessageStore slave, long slaveId, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
-        int totalPutMessageNums) throws Exception {
+        int totalPutMessageNums) {
 
+        boolean flag = true;
         // Change role
         slaveConfig.setBrokerRole(BrokerRole.SLAVE);
         masterConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
-        slave.getHaService().changeToSlave("", epoch, slaveId);
+        flag &= slave.getHaService().changeToSlave("", epoch, slaveId);
         slave.getHaService().updateHaMasterAddress(masterHaAddress);
-        master.getHaService().changeToMaster(epoch);
-        Thread.sleep(6000);
-
+        flag &= master.getHaService().changeToMaster(epoch);
         // Put message on master
         for (int i = 0; i < totalPutMessageNums; i++) {
-            master.putMessage(buildMessage());
+            PutMessageResult result = master.putMessage(buildMessage());
+            flag &= result.isOk();
         }
-        Thread.sleep(1000);
+        return flag;
     }
 
     private void checkMessage(final DefaultMessageStore messageStore, int totalMsgs, int startOffset) {
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
-                System.out.println("Failed i :" + i);
-            }
-            assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
-            result.release();
+        for (int i = 0; i < totalMsgs; i++) {
+            final int index = i;
+            Boolean exist = await().atMost(Duration.ofSeconds(20)).until(() -> {
+                GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + index, 1024 * 1024, null);
+                if (result == null) {
+                    return false;
+                }
+                boolean equals = GetMessageStatus.FOUND.equals(result.getStatus());
+                result.release();
+                return equals;
+            }, item -> item);
+            assertTrue(exist);
         }
     }
 
@@ -203,8 +207,8 @@ public class AutoSwitchHATest {
         init(defaultMappedFileSize, true);
         // Step1, set syncStateSet, if both broker1 and broker2 are in syncStateSet, the confirmOffset will be computed as the min slaveAckOffset(broker2's ack)
         ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Arrays.asList("127.0.0.1:8000", "127.0.0.1:8001")));
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
-        Thread.sleep(6000);
+        boolean masterAndPutMessage = changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        assertTrue(masterAndPutMessage);
         checkMessage(this.messageStore2, 10, 0);
 
         final long confirmOffset = ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset();
@@ -212,11 +216,9 @@ public class AutoSwitchHATest {
         // Step2, shutdown store2
         this.messageStore2.shutdown();
 
-        // Put some messages, which should put failed.
-        for (int i = 0; i < 3; i++) {
-            final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
-            assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
-        }
+        // Put message, which should put failed.
+        final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
+        assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 
         // The confirmOffset still don't change, because syncStateSet contains broker2, but broker2 shutdown
         assertEquals(confirmOffset, ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset());
@@ -230,13 +232,11 @@ public class AutoSwitchHATest {
         messageStore2.start();
         messageStore2.getHaService().changeToMaster(2);
         ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8001")));
-        Thread.sleep(6000);
 
         // Put message on master
         for (int i = 0; i < 10; i++) {
             messageStore2.putMessage(buildMessage());
         }
-        Thread.sleep(200);
 
         // Step4, start store1, it should truncate dirty logs and syncLog from store2
         storeConfig1.setBrokerRole(BrokerRole.SLAVE);
@@ -245,7 +245,6 @@ public class AutoSwitchHATest {
         messageStore1.start();
         messageStore1.getHaService().changeToSlave("", 2, 1L);
         messageStore1.getHaService().updateHaMasterAddress(this.store2HaAddress);
-        Thread.sleep(6000);
 
         checkMessage(this.messageStore1, 20, 0);
     }
@@ -261,16 +260,11 @@ public class AutoSwitchHATest {
         messageStore1.getHaService().changeToMaster(1);
         messageStore2.getHaService().changeToSlave("", 1, 2L);
         messageStore2.getHaService().updateHaMasterAddress(store1HaAddress);
-        Thread.sleep(6000);
         // Put message on master
         for (int i = 0; i < 10; i++) {
             messageStore1.putMessage(buildMessage());
         }
-        Thread.sleep(200);
-
         checkMessage(messageStore2, 10, 0);
-
-        Thread.sleep(1000);
         final Set<String> syncStateSet = ((AutoSwitchHAService) this.messageStore1.getHaService()).getSyncStateSet();
         assertFalse(syncStateSet.contains("127.0.0.1:8001"));
     }
@@ -287,8 +281,6 @@ public class AutoSwitchHATest {
 
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
-
-        Thread.sleep(1000);
         // Check syncStateSet
         final Set<String> result = syncStateSet.get();
         assertTrue(result.contains("127.0.0.1:8000"));
@@ -334,7 +326,6 @@ public class AutoSwitchHATest {
         // Step2: add new broker3, link to broker1
         messageStore3.getHaService().changeToSlave("", 1, 3L);
         messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
-        Thread.sleep(6000);
         checkMessage(messageStore3, 10, 0);
     }
 
@@ -371,7 +362,6 @@ public class AutoSwitchHATest {
         // Step4: add broker3 as slave, only have 10 msg from offset 10;
         messageStore3.getHaService().changeToSlave("", 2, 3L);
         messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
-        Thread.sleep(6000);
 
         checkMessage(messageStore3, 10, 10);
     }
@@ -408,7 +398,7 @@ public class AutoSwitchHATest {
         // Step4: add broker3 as slave
         messageStore3.getHaService().changeToSlave("", 2, 3L);
         messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
-        Thread.sleep(6000);
+
         checkMessage(messageStore3, 10, 10);
 
         // Step5: change broker2 as leader, broker3 as follower
@@ -420,7 +410,7 @@ public class AutoSwitchHATest {
         this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
         this.messageStore1.getHaService().changeToSlave("", 3, 1L);
         this.messageStore1.getHaService().updateHaMasterAddress(this.store2HaAddress);
-        Thread.sleep(6000);
+
         checkMessage(messageStore1, 20, 0);
     }
 
@@ -448,13 +438,12 @@ public class AutoSwitchHATest {
         // Step2: add new broker3, link to broker1. because broker3 request sync from lastFile, so it only synced 10 msg from offset 10;
         messageStore3.getHaService().changeToSlave("", 2, 3L);
         messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
-        Thread.sleep(6000);
+
         checkMessage(messageStore3, 10, 10);
     }
 
     @After
     public void destroy() throws Exception {
-        Thread.sleep(5000L);
         if (this.messageStore2 != null) {
             messageStore2.shutdown();
             messageStore2.destroy();
@@ -494,7 +483,7 @@ public class AutoSwitchHATest {
         msg.setTags("TAG1");
         msg.setBody(MessageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);

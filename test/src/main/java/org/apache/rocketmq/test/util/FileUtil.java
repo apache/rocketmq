@@ -18,8 +18,11 @@
 package org.apache.rocketmq.test.util;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Properties;
 
@@ -77,9 +80,10 @@ public class FileUtil {
     }
 
     private void writeFile(File file, String content, boolean append) {
-        FileWriter writer = null;
+        Writer writer = null;
         try {
-            writer = new FileWriter(file.getAbsoluteFile(), append);
+            FileOutputStream fileStream = new FileOutputStream(file, append);
+            writer = new OutputStreamWriter(fileStream, StandardCharsets.UTF_8);
             writer.write(content);
             writer.flush();
         } catch (IOException e) {
