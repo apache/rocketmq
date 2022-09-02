@@ -53,7 +53,7 @@ public class PlainPermissionManagerTest {
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
 
-    private static final String PATH = PlainPermissionManagerTest.class.getResource("/").getFile();
+    private static final String PATH = PlainPermissionManagerTest.class.getResource(File.separator).getFile();
 
     private static final String DEFAULT_TOPIC = "topic-acl";
 

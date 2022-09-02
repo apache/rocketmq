@@ -104,7 +104,6 @@ public class PlainAccessConfig {
     public String toString() {
         return "PlainAccessConfig{" +
             "accessKey='" + accessKey + '\'' +
-            ", secretKey='" + secretKey + '\'' +
             ", whiteRemoteAddress='" + whiteRemoteAddress + '\'' +
             ", admin=" + admin +
             ", defaultTopicPerm='" + defaultTopicPerm + '\'' +
