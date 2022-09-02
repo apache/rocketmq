@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.store.stats;
 
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
