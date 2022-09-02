@@ -580,17 +580,20 @@ public class CompactionLog {
     }
 
     void compactAndReplace(FileList compactFiles) throws Throwable {
-        if (!compactFiles.isEmpty()) {
-            long startTime = System.nanoTime();
-            OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles); //what if offsetMap can't hold the whole compactFiles
-            compaction(compactFiles.toCompactFiles, offsetMap);
-            replaceFiles(compactFiles.toCompactFiles, current, compacting);
-            positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
-            positionMgr.persist();
-            compacting.clean(false, false);
-            log.info("this compaction elapsed {} milliseconds",
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+        if (compactFiles == null || compactFiles.isEmpty()) {
+            return;
         }
+
+        long startTime = System.nanoTime();
+        OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles);
+        compaction(compactFiles.toCompactFiles, offsetMap);
+        replaceFiles(compactFiles.toCompactFiles, current, compacting);
+        positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
+        positionMgr.persist();
+        compacting.clean(false, false);
+        log.info("this compaction elapsed {} milliseconds",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+
     }
 
     void doCompaction() {
@@ -620,7 +623,9 @@ public class CompactionLog {
                     MessageExt msg = MessageDecoder.decode(smb.getByteBuffer(), true, false);
                     if (msg != null) {
                         ////get key & offset and put to offsetMap
-                        offsetMap.put(msg.getKeys(), msg.getQueueOffset());
+                        if (msg.getQueueOffset() > positionMgr.getOffset(topic, queueId)) {
+                            offsetMap.put(msg.getKeys(), msg.getQueueOffset());
+                        }
                     } else {
                         // msg is null indicate that file is end
                         break;
