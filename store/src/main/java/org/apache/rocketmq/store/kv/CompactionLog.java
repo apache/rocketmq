@@ -580,7 +580,7 @@ public class CompactionLog {
     }
 
     void compactAndReplace(FileList compactFiles) throws Throwable {
-        if (compactFiles.isEmpty()) {
+        if (!compactFiles.isEmpty()) {
             long startTime = System.nanoTime();
             OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles); //what if offsetMap can't hold the whole compactFiles
             compaction(compactFiles.toCompactFiles, offsetMap);
