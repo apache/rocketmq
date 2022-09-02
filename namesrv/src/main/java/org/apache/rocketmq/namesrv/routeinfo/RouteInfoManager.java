@@ -76,7 +76,7 @@ public class RouteInfoManager {
     private final Map<BrokerAddrInfo/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
     private final Map<String/* topic */, Map<String/*brokerName*/, TopicQueueMappingInfo>> topicQueueMappingInfoTable;
 
-    private final BatchUnRegisterService unRegisterService;
+    private final BatchUnregistrationService unRegisterService;
 
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
@@ -88,7 +88,7 @@ public class RouteInfoManager {
         this.brokerLiveTable = new ConcurrentHashMap<>(256);
         this.filterServerTable = new ConcurrentHashMap<>(256);
         this.topicQueueMappingInfoTable = new ConcurrentHashMap<>(1024);
-        this.unRegisterService = new BatchUnRegisterService(this, namesrvConfig);
+        this.unRegisterService = new BatchUnregistrationService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
         this.namesrvController = namesrvController;
     }

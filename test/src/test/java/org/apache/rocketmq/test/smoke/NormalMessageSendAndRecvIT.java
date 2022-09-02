@@ -18,7 +18,8 @@
 package org.apache.rocketmq.test.smoke;
 
 import java.util.List;
-import org.apache.log4j.Logger;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -33,11 +34,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMessageSendAndRecvIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMessageSendAndRecvIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(NormalMessageSendAndRecvIT.class);
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;
@@ -57,13 +60,33 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutdown();
+        BaseConf.shutdown();
     }
 
     @Test
     public void testSynSendMessage() throws Exception {
+        List<MessageQueue> messageQueueList;
+        ConsumeStats consumeStats;
+
+        // Wait till producer and consumer are fully started.
+        while (true) {
+            try {
+                consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+                messageQueueList = producer.getProducer().fetchPublishMessageQueues(topic);
+                if (!messageQueueList.isEmpty() && null != consumeStats
+                    && consumeStats.getOffsetTable().keySet().containsAll(messageQueueList)) {
+                    break;
+                } else {
+
+                    TimeUnit.MILLISECONDS.sleep(100);
+                }
+            } catch (MQClientException e) {
+                logger.debug("Exception raised while checking producer and consumer are started", e);
+                TimeUnit.MILLISECONDS.sleep(500);
+            }
+        }
+
         int msgSize = 10;
-        List<MessageQueue> messageQueueList = producer.getProducer().fetchPublishMessageQueues(topic);
         for (MessageQueue messageQueue: messageQueueList) {
             producer.send(msgSize, messageQueue);
         }
@@ -79,7 +102,7 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         }
         //shutdown to persist the offset
         consumer.getConsumer().shutdown();
-        ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+        consumeStats = defaultMQAdminExt.examineConsumeStats(group);
         //+1 for the retry topic
         for (MessageQueue messageQueue: messageQueueList) {
             Assert.assertTrue(consumeStats.getOffsetTable().containsKey(messageQueue));
