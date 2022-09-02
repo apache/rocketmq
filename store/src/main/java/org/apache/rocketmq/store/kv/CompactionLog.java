@@ -102,10 +102,11 @@ public class CompactionLog {
         this.compactionStore = compactionStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
         this.offsetMapMemorySize = compactionStore.getOffsetMapSize();
-        this.compactionLogMappedFileSize = messageStoreConfig.getCompactionMappedFileSize();
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
+        this.compactionLogMappedFileSize = getCompactionLogSize(compactionCqMappedFileSize,
+            messageStoreConfig.getCompactionMappedFileSize());
         this.compactionLogFilePath = Paths.get(compactionStore.getCompactionLogPath(),
             topic, String.valueOf(queueId)).toString();
         this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
@@ -121,6 +122,19 @@ public class CompactionLog {
         this.state = new AtomicReference<>(State.INITIALIZING);
 //        this.load();
         log.info("CompactionLog {}:{} init completed.", topic, queueId);
+    }
+
+    private int getCompactionLogSize(int cqSize, int origLogSize) {
+        int n = origLogSize / cqSize;
+        if (n < 5) {
+            return cqSize * 5;
+        }
+        int m = origLogSize % cqSize;
+        if (m > 0 && m < (cqSize >> 1)) {
+            return n * cqSize;
+        } else {
+            return (n + 1) * cqSize;
+        }
     }
 
     public void load(boolean exitOk) throws IOException, RuntimeException {
@@ -566,7 +580,7 @@ public class CompactionLog {
     }
 
     void compactAndReplace(FileList compactFiles) throws Throwable {
-        if (compactFiles != null && CollectionUtils.isNotEmpty(compactFiles.newFiles)) {
+        if (compactFiles.isEmpty()) {
             long startTime = System.nanoTime();
             OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles); //what if offsetMap can't hold the whole compactFiles
             compaction(compactFiles.toCompactFiles, offsetMap);
@@ -1071,6 +1085,10 @@ public class CompactionLog {
         public FileList(List<MappedFile> toCompactFiles, List<MappedFile> newFiles) {
             this.toCompactFiles = toCompactFiles;
             this.newFiles = newFiles;
+        }
+
+        boolean isEmpty() {
+            return CollectionUtils.isEmpty(newFiles) || CollectionUtils.isEmpty(toCompactFiles);
         }
     }
 
