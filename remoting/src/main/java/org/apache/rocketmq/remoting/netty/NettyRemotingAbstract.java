@@ -316,29 +316,35 @@ public abstract class NettyRemotingAbstract {
      * Execute callback in callback executor. If callback executor is null, run directly in current thread
      */
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
+        boolean runInThisThread = false;
         ExecutorService executor = this.getCallbackExecutor();
-        if (executor == null) {
-            return;
+        if (executor != null) {
+            try {
+                executor.submit(() -> {
+                    try {
+                        responseFuture.executeInvokeCallback();
+                    } catch (Throwable e) {
+                        log.warn("execute callback in executor exception, and callback throw", e);
+                    } finally {
+                        responseFuture.release();
+                    }
+                });
+            } catch (Exception e) {
+                runInThisThread = true;
+                log.warn("execute callback in executor exception, maybe executor busy", e);
+            }
+        } else {
+            runInThisThread = true;
         }
-        try {
-            executor.submit(() -> {
-                try {
-                    responseFuture.executeInvokeCallback();
-                } catch (Throwable e) {
-                    log.warn("execute callback in executor exception, and callback throw", e);
-                } finally {
-                    responseFuture.release();
-                }
-            });
-        } catch (Exception e) {
+
+        if (runInThisThread) {
             try {
                 responseFuture.executeInvokeCallback();
-            } catch (Throwable e2) {
-                log.warn("executeInvokeCallback Exception", e2);
+            } catch (Throwable e) {
+                log.warn("executeInvokeCallback Exception", e);
             } finally {
                 responseFuture.release();
             }
-            log.warn("execute callback in executor exception, maybe executor busy", e);
         }
     }
 
