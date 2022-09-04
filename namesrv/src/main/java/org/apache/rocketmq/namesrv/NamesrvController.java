@@ -25,7 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -139,7 +138,6 @@ public class NamesrvController {
     private void initialNetworkComponents() {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
-        this.remotingClient.updateNameServerAddressList(Collections.singletonList(RemotingUtil.getLocalAddress() + ":" + this.nettyServerConfig.getListenPort()));
     }
 
     private void initialThreadExecutor() {
@@ -238,12 +236,15 @@ public class NamesrvController {
 
     public void start() throws Exception {
         this.remotingServer.start();
-        this.remotingClient.start();
 
         // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
         if (0 == nettyServerConfig.getListenPort()) {
             nettyServerConfig.setListenPort(this.remotingServer.localListenPort());
         }
+
+        this.remotingClient.updateNameServerAddressList(Collections.singletonList(RemotingUtil.getLocalAddress()
+            + ":" + nettyServerConfig.getListenPort()));
+        this.remotingClient.start();
 
         if (this.fileWatchService != null) {
             this.fileWatchService.start();

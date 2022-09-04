@@ -20,13 +20,13 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -67,6 +67,7 @@ import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -189,7 +190,7 @@ public class DefaultLitePullConsumerTest {
         //mock assign and reset offset
         litePullConsumer.assign(set);
         litePullConsumer.seek(messageQueue, 0);
-
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0));
         //commit offset 1
         Map<MessageQueue, Long> commitOffset = new HashMap<>();
         commitOffset.put(messageQueue, 1L);

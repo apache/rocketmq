@@ -27,7 +27,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPushConsumer;
@@ -52,6 +51,8 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
 
@@ -74,15 +75,26 @@ public class BaseConf {
     protected final static Map<String, BrokerController> brokerControllerMap;
     protected final static List<Object> mqClients = new ArrayList<Object>();
     protected final static boolean debug = false;
-    private final static Logger log = Logger.getLogger(BaseConf.class);
+    private final static Logger log = LoggerFactory.getLogger(BaseConf.class);
 
     static {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         namesrvController = IntegrationTestBase.createAndStartNamesrv();
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
+        log.debug("Name server started, listening: {}", nsAddr);
+
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
+        log.debug("Broker {} started, listening: {}", brokerController1.getBrokerConfig().getBrokerName(),
+            brokerController1.getBrokerConfig().getListenPort());
+
         brokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr);
+        log.debug("Broker {} started, listening: {}", brokerController2.getBrokerConfig().getBrokerName(),
+            brokerController2.getBrokerConfig().getListenPort());
+
         brokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr);
+        log.debug("Broker {} started, listening: {}", brokerController2.getBrokerConfig().getBrokerName(),
+            brokerController2.getBrokerConfig().getListenPort());
+
         clusterName = brokerController1.getBrokerConfig().getBrokerClusterName();
         broker1Name = brokerController1.getBrokerConfig().getBrokerName();
         broker2Name = brokerController2.getBrokerConfig().getBrokerName();
