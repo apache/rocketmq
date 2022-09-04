@@ -239,6 +239,7 @@ public class TimerMetrics extends ConfigManager {
                 StandardCharsets.UTF_8));
             write0(bufferedWriter);
             bufferedWriter.flush();
+            bufferedWriter.close();
             log.debug("Finished writing tmp file: {}", temp);
 
             File configFile = new File(config);
