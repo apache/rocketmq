@@ -248,7 +248,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                     switch (currentState) {
                         case READY:
                         case HANDSHAKE:
-                            this.waitForRunning(10);
+                            this.waitForRunning(100);
                             continue;
                         case TRANSFER:
                             if (!this.pushCommitLogDataToSlave()) {
@@ -301,7 +301,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 }
                 doNettyTransferData(0);
                 this.releaseData();
-                this.waitForRunning(1000);
+                haService.getWaitNotifyObject().allWaitForRunning(200);
                 return;
             }
 
@@ -316,10 +316,11 @@ public class AutoSwitchHAConnection implements HAConnection {
                 currentTransferEpochEntry = epochStore.findCeilingEntryByEpoch(currentEpoch);
                 if (currentTransferEpochEntry == null) {
                     LOGGER.error("Can't find a bigger epochEntry than epoch {}", currentTransferOffset);
-                    waitForRunning(100);
+                    haService.getWaitNotifyObject().allWaitForRunning(1000);
                 }
             }
 
+            flowMonitor.addByteCountTransferred(size);
             currentTransferBuffer.getByteBuffer().limit(size);
             doNettyTransferData(size);
             currentTransferOffset.addAndGet(size);

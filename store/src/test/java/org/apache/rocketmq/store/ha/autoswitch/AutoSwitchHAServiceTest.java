@@ -202,7 +202,7 @@ public class AutoSwitchHAServiceTest {
         int foundMessage = 0;
         for (int i = 0; i < MESSAGE_QUEUE_TOTAL; i++) {
             GetMessageResult result = messageStore.getMessage(
-                GROUP, TOPIC, i, startIndex, 1024 * 1024, null);
+                GROUP, TOPIC, i, startIndex, 1024 * 1024 * 1024, null);
             assertThat(result).isNotNull();
             if (GetMessageStatus.FOUND.equals(result.getStatus())) {
                 foundMessage += result.getMessageCount();
@@ -251,6 +251,26 @@ public class AutoSwitchHAServiceTest {
 
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(
             () -> messageCount == getMessageCount(messageStore1));
+
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(
+            () -> messageCount == getMessageCount(messageStore2));
+    }
+
+    @Test
+    public void testSyncTransferMessage() throws Exception {
+        initMessageStore(DEFAULT_MAPPED_FILE_SIZE);
+        messageStore1.getMessageStoreConfig().setInSyncReplicas(2);
+        messageStore1.getHaService().changeToMaster(1);
+        messageStore2.getHaService().changeToSlave("", 1, 2L);
+        messageStore2.getHaService().updateHaMasterAddress(getHaAddressFromStore(messageStore1));
+
+        int messageCount = 100;
+        for (int i = 0; i < messageCount; i++) {
+            messageStore1.putMessage(buildMessage());
+        }
+
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(
+            () -> messageCount == getMessageCount(messageStore2));
 
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(
             () -> messageCount == getMessageCount(messageStore2));

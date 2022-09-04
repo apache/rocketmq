@@ -37,14 +37,6 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
 
     private final AutoSwitchHAClient autoSwitchHAClient;
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (cause != null) {
-            log.error("Client channel exception", cause);
-        }
-        super.exceptionCaught(ctx, cause);
-    }
-
     public NettyTransferClientHandler(AutoSwitchHAClient autoSwitchHAClient) {
         this.autoSwitchHAClient = autoSwitchHAClient;
     }
@@ -77,6 +69,9 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         pushCommitLogData.setEpochStartOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setConfirmOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setBlockStartOffset(message.getByteBuffer().getLong());
+        if (message.getByteBuffer().remaining() > 0) {
+            System.out.println(pushCommitLogData.getBlockStartOffset() + " " + message.getByteBuffer().remaining());
+        }
         autoSwitchHAClient.doPutCommitLog(pushCommitLogData, message.getByteBuffer());
         autoSwitchHAClient.sendPushCommitLogAck();
     }
@@ -91,19 +86,16 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         TransferMessage request = (TransferMessage) msg;
 
         if (ctx != null) {
-            log.debug("Receive request, {} {} {}", request.getType(),
+            log.debug("receive request, {} {} {}", request.getType(),
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), request);
         }
 
         if (request.getType() == null || autoSwitchHAClient.getCurrentMasterEpoch() != request.getEpoch()) {
-            log.error("Epoch not match, connection epoch:{}", request.getEpoch());
+            log.error("epoch not match, connection epoch:{}", request.getEpoch());
             autoSwitchHAClient.closeMaster();
             return;
-        } else {
-            // autoSwitchHAClient.setLastReadTimestamp(System.currentTimeMillis());
         }
 
-        System.out.println(request.getType());
         switch (request.getType()) {
             case HANDSHAKE_MASTER:
                 this.masterHandshake(ctx, request);
@@ -116,6 +108,9 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
                 break;
             default:
                 log.error("receive request type {} not supported", request.getType());
+                if (ctx != null && !ctx.isRemoved()) {
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                }
         }
     }
 }
