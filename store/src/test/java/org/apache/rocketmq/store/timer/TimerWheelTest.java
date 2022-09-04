@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-import java.io.IOException;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 
@@ -34,9 +37,12 @@ public class TimerWheelTest {
 
     private final long defaultDelay = System.currentTimeMillis() / precisionMs * precisionMs;
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Before
     public void init() throws IOException {
-        baseDir = StoreTestUtils.createBaseDir();
+        baseDir = temporaryFolder.getRoot().getAbsolutePath() + File.separator + "unitteststore-" + UUID.randomUUID();
         timerWheel = new TimerWheel(baseDir, slotsTotal, precisionMs);
     }
 
@@ -147,10 +153,6 @@ public class TimerWheelTest {
         if (null != timerWheel) {
             timerWheel.shutdown();
         }
-        if (null != baseDir) {
-            StoreTestUtils.deleteFile(baseDir);
-        }
     }
-
 
 }

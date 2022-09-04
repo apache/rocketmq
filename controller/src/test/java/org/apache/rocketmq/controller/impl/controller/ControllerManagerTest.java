@@ -43,7 +43,9 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
@@ -57,9 +59,12 @@ public class ControllerManagerTest {
     private NettyRemotingClient remotingClient;
     private NettyRemotingClient remotingClient1;
 
-    public ControllerManager launchManager(final String group, final String peers, final String selfId) {
-        String tmpdir = System.getProperty("java.io.tmpdir");
-        final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    public ControllerManager launchManager(final String group, final String peers, final String selfId) throws Exception{
+
+        final String path = temporaryFolder.newFolder(group,selfId).getAbsolutePath();
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();
@@ -113,7 +118,7 @@ public class ControllerManagerTest {
         return manager;
     }
 
-    public void mockData() {
+    public void mockData() throws Exception{
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
         launchManager(group, peers, "n0");

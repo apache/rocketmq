@@ -17,34 +17,47 @@
 
 package org.apache.rocketmq.common.utils;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-
-import static org.junit.Assert.*;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.lang.reflect.Method;
 import java.util.List;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class IOTinyUtilsTest {
 
     /**
      * https://bazel.build/reference/test-encyclopedia#filesystem
      */
-    private String testRootDir = System.getProperty("java.io.tmpdir") + File.separator + "iotinyutilstest";
+    private String testRootDir;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
-    public void init() {
-        File dir = new File(testRootDir);
+    public void init() throws Exception {
+        File dir = temporaryFolder.newFolder("iotinyutilstest");
         if (dir.exists()) {
             UtilAll.deleteFile(dir);
         }
-
         dir.mkdirs();
+        testRootDir = dir.getAbsolutePath();
     }
 
     @After
@@ -70,7 +83,6 @@ public class IOTinyUtilsTest {
         str = IOTinyUtils.toString(isr);
         assertEquals("testToString", str);
     }
-
 
     @Test
     public void testCopy() throws Exception {
@@ -103,7 +115,7 @@ public class IOTinyUtilsTest {
         }
 
         StringReader reader = new StringReader(sb.toString());
-        Method method = IOTinyUtils.class.getDeclaredMethod("toBufferedReader", new Class[]{Reader.class});
+        Method method = IOTinyUtils.class.getDeclaredMethod("toBufferedReader", new Class[] {Reader.class});
         method.setAccessible(true);
         Object bReader = method.invoke(IOTinyUtils.class, reader);
 

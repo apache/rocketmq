@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
@@ -35,7 +34,9 @@ import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +47,9 @@ public class AppendCallbackTest {
 
     MessageExtEncoder batchEncoder = new MessageExtEncoder(10 * 1024 * 1024);
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Before
     public void init() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -53,8 +57,9 @@ public class AppendCallbackTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore");
-        messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + "commitlog");
+        File folder = temporaryFolder.newFolder("unitteststore", "commitlog");
+        messageStoreConfig.setStorePathRootDir(folder.getParent());
+        messageStoreConfig.setStorePathCommitLog(folder.getAbsolutePath());
         //too much reference
         DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, new BrokerConfig());
         CommitLog commitLog = new CommitLog(messageStore);
@@ -63,7 +68,7 @@ public class AppendCallbackTest {
 
     @After
     public void destroy() {
-        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore"));
+        UtilAll.deleteFile(new File(temporaryFolder.getRoot().getAbsolutePath()));
     }
 
     @Test
@@ -91,7 +96,7 @@ public class AppendCallbackTest {
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
-                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
+            callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -130,7 +135,7 @@ public class AppendCallbackTest {
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
-                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
+            callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -164,7 +169,7 @@ public class AppendCallbackTest {
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
-                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
+            callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
@@ -226,7 +231,7 @@ public class AppendCallbackTest {
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
-                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
+            callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());

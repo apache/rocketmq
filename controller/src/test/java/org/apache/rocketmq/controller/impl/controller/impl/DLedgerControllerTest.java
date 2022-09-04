@@ -25,10 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
@@ -46,7 +43,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
@@ -60,10 +59,13 @@ public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     public DLedgerController launchController(final String group, final String peers, final String selfId,
-        String storeType, final boolean isEnableElectUncleanMaster) {
-        String tmpdir = System.getProperty("java.io.tmpdir");
-        final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
+        String storeType, final boolean isEnableElectUncleanMaster) throws Exception {
+
+        final String path = temporaryFolder.newFolder(group, selfId).getAbsolutePath();
         baseDirs.add(path);
 
         final ControllerConfig config = new ControllerConfig();

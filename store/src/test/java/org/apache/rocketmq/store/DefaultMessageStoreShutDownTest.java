@@ -26,7 +26,9 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -37,6 +39,9 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMessageStoreShutDownTest {
     private DefaultMessageStore messageStore;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void init() throws Exception {
@@ -71,7 +76,8 @@ public class DefaultMessageStoreShutDownTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setHaListenPort(0);
-        String storeRootPath = System.getProperty("java.io.tmpdir") + File.separator + "store";
+        File folder = temporaryFolder.newFolder("store");
+        String storeRootPath = folder.getAbsolutePath();
         messageStoreConfig.setStorePathRootDir(storeRootPath);
         messageStoreConfig.setHaListenPort(0);
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig());

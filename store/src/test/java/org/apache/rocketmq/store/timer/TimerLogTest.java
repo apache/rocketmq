@@ -16,26 +16,32 @@
  */
 package org.apache.rocketmq.store.timer;
 
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.junit.After;
-import org.junit.Test;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TimerLogTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final Set<String> baseDirs = new HashSet<>();
     private final List<TimerLog> timerLogs = new ArrayList<>();
 
     public TimerLog createTimerLog(String baseDir) {
         if (null == baseDir) {
-            baseDir = StoreTestUtils.createBaseDir();
+            baseDir = temporaryFolder.getRoot().getAbsolutePath();
         }
         TimerLog timerLog = new TimerLog(baseDir, 1024);
         timerLogs.add(timerLog);
@@ -79,7 +85,7 @@ public class TimerLogTest {
 
     @Test
     public void testRecovery() throws Exception {
-        String basedir = StoreTestUtils.createBaseDir();
+        String basedir = temporaryFolder.getRoot().getAbsolutePath();
         TimerLog first = createTimerLog(basedir);
         first.append(new byte[512]);
         first.append(new byte[510]);

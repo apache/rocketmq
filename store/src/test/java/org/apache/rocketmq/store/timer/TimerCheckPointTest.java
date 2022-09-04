@@ -22,17 +22,22 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 
 public class TimerCheckPointTest {
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     private String baseDir;
 
     @Before
     public void init() throws IOException {
-        baseDir = StoreTestUtils.createBaseDir();
+        baseDir = temporaryFolder.getRoot().getAbsolutePath();
     }
 
     @Test

@@ -31,9 +31,14 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class AclUtilsTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Test
     public void testGetAddresses() {
@@ -210,8 +215,8 @@ public class AclUtilsTest {
         }
     }
 
-    private static String randomTmpFile() {
-        String tmpFileName = System.getProperty("java.io.tmpdir");
+    private String randomTmpFile() {
+        String tmpFileName = temporaryFolder.getRoot().getAbsolutePath();
         // https://rationalpi.wordpress.com/2007/01/26/javaiotmpdir-inconsitency/
         if (!tmpFileName.endsWith(File.separator)) {
             tmpFileName += File.separator;

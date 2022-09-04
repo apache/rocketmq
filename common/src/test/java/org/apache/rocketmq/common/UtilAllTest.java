@@ -24,13 +24,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.Assert.assertEquals;
 
 public class UtilAllTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Test
     public void testCurrentStackTrace() {
@@ -88,7 +93,7 @@ public class UtilAllTest {
 
     @Test
     public void testGetDiskPartitionSpaceUsedPercent() {
-        String tmpDir = System.getProperty("java.io.tmpdir");
+        String tmpDir = temporaryFolder.getRoot().toString();
 
         assertThat(UtilAll.getDiskPartitionSpaceUsedPercent(null)).isCloseTo(-1, within(0.000001));
         assertThat(UtilAll.getDiskPartitionSpaceUsedPercent("")).isCloseTo(-1, within(0.000001));

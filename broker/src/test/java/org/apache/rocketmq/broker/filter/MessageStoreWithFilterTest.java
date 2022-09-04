@@ -17,30 +17,6 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.store.CommitLogDispatcher;
-import org.apache.rocketmq.store.ConsumeQueueExt;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.awaitility.core.ThrowingRunnable;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -50,6 +26,31 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.CommitLogDispatcher;
+import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageArrivingListener;
+import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.core.ThrowingRunnable;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -61,7 +62,6 @@ public class MessageStoreWithFilterTest {
 
     private static final String topic = "topic";
     private static final int queueId = 0;
-    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 1024 * 256;
     private static final int cqFileSize = 300000 * 20;
     private static final int cqExtFileSize = 300000 * 128;
@@ -78,6 +78,11 @@ public class MessageStoreWithFilterTest {
 
     private int msgPerTopic = 30;
 
+    private String storePath;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     static {
         try {
             StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -91,6 +96,8 @@ public class MessageStoreWithFilterTest {
 
     @Before
     public void init() throws Exception {
+        File folder = temporaryFolder.newFolder("unit_test_store");
+        storePath = folder.getAbsolutePath();
         filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
         master = gen(filterManager);
     }

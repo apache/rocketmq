@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -53,24 +62,15 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,13 +105,12 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
     private String customerTraceTopic = "rmq_trace_topic_12345";
 
-    @BeforeClass
-    public static void setUpEnv() {
-        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
-    }
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void init() throws Exception {
+        System.setProperty("rocketmq.client.logRoot", temporaryFolder.getRoot().getAbsolutePath());
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
         field.setAccessible(true);
         RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
@@ -306,7 +305,8 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         return sendResult;
     }
 
-    private static void suppressUpdateTopicRouteInfoFromNameServer(DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+    private static void suppressUpdateTopicRouteInfoFromNameServer(
+        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();

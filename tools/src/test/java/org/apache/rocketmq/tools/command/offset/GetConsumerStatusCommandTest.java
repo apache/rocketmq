@@ -26,8 +26,9 @@ import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class GetConsumerStatusCommandTest {
 
@@ -35,13 +36,12 @@ public class GetConsumerStatusCommandTest {
 
     private ServerResponseMocker nameServerMocker;
 
-    @BeforeClass
-    public static void setUpEnv() {
-        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
-    }
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void before() {
+        System.setProperty("rocketmq.client.logRoot", temporaryFolder.getRoot().getAbsolutePath());
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
     }
@@ -56,7 +56,8 @@ public class GetConsumerStatusCommandTest {
     public void testExecute() throws SubCommandException {
         GetConsumerStatusCommand cmd = new GetConsumerStatusCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-i clientid",
+        String[] subargs = new String[] {
+            "-g default-group", "-t unit-test", "-i clientid",
             String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());

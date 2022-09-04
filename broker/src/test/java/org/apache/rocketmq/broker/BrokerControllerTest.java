@@ -22,7 +22,6 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.broker.latency.FutureTaskExt;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -32,7 +31,9 @@ import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,12 +45,13 @@ public class BrokerControllerTest {
 
     private NettyServerConfig nettyServerConfig;
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         messageStoreConfig = new MessageStoreConfig();
-        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
-                + UUID.randomUUID().toString();
+        String storePathRootDir = temporaryFolder.newFolder("store-" + UUID.randomUUID()).getAbsolutePath();
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
 
         brokerConfig = new BrokerConfig();

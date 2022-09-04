@@ -17,28 +17,39 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MappedFileQueueTest {
 
-    private String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
+    private String storePath;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    @Before
+    public void init() throws Exception {
+        File folder = temporaryFolder.newFolder("unit_test_store");
+        storePath = folder.getAbsolutePath();
+    }
 
     @Test
     public void testGetLastMappedFile() {
@@ -373,7 +384,7 @@ public class MappedFileQueueTest {
                     }
                 } catch (Exception e) {
                     hasException.set(true);
-                }finally {
+                } finally {
                     downLatch.countDown();
                 }
             });

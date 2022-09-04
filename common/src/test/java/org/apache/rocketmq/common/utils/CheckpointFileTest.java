@@ -27,15 +27,19 @@ import org.apache.rocketmq.common.UtilAll;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class CheckpointFileTest {
 
-    private static final String FILE_PATH =
-        Paths.get(System.getProperty("java.io.tmpdir"), "store-test", "epoch.ckpt").toString();
-
     private List<EpochEntry> entryList;
     private CheckpointFile<EpochEntry> checkpoint;
+
+    private String pathFile;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     static class EpochEntrySerializer implements CheckpointFile.CheckpointSerializer<EpochEntry> {
 
@@ -62,17 +66,18 @@ public class CheckpointFileTest {
 
     @Before
     public void init() throws IOException {
+        pathFile = Paths.get(temporaryFolder.getRoot().getAbsolutePath(), "store-test", "epoch.ckpt").toString();
         this.entryList = new ArrayList<>();
         entryList.add(new EpochEntry(7, 7000));
         entryList.add(new EpochEntry(8, 8000));
-        this.checkpoint = new CheckpointFile<>(FILE_PATH, new EpochEntrySerializer());
+        this.checkpoint = new CheckpointFile<>(pathFile, new EpochEntrySerializer());
         this.checkpoint.write(entryList);
     }
 
     @After
     public void destroy() {
-        UtilAll.deleteFile(new File(FILE_PATH));
-        UtilAll.deleteFile(new File(FILE_PATH + ".bak"));
+        UtilAll.deleteFile(new File(pathFile));
+        UtilAll.deleteFile(new File(pathFile + ".bak"));
     }
 
     @Test
@@ -87,7 +92,7 @@ public class CheckpointFileTest {
     @Test
     public void testAbNormalWriteAndRead() throws IOException {
         this.checkpoint.write(entryList);
-        UtilAll.deleteFile(new File(FILE_PATH));
+        UtilAll.deleteFile(new File(pathFile));
         List<EpochEntry> listFromFile = checkpoint.read();
         Assert.assertEquals(entryList, listFromFile);
         checkpoint.write(entryList);

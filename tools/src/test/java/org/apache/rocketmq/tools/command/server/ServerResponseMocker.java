@@ -29,6 +29,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
@@ -36,11 +39,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
-
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * mock server response for command
@@ -51,13 +52,12 @@ public abstract class ServerResponseMocker {
 
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
-    @BeforeClass
-    public static void setLogHome() {
-        System.setProperty(ClientLogger.CLIENT_LOG_ROOT, System.getProperty("java.io.tmpdir"));
-    }
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void before() {
+        System.setProperty(ClientLogger.CLIENT_LOG_ROOT, temporaryFolder.getRoot().getAbsolutePath());
         start();
     }
 

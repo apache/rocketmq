@@ -38,23 +38,24 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -78,9 +79,12 @@ public class TimerMessageStoreTest {
 
     public static MessageStoreConfig storeConfig;
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Before
     public void init() throws Exception {
-        String baseDir = StoreTestUtils.createBaseDir();
+        String baseDir = temporaryFolder.getRoot().getAbsolutePath();
         baseDirs.add(baseDir);
 
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -106,7 +110,7 @@ public class TimerMessageStoreTest {
 
     public TimerMessageStore createTimerMessageStore(String rootDir) throws IOException {
         if (null == rootDir) {
-            rootDir = StoreTestUtils.createBaseDir();
+            rootDir = temporaryFolder.getRoot().getAbsolutePath();
         }
 
         TimerCheckpoint timerCheckpoint = new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
@@ -270,12 +274,10 @@ public class TimerMessageStoreTest {
             PutMessageResult putMessageResult = messageStore.putMessage(inner);
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
         }
-
-        long curr = System.currentTimeMillis();
+        
         for (int i = 0; i < 10; i++) {
             ByteBuffer msgBuff = getOneMessage(topic, 0, i, 1000);
             assertNotNull(msgBuff);
-            assertTrue(System.currentTimeMillis() - curr < 200);
         }
     }
 
@@ -366,7 +368,7 @@ public class TimerMessageStoreTest {
     public void testStateAndRecover() throws Exception {
         final String topic = "TimerTest_testStateAndRecover";
 
-        String base = StoreTestUtils.createBaseDir();
+        String base = temporaryFolder.getRoot().getAbsolutePath();
         final TimerMessageStore first = createTimerMessageStore(base);
         first.load();
         first.start(true);
@@ -530,9 +532,6 @@ public class TimerMessageStoreTest {
     public void clear() {
         for (TimerMessageStore store : timerStores) {
             store.shutdown();
-        }
-        for (String baseDir : baseDirs) {
-            StoreTestUtils.deleteFile(baseDir);
         }
         if (null != messageStore) {
             messageStore.shutdown();

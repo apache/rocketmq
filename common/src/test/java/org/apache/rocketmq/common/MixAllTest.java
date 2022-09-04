@@ -18,16 +18,25 @@
 package org.apache.rocketmq.common;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MixAllTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    private File createFile() throws Exception{
+        return temporaryFolder.newFile("MixAllTest" + System.currentTimeMillis());
+    }
+
     @Test
     public void testGetLocalInetAddress() throws Exception {
         List<String> localInetAddress = MixAll.getLocalInetAddress();
@@ -52,40 +61,38 @@ public class MixAllTest {
     }
 
     @Test
-    public void testFile2String() throws IOException {
-        String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
-        File file = new File(fileName);
+    public void testFile2String() throws Exception {
+        File file = createFile();
         if (file.exists()) {
             file.delete();
         }
         file.createNewFile();
-        PrintWriter out = new PrintWriter(fileName);
+        PrintWriter out = new PrintWriter(file.getName());
         out.write("TestForMixAll");
         out.close();
-        String string = MixAll.file2String(fileName);
+        String string = MixAll.file2String(file.getName());
         assertThat(string).isEqualTo("TestForMixAll");
         file.delete();
     }
 
     @Test
-    public void testFile2String_WithChinese() throws IOException {
-        String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
-        File file = new File(fileName);
+    public void testFile2String_WithChinese() throws Exception {
+        File file = createFile();
         if (file.exists()) {
             file.delete();
         }
         file.createNewFile();
-        PrintWriter out = new PrintWriter(fileName, "UTF-8");
+        PrintWriter out = new PrintWriter(file.getName(), "UTF-8");
         out.write("TestForMixAll_中文");
         out.close();
-        String string = MixAll.file2String(fileName);
+        String string = MixAll.file2String(file.getName());
         assertThat(string).isEqualTo("TestForMixAll_中文");
         file.delete();
     }
 
     @Test
-    public void testString2File() throws IOException {
-        String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
+    public void testString2File() throws Exception {
+        String fileName = createFile().getName();
         MixAll.string2File("MixAll_testString2File", fileName);
         assertThat(MixAll.file2String(fileName)).isEqualTo("MixAll_testString2File");
     }

@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.client.consumer.store;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -41,9 +41,12 @@ public class LocalFileOffsetStoreTest {
     private String topic = "FooBar";
     private String brokerName = "DefaultBrokerName";
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     @Before
-    public void init() {
-        System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + File.separator + ".rocketmq_offsets");
+    public void init() throws Exception {
+        System.setProperty("rocketmq.client.localOffsetStoreDir", temporaryFolder.newFolder(".rocketmq_offsets").getAbsolutePath());
         String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
         when(mQClientFactory.getClientId()).thenReturn(clientId);
     }

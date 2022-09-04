@@ -53,7 +53,9 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.util.Strings;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -70,6 +72,9 @@ public class DefaultMessageStoreTest {
     private SocketAddress storeHost;
     private byte[] messageBody;
     private MessageStore messageStore;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void init() throws Exception {
@@ -92,7 +97,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.newFolder("store").getAbsolutePath());
         messageStoreConfig.setHaListenPort(0);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
@@ -132,8 +137,8 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
         messageStoreConfig.setHaListenPort(0);
         if (Strings.isNullOrEmpty(storePathRootDir)) {
-            UUID uuid = UUID.randomUUID();
-            storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-" + uuid.toString();
+            File folder = temporaryFolder.newFolder("store-" + UUID.randomUUID());
+            storePathRootDir = folder.getAbsolutePath();
         }
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         return new DefaultMessageStore(messageStoreConfig,

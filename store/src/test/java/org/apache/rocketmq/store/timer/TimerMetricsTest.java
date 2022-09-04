@@ -16,18 +16,24 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import java.io.File;
+import java.util.UUID;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.rules.TemporaryFolder;
 
 public class TimerMetricsTest {
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void testTimingCount() {
-        String baseDir = StoreTestUtils.createBaseDir();
+        String baseDir = temporaryFolder.getRoot().getAbsolutePath()+ File.separator + "unitteststore-" + UUID.randomUUID();
 
         TimerMetrics first = new TimerMetrics(baseDir);
         Assert.assertTrue(first.load());

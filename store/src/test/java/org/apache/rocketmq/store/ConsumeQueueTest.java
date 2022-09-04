@@ -36,7 +36,10 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -50,7 +53,7 @@ public class ConsumeQueueTest {
 
     private static final String topic = "abc";
     private static final int queueId = 0;
-    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
+
     private static final int commitLogFileSize = 1024 * 8;
     private static final int cqFileSize = 10 * 20;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -58,6 +61,11 @@ public class ConsumeQueueTest {
     private static SocketAddress BornHost;
 
     private static SocketAddress StoreHost;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    private String storePath;
 
     static {
         try {
@@ -70,6 +78,13 @@ public class ConsumeQueueTest {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+    }
+
+    @Before
+    public void init() throws Exception {
+
+        File folder = temporaryFolder.newFolder("unit_test_store");
+        storePath = folder.getAbsolutePath();
     }
 
     public MessageExtBrokerInner buildMessage() {
@@ -340,13 +355,12 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsgMultiQueue(messageStore);
             }
-            Thread.sleep(5);
+            Thread.sleep(1000);
 
-            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-
-            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
-
-            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> table = messageStore.getConsumeQueueTable();
+            ConsumeQueueInterface cq = table.get(topic).get(queueId);
+            ConsumeQueueInterface lmqCq1 = table.get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq2 = table.get("%LMQ%456").get(0);
 
             assertThat(cq).isNotNull();
 
@@ -436,11 +450,12 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void testCorrectMinOffset() {
+    public void testCorrectMinOffset() throws Exception {
         String topic = "T1";
         int queueId = 0;
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "test_correct_min_offset");
+        File tmpDir = temporaryFolder.newFolder("test_correct_min_offset");
+
         tmpDir.deleteOnExit();
         storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
         storeConfig.setEnableConsumeQueueExt(false);

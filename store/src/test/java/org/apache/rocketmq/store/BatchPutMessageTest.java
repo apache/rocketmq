@@ -36,7 +36,9 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
@@ -49,6 +51,9 @@ public class BatchPutMessageTest {
     private MessageStore messageStore;
 
     public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void init() throws Exception {
@@ -63,7 +68,7 @@ public class BatchPutMessageTest {
         messageStore.shutdown();
         messageStore.destroy();
 
-        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "putmessagesteststore"));
+        UtilAll.deleteFile(temporaryFolder.getRoot());
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -74,9 +79,9 @@ public class BatchPutMessageTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "putmessagesteststore");
-        messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator
-            + "putmessagesteststore" + File.separator + "commitlog");
+        File folder = temporaryFolder.newFolder("putmessagesteststore", "commitlog");
+        messageStoreConfig.setStorePathRootDir(folder.getParent());
+        messageStoreConfig.setStorePathCommitLog(folder.getAbsolutePath());
         messageStoreConfig.setHaListenPort(0);
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
     }

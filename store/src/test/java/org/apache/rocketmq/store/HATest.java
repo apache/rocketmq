@@ -40,7 +40,9 @@ import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -62,11 +64,17 @@ public class HATest {
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
-    private String storePathRootParentDir = System.getProperty("java.io.tmpdir") + File.separator + UUID.randomUUID();
-    private String storePathRootDir = storePathRootParentDir + File.separator + "store";
+    private String storePathRootParentDir;
+    private String storePathRootDir;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     @Before
     public void init() throws Exception {
+        File folder = temporaryFolder.newFolder(UUID.randomUUID().toString(), "store");
+        storePathRootParentDir = folder.getParent();
+        storePathRootDir = folder.getAbsolutePath();
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         masterMessageStoreConfig = new MessageStoreConfig();

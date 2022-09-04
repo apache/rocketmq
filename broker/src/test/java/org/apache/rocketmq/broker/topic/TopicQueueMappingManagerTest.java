@@ -17,6 +17,13 @@
 
 package org.apache.rocketmq.broker.topic;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
@@ -25,18 +32,12 @@ import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 
@@ -46,6 +47,9 @@ public class TopicQueueMappingManagerTest {
     private BrokerController brokerController;
     private static final String broker1Name = "broker1";
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     @Before
     public void before() {
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -53,7 +57,7 @@ public class TopicQueueMappingManagerTest {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir"));
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.getRoot().getAbsolutePath());
         messageStoreConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
     }

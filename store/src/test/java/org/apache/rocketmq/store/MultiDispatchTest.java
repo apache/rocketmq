@@ -29,7 +29,9 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
@@ -42,6 +44,9 @@ public class MultiDispatchTest {
 
     private DefaultMessageStore messageStore;
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     @Before
     public void init() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -49,9 +54,9 @@ public class MultiDispatchTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1");
-        messageStoreConfig.setStorePathCommitLog(
-            System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1" + File.separator + "commitlog");
+        File folder = temporaryFolder.newFolder("unitteststore1", "commitlog");
+        messageStoreConfig.setStorePathRootDir(folder.getParent());
+        messageStoreConfig.setStorePathCommitLog(folder.getAbsolutePath());
 
         messageStoreConfig.setEnableLmq(true);
         messageStoreConfig.setEnableMultiDispatch(true);
@@ -64,7 +69,7 @@ public class MultiDispatchTest {
 
     @After
     public void destroy() {
-        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore1"));
+        UtilAll.deleteFile(temporaryFolder.getRoot());
     }
 
     @Test

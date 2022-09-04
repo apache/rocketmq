@@ -47,7 +47,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         }
         //delete the cq files
         {
-            StoreTestBase.deleteFile(StorePathConfigHelper.getStorePathConsumeQueue(base));
+            deleteFile(StorePathConfigHelper.getStorePathConsumeQueue(base));
         }
         {
             DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);

@@ -18,14 +18,26 @@ package org.apache.rocketmq.common;/*
 import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ConfigManagerTest {
-    private static final String PATH_FILE = System.getProperty("java.io.tmpdir") + File.separator + "org.apache.rocketmq.common.ConfigManagerTest";
     private static final String CONTENT_ENCODE = "Encode content for ConfigManager";
+
+    private String pathFile;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    @Before
+    public void init() throws Exception {
+        pathFile = temporaryFolder.newFile("org.apache.rocketmq.common.ConfigManagerTest").getAbsolutePath();
+    }
 
     @Test
     public void testLoad() throws Exception {
@@ -71,7 +83,7 @@ public class ConfigManagerTest {
 
             @Override
             public String configFilePath() {
-                return PATH_FILE;
+                return pathFile;
             }
 
             @Override

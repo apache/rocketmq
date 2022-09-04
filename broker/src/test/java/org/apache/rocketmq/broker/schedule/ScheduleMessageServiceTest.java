@@ -50,14 +50,17 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import static org.apache.rocketmq.common.stats.Stats.BROKER_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ScheduleMessageServiceTest {
 
@@ -73,7 +76,6 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 3;
 
-    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "schedule_test#" + UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -88,6 +90,11 @@ public class ScheduleMessageServiceTest {
     static String topic = "schedule_topic_test";
     static String messageGroup = "delayGroupTest";
     private Random random = new Random();
+
+    private String storePath;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
 
     static {
         try {
@@ -104,6 +111,7 @@ public class ScheduleMessageServiceTest {
 
     @Before
     public void setUp() throws Exception {
+        storePath = temporaryFolder.newFolder("schedule_test#" + UUID.randomUUID()).getAbsolutePath();
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel(testMessageDelayLevel);
         messageStoreConfig.setMappedFileSizeCommitLog(commitLogFileSize);

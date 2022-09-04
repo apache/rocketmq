@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.io.IOException;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -34,10 +35,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 public class StoreTestBase {
 
-    private int QUEUE_TOTAL = 100;
+    private int queueTotal = 100;
     private AtomicInteger QueueId = new AtomicInteger(0);
     protected SocketAddress BornHost = new InetSocketAddress("127.0.0.1", 8123);
     protected SocketAddress StoreHost = BornHost;
@@ -51,12 +55,15 @@ public class StoreTestBase {
         return port.addAndGet(5);
     }
 
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     protected MessageExtBatch buildBatchMessage(int size) {
         MessageExtBatch messageExtBatch = new MessageExtBatch();
         messageExtBatch.setTopic("StoreTest");
         messageExtBatch.setTags("TAG1");
         messageExtBatch.setKeys("Hello");
-        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
         messageExtBatch.setSysFlag(0);
 
         messageExtBatch.setBornTimestamp(System.currentTimeMillis());
@@ -80,7 +87,7 @@ public class StoreTestBase {
         msg.setKeys("Hello");
         msg.setBody(MessageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
@@ -96,7 +103,7 @@ public class StoreTestBase {
         messageExtBatch.setBody(MessageBody);
         messageExtBatch.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
         messageExtBatch.setKeys(String.valueOf(System.currentTimeMillis()));
-        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
         messageExtBatch.setSysFlag(0);
         messageExtBatch.setBornHostV6Flag();
         messageExtBatch.setStoreHostAddressV6Flag();
@@ -130,7 +137,7 @@ public class StoreTestBase {
         msg.setBody(MessageBody);
         msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornHostV6Flag();
         msg.setStoreHostAddressV6Flag();
@@ -149,13 +156,14 @@ public class StoreTestBase {
         return msg;
     }
 
-    public static String createBaseDir() {
-        String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
-        final File file = new File(baseDir);
-        if (file.exists()) {
-            System.exit(1);
+    public String createBaseDir() {
+        try {
+            final File file = temporaryFolder.newFolder("unitteststore", UUID.randomUUID().toString());
+            return file.getAbsolutePath();
+        } catch (IOException e) {
+            System.exit(-1);
         }
-        return baseDir;
+        return null;
     }
 
     public static boolean makeSureFileExists(String fileName) throws Exception {
@@ -164,11 +172,11 @@ public class StoreTestBase {
         return file.createNewFile();
     }
 
-    public static void deleteFile(String fileName) {
+    public void deleteFile(String fileName) {
         deleteFile(new File(fileName));
     }
 
-    public static void deleteFile(File file) {
+    public void deleteFile(File file) {
         UtilAll.deleteFile(file);
     }
 

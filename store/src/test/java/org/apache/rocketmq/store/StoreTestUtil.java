@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import io.openmessaging.storage.dledger.store.file.DefaultMmapFile;
 import io.openmessaging.storage.dledger.store.file.MmapFile;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import org.apache.commons.lang3.SystemUtils;
@@ -31,7 +32,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
-
 public class StoreTestUtil {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(StoreTestUtil.class);
@@ -42,7 +42,7 @@ public class StoreTestUtil {
             Field serviceField = store.getClass().getDeclaredField("reputMessageService");
             serviceField.setAccessible(true);
             DefaultMessageStore.ReputMessageService reputService =
-                    (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+                (DefaultMessageStore.ReputMessageService) serviceField.get(store);
 
             Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
             method.setAccessible(true);
@@ -63,7 +63,6 @@ public class StoreTestUtil {
         method.invoke(flushService, RETRY_TIMES_OVER);
     }
 
-
     public static void waitCommitLogReput(DefaultMessageStore store) {
         for (int i = 0; i < 500 && isCommitLogAvailable(store); i++) {
             try {
@@ -76,7 +75,6 @@ public class StoreTestUtil {
             log.warn("isCommitLogAvailable expected false ,but true");
         }
     }
-
 
     public static void flushConsumeIndex(DefaultMessageStore store) throws NoSuchFieldException, Exception {
         Field field = store.getClass().getDeclaredField("indexService");

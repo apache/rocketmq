@@ -40,13 +40,17 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.StoreTestUtil;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
@@ -72,11 +76,22 @@ public class AutoSwitchHATest {
     private String store2HaAddress;
 
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
-    private String tmpdir = System.getProperty("java.io.tmpdir");
-    private String storePathRootParentDir = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + UUID.randomUUID();
-    private String storePathRootDir = storePathRootParentDir + File.separator + "store";
+
+    private String storePathRootParentDir;
+    private String storePathRootDir;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
+    @Before
+    public void before() throws Exception {
+        File folder = temporaryFolder.newFolder(UUID.randomUUID().toString(), "store");
+        storePathRootParentDir = folder.getParent();
+        storePathRootDir = folder.getAbsolutePath();
+    }
 
     public void init(int mappedFileSize) throws Exception {
+
         queueTotal = 1;
         MessageBody = storeMessage.getBytes();
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);

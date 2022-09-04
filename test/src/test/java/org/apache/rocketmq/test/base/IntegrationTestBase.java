@@ -19,6 +19,7 @@ package org.apache.rocketmq.test.base;
 
 import com.google.common.truth.Truth;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
+import org.junit.rules.TemporaryFolder;
 
 public class IntegrationTestBase {
     public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
@@ -58,9 +60,11 @@ public class IntegrationTestBase {
 
     protected static Random random = new Random();
 
+    protected static TemporaryFolder temporaryFolder = TemporaryFolder.builder().build();
+
     static {
 
-        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+        System.setProperty("rocketmq.client.logRoot", temporaryFolder.getRoot().getAbsolutePath());
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -96,7 +100,13 @@ public class IntegrationTestBase {
     }
 
     public static String createBaseDir() {
-        String baseDir = System.getProperty("java.io.tmpdir") + SEP + "unitteststore-" + UUID.randomUUID();
+
+        String baseDir = null;
+        try {
+            baseDir = temporaryFolder.newFolder("unitteststore-" + UUID.randomUUID()).getAbsolutePath();
+        } catch (IOException e) {
+            System.exit(-1);
+        }
         final File file = new File(baseDir);
         if (file.exists()) {
             logger.info(String.format("[%s] has already existed, please back up and remove it for integration tests", baseDir));
@@ -170,7 +180,8 @@ public class IntegrationTestBase {
         return initTopic(topic, nsAddr, clusterName, queueNumbers, cqType, TopicMessageType.NORMAL);
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType, TopicMessageType topicMessageType) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType,
+        TopicMessageType topicMessageType) {
         boolean createResult;
         Map<String, String> attributes = new HashMap<>();
         if (!Objects.equals(CQType.SimpleCQ, cqType)) {
@@ -187,7 +198,8 @@ public class IntegrationTestBase {
         return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType, TopicMessageType.NORMAL);
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, TopicMessageType topicMessageType) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName,
+        TopicMessageType topicMessageType) {
         return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, CQType.SimpleCQ, topicMessageType);
     }
 
