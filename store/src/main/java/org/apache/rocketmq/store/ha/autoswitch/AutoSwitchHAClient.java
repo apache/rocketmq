@@ -17,21 +17,7 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultChannelPromise;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,24 +29,24 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
+import org.apache.rocketmq.store.ha.netty.NettyTransferClient;
 import org.apache.rocketmq.store.ha.netty.TransferMessage;
 import org.apache.rocketmq.store.ha.netty.TransferType;
-import org.apache.rocketmq.store.ha.netty.NettyTransferClientHandler;
-import org.apache.rocketmq.store.ha.netty.NettyTransferDecoder;
-import org.apache.rocketmq.store.ha.netty.NettyTransferEncoder;
 import org.apache.rocketmq.store.ha.protocol.ConfirmTruncate;
 import org.apache.rocketmq.store.ha.protocol.HandshakeMaster;
 import org.apache.rocketmq.store.ha.protocol.HandshakeResult;
 import org.apache.rocketmq.store.ha.protocol.HandshakeSlave;
 import org.apache.rocketmq.store.ha.protocol.PushCommitLogAck;
 import org.apache.rocketmq.store.ha.protocol.PushCommitLogData;
+
+import static org.apache.rocketmq.store.ha.HAConnectionState.HANDSHAKE;
+import static org.apache.rocketmq.store.ha.HAConnectionState.READY;
+import static org.apache.rocketmq.store.ha.HAConnectionState.TRANSFER;
 
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
@@ -73,44 +59,25 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private final AutoSwitchHAService haService;
     private final EpochStore epochCache;
     private final DefaultMessageStore defaultMessageStore;
-    public EventLoopGroup workerGroup;
-    public Bootstrap bootstrap;
-    private FlowMonitor flowMonitor;
+    private final NettyTransferClient nettyTransferClient;
+
     private volatile HAConnectionState currentState = HAConnectionState.SHUTDOWN;
     private volatile long currentReceivedEpoch = -1L;
     private volatile long currentTransferOffset = -1L;
-    private volatile long lastReadTimestamp;
-    private volatile long lastWriteTimestamp;
-    private ChannelFuture future;
-    private ChannelPromise channelPromise;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService) {
         this.haService = haService;
         this.defaultMessageStore = haService.getDefaultMessageStore();
         this.epochCache = haService.getEpochStore();
+        this.nettyTransferClient = new NettyTransferClient(this);
+        this.nettyTransferClient.init();
     }
 
     public void init() throws IOException {
-        if (this.flowMonitor == null) {
-            this.flowMonitor = new FlowMonitor(this.defaultMessageStore.getMessageStoreConfig());
-        }
-
         // init offset
         this.currentReceivedEpoch = -1L;
         this.currentTransferOffset = -1L;
-
-        startNettyClient();
         changeCurrentState(HAConnectionState.READY);
-    }
-
-    public void changePromise(boolean success) {
-        if (this.channelPromise != null && !this.channelPromise.isDone()) {
-            if (success) {
-                this.channelPromise.setSuccess();
-            } else {
-                this.channelPromise.setFailure(new RuntimeException("promise failure"));
-            }
-        }
     }
 
     @Override
@@ -123,11 +90,17 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     public void updateSlaveId(Long newId) {
+        Long currentId = this.slaveId.get();
         this.slaveId.set(newId);
+        LOGGER.info("Update slave Id, OLD: {}, New: {}", currentId, newId);
     }
 
     public long getCurrentMasterEpoch() {
         return this.haService.getCurrentMasterEpoch();
+    }
+
+    public AutoSwitchHAService getHaService() {
+        return haService;
     }
 
     @Override
@@ -158,17 +131,17 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     public void setLastReadTimestamp(long lastReadTimestamp) {
-        this.lastReadTimestamp = lastReadTimestamp;
+        this.nettyTransferClient.setLastReadTimestamp(lastReadTimestamp);
     }
 
     @Override
     public long getLastReadTimestamp() {
-        return this.lastReadTimestamp;
+        return this.nettyTransferClient.getLastReadTimestamp();
     }
 
     @Override
     public long getLastWriteTimestamp() {
-        return this.lastWriteTimestamp;
+        return this.nettyTransferClient.getLastWriteTimestamp();
     }
 
     @Override
@@ -179,169 +152,84 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     @Override
     public void changeCurrentState(HAConnectionState haConnectionState) {
         LOGGER.info("change state to {}", haConnectionState);
+        System.out.println("change: " + this.currentState + " => " + haConnectionState);
         this.currentState = haConnectionState;
     }
 
     @Override
     public void closeMaster() {
-        if (channelPromise != null) {
-            channelPromise.setFailure(new RuntimeException("epoch not match"));
-        }
-        // close channel
-        if (future != null && future.channel() != null) {
-            try {
-                future.channel().close().sync();
-                future = null;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        this.nettyTransferClient.close();
         LOGGER.info("AutoSwitchHAClient close connection with master {}", this.masterHaAddress.get());
     }
 
     @Override
     public long getTransferredByteInSecond() {
-        return this.flowMonitor.getTransferredByteInSecond();
+        return 0L;
+        // return this.flowMonitor.getTransferredByteInSecond();
     }
 
     @Override
     public void shutdown() {
-        changeCurrentState(HAConnectionState.SHUTDOWN);
-        closeMaster();
-        this.flowMonitor.shutdown();
+        this.changeCurrentState(HAConnectionState.SHUTDOWN);
+        this.closeMaster();
         super.shutdown();
     }
 
-    private void sendHandshakeSlave(Channel channel) {
+    private boolean doHandshakeWithMaster() {
         BrokerConfig brokerConfig = defaultMessageStore.getBrokerConfig();
         HandshakeSlave handshakeSlave = new HandshakeSlave();
         handshakeSlave.setClusterName(brokerConfig.getBrokerClusterName());
         handshakeSlave.setBrokerName(brokerConfig.getBrokerName());
         handshakeSlave.setBrokerId(brokerConfig.getBrokerId());
-        handshakeSlave.setBrokerAddr(((AutoSwitchHAService) defaultMessageStore.getHaService()).getLocalAddress());
+        handshakeSlave.setBrokerAddr(
+            ((AutoSwitchHAService) defaultMessageStore.getHaService()).getLocalAddress());
         handshakeSlave.setBrokerAppVersion(MQVersion.CURRENT_VERSION);
         handshakeSlave.setLanguageCode(LanguageCode.JAVA);
         handshakeSlave.setHaProtocolVersion(2);
-
         TransferMessage transferMessage = this.haService.buildMessage(TransferType.HANDSHAKE_SLAVE);
         transferMessage.appendBody(RemotingSerializable.encode(handshakeSlave));
 
-        this.lastWriteTimestamp = System.currentTimeMillis();
-        channel.writeAndFlush(transferMessage);
-    }
-
-    public synchronized void startNettyClient() {
-        AutoSwitchHAClient haClient = this;
-        workerGroup = new NioEventLoopGroup();
-        bootstrap = new Bootstrap();
-        bootstrap.group(workerGroup)
-            .channel(NioSocketChannel.class)
-            .option(ChannelOption.SO_KEEPALIVE, true)
-            .option(ChannelOption.SO_SNDBUF, AutoSwitchHAService.WRITE_MAX_BUFFER_SIZE)
-            .option(ChannelOption.SO_RCVBUF, AutoSwitchHAService.READ_MAX_BUFFER_SIZE)
-            .handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) {
-                    ch.pipeline()
-                        .addLast(new IdleStateHandler(15, 15, 0))
-                        .addLast(new NettyTransferDecoder(haService))
-                        .addLast(new NettyTransferEncoder(haService))
-                        .addLast(new NettyTransferClientHandler(haClient));
-                }
-            });
-    }
-
-    public void doNettyConnect() throws InterruptedException {
-        if (future != null && future.channel() != null && future.channel().isActive()) {
-            return;
-        }
-
-        if (StringUtils.isBlank(this.masterHaAddress.get())) {
-            return;
-        }
-
-        SocketAddress socketAddress = RemotingUtil.string2SocketAddress(this.masterHaAddress.get());
-        future = bootstrap.connect(socketAddress).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                LOGGER.info("Client connect to server successfully!");
-            } else {
-                LOGGER.info("Failed to connect to server, try connect after 1000 ms");
+        boolean result = nettyTransferClient.writeMessageAndWait(transferMessage);
+        if (result) {
+            Object object = nettyTransferClient.getRpcResponseObject();
+            if (object instanceof HandshakeMaster) {
+                HandshakeMaster shake = (HandshakeMaster) object;
+                return this.masterHandshake(shake);
             }
-        });
-
-        try {
-            future.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException("HAClient start server InterruptedException", e);
-        }
-    }
-
-    public synchronized boolean tryConnectToMaster() throws InterruptedException {
-        try {
-            String address = this.masterHaAddress.get();
-            if (StringUtils.isNotEmpty(address)) {
-                doNettyConnect();
-                channelPromise = new DefaultChannelPromise(future.channel());
-                sendHandshakeSlave(future.channel());
-                channelPromise.await(5000);
-                if (channelPromise.isSuccess()) {
-                    channelPromise = null;
-                    changeCurrentState(HAConnectionState.HANDSHAKE);
-                    return true;
-                } else {
-                    LOGGER.warn("Connector to master failed");
-                }
-                channelPromise = null;
-            }
-        } catch (InterruptedException e) {
-            LOGGER.error("HAClient send handshake but not receive response, masterAddr:{}", masterHaAddress.get(), e);
-            future.channel().close().sync();
         }
         return false;
     }
 
-    private boolean checkConnectionTimeout() {
-        long interval = this.defaultMessageStore.now() - this.lastReadTimestamp;
-        if (interval > this.defaultMessageStore.getMessageStoreConfig().getHaHousekeepingInterval()) {
-            LOGGER.warn("NettyHAClient housekeeping, found this connection {} expired, interval={}",
-                this.masterHaAddress, interval);
-            return false;
-        }
-        return true;
+    public NettyTransferClient getNettyTransferClient() {
+        return nettyTransferClient;
     }
 
-    public void masterHandshake(HandshakeMaster handshakeMaster) {
+    public boolean masterHandshake(HandshakeMaster handshakeMaster) {
         if (handshakeMaster != null
             && HandshakeResult.ACCEPT.equals(handshakeMaster.getHandshakeResult())) {
-            channelPromise.setSuccess();
-            return;
+            return true;
         }
         LOGGER.error("Master reject build connection, {}", handshakeMaster);
-        channelPromise.setFailure(new Exception("Master reject build connection"));
+        return false;
     }
 
-    private boolean queryMasterEpoch() throws InterruptedException {
-        try {
-            TransferMessage transferMessage = haService.buildMessage(TransferType.QUERY_EPOCH);
-            channelPromise = new DefaultChannelPromise(future.channel());
-            this.lastWriteTimestamp = System.currentTimeMillis();
-            future.channel().writeAndFlush(transferMessage);
-            channelPromise.await(5000);
-            if (channelPromise.isSuccess()) {
-                channelPromise = null;
-                changeCurrentState(HAConnectionState.TRANSFER);
-                return true;
-            }
-            channelPromise = null;
-            return false;
-        } catch (InterruptedException e) {
-            future.channel().close().sync();
+    private boolean doQueryMasterEpoch() {
+        TransferMessage transferMessage = haService.buildMessage(TransferType.QUERY_EPOCH);
+        boolean result = nettyTransferClient.writeMessageAndWait(transferMessage);
+        if (result) {
+            List<EpochEntry> entryList = (List<EpochEntry>) nettyTransferClient.getRpcResponseObject();
+            this.doConsistencyRepairWithMaster(entryList);
+            this.sendConfirmTruncateToMaster(currentTransferOffset);
+            return true;
         }
+        return false;
+    }
+
+    private boolean doFlowMonitor() {
         return true;
     }
 
     public synchronized void doConsistencyRepairWithMaster(List<EpochEntry> entryList) {
-        channelPromise.setSuccess();
         if (!doTruncateFiles(entryList)) {
             this.closeMaster();
             return;
@@ -358,8 +246,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             currentTransferOffset = Math.max(currentTransferOffset, masterMinOffset);
             currentTransferOffset = Math.min(currentTransferOffset, masterMaxOffset);
         }
-
-        sendConfirmTruncateToMaster(currentTransferOffset);
     }
 
     private void sendConfirmTruncateToMaster(long startOffset) {
@@ -367,52 +253,55 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         ConfirmTruncate confirmTruncate = new ConfirmTruncate(syncFromLastFile, startOffset);
         TransferMessage transferMessage = this.haService.buildMessage(TransferType.CONFIRM_TRUNCATE);
         transferMessage.appendBody(RemotingSerializable.encode(confirmTruncate));
-        this.lastWriteTimestamp = System.currentTimeMillis();
-        future.channel().writeAndFlush(transferMessage);
+        nettyTransferClient.writeMessage(transferMessage);
     }
 
-    public synchronized void sendPushCommitLogAck() {
+    public void sendPushCommitLogAck() {
         boolean asyncLearner = defaultMessageStore.getMessageStoreConfig().isAsyncLearner();
         PushCommitLogAck pushCommitLogAck = new PushCommitLogAck(this.currentTransferOffset, asyncLearner);
         TransferMessage transferMessage = this.haService.buildMessage(TransferType.TRANSFER_ACK);
         transferMessage.appendBody(RemotingSerializable.encode(pushCommitLogAck));
-        this.lastWriteTimestamp = System.currentTimeMillis();
-        future.channel().writeAndFlush(transferMessage);
+        nettyTransferClient.writeMessage(transferMessage);
     }
 
     @Override
     public void run() {
         LOGGER.info(this.getServiceName() + " service started");
-
-        this.flowMonitor.start();
         while (!this.isStopped()) {
             try {
                 switch (this.currentState) {
                     case READY:
-                        if (!tryConnectToMaster()) {
-                            closeMaster();
-                            this.waitForRunning(3000);
+                        if (this.doHandshakeWithMaster()) {
+                            this.changeCurrentState(HANDSHAKE);
+                        } else {
+                            this.closeMaster();
+                            this.changeCurrentState(READY);
+                            this.waitForRunning(100);
                         }
                         continue;
                     case HANDSHAKE:
-                        if (!queryMasterEpoch()) {
-                            closeMaster();
-                            this.waitForRunning(3000);
+                        if (this.doQueryMasterEpoch()) {
+                            this.changeCurrentState(TRANSFER);
+                        } else {
+                            this.closeMaster();
+                            this.changeCurrentState(READY);
+                            this.waitForRunning(1000);
                         }
                         continue;
                     case TRANSFER:
                     case SUSPEND:
-                        if (!checkConnectionTimeout()) {
-                            closeMaster();
-                            break;
+                        if (!this.doFlowMonitor()) {
+                            this.closeMaster();
+                            this.changeCurrentState(READY);
+                            this.waitForRunning(1000);
                         }
-                        this.waitForRunning(500);
                         continue;
                     case SHUTDOWN:
                     default:
-                        waitForRunning(1000);
+                        this.waitForRunning(1000);
                 }
             } catch (Exception e) {
+                System.out.println(e);
                 LOGGER.warn(this.getServiceName() + " service has exception. ", e);
                 closeMaster();
             }

@@ -34,11 +34,8 @@ public class NettyTransferDecoder extends LengthFieldBasedFrameDecoder {
     private static final int FRAME_MAX_LENGTH =
         Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
 
-    private final AutoSwitchHAService autoSwitchHAService;
-
-    public NettyTransferDecoder(AutoSwitchHAService autoSwitchHAService) {
+    public NettyTransferDecoder() {
         super(FRAME_MAX_LENGTH, 0, 4, 20, 0);
-        this.autoSwitchHAService = autoSwitchHAService;
     }
 
     @Override
@@ -54,7 +51,6 @@ public class NettyTransferDecoder extends LengthFieldBasedFrameDecoder {
             long lastReadTimestamp = frame.readLong();
             byte[] body = new byte[bodyLength];
             frame.readBytes(body);
-            //System.out.println(messageType);
             TransferMessage request = new TransferMessage(messageType, epoch);
             request.appendBody(body);
             return request;

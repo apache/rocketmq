@@ -19,15 +19,14 @@ package org.apache.rocketmq.store.ha.netty;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import java.nio.ByteBuffer;
-import java.util.List;
-import org.apache.rocketmq.common.EpochEntry;
+import io.netty.util.AttributeKey;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAConnection;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.protocol.ConfirmTruncate;
 import org.apache.rocketmq.store.ha.protocol.HandshakeMaster;
@@ -40,6 +39,7 @@ public class NettyTransferServerHandler extends SimpleChannelInboundHandler<Tran
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final AutoSwitchHAService autoSwitchHAService;
+    private AutoSwitchHAConnection haConnection;
 
     public NettyTransferServerHandler(AutoSwitchHAService autoSwitchHAService) {
         this.autoSwitchHAService = autoSwitchHAService;
@@ -47,35 +47,30 @@ public class NettyTransferServerHandler extends SimpleChannelInboundHandler<Tran
 
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-        autoSwitchHAService.removeConnection(ctx.channel());
+        if (haConnection != null) {
+            haConnection.shutdown();
+        }
         super.channelUnregistered(ctx);
     }
 
-    public void slaveHandshake(ChannelHandlerContext ctx, TransferMessage request) {
-        HandshakeSlave handshakeSlave = RemotingSerializable.decode(request.getBytes(), HandshakeSlave.class);
+    public void slaveHandshake(ChannelHandlerContext ctx, TransferMessage message) {
+        HandshakeSlave handshakeSlave = RemotingSerializable.decode(message.getBytes(), HandshakeSlave.class);
         HandshakeResult handshakeResult = autoSwitchHAService.verifySlaveIdentity(handshakeSlave);
-        autoSwitchHAService.tryAcceptNewSlave(ctx.channel(), handshakeSlave);
         HandshakeMaster handshakeMaster = autoSwitchHAService.buildHandshakeResult(handshakeResult);
+
+        this.haConnection = new AutoSwitchHAConnection(autoSwitchHAService, ctx.channel());
+        this.haConnection.setSlaveBrokerId(handshakeSlave.getBrokerId());
+        this.haConnection.setClientAddress(handshakeSlave.getBrokerAddr());
+        ctx.channel().attr(AttributeKey.valueOf("connection")).set(this.haConnection);
+        this.autoSwitchHAService.getNettyTransferServer().addChannelToGroup(ctx.channel());
+
         TransferMessage response = autoSwitchHAService.buildMessage(TransferType.HANDSHAKE_MASTER);
         response.appendBody(RemotingSerializable.encode(handshakeMaster));
         ctx.channel().writeAndFlush(response);
     }
 
-    public void responseEpochList(ChannelHandlerContext ctx, TransferMessage request) {
-        List<EpochEntry> entries = autoSwitchHAService.getEpochEntries();
-        // Set epoch end offset == message store max offset
-        if (entries.size() > 0) {
-            entries.get(entries.size() - 1)
-                .setEndOffset(autoSwitchHAService.getDefaultMessageStore().getMaxPhyOffset());
-        }
-        ByteBuffer byteBuffer = ByteBuffer.allocate(3 * 8 * entries.size());
-        for (EpochEntry entry : entries) {
-            byteBuffer.putLong(entry.getEpoch()).putLong(entry.getStartOffset()).putLong(entry.getEndOffset());
-        }
-        byteBuffer.flip();
-        TransferMessage response = autoSwitchHAService.buildMessage(TransferType.RETURN_EPOCH);
-        response.appendBody(byteBuffer);
-        ctx.channel().writeAndFlush(response);
+    public void responseEpochList(ChannelHandlerContext ctx, TransferMessage message) {
+        this.haConnection.sendEpochEntries();
     }
 
     /**
@@ -83,12 +78,12 @@ public class NettyTransferServerHandler extends SimpleChannelInboundHandler<Tran
      */
     public void confirmTruncate(ChannelHandlerContext ctx, TransferMessage message) {
         ConfirmTruncate confirmTruncate = RemotingSerializable.decode(message.getBytes(), ConfirmTruncate.class);
-        autoSwitchHAService.confirmTruncate(ctx.channel(), confirmTruncate);
+        haConnection.confirmTruncate(confirmTruncate);
     }
 
     public void pushCommitLogAck(ChannelHandlerContext ctx, TransferMessage message) {
         PushCommitLogAck pushCommitLogAck = RemotingSerializable.decode(message.getBytes(), PushCommitLogAck.class);
-        autoSwitchHAService.pushCommitLogDataAck(ctx.channel(), pushCommitLogAck);
+        haConnection.pushCommitLogDataAck(pushCommitLogAck);
     }
 
     @Override
@@ -112,6 +107,7 @@ public class NettyTransferServerHandler extends SimpleChannelInboundHandler<Tran
             return;
         }
 
+        System.out.println(request.getType());
         switch (request.getType()) {
             case HANDSHAKE_SLAVE:
                 this.slaveHandshake(ctx, request);

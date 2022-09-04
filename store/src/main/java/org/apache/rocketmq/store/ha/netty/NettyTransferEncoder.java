@@ -32,12 +32,6 @@ public class NettyTransferEncoder extends MessageToByteEncoder<TransferMessage> 
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private final AutoSwitchHAService autoSwitchHAService;
-
-    public NettyTransferEncoder(AutoSwitchHAService autoSwitchHAService) {
-        this.autoSwitchHAService = autoSwitchHAService;
-    }
-
     @Override
     protected void encode(ChannelHandlerContext ctx, TransferMessage message, ByteBuf out) throws Exception {
         if (message == null || message.getType() == null) {
@@ -48,7 +42,7 @@ public class NettyTransferEncoder extends MessageToByteEncoder<TransferMessage> 
 
         out.writeInt(message.getBodyLength());
         out.writeInt(message.getType().getValue());
-        out.writeLong(autoSwitchHAService.getCurrentMasterEpoch());
+        out.writeLong(message.getEpoch());
         out.writeLong(System.currentTimeMillis());
         for (ByteBuffer byteBuffer : message.getByteBufferList()) {
             out.writeBytes(byteBuffer);

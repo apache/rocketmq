@@ -281,6 +281,7 @@ public class AutoSwitchHAServiceTest {
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(() -> {
             final Set<String> syncStateSet =
                 ((AutoSwitchHAService) this.messageStore1.getHaService()).getSyncStateSet();
+            System.out.println(syncStateSet);
             return syncStateSet.size() == 2 && syncStateSet.contains("127.0.0.1:8001");
         });
 

@@ -290,9 +290,10 @@ public class ReplicasManager {
     private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
-            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
+            final RegisterBrokerToControllerResponseHeader registerResponse =
+                this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
                 this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
-                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
+                this.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -444,7 +445,7 @@ public class ReplicasManager {
     }
 
     public int getLastEpoch() {
-        return this.haService.getLastEpoch();
+        return (int) this.haService.getEpochStore().getLastEpoch();
     }
 
     public BrokerRole getBrokerRole() {

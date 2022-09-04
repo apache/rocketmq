@@ -45,19 +45,14 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         super.exceptionCaught(ctx, cause);
     }
 
-    @Override
-    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-        autoSwitchHAClient.changePromise(false);
-        super.channelUnregistered(ctx);
-    }
-
     public NettyTransferClientHandler(AutoSwitchHAClient autoSwitchHAClient) {
         this.autoSwitchHAClient = autoSwitchHAClient;
     }
 
     public void masterHandshake(ChannelHandlerContext ctx, TransferMessage request) {
         HandshakeMaster handshakeMaster = RemotingSerializable.decode(request.getBytes(), HandshakeMaster.class);
-        autoSwitchHAClient.masterHandshake(handshakeMaster);
+        autoSwitchHAClient.getNettyTransferClient().setRpcResponseObject(handshakeMaster);
+        autoSwitchHAClient.getNettyTransferClient().changePromise(true);
     }
 
     public void returnEpoch(ChannelHandlerContext ctx, TransferMessage request) {
@@ -72,7 +67,8 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
             entry.setEndOffset(request.getByteBuffer().getLong());
             entryList.add(entry);
         }
-        autoSwitchHAClient.doConsistencyRepairWithMaster(entryList);
+        autoSwitchHAClient.getNettyTransferClient().setRpcResponseObject(entryList);
+        autoSwitchHAClient.getNettyTransferClient().changePromise(true);
     }
 
     public void pushData(ChannelHandlerContext ctx, TransferMessage message) {
@@ -104,9 +100,10 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
             autoSwitchHAClient.closeMaster();
             return;
         } else {
-            autoSwitchHAClient.setLastReadTimestamp(System.currentTimeMillis());
+            // autoSwitchHAClient.setLastReadTimestamp(System.currentTimeMillis());
         }
 
+        System.out.println(request.getType());
         switch (request.getType()) {
             case HANDSHAKE_MASTER:
                 this.masterHandshake(ctx, request);
