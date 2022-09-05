@@ -27,6 +27,9 @@
     <artifactId>rocketmq-srvutil</artifactId>
     <name>rocketmq-srvutil ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -48,6 +51,11 @@
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
             <artifactId>concurrentlinkedhashmap-lru</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

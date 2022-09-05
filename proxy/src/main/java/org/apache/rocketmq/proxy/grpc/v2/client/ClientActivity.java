@@ -30,6 +30,7 @@ import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.FilterAPI;
@@ -179,7 +181,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
-                            responseObserver.onNext(processClientSettings(ctx, request, responseObserver));
+                            processAndWriteClientSettings(ctx, request, responseObserver);
                             break;
                         }
                         case THREAD_STACK_TRACE: {
@@ -192,7 +194,7 @@ public class ClientActivity extends AbstractMessingActivity {
                         }
                     }
                 } catch (Throwable t) {
-                    responseObserver.onNext(convertToTelemetryCommand(t));
+                    processTelemetryException(request, t, responseObserver);
                 }
             }
 
@@ -208,31 +210,63 @@ public class ClientActivity extends AbstractMessingActivity {
         };
     }
 
-    protected TelemetryCommand convertToTelemetryCommand(Throwable t) {
-        return TelemetryCommand.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(t)).build();
-    }
-
-    protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request,
-        StreamObserver<TelemetryCommand> responseObserver) {
-        String clientId = ctx.getClientID();
-        Settings settings = request.getSettings();
-        if (settings.hasPublishing()) {
-            for (Resource topic : settings.getPublishing().getTopicsList()) {
-                validateTopic(topic);
-                String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
-                GrpcClientChannel producerChannel = registerProducer(ctx, topicName);
-                producerChannel.setClientObserver(responseObserver);
+    protected void processTelemetryException(TelemetryCommand request, Throwable t, StreamObserver<TelemetryCommand> responseObserver) {
+        StatusRuntimeException exception = io.grpc.Status.INTERNAL
+            .withDescription("process client telemetryCommand failed. " + t.getMessage())
+            .withCause(t)
+            .asRuntimeException();
+        if (t instanceof GrpcProxyException) {
+            GrpcProxyException proxyException = (GrpcProxyException) t;
+            if (proxyException.getCode().getNumber() < Code.INTERNAL_ERROR_VALUE &&
+                proxyException.getCode().getNumber() >= Code.BAD_REQUEST_VALUE) {
+                exception = io.grpc.Status.INVALID_ARGUMENT
+                    .withDescription("process client telemetryCommand failed. " + t.getMessage())
+                    .withCause(t)
+                    .asRuntimeException();
             }
         }
-        if (settings.hasSubscription()) {
-            validateConsumerGroup(settings.getSubscription().getGroup());
-            String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
-            GrpcClientChannel consumerChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList(), true);
-            consumerChannel.setClientObserver(responseObserver);
+        if (exception.getStatus().getCode().equals(io.grpc.Status.Code.INTERNAL)) {
+            log.warn("process client telemetryCommand failed. request:{}", request, t);
         }
+        responseObserver.onError(exception);
+    }
 
+    protected void processAndWriteClientSettings(ProxyContext ctx, TelemetryCommand request,
+        StreamObserver<TelemetryCommand> responseObserver) {
+        GrpcClientChannel grpcClientChannel = null;
+        Settings settings = request.getSettings();
+        switch (settings.getPubSubCase()) {
+            case PUBLISHING:
+                for (Resource topic : settings.getPublishing().getTopicsList()) {
+                    validateTopic(topic);
+                    String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
+                    grpcClientChannel = registerProducer(ctx, topicName);
+                    grpcClientChannel.setClientObserver(responseObserver);
+                }
+                break;
+            case SUBSCRIPTION:
+                validateConsumerGroup(settings.getSubscription().getGroup());
+                String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
+                grpcClientChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList(), true);
+                grpcClientChannel.setClientObserver(responseObserver);
+                break;
+            default:
+                break;
+        }
+        if (grpcClientChannel == null) {
+            responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
+                .withDescription("there is no publishing or subscription data in settings")
+                .asRuntimeException());
+            return;
+        }
+        TelemetryCommand command = processClientSettings(ctx, request);
+        grpcClientChannel.writeTelemetryCommand(command);
+    }
+
+    protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {
+        String clientId = ctx.getClientID();
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
-        settings = grpcClientSettingsManager.getClientSettings(ctx);
+        Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
         return TelemetryCommand.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
@@ -247,7 +281,10 @@ public class ClientActivity extends AbstractMessingActivity {
         // use topic name as producer group
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
         this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
-        this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
+        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+        if (TopicMessageType.TRANSACTION.equals(topicMessageType)) {
+            this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
+        }
         return channel;
     }
 

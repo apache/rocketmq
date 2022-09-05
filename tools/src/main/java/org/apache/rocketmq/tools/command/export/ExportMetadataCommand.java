@@ -48,7 +48,7 @@ public class ExportMetadataCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export metadata";
+        return "Export metadata";
     }
 
     @Override

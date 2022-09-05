@@ -23,13 +23,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -43,7 +47,9 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -76,6 +82,8 @@ import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -95,11 +103,13 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBro
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.rpc.RpcClient;
 import org.apache.rocketmq.common.rpc.RpcClientImpl;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -118,6 +128,7 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class BrokerOuterAPI {
@@ -866,6 +877,51 @@ public class BrokerOuterAPI {
                                                   final MessageExt msg, String group,
                                                   long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
 
+        RemotingCommand request = buildSendMessageRequest(msg, group);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        return this.processSendResponse(brokerName, msg, response);
+    }
+
+    public CompletableFuture<SendResult> sendMessageToSpecificBrokerAsync(String brokerAddr, final String brokerName,
+                                                                          final MessageExt msg, String group,
+                                                                          long timeoutMillis) {
+        RemotingCommand request = buildSendMessageRequest(msg, group);
+
+        CompletableFuture<SendResult> cf = new CompletableFuture<>();
+        final String msgId = msg.getMsgId();
+        try {
+            this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (null != response) {
+                    SendResult sendResult = null;
+                    try {
+                        sendResult = this.processSendResponse(brokerName, msg, response);
+                        cf.complete(sendResult);
+                    } catch (MQBrokerException | RemotingCommandException e) {
+                        LOGGER.error("processSendResponse in sendMessageToSpecificBrokerAsync failed, msgId=" + msgId, e);
+                        cf.completeExceptionally(e);
+                    }
+                } else {
+                    cf.complete(null);
+                }
+
+            });
+        } catch (Throwable t) {
+            LOGGER.error("invokeAsync failed in sendMessageToSpecificBrokerAsync, msgId=" + msgId, t);
+            cf.completeExceptionally(t);
+        }
+        return cf;
+    }
+
+    private static RemotingCommand buildSendMessageRequest(MessageExt msg, String group) {
+        SendMessageRequestHeaderV2 requestHeaderV2 = buildSendMessageRequestHeaderV2(msg, group);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+
+        request.setBody(msg.getBody());
+        return request;
+    }
+
+    private static SendMessageRequestHeaderV2 buildSendMessageRequestHeaderV2(MessageExt msg, String group) {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setProducerGroup(group);
         requestHeader.setTopic(msg.getTopic());
@@ -880,13 +936,7 @@ public class BrokerOuterAPI {
         requestHeader.setBatch(false);
 
         SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
-
-        request.setBody(msg.getBody());
-
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-
-        return this.processSendResponse(brokerName, msg, response);
+        return requestHeaderV2;
     }
 
     private SendResult processSendResponse(
@@ -1124,6 +1174,9 @@ public class BrokerOuterAPI {
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
             }
+            case CONTROLLER_BROKER_METADATA_NOT_EXIST: {
+                throw new MQBrokerException(response.getCode(), response.getRemark());
+            }
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
@@ -1165,5 +1218,99 @@ public class BrokerOuterAPI {
             }
         });
     }
+
+    public PullResult pullMessageFromSpecificBroker(String brokerName, String brokerAddr,
+                                                    String consumerGroup, String topic, int queueId, long offset,
+                                                    int maxNums,
+                                                    long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
+
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setQueueOffset(offset);
+        requestHeader.setMaxMsgNums(maxNums);
+        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
+        requestHeader.setCommitOffset(0L);
+        requestHeader.setSuspendTimeoutMillis(10_0000L);
+        requestHeader.setSubscription(SubscriptionData.SUB_ALL);
+        requestHeader.setSubVersion(System.currentTimeMillis());
+        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
+        requestHeader.setExpressionType(ExpressionType.TAG);
+        requestHeader.setBname(brokerName);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        PullResultExt pullResultExt = this.processPullResponse(response, brokerAddr);
+        this.processPullResult(pullResultExt, brokerName, queueId);
+        return pullResultExt;
+    }
+
+    private PullResultExt processPullResponse(
+            final RemotingCommand response,
+            final String addr) throws MQBrokerException, RemotingCommandException {
+        PullStatus pullStatus = PullStatus.NO_NEW_MSG;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS:
+                pullStatus = PullStatus.FOUND;
+                break;
+            case ResponseCode.PULL_NOT_FOUND:
+                pullStatus = PullStatus.NO_NEW_MSG;
+                break;
+            case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                pullStatus = PullStatus.NO_MATCHED_MSG;
+                break;
+            case ResponseCode.PULL_OFFSET_MOVED:
+                pullStatus = PullStatus.OFFSET_ILLEGAL;
+                break;
+
+            default:
+                throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+        }
+
+        PullMessageResponseHeader responseHeader =
+                (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+
+        return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
+                responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody(), responseHeader.getOffsetDelta());
+
+    }
+
+    private PullResult processPullResult(final PullResultExt pullResult, String brokerName, int queueId) {
+
+        if (PullStatus.FOUND == pullResult.getPullStatus()) {
+            ByteBuffer byteBuffer = ByteBuffer.wrap(pullResult.getMessageBinary());
+            List<MessageExt> msgList = MessageDecoder.decodesBatch(
+                    byteBuffer,
+                    true,
+                    true,
+                    true
+            );
+
+            // Currently batch messages are not supported
+            for (MessageExt msg : msgList) {
+                String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                if (Boolean.parseBoolean(traFlag)) {
+                    msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+                }
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
+                        Long.toString(pullResult.getMinOffset()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
+                        Long.toString(pullResult.getMaxOffset()));
+                msg.setBrokerName(brokerName);
+                msg.setQueueId(queueId);
+                if (pullResult.getOffsetDelta() != null) {
+                    msg.setQueueOffset(pullResult.getOffsetDelta() + msg.getQueueOffset());
+                }
+            }
+
+            pullResult.setMsgFoundList(msgList);
+        }
+
+        pullResult.setMessageBinary(null);
+
+        return pullResult;
+    }
+
 
 }

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.batch;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +45,7 @@ public class SplitBatchProducer {
         //large batch
         List<Message> messages = new ArrayList<>(MESSAGE_COUNT);
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            messages.add(new Message(TOPIC, TAG, "OrderID" + i, ("Hello world " + i).getBytes()));
+            messages.add(new Message(TOPIC, TAG, "OrderID" + i, ("Hello world " + i).getBytes(StandardCharsets.UTF_8)));
         }
 
         //split the large batch into small ones:

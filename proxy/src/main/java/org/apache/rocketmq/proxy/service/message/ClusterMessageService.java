@@ -79,7 +79,7 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<RemotingCommand> sendMessageBack(ProxyContext ctx, ReceiptHandle handle, String messageId,
         ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().sendMessageBackAsync(
-            this.resolveBrokerAddr(handle),
+            this.resolveBrokerAddrInReceiptHandle(handle),
             requestHeader,
             timeoutMillis
         );
@@ -118,7 +118,7 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
         ChangeInvisibleTimeRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().changeInvisibleTimeAsync(
-            this.resolveBrokerAddr(handle),
+            this.resolveBrokerAddrInReceiptHandle(handle),
             handle.getBrokerName(),
             requestHeader,
             timeoutMillis
@@ -129,7 +129,7 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         AckMessageRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().ackMessageAsync(
-            this.resolveBrokerAddr(handle),
+            this.resolveBrokerAddrInReceiptHandle(handle),
             requestHeader,
             timeoutMillis
         );
@@ -205,15 +205,19 @@ public class ClusterMessageService implements MessageService {
         );
     }
 
-    protected String resolveBrokerAddr(ReceiptHandle handle) {
-        return resolveBrokerAddr(handle.getBrokerName());
+    protected String resolveBrokerAddrInReceiptHandle(ReceiptHandle handle) {
+        try {
+            return this.topicRouteService.getBrokerAddr(handle.getBrokerName());
+        } catch (Throwable t) {
+            throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "cannot find broker " + handle.getBrokerName(), t);
+        }
     }
 
     protected String resolveBrokerAddr(String brokerName) {
         try {
             return this.topicRouteService.getBrokerAddr(brokerName);
         } catch (Throwable t) {
-            throw new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "broker " + brokerName + " cannot find", t);
+            throw new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "cannot find broker " + brokerName, t);
         }
     }
 }

@@ -52,7 +52,7 @@ public class ClientMetadata {
             return;
         }
         TopicRouteData old = this.topicRouteTable.get(topic);
-        if (!topicRouteDataIsChange(old, topicRouteData)) {
+        if (!topicRouteData.topicRouteDataIsChange(old)) {
             return ;
         }
         {
@@ -67,20 +67,6 @@ public class ClientMetadata {
                 topicEndPointsTable.put(topic, mqEndPoints);
             }
         }
-    }
-
-
-    public static boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
-        if (olddata == null || nowdata == null)
-            return true;
-        TopicRouteData old = new TopicRouteData(olddata);
-        TopicRouteData now = new TopicRouteData(nowdata);
-        Collections.sort(old.getQueueDatas());
-        Collections.sort(old.getBrokerDatas());
-        Collections.sort(now.getQueueDatas());
-        Collections.sort(now.getBrokerDatas());
-        return !old.equals(now);
-
     }
 
     public String getBrokerNameFromMessageQueue(final MessageQueue mq) {

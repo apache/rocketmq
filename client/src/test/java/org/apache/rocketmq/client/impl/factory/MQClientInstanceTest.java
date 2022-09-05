@@ -161,7 +161,7 @@ public class MQClientInstanceTest {
 
         runningInfo = mqClientInstance.consumerRunningInfo(group);
         assertThat(runningInfo).isNotNull();
-        assertThat(mockConsumerInner.consumerRunningInfo().getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE));
+        assertThat(mockConsumerInner.consumerRunningInfo().getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).isNotNull();
 
         mqClientInstance.unregisterConsumer(group);
         flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));

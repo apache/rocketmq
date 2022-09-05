@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -97,7 +98,8 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             String mapFileName = commandLine.getOptionValue('f').trim();
             String mapData = MixAll.file2String(mapFileName);
-            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(), TopicRemappingDetailWrapper.class);
+            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(StandardCharsets.UTF_8),
+                TopicRemappingDetailWrapper.class);
             //double check the config
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, wrapper.getBrokerConfigMap());
             boolean force = false;

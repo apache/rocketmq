@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -605,7 +606,7 @@ public class PopBufferMergeService extends ServiceThread {
         PopCheckPoint point = pointWrapper.getCk();
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(popMessageProcessor.reviveTopic);
-        msgInner.setBody((pointWrapper.getReviveQueueId() + "-" + pointWrapper.getReviveQueueOffset()).getBytes());
+        msgInner.setBody((pointWrapper.getReviveQueueId() + "-" + pointWrapper.getReviveQueueOffset()).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.CK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());

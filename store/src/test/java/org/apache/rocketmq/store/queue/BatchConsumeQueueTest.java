@@ -109,7 +109,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
     }
 
     @Test(timeout = 10000)
-    public void testBuildAndSearchBatchConsumeQueuePerformance() {
+    public void testBuildAndSearchBatchConsumeQueue() {
         // Preparing the data may take some time
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
         batchConsumeQueue.load();
@@ -133,16 +133,12 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         Assert.assertFalse(ableToFindResult(batchConsumeQueue, unitNum * batchSize + 1));
         Assert.assertTrue(ableToFindResult(batchConsumeQueue, unitNum * batchSize));
         // iterate every possible batch-msg offset
-        long start = System.currentTimeMillis();
         for (int i = 1; i <= unitNum * batchSize; i++) {
             int expectedValue = ((i - 1) / batchSize) * batchSize + 1;
             SelectMappedBufferResult batchMsgIndexBuffer = batchConsumeQueue.getBatchMsgIndexBuffer(i);
             Assert.assertEquals(expectedValue, batchMsgIndexBuffer.getByteBuffer().getLong(BatchConsumeQueue.MSG_BASE_OFFSET_INDEX));
             batchMsgIndexBuffer.release();
         }
-        long end = System.currentTimeMillis();
-        // time limitation
-        Assert.assertTrue(end - start < 2000);
         SelectMappedBufferResult sbr = batchConsumeQueue.getBatchMsgIndexBuffer(501);
         Assert.assertEquals(501, sbr.getByteBuffer().getLong(BatchConsumeQueue.MSG_BASE_OFFSET_INDEX));
         Assert.assertEquals(10, sbr.getByteBuffer().getShort(BatchConsumeQueue.MSG_BASE_OFFSET_INDEX + 8));
@@ -152,15 +148,12 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         Assert.assertEquals(1, batchConsumeQueue.getOffsetInQueueByTime(-100));
         Assert.assertEquals(1, batchConsumeQueue.getOffsetInQueueByTime(0));
         Assert.assertEquals(11, batchConsumeQueue.getOffsetInQueueByTime(1));
-        start = System.currentTimeMillis();
         for (int i = 0; i < unitNum; i++) {
             int storeTime = i * batchSize;
             int expectedOffset = storeTime + 1;
             long offset = batchConsumeQueue.getOffsetInQueueByTime(storeTime);
             Assert.assertEquals(expectedOffset, offset);
         }
-        end = System.currentTimeMillis();
-        Assert.assertTrue(end - start < 2000);
         Assert.assertEquals(199991, batchConsumeQueue.getOffsetInQueueByTime(System.currentTimeMillis()));
         batchConsumeQueue.destroy();
     }

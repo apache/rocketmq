@@ -297,7 +297,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             return pullResult;
         }
         for (MessageExt opMessageExt : opMsg) {
-            Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.charset));
+            Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET));
             log.debug("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
                 opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffset);
             if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {

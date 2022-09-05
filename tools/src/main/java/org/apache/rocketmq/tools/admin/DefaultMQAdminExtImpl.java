@@ -60,10 +60,6 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -73,6 +69,7 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -84,6 +81,7 @@ import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -91,6 +89,7 @@ import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -100,6 +99,7 @@ import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.subscription.GroupForbidden;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -535,7 +535,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 }
 
                 if (result.getOffsetTable().isEmpty()) {
-                    AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                    return AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the "
+                        + "consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
                 }
                 return AdminToolResult.success(result);
             }
@@ -848,7 +849,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (!hasConsumed) {
-            HashMap<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
+            Map<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                 MessageQueue queue = new MessageQueue(topic, queueData.getBrokerName(), i);
                 OffsetWrapper offsetWrapper = new OffsetWrapper();
@@ -1158,7 +1159,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return adminToolExecute(new AdminToolHandler() {
             @Override
             public AdminToolResult doExecute() throws Exception {
-                final List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
+                final List<QueueTimeSpan> spanSet = new CopyOnWriteArrayList<>();
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
 
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
@@ -1525,10 +1526,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
-    public static void main(String[] args) {
-        Arrays.asList(null);
-    }
-
     public boolean consumed(final MessageExt msg,
         final String group) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
 
@@ -1885,6 +1882,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         List<String> controllers) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
         RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
         this.mqClientInstance.getMQClientAPIImpl().updateControllerConfig(properties, controllers, timeoutMillis);
+    }
+
+    @Override
+    public void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
+        String brokerAddr, boolean isCleanLivingBroker)
+        throws RemotingException, InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerAddr, isCleanLivingBroker);
     }
 
     public MQClientInstance getMqClientInstance() {

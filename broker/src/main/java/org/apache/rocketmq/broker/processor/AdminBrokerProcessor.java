@@ -22,6 +22,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -374,7 +375,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         groupForbidden.setGroup(group);
         groupForbidden.setTopic(topic);
         groupForbidden.setReadable(!groupManager.getForbidden(group, topic, PermName.INDEX_PERM_READ));
-        response.setBody(groupForbidden.toJson().getBytes());
+        response.setBody(groupForbidden.toJson().getBytes(StandardCharsets.UTF_8));
         return response;
     }
 

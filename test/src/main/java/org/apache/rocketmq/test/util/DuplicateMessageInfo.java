@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -108,7 +109,7 @@ public class DuplicateMessageInfo<T> {
             for (int i = 0; i < msgListSize; i++)
                 strToWrite += strBQueue.get(i).toString() + "\r\n";
 
-            byteToWrite = strToWrite.getBytes();
+            byteToWrite = strToWrite.getBytes(StandardCharsets.UTF_8);
             out.write(byteToWrite);
             out.close();
         }
