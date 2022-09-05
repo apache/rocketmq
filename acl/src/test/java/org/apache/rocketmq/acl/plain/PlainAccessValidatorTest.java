@@ -65,7 +65,7 @@ public class PlainAccessValidatorTest {
 
     @Before
     public void init() {
-        File file = new File("src/test/resources");
+        File file = new File("src/test/resources".replace("/", File.separator));
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
         plainAccessValidator = new PlainAccessValidator();
         sessionCredentials = new SessionCredentials();
@@ -1049,16 +1049,16 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void testUpdateSpecifiedAclFileGlobalWhiteAddrsConfig() {
-        System.setProperty("rocketmq.home.dir", "src/test/resources/update_global_white_addr");
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+        System.setProperty("rocketmq.home.dir", "src/test/resources/update_global_white_addr".replace("/", File.separator));
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml".replace("/", File.separator));
 
-        String targetFileName = "src/test/resources/update_global_white_addr/conf/plain_acl.yml";
+        String targetFileName = "src/test/resources/update_global_white_addr/conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
-        String targetFileName1 = "src/test/resources/update_global_white_addr/conf/acl/plain_acl.yml";
+        String targetFileName1 = "src/test/resources/update_global_white_addr/conf/acl/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap1 = AclUtils.getYamlDataObject(targetFileName1, Map.class);
 
-        String targetFileName2 = "src/test/resources/update_global_white_addr/conf/acl/empty.yml";
+        String targetFileName2 = "src/test/resources/update_global_white_addr/conf/acl/empty.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap2 = AclUtils.getYamlDataObject(targetFileName2, Map.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -1090,8 +1090,8 @@ public class PlainAccessValidatorTest {
         AclUtils.writeDataObject(targetFileName1, backUpAclConfigMap1);
         AclUtils.writeDataObject(targetFileName2, backUpAclConfigMap2);
 
-        System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+        System.setProperty("rocketmq.home.dir", "src/test/resources".replace("/", File.separator));
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml".replace("/", File.separator));
     }
 
 
