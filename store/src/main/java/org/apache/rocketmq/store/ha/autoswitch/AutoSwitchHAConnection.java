@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
@@ -41,7 +42,7 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Header protocol in syncing msg from master. Format: current state + body size + offset + epoch  +
-     * epochStartOffset + additionalInfo(confirmOffset). If the msg is hankeShakeMsg, the body size = EpochEntrySize *
+     * epochStartOffset + additionalInfo(confirmOffset). If the msg is handShakeMsg, the body size = EpochEntrySize *
      * EpochEntryNums, the offset is maxOffset in master.
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
@@ -313,7 +314,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 final byte[] addressData = new byte[addressLength];
                                 byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
                                 byteBufferRead.get(addressData);
-                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
+                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData, StandardCharsets.UTF_8);
 
                                 isSlaveSendHandshake = true;
                                 byteBufferRead.position(readSocketPos);
@@ -508,9 +509,16 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         // Normal transfer method
         private void buildTransferHeaderBuffer(long nextOffset, int bodySize) {
+
             EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+
             if (entry == null) {
-                LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
+
+                // If broker is started on empty disk and no message entered (nextOffset = -1 and currentTransferEpoch = -1), do not output error log when sending heartbeat
+                if (nextOffset != -1 || currentTransferEpoch != -1 || bodySize > 0) {
+                    LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
+                }
+
                 if (bodySize > 0) {
                     return;
                 }
@@ -659,6 +667,13 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     }
                                 } else {
                                     this.nextTransferFromWhere = slaveRequestOffset;
+                                }
+
+                                // nextTransferFromWhere is not found. It may be empty disk and no message is entered
+                                if (this.nextTransferFromWhere == -1) {
+                                    sendHeartbeatIfNeeded();
+                                    waitForRunning(500);
+                                    break;
                                 }
                                 // Setup initial transferEpoch
                                 EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByOffset(this.nextTransferFromWhere);

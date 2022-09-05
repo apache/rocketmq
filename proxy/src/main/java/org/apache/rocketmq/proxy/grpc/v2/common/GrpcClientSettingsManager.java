@@ -194,9 +194,6 @@ public class GrpcClientSettingsManager {
             settings = mergeSubscriptionData(ctx, settings,
                 GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
         }
-        if (settings == null) {
-            return null;
-        }
         return mergeMetric(settings);
     }
 }

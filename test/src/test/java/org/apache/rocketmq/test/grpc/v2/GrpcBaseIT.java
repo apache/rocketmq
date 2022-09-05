@@ -60,6 +60,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.Channel;
 import io.grpc.Metadata;
+import io.grpc.Server;
 import io.grpc.ServerInterceptors;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -114,7 +115,11 @@ import static org.awaitility.Awaitility.await;
 
 public class GrpcBaseIT extends BaseConf {
 
-    protected final int port = 8082;
+    /**
+     * Let OS pick up an available port.
+     */
+    private int port = 0;
+
     /**
      * This rule manages automatic graceful shutdown for the registered servers and channels at the end of test.
      */
@@ -147,15 +152,11 @@ public class GrpcBaseIT extends BaseConf {
 
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        ConfigurationManager.getProxyConfig().setGrpcServerPort(port);
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
         ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
         ConfigurationManager.getProxyConfig().setMinInvisibleTimeMillsForRecv(3);
-
-        blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
-        stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
     }
 
     protected MessagingServiceGrpc.MessagingServiceStub createStub(Channel channel) {
@@ -194,13 +195,19 @@ public class GrpcBaseIT extends BaseConf {
         if (enableInterceptor) {
             serviceDefinition = ServerInterceptors.intercept(serverImpl, new ContextInterceptor(), new HeaderInterceptor());
         }
-        // Create a server, add service, start, and register for automatic graceful shutdown.
-        grpcCleanup.register(NettyServerBuilder.forPort(port)
+        Server server = NettyServerBuilder.forPort(port)
             .directExecutor()
             .addService(serviceDefinition)
             .useTransportSecurity(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
             .build()
-            .start());
+            .start();
+        this.port = server.getPort();
+        // Create a server, add service, start, and register for automatic graceful shutdown.
+        grpcCleanup.register(server);
+
+        ConfigurationManager.getProxyConfig().setGrpcServerPort(this.port);
+        blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
+        stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
     }
 
     protected Channel createChannel(int port) throws SSLException {

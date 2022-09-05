@@ -1114,6 +1114,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     @Deprecated
     public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+
         final long beginStartTime = System.currentTimeMillis();
         Runnable runnable = new Runnable() {
             @Override
@@ -1240,6 +1241,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void send(final Message msg, final MessageQueueSelector selector, final Object arg,
         final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+
         final long beginStartTime = System.currentTimeMillis();
         Runnable runnable = new Runnable() {
             @Override
@@ -1439,7 +1441,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
-                    requestResponseFuture.putResponseMessage(msg);
                 }
 
                 @Override

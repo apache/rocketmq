@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -268,7 +269,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         // Address length
         this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
         // Slave address
-        this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes());
+        this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes(StandardCharsets.UTF_8));
 
         this.handshakeHeaderBuffer.flip();
         return this.haWriter.write(this.socketChannel, this.handshakeHeaderBuffer);

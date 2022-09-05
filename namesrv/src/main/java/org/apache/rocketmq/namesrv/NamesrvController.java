@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.namesrv;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -141,7 +141,6 @@ public class NamesrvController {
             }
         };
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
-        this.remotingClient.updateNameServerAddressList(Arrays.asList(RemotingUtil.getLocalAddress() + ":" + this.nettyServerConfig.getListenPort()));
 
         this.registerProcessor();
 
@@ -248,12 +247,15 @@ public class NamesrvController {
     
     public void start() throws Exception {
         this.remotingServer.start();
-        this.remotingClient.start();
 
         // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
         if (0 == nettyServerConfig.getListenPort()) {
             nettyServerConfig.setListenPort(this.remotingServer.localListenPort());
         }
+
+        this.remotingClient.updateNameServerAddressList(Collections.singletonList(RemotingUtil.getLocalAddress()
+            + ":" + nettyServerConfig.getListenPort()));
+        this.remotingClient.start();
 
         if (this.fileWatchService != null) {
             this.fileWatchService.start();

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -51,9 +52,9 @@ public class MessageQueueSelector {
             this.queues.addAll(buildWrite(topicRouteWrapper));
         }
         buildBrokerActingQueues(topicRouteWrapper.getTopicName(), this.queues);
-
-        this.queueIndex = new AtomicInteger(Math.abs(new Random().nextInt()));
-        this.brokerIndex = new AtomicInteger(Math.abs(new Random().nextInt()));
+        Random random = new Random();
+        this.queueIndex = new AtomicInteger(random.nextInt());
+        this.brokerIndex = new AtomicInteger(random.nextInt());
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -172,13 +173,13 @@ public class MessageQueueSelector {
             if (brokerActingQueues.isEmpty()) {
                 return null;
             }
-            return brokerActingQueues.get(Math.abs(index) % brokerActingQueues.size());
+            return brokerActingQueues.get(IntMath.mod(index, brokerActingQueues.size()));
         }
 
         if (queues.isEmpty()) {
             return null;
         }
-        return queues.get(Math.abs(index) % queues.size());
+        return queues.get(IntMath.mod(index, queues.size()));
     }
 
     public List<AddressableMessageQueue> getQueues() {

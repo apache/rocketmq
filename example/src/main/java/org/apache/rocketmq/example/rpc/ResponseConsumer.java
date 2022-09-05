@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.rpc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -59,7 +60,7 @@ public class ResponseConsumer {
                     try {
                         System.out.printf("handle message: %s %n", msg.toString());
                         String replyTo = MessageUtil.getReplyToClient(msg);
-                        byte[] replyContent = "reply message contents.".getBytes();
+                        byte[] replyContent = "reply message contents.".getBytes(StandardCharsets.UTF_8);
                         // create reply message with given util, do not create reply message by yourself
                         Message replyMessage = MessageUtil.createReplyMessage(msg, replyContent);
 

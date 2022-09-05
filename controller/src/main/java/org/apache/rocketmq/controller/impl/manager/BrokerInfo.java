@@ -38,6 +38,10 @@ public class BrokerInfo {
         this.brokerIdTable = new HashMap<>();
     }
 
+    public void removeBrokerAddress(final String address) {
+        this.brokerIdTable.remove(address);
+    }
+
     public long newBrokerId() {
         return this.brokerIdCount.incrementAndGet();
     }

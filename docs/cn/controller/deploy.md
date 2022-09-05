@@ -15,7 +15,7 @@ Controller部署有两种方式。一种是嵌入于NameServer进行部署，可
 ```
 enableControllerInNamesrv = true
 controllerDLegerGroup = group1
-controllerDLegerPeers = n0-127.0.0.1:9877;n1-127.0.0.1:9878;n1-127.0.0.1:9879
+controllerDLegerPeers = n0-127.0.0.1:9877;n1-127.0.0.1:9878;n2-127.0.0.1:9879
 controllerDLegerSelfId = n0
 controllerStorePath = /home/admin/DledgerController
 enableElectUncleanMaster = false

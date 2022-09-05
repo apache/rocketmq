@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -394,7 +395,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          * @param traceTopic the topic which message trace data will send to
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data, String traceTopic) {
-            final Message message = new Message(traceTopic, data.getBytes());
+            final Message message = new Message(traceTopic, data.getBytes(StandardCharsets.UTF_8));
             // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
             try {

@@ -18,10 +18,10 @@ package org.apache.rocketmq.tools.command;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import java.util.ArrayList;
-import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -59,15 +59,16 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
+import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerDataSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
-import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
+import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
-import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
+import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -104,9 +105,9 @@ import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
-    protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
+    protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<SubCommand>();
 
-    private static String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+    private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     public static void main(String[] args) {
@@ -161,7 +162,7 @@ public class MQAdminStartup {
                         if (rpcHook != null) {
                             cmd.execute(commandLine, options, rpcHook);
                         } else {
-                            cmd.execute(commandLine, options, AclUtils.getAclRPCHook(rocketmqHome + MixAll.ACL_CONF_TOOLS_FILE));
+                            cmd.execute(commandLine, options, AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE));
                         }
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
@@ -265,6 +266,7 @@ public class MQAdminStartup {
         initCommand(new GetControllerConfigSubCommand());
         initCommand(new UpdateControllerConfigSubCommand());
         initCommand(new ReElectMasterSubCommand());
+        initCommand(new CleanControllerBrokerDataSubCommand());
     }
 
     private static void initLogback() throws Exception {
@@ -274,16 +276,16 @@ public class MQAdminStartup {
         lc.reset();
 
         //avoid the exception
-        if (rocketmqHome != null
-            && Files.exists(Paths.get(rocketmqHome + "/conf/logback_tools.xml"))) {
-            configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+        if (ROCKETMQ_HOME != null
+            && Files.exists(Paths.get(ROCKETMQ_HOME + "/conf/logback_tools.xml"))) {
+            configurator.doConfigure(ROCKETMQ_HOME + "/conf/logback_tools.xml");
         }
     }
 
     private static void printHelp() {
         System.out.printf("The most commonly used mqadmin commands are:%n");
 
-        for (SubCommand cmd : subCommandList) {
+        for (SubCommand cmd : SUB_COMMANDS) {
             System.out.printf("   %-25s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
@@ -291,7 +293,7 @@ public class MQAdminStartup {
     }
 
     private static SubCommand findSubCommand(final String name) {
-        for (SubCommand cmd : subCommandList) {
+        for (SubCommand cmd : SUB_COMMANDS) {
             if (cmd.commandName().equalsIgnoreCase(name) || (cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name))) {
                 return cmd;
             }
@@ -312,6 +314,6 @@ public class MQAdminStartup {
     }
 
     public static void initCommand(SubCommand command) {
-        subCommandList.add(command);
+        SUB_COMMANDS.add(command);
     }
 }

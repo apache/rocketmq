@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.example.simple;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +146,7 @@ public class AclClient {
             return;
         for (MessageExt m : msg) {
             if (m != null) {
-                System.out.printf("msgId : %s  body : %s  \n\r", m.getMsgId(), new String(m.getBody()));
+                System.out.printf("msgId : %s  body : %s  \n\r", m.getMsgId(), new String(m.getBody(), StandardCharsets.UTF_8));
             }
         }
     }
