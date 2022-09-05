@@ -153,7 +153,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         } else {
             semaphoreAsyncSendNum = new Semaphore(10, true);
             log.info("semaphoreAsyncSendNum can not be smaller than 10.");
-
         }
 
         if (defaultMQProducer.getBackPressureForAsyncSendNum() > 1024 * 1024) {
