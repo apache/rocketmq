@@ -35,6 +35,8 @@ import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
@@ -153,11 +155,11 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<ElectMasterResponseHeader> brokerTryElectMaster(final ElectMasterRequestHeader request) {
+    public ControllerResult<BrokerTryElectResponseHeader> brokerTryElectMaster(final BrokerTryElectRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
-        final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
-        ElectMasterResponseHeader response = result.getResponse();
+        final ControllerResult<BrokerTryElectResponseHeader> result = new ControllerResult<>(new BrokerTryElectResponseHeader());
+        BrokerTryElectResponseHeader response = result.getResponse();
         if (!isContainsBroker(brokerName)) {
             // this broker set hasn't been registered
             result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker hasn't been registered");
@@ -168,7 +170,7 @@ public class ReplicasInfoManager {
             // the master still exist
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
-            response.setNewMasterAddress(syncStateInfo.getMasterAddress());
+            response.setMasterAddress(syncStateInfo.getMasterAddress());
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, "Broker master still exist, try elect a new master failed");
             return result;
         }
@@ -189,7 +191,7 @@ public class ReplicasInfoManager {
             return result;
         }
         // if newMaster is elected, append it in DLedger to update the state machine
-        response.setNewMasterAddress(brokerAddress);
+        response.setMasterAddress(brokerAddress);
         response.setMasterEpoch(syncStateInfo.getMasterEpoch() + 1);
         response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch() + 1);
         response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
@@ -426,8 +428,7 @@ public class ReplicasInfoManager {
             // First time to register in this broker set
             // Initialize the replicaInfo about this broker set
             final String clusterName = event.getClusterName();
-            final BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName);
-            brokerReplicaInfo.addBroker(event.getBrokerAddress(), event.getNewBrokerId());
+            final BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName, event.getBrokerAddress());
             this.replicaInfoTable.put(brokerName, brokerReplicaInfo);
             final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName);
             // Initialize an empty syncStateInfo for this broker set

@@ -16,15 +16,21 @@
  */
 package org.apache.rocketmq.controller.impl.controller.impl.manager;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
@@ -55,11 +61,13 @@ public class ReplicasInfoManagerTest {
 
     private DefaultBrokerHeartbeatManager heartbeatManager;
 
+    private ControllerConfig config;
+
     @Before
     public void init() {
-        final ControllerConfig config = new ControllerConfig();
-        config.setEnableElectUncleanMaster(false);
-        config.setScanNotActiveBrokerInterval(300000000);
+        this.config = new ControllerConfig();
+        this.config.setEnableElectUncleanMaster(false);
+        this.config.setScanNotActiveBrokerInterval(300000000);
         this.replicasInfoManager = new ReplicasInfoManager(config);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(config);
         this.heartbeatManager.start();
@@ -72,24 +80,67 @@ public class ReplicasInfoManagerTest {
         this.heartbeatManager = null;
     }
 
-    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress,
-        boolean isFirstRegisteredBroker) {
+    public void registerNewBroker(String clusterName, String brokerName, String brokerAddress,
+        long exceptBrokerId) {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
             new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
         final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest);
         apply(registerResult.getEvents());
+        // check response
+        assertEquals(ResponseCode.SUCCESS, registerResult.getResponseCode());
+        assertEquals(exceptBrokerId, registerResult.getResponse().getBrokerId());
 
-        if (isFirstRegisteredBroker) {
-            final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
-            final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
-            assertEquals(replicaInfo.getMasterAddress(), brokerAddress);
-            assertEquals(replicaInfo.getMasterEpoch(), 1);
+        // check it in state machine
+        final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
+        assertEquals(exceptBrokerId, replicaInfo.getBrokerId());
+    }
+
+    public void tryElectMaster(String clusterName, long brokerId, String brokerName, String brokerAddress,
+        boolean isFirstTryElect) {
+
+        final GetReplicaInfoResponseHeader replicaInfoBefore = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
+        byte[] body = this.replicasInfoManager.getSyncStateData(Arrays.asList(brokerName)).getBody();
+        InSyncStateData syncStateDataBefore = RemotingSerializable.decode(body, InSyncStateData.class);
+        // Try elect itself as a master
+        final BrokerTryElectRequestHeader requestHeader = new BrokerTryElectRequestHeader(clusterName, brokerName, brokerAddress);
+        final ControllerResult<BrokerTryElectResponseHeader> result = this.replicasInfoManager.brokerTryElectMaster(requestHeader);
+        apply(result.getEvents());
+
+        final GetReplicaInfoResponseHeader replicaInfoAfter = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
+        final BrokerTryElectResponseHeader response = result.getResponse();
+
+        if (isFirstTryElect) {
+            // it should be elected
+            // check response
+            assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
+            assertEquals(1, response.getMasterEpoch());
+            assertEquals(1, response.getSyncStateSetEpoch());
+            assertEquals(brokerAddress, response.getMasterAddress());
+            // check it in state machine
+            assertEquals(brokerAddress, replicaInfoAfter.getMasterAddress());
+            assertEquals(1, replicaInfoAfter.getMasterEpoch());
+            assertEquals(brokerId, replicaInfoAfter.getBrokerId());
         } else {
-            final RegisterBrokerToControllerResponseHeader response = registerResult.getResponse();
-            assertTrue(response.getBrokerId() > 0);
+
+            // failed because now master still exist
+            if (StringUtils.isNotEmpty(replicaInfoBefore.getMasterAddress())) {
+                assertEquals(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, result.getResponseCode());
+                assertEquals(replicaInfoBefore.getMasterAddress(), response.getMasterAddress());
+                assertEquals(replicaInfoBefore.getMasterEpoch(), response.getMasterEpoch());
+                assertEquals(brokerId, replicaInfoAfter.getBrokerId());
+                return;
+            }
+            if (syncStateDataBefore.getInSyncStateTable().containsKey(brokerAddress) || this.config.isEnableElectUncleanMaster()) {
+                // can be elected successfully
+                assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
+                assertEquals(MixAll.MASTER_ID, replicaInfoAfter.getBrokerId());
+                assertEquals(brokerId, replicaInfoAfter.getBrokerId());
+            } else {
+                // failed because elect nothing
+                assertEquals(ResponseCode.CONTROLLER_TRY_ELECT_FAILED,result.getResponseCode());
+            }
         }
-        return true;
     }
 
     private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch,
@@ -115,9 +166,12 @@ public class ReplicasInfoManagerTest {
     }
 
     public void mockMetaData() {
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", true);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", false);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", false);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L);
+        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
         newSyncStateSet.add("127.0.0.1:9001");
@@ -151,6 +205,17 @@ public class ReplicasInfoManagerTest {
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
             1, 3L);
     }
+
+    @Test
+    public void testRegisterBrokerSuccess() {
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L);
+        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
+    }
+
 
     @Test
     public void testElectMasterOldMasterStillAlive() {

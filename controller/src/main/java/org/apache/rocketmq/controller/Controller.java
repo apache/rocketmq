@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -78,10 +79,10 @@ public interface Controller {
     /**
      * Broker try to elect itself as the master
      *
-     * @param request ElectMasterRequestMaster
+     * @param request BrokerTryElectRequestHeader
      * @return RemotingCommand(ElectMasterResponseHeader)
      */
-    CompletableFuture<RemotingCommand> brokerTryElectMaster(final ElectMasterRequestHeader request);
+    CompletableFuture<RemotingCommand> brokerTryElectMaster(final BrokerTryElectRequestHeader request);
 
     /**
      * Register api when a replicas of a broker startup.

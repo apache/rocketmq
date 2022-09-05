@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.common.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
@@ -127,7 +128,7 @@ public class ControllerManager {
                             heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
                         }
                         if (controllerConfig.isNotifyBrokerRoleChanged()) {
-                            notifyBrokerRoleChanged(responseHeader, clusterName);
+                            notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
                         }
                     }
                 } catch (Exception ignored) {
@@ -141,20 +142,20 @@ public class ControllerManager {
     /**
      * Notify master and all slaves for a broker that the master role changed.
      */
-    public void notifyBrokerRoleChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
-        final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
+    public void notifyBrokerRoleChanged(final RoleChangeNotifyEntry entry) {
+        final BrokerMemberGroup memberGroup = entry.getBrokerMemberGroup();
         if (memberGroup != null) {
             // First, inform the master
-            final String master = electMasterResult.getNewMasterAddress();
-            if (StringUtils.isNoneEmpty(master) && this.heartbeatManager.isBrokerActive(clusterName, master)) {
-                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, electMasterResult);
+            final String master = entry.getMasterAddress();
+            if (StringUtils.isNoneEmpty(master) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), master)) {
+                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, entry);
             }
 
             // Then, inform all slaves
             final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
             for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
-                if (!broker.getValue().equals(master) && this.heartbeatManager.isBrokerActive(clusterName, broker.getValue())) {
-                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), electMasterResult);
+                if (!broker.getValue().equals(master) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), broker.getValue())) {
+                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), entry);
                 }
             }
 
@@ -162,11 +163,11 @@ public class ControllerManager {
     }
 
     public void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
-                                          final ElectMasterResponseHeader responseHeader) {
+                                          final RoleChangeNotifyEntry entry) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
-            log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
-            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
-                    responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
+            log.info("Try notify broker {} with id {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, brokerId, entry);
+            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(),
+                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch(), brokerId);
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             try {
                 this.remotingClient.invokeOneway(brokerAddr, request, 3000);
@@ -190,6 +191,7 @@ public class ControllerManager {
         controllerRemotingServer.registerProcessor(RequestCode.UPDATE_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.GET_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CLEAN_BROKER_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.TRY_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {

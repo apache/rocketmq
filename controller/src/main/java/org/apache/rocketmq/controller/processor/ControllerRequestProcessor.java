@@ -26,9 +26,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
@@ -86,7 +89,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             case CONTROLLER_REGISTER_BROKER:
                 return this.handleControllerRegisterBroker(ctx, request);
             case TRY_ELECT_MASTER:
-                return this.handleTryElectMaster(ctx, request);
+                return this.handleBrokerTryElectMaster(ctx, request);
             case CONTROLLER_GET_REPLICA_INFO:
                 return this.handleControllerGetReplicaInfo(ctx, request);
             case CONTROLLER_GET_METADATA_INFO:
@@ -132,7 +135,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
                 }
                 if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                    this.controllerManager.notifyBrokerRoleChanged(responseHeader, electMasterRequest.getClusterName());
+                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
                 }
             }
             return response;
@@ -156,21 +159,21 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return RemotingCommand.createResponseCommand(null);
     }
 
-    private RemotingCommand handleTryElectMaster(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-        final ElectMasterRequestHeader electMasterRequest = (ElectMasterRequestHeader) request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
-        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().brokerTryElectMaster(electMasterRequest);
+    private RemotingCommand handleBrokerTryElectMaster(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        final BrokerTryElectRequestHeader brokerTryElectRequest = (BrokerTryElectRequestHeader) request.decodeCommandCustomHeader(BrokerTryElectRequestHeader.class);
+        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().brokerTryElectMaster(brokerTryElectRequest);
         if (future != null) {
             final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-            final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
+            final BrokerTryElectResponseHeader responseHeader = (BrokerTryElectResponseHeader) response.readCustomHeader();
 
             // if try elect a master success
             if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
                 // notify the heartbeatManger to update the broker id of this broker
-                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                    heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
+                    heartbeatManager.changeBrokerMetadata(brokerTryElectRequest.getClusterName(), responseHeader.getMasterAddress(), MixAll.MASTER_ID);
                 }
                 if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                    this.controllerManager.notifyBrokerRoleChanged(responseHeader, electMasterRequest.getClusterName());
+                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
                 }
             }
             return response;
