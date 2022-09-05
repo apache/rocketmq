@@ -148,8 +148,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     return new Thread(r, "AsyncSenderExecutor_" + this.threadIndex.incrementAndGet());
                 }
             });
-        semaphoreAsyncSendNum = new Semaphore(defaultMQProducer.getBackPressureForAsyncSendNum(), true);
-        semaphoreAsyncSendSize = new Semaphore(defaultMQProducer.getBackPressureForAsyncSendSize(), true);
+        if (defaultMQProducer.getBackPressureForAsyncSendNum() > 10) {
+            semaphoreAsyncSendNum = new Semaphore(Math.max(defaultMQProducer.getBackPressureForAsyncSendNum(),10), true);
+        } else {
+            semaphoreAsyncSendNum = new Semaphore(10, true);
+            log.info("semaphoreAsyncSendNum can not be smaller than 10.");
+
+        }
+
+        if (defaultMQProducer.getBackPressureForAsyncSendNum() > 1024 * 1024) {
+            semaphoreAsyncSendSize = new Semaphore(Math.max(defaultMQProducer.getBackPressureForAsyncSendNum(),1024 * 1024), true);
+        } else {
+            semaphoreAsyncSendSize = new Semaphore(1024 * 1024, true);
+            log.info("semaphoreAsyncSendSize can not be smaller than 1M.");
+        }
     }
 
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
