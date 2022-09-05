@@ -431,7 +431,7 @@ public abstract class NettyRemotingAbstract {
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);
-                    log.warn("send a request command to channel <" + addr + "> failed.");
+                    log.warn("Failed to write a request command to {}, caused by underlying I/O operation failure", addr);
                 }
             });
 
