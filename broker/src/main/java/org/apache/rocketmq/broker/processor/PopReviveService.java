@@ -198,12 +198,11 @@ public class PopReviveService extends ServiceThread {
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
-                    POP_LOGGER.warn("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case NO_MESSAGE_IN_QUEUE:
-                    pullStatus = PullStatus.NO_NEW_MSG;
-                    POP_LOGGER.warn("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case MESSAGE_WAS_REMOVING:
@@ -225,7 +224,11 @@ public class PopReviveService extends ServiceThread {
                 getMessageResult.getMaxOffset(), foundList);
 
         } else {
-            POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}", topic, group, offset);
+            long maxQueueOffset = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+            if (maxQueueOffset > offset) {
+                POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}, maxQueueOffset={}",
+                    topic, group, offset, maxQueueOffset);
+            }
             return null;
         }
     }
@@ -289,11 +292,12 @@ public class PopReviveService extends ServiceThread {
                     break;
                 }
                 noMsgCount++;
+                // Fixme: why sleep is useful here?
                 try {
                     Thread.sleep(100);
-                } catch (Throwable e) {
+                } catch (Throwable ignore) {
                 }
-                if (noMsgCount * 100 > 4 * PopAckConstants.SECOND) {
+                if (noMsgCount * 100L > 4 * PopAckConstants.SECOND) {
                     break;
                 } else {
                     continue;

@@ -318,7 +318,7 @@ public abstract class NettyRemotingAbstract {
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
         boolean runInThisThread = false;
         ExecutorService executor = this.getCallbackExecutor();
-        if (executor != null) {
+        if (executor != null && !executor.isShutdown()) {
             try {
                 executor.submit(() -> {
                     try {
