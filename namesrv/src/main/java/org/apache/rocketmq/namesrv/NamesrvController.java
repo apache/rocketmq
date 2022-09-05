@@ -101,30 +101,26 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
-        initialConfig();
-
-        initialNetworkComponents();
-
-        initialThreadExecutor();
-
+        loadConfig();
+        initiateNetworkComponents();
+        initiateThreadExecutors();
         registerProcessor();
-
         startScheduleService();
-
-        initialSslContext();
-
-        initialRpcHooks();
+        initiateSslContext();
+        initiateRpcHooks();
         return true;
     }
 
-    private void initialConfig() {
+    private void loadConfig() {
         this.kvConfigManager.load();
     }
 
     private void startScheduleService() {
-        this.scanExecutorService.scheduleAtFixedRate(NamesrvController.this.routeInfoManager::scanNotActiveBroker, 5, this.namesrvConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
+        this.scanExecutorService.scheduleAtFixedRate(NamesrvController.this.routeInfoManager::scanNotActiveBroker,
+            5, this.namesrvConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(NamesrvController.this.kvConfigManager::printAllPeriodically, 1, 10, TimeUnit.MINUTES);
+        this.scheduledExecutorService.scheduleAtFixedRate(NamesrvController.this.kvConfigManager::printAllPeriodically,
+            1, 10, TimeUnit.MINUTES);
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
@@ -135,12 +131,12 @@ public class NamesrvController {
         }, 10, 1, TimeUnit.SECONDS);
     }
 
-    private void initialNetworkComponents() {
+    private void initiateNetworkComponents() {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
     }
 
-    private void initialThreadExecutor() {
+    private void initiateThreadExecutors() {
         this.defaultThreadPoolQueue = new LinkedBlockingQueue<>(this.namesrvConfig.getDefaultThreadPoolQueueCapacity());
         this.defaultExecutor = new ThreadPoolExecutor(this.namesrvConfig.getDefaultThreadPoolNums(), this.namesrvConfig.getDefaultThreadPoolNums(), 1000 * 60, TimeUnit.MILLISECONDS, this.defaultThreadPoolQueue, new ThreadFactoryImpl("RemotingExecutorThread_")) {
             @Override
@@ -158,7 +154,7 @@ public class NamesrvController {
         };
     }
 
-    private void initialSslContext() {
+    private void initiateSslContext() {
         if (TlsSystemConfig.tlsMode == TlsMode.DISABLED) {
             return;
         }
@@ -230,7 +226,7 @@ public class NamesrvController {
         }
     }
 
-    private void initialRpcHooks() {
+    private void initiateRpcHooks() {
         this.remotingServer.registerRPCHook(new ZoneRouteRPCHook());
     }
 
