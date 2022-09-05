@@ -52,7 +52,7 @@ public class ClientMetadata {
             return;
         }
         TopicRouteData old = this.topicRouteTable.get(topic);
-        if (!topicRouteData.topicRouteDataIsChange(old)) {
+        if (!topicRouteData.topicRouteDataChanged(old)) {
             return ;
         }
         {

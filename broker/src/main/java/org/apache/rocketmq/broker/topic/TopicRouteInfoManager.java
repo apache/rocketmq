@@ -134,7 +134,7 @@ public class TopicRouteInfoManager {
 
     private boolean updateTopicRouteTable(String topic, TopicRouteData topicRouteData) {
         TopicRouteData old = this.topicRouteTable.get(topic);
-        boolean changed = topicRouteData.topicRouteDataIsChange(old);
+        boolean changed = topicRouteData.topicRouteDataChanged(old);
         if (!changed) {
             if (!this.isNeedUpdateTopicRouteInfo(topic)) {
                 return false;

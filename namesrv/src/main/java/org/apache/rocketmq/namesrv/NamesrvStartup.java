@@ -19,8 +19,9 @@ package org.apache.rocketmq.namesrv;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
@@ -46,7 +47,6 @@ public class NamesrvStartup {
 
     private static InternalLogger log;
     private static Properties properties = null;
-    private static CommandLine commandLine = null;
     private static NamesrvConfig namesrvConfig = null;
     private static NettyServerConfig nettyServerConfig = null;
     private static NettyClientConfig nettyClientConfig = null;
@@ -57,29 +57,26 @@ public class NamesrvStartup {
         controllerManagerMain();
     }
 
-    public static NamesrvController main0(String[] args) {
+    public static void main0(String[] args) {
         try {
             parseCommandlineAndConfigFile(args);
-            NamesrvController controller = createAndStartNamesrvController();
-            return controller;
+            createAndStartNamesrvController();
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
 
-        return null;
     }
 
-    public static ControllerManager controllerManagerMain() {
+    public static void controllerManagerMain() {
         try {
             if (namesrvConfig.isEnableControllerInNamesrv()) {
-                return createAndStartControllerManager();
+                createAndStartControllerManager();
             }
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
-        return null;
     }
 
     public static void parseCommandlineAndConfigFile(String[] args) throws Exception {
@@ -87,7 +84,7 @@ public class NamesrvStartup {
         //PackageConflictDetect.detectFastjson();
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
             return;
@@ -101,7 +98,7 @@ public class NamesrvStartup {
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)));
                 properties = new Properties();
                 properties.load(in);
                 MixAll.properties2Object(properties, namesrvConfig);
@@ -144,14 +141,12 @@ public class NamesrvStartup {
 
     }
 
-    public static NamesrvController createAndStartNamesrvController() throws Exception {
-
+    public static void createAndStartNamesrvController() throws Exception {
         NamesrvController controller = createNamesrvController();
         start(controller);
         String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
         log.info(tip);
         System.out.printf("%s%n", tip);
-        return controller;
     }
 
     public static NamesrvController createNamesrvController() {
@@ -184,13 +179,12 @@ public class NamesrvStartup {
         return controller;
     }
 
-    public static ControllerManager createAndStartControllerManager() throws Exception {
+    public static void createAndStartControllerManager() throws Exception {
         ControllerManager controllerManager = createControllerManager();
         start(controllerManager);
         String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
         log.info(tip);
         System.out.printf("%s%n", tip);
-        return controllerManager;
     }
 
     public static ControllerManager createControllerManager() throws Exception {
