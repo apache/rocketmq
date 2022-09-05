@@ -204,6 +204,12 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (MessageConst.STRING_HASH_SET.contains(userPropertiesEntry.getKey())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + userPropertiesEntry.getKey());
             }
+            if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getKey())) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the key of property cannot contain control character");
+            }
+            if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
+            }
             userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
             userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
         }

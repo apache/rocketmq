@@ -135,6 +135,23 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private TraceDispatcher traceDispatcher = null;
 
     /**
+     * Indicate whether to block message when asynchronous sending traffic is too heavy.
+     */
+    private boolean enableBackpressureForAsyncMode = false;
+
+    /**
+     * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
+     * default is 10000
+     */
+    private int backPressureForAsyncSendNum = 10000;
+
+    /**
+     * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
+     * default is 100M
+     */
+    private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
+
+    /**
      * Default constructor.
      */
     public DefaultMQProducer() {
@@ -1111,4 +1128,31 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public Set<Integer> getRetryResponseCodes() {
         return retryResponseCodes;
     }
+
+    public boolean isEnableBackpressureForAsyncMode() {
+        return  enableBackpressureForAsyncMode;
+    }
+
+    public void setEnableBackpressureForAsyncMode(boolean enableBackpressureForAsyncMode) {
+        this.enableBackpressureForAsyncMode = enableBackpressureForAsyncMode;
+    }
+
+    public int getBackPressureForAsyncSendNum() {
+        return backPressureForAsyncSendNum;
+    }
+
+    public void setBackPressureForAsyncSendNum(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
+        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum);
+    }
+
+    public int getBackPressureForAsyncSendSize() {
+        return backPressureForAsyncSendSize;
+    }
+
+    public void setBackPressureForAsyncSendSize(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
+        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize);
+    }
+
 }

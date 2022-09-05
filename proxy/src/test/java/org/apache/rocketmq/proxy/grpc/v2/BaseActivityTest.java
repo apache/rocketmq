@@ -30,6 +30,7 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -47,6 +48,7 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
     protected GrpcChannelManager grpcChannelManager;
     protected ProxyRelayService proxyRelayService;
     protected ReceiptHandleProcessor receiptHandleProcessor;
+    protected MetadataService metadataService;
 
     protected static final String REMOTE_ADDR = "192.168.0.1:8080";
     protected static final String LOCAL_ADDR = "127.0.0.1:8080";
@@ -61,12 +63,14 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
         grpcClientSettingsManager = mock(GrpcClientSettingsManager.class);
         proxyRelayService = mock(ProxyRelayService.class);
         receiptHandleProcessor = mock(ReceiptHandleProcessor.class);
+        metadataService = mock(MetadataService.class);
 
         metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
         metadata.put(InterceptorConstants.LANGUAGE, JAVA);
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        when(messagingProcessor.getMetadataService()).thenReturn(metadataService);
         grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
     }
 

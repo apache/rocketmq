@@ -9,8 +9,9 @@ jobs:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-18.04, windows-2022, macos-11]
         jdk: [8]
     steps:
       - name: Checkout
