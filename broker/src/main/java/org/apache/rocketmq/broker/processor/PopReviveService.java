@@ -198,11 +198,11 @@ public class PopReviveService extends ServiceThread {
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
-                    POP_LOGGER.info("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case NO_MESSAGE_IN_QUEUE:
-                    POP_LOGGER.info("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case MESSAGE_WAS_REMOVING:
