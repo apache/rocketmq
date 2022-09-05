@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.test.smoke;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.message.MessageClientExt;
@@ -36,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.awaitility.Awaitility;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -65,32 +67,27 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
 
     @Test
     public void testSynSendMessage() throws Exception {
-        List<MessageQueue> messageQueueList;
-        ConsumeStats consumeStats;
-
-        // Wait till producer and consumer are fully started.
-        while (true) {
-            try {
-                consumeStats = defaultMQAdminExt.examineConsumeStats(group);
-                messageQueueList = producer.getProducer().fetchPublishMessageQueues(topic);
-                if (!messageQueueList.isEmpty() && null != consumeStats
-                    && consumeStats.getOffsetTable().keySet().containsAll(messageQueueList)) {
-                    break;
-                } else {
-
-                    TimeUnit.MILLISECONDS.sleep(100);
+        AtomicReference<List<MessageQueue>> messageQueueList = new AtomicReference<>();
+        AtomicReference<ConsumeStats> consumeStats = new AtomicReference<>();
+        Awaitility.await().atMost(Duration.ofSeconds(120))
+            .until(() -> {
+                try {
+                    consumeStats.set(defaultMQAdminExt.examineConsumeStats(group));
+                    messageQueueList.set(producer.getProducer().fetchPublishMessageQueues(topic));
+                    return !messageQueueList.get().isEmpty() && null != consumeStats.get()
+                        && consumeStats.get().getOffsetTable().keySet().containsAll(messageQueueList.get());
+                } catch (MQClientException e) {
+                    logger.debug("Exception raised while checking producer and consumer are started", e);
                 }
-            } catch (MQClientException e) {
-                logger.debug("Exception raised while checking producer and consumer are started", e);
-                TimeUnit.MILLISECONDS.sleep(500);
-            }
-        }
+                return false;
+            });
 
         int msgSize = 10;
-        for (MessageQueue messageQueue: messageQueueList) {
+        for (MessageQueue messageQueue : messageQueueList.get()) {
             producer.send(msgSize, messageQueue);
         }
-        Assert.assertEquals("Not all sent succeeded", msgSize * messageQueueList.size(), producer.getAllUndupMsgBody().size());
+        Assert.assertEquals("Not all sent succeeded", msgSize * messageQueueList.get().size(),
+            producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -102,12 +99,12 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         }
         //shutdown to persist the offset
         consumer.getConsumer().shutdown();
-        consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+        consumeStats.set(defaultMQAdminExt.examineConsumeStats(group));
         //+1 for the retry topic
-        for (MessageQueue messageQueue: messageQueueList) {
-            Assert.assertTrue(consumeStats.getOffsetTable().containsKey(messageQueue));
-            Assert.assertEquals(msgSize, consumeStats.getOffsetTable().get(messageQueue).getConsumerOffset());
-            Assert.assertEquals(msgSize, consumeStats.getOffsetTable().get(messageQueue).getBrokerOffset());
+        for (MessageQueue messageQueue : messageQueueList.get()) {
+            Assert.assertTrue(consumeStats.get().getOffsetTable().containsKey(messageQueue));
+            Assert.assertEquals(msgSize, consumeStats.get().getOffsetTable().get(messageQueue).getConsumerOffset());
+            Assert.assertEquals(msgSize, consumeStats.get().getOffsetTable().get(messageQueue).getBrokerOffset());
         }
 
     }
