@@ -10,33 +10,36 @@ Build phase contains two parts, first, build DLedger, then build RocketMQ.
 
 #### 1.1 Build DLedger
 
-`git clone https://github.com/openmessaging/dledger.git`
-
-`cd dledger`
-
-`mvn clean install -DskipTests`
+```shell
+$ git clone https://github.com/openmessaging/dledger.git
+$ cd dledger
+$ mvn clean install -DskipTests
+```
 
 #### 1.2 Build RocketMQ
 
-`git clone https://github.com/apache/rocketmq.git`
-
-`cd rocketmq`
-
-`git checkout -b store_with_dledger origin/store_with_dledger`
-
-`mvn -Prelease-all -DskipTests clean install -U`
+```shell
+$ git clone https://github.com/apache/rocketmq.git
+$ cd rocketmq
+$ git checkout -b store_with_dledger origin/store_with_dledger
+$ mvn -Prelease-all -DskipTests clean install -U
+```
 
 ### 2. Quick Deployment
 
 after build successful
 
-`cd distribution/target/apache-rocketmq`
-
-`sh bin/dledger/fast-try.sh start`
+```shell
+#{rocketmq-version} replace with rocketmq actual version. example: 5.0.0-SNAPSHOT
+$ cd distribution/target/rocketmq-{rocketmq-version}/rocketmq-{rocketmq-version}
+$ sh bin/dledger/fast-try.sh start
+```
 
 if the above commands executed successfully, then check cluster status by using mqadmin operation commands.
 
-`sh bin/mqadmin clusterList -n 127.0.0.1:9876`
+```shell
+$ sh bin/mqadmin clusterList -n 127.0.0.1:9876
+```
 
 If everything goes well, the following content will appear:
 
@@ -48,7 +51,9 @@ After startup successful, producer can produce message, and then test failover s
 
 Stop cluster fastly, execute the following command:
 
-`sh bin/dledger/fast-try.sh stop`
+```shell
+$ sh bin/dledger/fast-try.sh stop
+```
 
 Quick deployment, default configuration is in directory conf/dledger，default storage path is /tmp/rmqstore.
 
