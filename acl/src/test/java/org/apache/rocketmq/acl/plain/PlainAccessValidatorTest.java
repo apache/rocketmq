@@ -547,7 +547,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "192.168.1.*");
 
         String aclFileName = System.getProperty("rocketmq.home.dir")
-            + File.separator + "conf/acl/plain_acl.yml".replace("/", File.separator);
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAllAclConfigVersion();
         DataVersion dataVersion = dataVersionMap.get(aclFileName);
         Assert.assertEquals(0, dataVersion.getCounter().get());
