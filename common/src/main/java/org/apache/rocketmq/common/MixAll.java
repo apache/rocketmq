@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -277,8 +279,13 @@ public class MixAll {
     }
 
     public static String properties2String(final Properties properties) {
+        return properties2String(properties, false);
+    }
+
+    public static String properties2String(final Properties properties, final boolean isSort) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+        Set<Map.Entry<Object, Object>> entrySet = isSort ? new TreeMap<>(properties).entrySet() : properties.entrySet();
+        for (Map.Entry<Object, Object> entry : entrySet) {
             if (entry.getValue() != null) {
                 sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
             }
