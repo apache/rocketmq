@@ -162,6 +162,7 @@ public class ReplicasInfoManager {
         BrokerTryElectResponseHeader response = result.getResponse();
         if (!isContainsBroker(brokerName)) {
             // this broker set hasn't been registered
+            response.setMasterAddress("");
             result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker hasn't been registered");
             return result;
         }
@@ -187,6 +188,9 @@ public class ReplicasInfoManager {
         }
         if (StringUtils.isEmpty(newMaster)) {
             // try elect failed
+            response.setMasterAddress("");
+            response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+            response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
             result.setCodeAndRemark(ResponseCode.CONTROLLER_TRY_ELECT_FAILED, "Broker try to elect itself as master failed");
             return result;
         }
@@ -294,6 +298,9 @@ public class ReplicasInfoManager {
         }
 
         response.setBrokerId(brokerId);
+        if (response.getMasterAddress() == null) {
+            response.setMasterAddress("");
+        }
         if (shouldApplyBrokerId) {
             final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getClusterName(), brokerName, brokerAddress, brokerId);
             result.addEvent(applyIdEvent);
