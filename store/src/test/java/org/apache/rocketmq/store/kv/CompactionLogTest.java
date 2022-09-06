@@ -30,7 +30,6 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -54,7 +53,6 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestException;
@@ -63,6 +61,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.apache.rocketmq.store.kv.CompactionLog.COMPACTING_SUB_FOLDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,7 +71,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.apache.rocketmq.store.kv.CompactionLog.COMPACTING_SUB_FOLDER;
 
 public class CompactionLogTest {
     CompactionLog clog;
@@ -118,6 +116,7 @@ public class CompactionLogTest {
         defaultMessageStore = mock(DefaultMessageStore.class);
         doReturn(storeConfig).when(defaultMessageStore).getMessageStoreConfig();
         positionMgr = mock(CompactionPositionMgr.class);
+        doReturn(-1L).when(positionMgr).getOffset(topic, queueId);
     }
 
     static int queueOffset = 0;
@@ -204,6 +203,7 @@ public class CompactionLogTest {
         CompactionLog clog = mock(CompactionLog.class);
         FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
         doCallRealMethod().when(clog).getOffsetMap(any());
+        FieldUtils.writeField(clog, "positionMgr", positionMgr, true);
 
         queueOffset = 0;
         CompactionLog.OffsetMap offsetMap = clog.getOffsetMap(mappedFileList);
