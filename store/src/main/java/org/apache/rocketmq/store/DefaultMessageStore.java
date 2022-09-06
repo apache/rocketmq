@@ -522,7 +522,7 @@ public class DefaultMessageStore implements MessageStore {
                 LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
                     elapsedTime, msg.getTopic(), msg.getBody().length);
             }
-            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
+            this.storeStatsService.recordPutMessageLatency(elapsedTime);
 
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
@@ -550,7 +550,7 @@ public class DefaultMessageStore implements MessageStore {
             if (eclipseTime > 500) {
                 LOGGER.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
             }
-            this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+            this.storeStatsService.recordPutMessageLatency(eclipseTime);
 
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);

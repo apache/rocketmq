@@ -18,12 +18,14 @@ package org.apache.rocketmq.store;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class StoreStatsServiceTest {
@@ -95,14 +97,72 @@ public class StoreStatsServiceTest {
         final StoreStatsService storeStatsService = new StoreStatsService();
         for (int i = 1; i <= 1000; i++) {
             for (int j = 0; j < i; j++) {
-                storeStatsService.incPutMessageEntireTime(i);
+                Method method = StoreStatsService.class.getDeclaredMethod("incPutMessageEntireTime", long.class);
+                method.setAccessible(true);
+                method.invoke(storeStatsService, i);
+                
             }
         }
         Method method = StoreStatsService.class.getDeclaredMethod("resetPutMessageTimeBuckets");
         method.setAccessible(true);
         method.invoke(storeStatsService);
-        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.99));
-        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.999));
+
+        Method method2 = StoreStatsService.class.getDeclaredMethod("findPutMessageEntireTimePX", new Class[]{double.class});
+        method2.setAccessible(true);
+        System.out.println(method2.invoke(storeStatsService, 0.99));
+        System.out.println(method2.invoke(storeStatsService, 0.999));
+    }
+
+    @Test
+    public void setPutMessageEntireTimeMax() throws InterruptedException {
+        final StoreStatsService storeStatsService = new StoreStatsService();
+        final int concurrentNum = 3000;
+        final long maxLatencyMs = 3000 ;
+        final Random random = new Random();
+        final CountDownLatch latch = new CountDownLatch(concurrentNum);
+        
+        for (int i = 1; i <= concurrentNum; i++) {
+            final long latencyMs = i;
+            new Thread(() -> {
+                try {
+                    Thread.sleep(random.nextInt(100));
+                    Method method = storeStatsService.getClass().getDeclaredMethod("setPutMessageEntireTimeMax", long.class);
+                    method.setAccessible(true);
+                    method.invoke(storeStatsService, latencyMs);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            }).start();
+        }
+        latch.await();
+        Assert.assertTrue(storeStatsService.getPutMessageEntireTimeMax() == maxLatencyMs);
+    }
+
+    @Test
+    public void setGetMessageEntireTimeMax() throws InterruptedException {
+        final StoreStatsService storeStatsService = new StoreStatsService();
+        final int concurrentNum = 3000;
+        final long maxLatencyMs = 3000 ;
+        final Random random = new Random();
+        final CountDownLatch latch = new CountDownLatch(concurrentNum);
+
+        for (int i = 1; i <= concurrentNum; i++) {
+            final long latencyMs = i;
+            new Thread(() -> {
+                try {
+                    Thread.sleep(random.nextInt(100));
+                    storeStatsService.setGetMessageEntireTimeMax(latencyMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            }).start();
+        }
+        latch.await();
+        Assert.assertTrue(storeStatsService.getGetMessageEntireTimeMax() == maxLatencyMs);
     }
 
 }
