@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -62,6 +63,8 @@ public class NettyTransferServer {
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.SO_SNDBUF, WRITE_MAX_BUFFER_SIZE)
                 .childOption(ChannelOption.SO_RCVBUF, READ_MAX_BUFFER_SIZE)
+                .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
+                    new WriteBufferWaterMark(32 * 1024, 1024 * 1024))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel channel) {

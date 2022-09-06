@@ -107,7 +107,6 @@ public class NettyTransferServerHandler extends SimpleChannelInboundHandler<Tran
             return;
         }
 
-        System.out.println(request.getType());
         switch (request.getType()) {
             case HANDSHAKE_SLAVE:
                 this.slaveHandshake(ctx, request);

@@ -151,8 +151,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     @Override
     public void changeCurrentState(HAConnectionState haConnectionState) {
-        LOGGER.info("change state to {}", haConnectionState);
-        System.out.println("change: " + this.currentState + " => " + haConnectionState);
+        LOGGER.info("change ha state from {} to {}", this.currentState, haConnectionState);
         this.currentState = haConnectionState;
     }
 
@@ -164,8 +163,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     @Override
     public long getTransferredByteInSecond() {
-        return 0L;
-        // return this.flowMonitor.getTransferredByteInSecond();
+        return this.nettyTransferClient.getTransferredByteInSecond();
     }
 
     @Override

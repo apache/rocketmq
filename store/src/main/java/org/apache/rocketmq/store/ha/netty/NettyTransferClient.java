@@ -178,6 +178,10 @@ public class NettyTransferClient {
         channelFuture.channel().writeAndFlush(transferMessage);
     }
 
+    public long getTransferredByteInSecond() {
+        return this.flowMonitor.getTransferredByteInSecond();
+    }
+
     public long getLastReadTimestamp() {
         return lastReadTimestamp;
     }

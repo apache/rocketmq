@@ -69,9 +69,6 @@ public class NettyTransferClientHandler extends ChannelInboundHandlerAdapter {
         pushCommitLogData.setEpochStartOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setConfirmOffset(message.getByteBuffer().getLong());
         pushCommitLogData.setBlockStartOffset(message.getByteBuffer().getLong());
-        if (message.getByteBuffer().remaining() > 0) {
-            System.out.println(pushCommitLogData.getBlockStartOffset() + " " + message.getByteBuffer().remaining());
-        }
         autoSwitchHAClient.doPutCommitLog(pushCommitLogData, message.getByteBuffer());
         autoSwitchHAClient.sendPushCommitLogAck();
     }
