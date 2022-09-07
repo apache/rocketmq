@@ -138,12 +138,6 @@ public class BrokerStartup {
                 System.exit(-2);
             }
 
-            if (!nettyServerConfig.getBindIP().equals("0.0.0.0") &&
-                !nettyServerConfig.getBindIP().equals(brokerConfig.getBrokerIP1())) {
-                System.out.printf("Broker bind ip: %s should be 0.0.0.0 or equal to broker ip1: %s", nettyServerConfig.getBindIP(), brokerConfig.getBrokerIP1());
-                System.exit(-2);
-            }
-
             String namesrvAddr = brokerConfig.getNamesrvAddr();
             if (null != namesrvAddr) {
                 try {
