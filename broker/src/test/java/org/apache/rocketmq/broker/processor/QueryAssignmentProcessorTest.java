@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
@@ -66,7 +66,7 @@ public class QueryAssignmentProcessorTest {
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
 
     @Mock
-    private AssignmentManager assignmentManager;
+    private TopicRouteInfoManager topicRouteInfoManager;
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock
@@ -84,8 +84,8 @@ public class QueryAssignmentProcessorTest {
     public void init() throws IllegalAccessException, NoSuchFieldException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
-        doReturn(assignmentManager).when(brokerController).getAssignmentManager();
-        when(assignmentManager.getTopicSubscribeInfo(topic)).thenReturn(ImmutableSet.of(new MessageQueue(topic, "broker-1", 0), new MessageQueue(topic, "broker-2", 1)));
+        doReturn(topicRouteInfoManager).when(brokerController).getTopicRouteInfoManager();
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(ImmutableSet.of(new MessageQueue(topic, "broker-1", 0), new MessageQueue(topic, "broker-2", 1)));
         queryAssignmentProcessor = new QueryAssignmentProcessor(brokerController);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         ConsumerData consumerData = createConsumerData(group, topic);

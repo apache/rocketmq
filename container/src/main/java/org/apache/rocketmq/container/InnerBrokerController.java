@@ -90,7 +90,8 @@ public class InnerBrokerController extends BrokerController {
             scheduleSendHeartbeat();
 
             scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override public void run2() {
+                @Override
+                public void run2() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {
@@ -130,17 +131,6 @@ public class InnerBrokerController extends BrokerController {
     @Override
     public String getBrokerAddr() {
         return this.brokerConfig.getBrokerIP1() + ":" + this.brokerConfig.getListenPort();
-    }
-
-    @Override
-    public String getNameServerList() {
-        if (this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr() != null) {
-            this.brokerContainer.getBrokerOuterAPI().updateNameServerAddressList(brokerContainer.getBrokerContainerConfig().getNamesrvAddr());
-            return this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr();
-        } else if (this.brokerContainer.getBrokerContainerConfig().isFetchNamesrvAddrByAddressServer()) {
-            return this.brokerContainer.getBrokerOuterAPI().fetchNameServerAddr();
-        }
-        return null;
     }
 
     @Override

@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -327,7 +328,7 @@ public class DefaultMessageStore implements MessageStore {
             throw new RuntimeException("Lock failed,MQ already started");
         }
 
-        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
+        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
         lockFile.getChannel().force(true);
 
         if (this.getMessageStoreConfig().isDuplicationEnable()) {
@@ -815,7 +816,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            this.storeStatsService.getGetMessageTransferedMsgCount().add(1);
+                            this.storeStatsService.getGetMessageTransferredMsgCount().add(1);
                             getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -2603,15 +2604,18 @@ public class DefaultMessageStore implements MessageStore {
         return putMessageHookList;
     }
 
-    @Override public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
+    @Override
+    public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
         this.sendMessageBackHook = sendMessageBackHook;
     }
 
-    @Override public SendMessageBackHook getSendMessageBackHook() {
+    @Override
+    public SendMessageBackHook getSendMessageBackHook() {
         return sendMessageBackHook;
     }
 
-    @Override public boolean isShutdown() {
+    @Override
+    public boolean isShutdown() {
         return shutdown;
     }
 }

@@ -18,7 +18,12 @@
 package org.apache.rocketmq.proxy.config;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -41,6 +46,13 @@ public class Configuration {
     }
 
     public static String loadJsonConfig(String configFileName) throws Exception {
+        final String testResource = "rmq-proxy-home/conf/" + configFileName;
+        try (InputStream inputStream = Configuration.class.getClassLoader().getResourceAsStream(testResource)) {
+            if (null != inputStream) {
+                return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+            }
+        }
+
         String filePath = new File(ConfigurationManager.getProxyHome() + File.separator + "conf", configFileName).toString();
 
         File file = new File(filePath);
@@ -54,7 +66,7 @@ public class Configuration {
             return null;
         }
 
-        return new String(Files.readAllBytes(file.toPath()));
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
 
     public ProxyConfig getProxyConfig() {

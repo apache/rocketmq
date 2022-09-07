@@ -197,7 +197,8 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
         // wait until consumeMessageAfter hook of tracer is done surely.
         waitAtMost(1, TimeUnit.SECONDS).until(new Callable() {
-            @Override public Object call() throws Exception {
+            @Override
+            public Object call() throws Exception {
                 return tracer.finishedSpans().size() == 1;
             }
         });

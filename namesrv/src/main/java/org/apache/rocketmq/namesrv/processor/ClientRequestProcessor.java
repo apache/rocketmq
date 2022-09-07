@@ -17,13 +17,14 @@
 
 package org.apache.rocketmq.namesrv.processor;
 
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteDatas;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -48,50 +49,35 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        if (requestHeader.getTopic().indexOf(GetRouteInfoRequestHeader.split) < 0) {
-            TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
+        TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
-            if (topicRouteData != null) {
-                if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
-                    String orderTopicConf =
-                        this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                            requestHeader.getTopic());
-                    topicRouteData.setOrderTopicConf(orderTopicConf);
-                }
-
-                byte[] content = topicRouteData.encode();
-                response.setBody(content);
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
-                return response;
-            }
-
-            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-            response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
-                + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
-            return response;
-        }
-
-        String[] topics = requestHeader.getTopic().split(String.valueOf(GetRouteInfoRequestHeader.split));
-        TopicRouteDatas topicRouteDatas = new TopicRouteDatas();
-
-        for (String topic : topics) {
-            TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(topic);
-            if (topicRouteData == null) {
-                continue;
-            }
-
+        if (topicRouteData != null) {
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
                 String orderTopicConf =
-                    this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
+                    this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
+                        requestHeader.getTopic());
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
 
-            topicRouteDatas.getTopics().put(topic, topicRouteData);
+            byte[] content;
+            Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
+            if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || (null != standardJsonOnly && standardJsonOnly)) {
+                content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
+                    SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
+                    SerializerFeature.MapSortField);
+            } else {
+                content = topicRouteData.encode();
+            }
+
+            response.setBody(content);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
         }
-        response.setBody(topicRouteDatas.encode());
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
+
+        response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+        response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
+            + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
         return response;
     }
 

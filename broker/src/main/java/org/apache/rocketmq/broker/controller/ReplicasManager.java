@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.MixAll;
@@ -45,6 +46,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
+
 /**
  * The manager of broker replicas, including: 0.regularly syncing controller metadata, change controller leader address,
  * both master and slave will start this timed task. 1.regularly syncing metadata from controllers, and changing broker
@@ -53,6 +56,8 @@ import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
  */
 public class ReplicasManager {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+
+    private static final int RETRY_INTERVAL_SECOND = 5;
 
     private final ScheduledExecutorService scheduledService;
     private final ExecutorService executorService;
@@ -73,6 +78,7 @@ public class ReplicasManager {
     private int syncStateSetEpoch = 0;
     private String masterAddress = "";
     private int masterEpoch = 0;
+    private long lastSyncTimeMs = System.currentTimeMillis();
 
     public ReplicasManager(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -90,6 +96,10 @@ public class ReplicasManager {
         this.haService.setLocalAddress(this.localAddress);
     }
 
+    public long getConfirmOffset() {
+        return this.haService.getConfirmOffset();
+    }
+
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
@@ -104,13 +114,14 @@ public class ReplicasManager {
                 int retryTimes = 0;
                 do {
                     try {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(RETRY_INTERVAL_SECOND);
                     } catch (InterruptedException ignored) {
 
                     }
                     retryTimes++;
                     LOGGER.warn("Failed to start replicasManager, retry times:{}, current state:{}, try it again", retryTimes, this.state);
-                } while (!startBasicService());
+                }
+                while (!startBasicService());
 
                 LOGGER.info("Start replicasManager success, retry times:{}", retryTimes);
             });
@@ -257,11 +268,17 @@ public class ReplicasManager {
             this.brokerController.getSlaveSynchronize().setMasterAddr(this.masterAddress);
             slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
-                    brokerController.getSlaveSynchronize().syncAll();
+                    if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
+                        brokerController.getSlaveSynchronize().syncAll();
+                        lastSyncTimeMs = System.currentTimeMillis();
+                    }
+                    //timer checkpoint, latency-sensitive, so sync it more frequently
+                    brokerController.getSlaveSynchronize().syncTimerCheckPoint();
                 } catch (final Throwable e) {
                     LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                 }
-            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 3, TimeUnit.MILLISECONDS);
+
         } else {
             if (this.slaveSyncFuture != null) {
                 this.slaveSyncFuture.cancel(false);
@@ -273,7 +290,9 @@ public class ReplicasManager {
     private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
-            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
+            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
+                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
+                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset());
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -331,6 +350,16 @@ public class ReplicasManager {
                         }
                     }
                 }
+            } catch (final MQBrokerException exception) {
+                LOGGER.warn("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), exception);
+                if (exception.getResponseCode() == CONTROLLER_BROKER_METADATA_NOT_EXIST) {
+                    try {
+                        registerBrokerToController();
+                        TimeUnit.SECONDS.sleep(2);
+                    } catch (InterruptedException ignore) {
+
+                    }
+                }
             } catch (final Exception e) {
                 LOGGER.warn("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), e);
             }
@@ -348,6 +377,11 @@ public class ReplicasManager {
             if (flag) {
                 this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, this.brokerConfig.getSyncControllerMetadataPeriod(), TimeUnit.MILLISECONDS);
                 return true;
+            }
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException ignore) {
+
             }
             tryTimes++;
         }
@@ -412,6 +446,10 @@ public class ReplicasManager {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
+    }
+
+    public int getLastEpoch() {
+        return this.haService.getLastEpoch();
     }
 
     public BrokerRole getBrokerRole() {

@@ -79,4 +79,8 @@ public class SyncStateInfo {
     public int getMasterEpoch() {
         return masterEpoch;
     }
+
+    public void removeSyncState(final String address) {
+        syncStateSet.remove(address);
+    }
 }

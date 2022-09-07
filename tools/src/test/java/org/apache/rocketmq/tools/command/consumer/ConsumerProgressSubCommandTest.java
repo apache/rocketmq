@@ -35,10 +35,6 @@ import java.util.HashMap;
 
 public class ConsumerProgressSubCommandTest {
 
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -46,7 +42,7 @@ public class ConsumerProgressSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
     }
 
     @After
@@ -60,7 +56,8 @@ public class ConsumerProgressSubCommandTest {
     public void testExecute() throws SubCommandException {
         ConsumerProgressSubCommand cmd = new ConsumerProgressSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group"};
+        String[] subargs = new String[] {"-g default-group",
+            String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
@@ -82,6 +79,6 @@ public class ConsumerProgressSubCommandTest {
         offsetTable.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(offsetTable);
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, consumeStats.encode());
+        return ServerResponseMocker.startServer(0, consumeStats.encode());
     }
 }

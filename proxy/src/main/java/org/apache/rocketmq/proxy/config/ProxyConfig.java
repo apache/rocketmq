@@ -140,6 +140,11 @@ public class ProxyConfig implements ConfigFile {
 
     private long invisibleTimeMillisWhenClear = 1000L;
     private boolean enableProxyAutoRenew = true;
+    private int maxRenewRetryTimes = 3;
+    private int renewThreadPoolNums = 2;
+    private int renewMaxThreadPoolNums = 4;
+    private int renewThreadPoolQueueCapacity = 300;
+    private long lockTimeoutMsInHandleGroup = TimeUnit.SECONDS.toMillis(3);
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
     private long renewSliceTimeMillis = TimeUnit.SECONDS.toMillis(60);
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
@@ -151,7 +156,7 @@ public class ProxyConfig implements ConfigFile {
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
 
-    private int metricCollectorMode = MetricCollectorMode.OFF.getOrdinal();
+    private String metricCollectorMode = MetricCollectorMode.OFF.getModeString();
     // Example address: 127.0.0.1:1234
     private String metricCollectorAddress = "";
 
@@ -789,6 +794,46 @@ public class ProxyConfig implements ConfigFile {
         this.enableProxyAutoRenew = enableProxyAutoRenew;
     }
 
+    public int getMaxRenewRetryTimes() {
+        return maxRenewRetryTimes;
+    }
+
+    public void setMaxRenewRetryTimes(int maxRenewRetryTimes) {
+        this.maxRenewRetryTimes = maxRenewRetryTimes;
+    }
+
+    public int getRenewThreadPoolNums() {
+        return renewThreadPoolNums;
+    }
+
+    public void setRenewThreadPoolNums(int renewThreadPoolNums) {
+        this.renewThreadPoolNums = renewThreadPoolNums;
+    }
+
+    public int getRenewMaxThreadPoolNums() {
+        return renewMaxThreadPoolNums;
+    }
+
+    public void setRenewMaxThreadPoolNums(int renewMaxThreadPoolNums) {
+        this.renewMaxThreadPoolNums = renewMaxThreadPoolNums;
+    }
+
+    public int getRenewThreadPoolQueueCapacity() {
+        return renewThreadPoolQueueCapacity;
+    }
+
+    public void setRenewThreadPoolQueueCapacity(int renewThreadPoolQueueCapacity) {
+        this.renewThreadPoolQueueCapacity = renewThreadPoolQueueCapacity;
+    }
+
+    public long getLockTimeoutMsInHandleGroup() {
+        return lockTimeoutMsInHandleGroup;
+    }
+
+    public void setLockTimeoutMsInHandleGroup(long lockTimeoutMsInHandleGroup) {
+        this.lockTimeoutMsInHandleGroup = lockTimeoutMsInHandleGroup;
+    }
+
     public long getRenewAheadTimeMillis() {
         return renewAheadTimeMillis;
     }
@@ -821,11 +866,11 @@ public class ProxyConfig implements ConfigFile {
         this.renewSchedulePeriodMillis = renewSchedulePeriodMillis;
     }
 
-    public int getMetricCollectorMode() {
+    public String getMetricCollectorMode() {
         return metricCollectorMode;
     }
 
-    public void setMetricCollectorMode(int metricCollectorMode) {
+    public void setMetricCollectorMode(String metricCollectorMode) {
         this.metricCollectorMode = metricCollectorMode;
     }
 

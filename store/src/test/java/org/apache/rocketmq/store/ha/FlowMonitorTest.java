@@ -17,13 +17,15 @@
 
 package org.apache.rocketmq.store.ha;
 
+import java.time.Duration;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.awaitility.Awaitility.await;
+
 public class FlowMonitorTest {
-    
+
     @Test
     public void testLimit() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -34,10 +36,9 @@ public class FlowMonitorTest {
         flowMonitor.start();
 
         flowMonitor.addByteCountTransferred(3);
-        Assert.assertEquals(7, flowMonitor.canTransferMaxByteNum());
-
-        Thread.sleep(2000);
-        Assert.assertEquals(10, flowMonitor.canTransferMaxByteNum());
+        Boolean flag = await().atMost(Duration.ofSeconds(2)).until(() -> 7 == flowMonitor.canTransferMaxByteNum(), item -> item);
+        flag &= await().atMost(Duration.ofSeconds(2)).until(() -> 10 == flowMonitor.canTransferMaxByteNum(), item -> item);
+        Assert.assertTrue(flag);
 
         flowMonitor.shutdown();
     }

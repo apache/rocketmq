@@ -110,7 +110,8 @@ public class AuthorizationHeader {
         this.signature = signature;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("method", method)
             .add("accessKey", accessKey)

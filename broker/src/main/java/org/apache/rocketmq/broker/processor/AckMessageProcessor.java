@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -93,7 +92,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 
@@ -198,7 +198,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
-        MsgUtil.setMessageDeliverTime(this.brokerController, msgInner, ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
+        msgInner.setDeliverTimeMs(ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);

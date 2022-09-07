@@ -29,6 +29,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -39,13 +40,21 @@ import org.junit.Before;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
+import org.junit.BeforeClass;
 
 /**
  * mock server response for command
  */
 public abstract class ServerResponseMocker {
 
+    private int listenPort;
+
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+
+    @BeforeClass
+    public static void setLogHome() {
+        System.setProperty(ClientLogger.CLIENT_LOG_ROOT, System.getProperty("java.io.tmpdir"));
+    }
 
     @Before
     public void before() {
@@ -67,6 +76,10 @@ public abstract class ServerResponseMocker {
 
     protected abstract int getPort();
 
+    public int listenPort() {
+        return listenPort;
+    }
+
     protected abstract byte[] getBody();
 
     public void start() {
@@ -83,7 +96,6 @@ public abstract class ServerResponseMocker {
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_SNDBUF, 65535)
                 .childOption(ChannelOption.SO_RCVBUF, 65535)
-                .localAddress(new InetSocketAddress(getPort()))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
@@ -98,8 +110,9 @@ public abstract class ServerResponseMocker {
                     }
                 });
         try {
-            ChannelFuture sync = serverBootstrap.bind().sync();
+            ChannelFuture sync = serverBootstrap.bind(getPort()).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
+            this.listenPort = addr.getPort();
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }

@@ -139,7 +139,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 
@@ -237,12 +238,20 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getBrokerName(),
             requestHeader.getBrokerId(),
             requestHeader.getHaServerAddr(),
+            request.getExtFields().get(MixAll.ZONE_NAME),
             requestHeader.getHeartbeatTimeoutMillis(),
             requestHeader.getEnableActingMaster(),
             topicConfigWrapper,
             filterServerList,
             ctx.channel()
         );
+
+        if (result == null) {
+            // Register single topic route info should be after the broker completes the first registration.
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("register broker failed");
+            return response;
+        }
 
         responseHeader.setHaServerAddr(result.getHaServerAddr());
         responseHeader.setMasterAddr(result.getMasterAddr());
@@ -342,10 +351,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+            RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final UnRegisterBrokerRequestHeader requestHeader =
-            (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
+        final UnRegisterBrokerRequestHeader requestHeader = (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
         if (!this.namesrvController.getRouteInfoManager().submitUnRegisterBrokerRequest(requestHeader)) {
             log.warn("Couldn't submit the unregister broker request to handler, broker info: {}", requestHeader);
@@ -363,6 +371,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final BrokerHeartbeatRequestHeader requestHeader =
             (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
+
 
         this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
 
