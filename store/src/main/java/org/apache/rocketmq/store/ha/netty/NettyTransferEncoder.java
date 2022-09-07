@@ -25,7 +25,6 @@ import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
 @ChannelHandler.Sharable
 public class NettyTransferEncoder extends MessageToByteEncoder<TransferMessage> {
