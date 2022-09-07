@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
+    private String bindIP = "0.0.0.0";
     private int listenPort = 0;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
@@ -40,6 +41,14 @@ public class NettyServerConfig implements Cloneable {
      * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
      */
     private boolean useEpollNativeSelector = false;
+
+    public String getBindIP() {
+        return bindIP;
+    }
+
+    public void setBindIP(String bindIP) {
+        this.bindIP = bindIP;
+    }
 
     public int getListenPort() {
         return listenPort;

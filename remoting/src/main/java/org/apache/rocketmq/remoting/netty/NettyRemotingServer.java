@@ -39,8 +39,8 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
-
 import java.io.IOException;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.NoSuchElementException;
@@ -53,7 +53,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -221,7 +220,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .option(ChannelOption.SO_REUSEADDR, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, false)
                 .childOption(ChannelOption.TCP_NODELAY, true)
-                .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
+                .localAddress(new InetSocketAddress(this.nettyServerConfig.getBindIP(), this.nettyServerConfig.getListenPort()))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
@@ -240,15 +239,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         addCustomConfig(serverBootstrap);
 
         try {
-            ChannelFuture sync = serverBootstrap.bind(nettyServerConfig.getListenPort()).sync();
+            ChannelFuture sync = serverBootstrap.bind().sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             if (0 == nettyServerConfig.getListenPort()) {
                 this.nettyServerConfig.setListenPort(addr.getPort());
-                log.debug("Server is listening {}", this.nettyServerConfig.getListenPort());
+                log.debug("Server is listening {}:{}", this.nettyServerConfig.getBindIP(), this.nettyServerConfig.getListenPort());
             }
             this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
-        } catch (InterruptedException e1) {
-            throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
+        } catch (Exception e) {
+            if (e instanceof BindException) {
+                throw new RuntimeException("bind to " + this.nettyServerConfig.getBindIP() + ":" + this.nettyServerConfig.getListenPort() + " failed", e);
+            }
+            throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e);
         }
 
         if (this.channelEventListener != null) {
