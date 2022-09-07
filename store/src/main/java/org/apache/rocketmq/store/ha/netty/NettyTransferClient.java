@@ -96,8 +96,7 @@ public class NettyTransferClient {
                 channelFuture.channel().close().sync();
                 channelFuture = null;
             } catch (InterruptedException e) {
-                System.out.println(e);
-                e.printStackTrace();
+                LOGGER.error("close channel error", e);
             }
         }
     }

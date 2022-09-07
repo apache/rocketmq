@@ -299,7 +299,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         this.waitForRunning(1000);
                 }
             } catch (Exception e) {
-                System.out.println(e);
                 LOGGER.warn(this.getServiceName() + " service has exception. ", e);
                 closeMaster();
             }
