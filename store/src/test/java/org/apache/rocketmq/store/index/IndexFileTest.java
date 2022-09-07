@@ -14,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * $Id: IndexFileTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
- */
 package org.apache.rocketmq.store.index;
 
 import java.io.File;
@@ -62,8 +58,8 @@ public class IndexFileTest {
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertThat(putResult).isFalse();
 
-        final List<Long> phyOffsets = new ArrayList<Long>();
-        indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
+        final List<Long> phyOffsets = new ArrayList<>();
+        indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE);
         assertThat(phyOffsets).isNotEmpty();
         assertThat(phyOffsets.size()).isEqualTo(1);
         indexFile.destroy(0);

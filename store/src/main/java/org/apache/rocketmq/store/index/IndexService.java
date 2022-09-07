@@ -34,7 +34,8 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class IndexService {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
     /**
      * Maximum times to attempt index file creation.
      */
@@ -43,7 +44,7 @@ public class IndexService {
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
-    private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
+    private final ArrayList<IndexFile> indexFileList = new ArrayList<>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public IndexService(final DefaultMessageStore store) {
@@ -73,13 +74,13 @@ public class IndexService {
                         }
                     }
 
-                    log.info("load index file OK, " + f.getFileName());
+                    LOGGER.info("load index file OK, " + f.getFileName());
                     this.indexFileList.add(f);
                 } catch (IOException e) {
-                    log.error("load file {} error", file, e);
+                    LOGGER.error("load file {} error", file, e);
                     return false;
                 } catch (NumberFormatException e) {
-                    log.error("load file {} error", file, e);
+                    LOGGER.error("load file {} error", file, e);
                 }
             }
         }
@@ -100,13 +101,13 @@ public class IndexService {
                 files = this.indexFileList.toArray();
             }
         } catch (Exception e) {
-            log.error("destroy exception", e);
+            LOGGER.error("destroy exception", e);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
 
         if (files != null) {
-            List<IndexFile> fileList = new ArrayList<IndexFile>();
+            List<IndexFile> fileList = new ArrayList<>();
             for (int i = 0; i < (files.length - 1); i++) {
                 IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
@@ -128,12 +129,12 @@ public class IndexService {
                     boolean destroyed = file.destroy(3000);
                     destroyed = destroyed && this.indexFileList.remove(file);
                     if (!destroyed) {
-                        log.error("deleteExpiredFile remove failed.");
+                        LOGGER.error("deleteExpiredFile remove failed.");
                         break;
                     }
                 }
             } catch (Exception e) {
-                log.error("deleteExpiredFile has exception.", e);
+                LOGGER.error("deleteExpiredFile has exception.", e);
             } finally {
                 this.readWriteLock.writeLock().unlock();
             }
@@ -148,17 +149,17 @@ public class IndexService {
             }
             this.indexFileList.clear();
         } catch (Exception e) {
-            log.error("destroy exception", e);
+            LOGGER.error("destroy exception", e);
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-        List<Long> phyOffsets = new ArrayList<Long>(maxNum);
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
 
         long indexLastUpdateTimestamp = 0;
-        long indexLastUpdatePhyoffset = 0;
+        long indexLastUpdatePhyOffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
         try {
             this.readWriteLock.readLock().lock();
@@ -168,12 +169,11 @@ public class IndexService {
                     boolean lastFile = i == this.indexFileList.size();
                     if (lastFile) {
                         indexLastUpdateTimestamp = f.getEndTimestamp();
-                        indexLastUpdatePhyoffset = f.getEndPhyOffset();
+                        indexLastUpdatePhyOffset = f.getEndPhyOffset();
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-
-                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end);
                     }
 
                     if (f.getBeginTimestamp() < begin) {
@@ -186,12 +186,12 @@ public class IndexService {
                 }
             }
         } catch (Exception e) {
-            log.error("queryMsg exception", e);
+            LOGGER.error("queryMsg exception", e);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
 
-        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
+        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyOffset);
     }
 
     private String buildKey(final String topic, final String key) {
@@ -202,14 +202,13 @@ public class IndexService {
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
-            DispatchRequest msg = req;
-            String topic = msg.getTopic();
-            String keys = msg.getKeys();
-            if (msg.getCommitLogOffset() < endPhyOffset) {
+            String topic = req.getTopic();
+            String keys = req.getKeys();
+            if (req.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
 
-            final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+            final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
@@ -220,34 +219,33 @@ public class IndexService {
             }
 
             if (req.getUniqKey() != null) {
-                indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
+                indexFile = putKey(indexFile, req, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
-                    log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                    LOGGER.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                     return;
                 }
             }
 
             if (keys != null && keys.length() > 0) {
-                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
-                for (int i = 0; i < keyset.length; i++) {
-                    String key = keyset[i];
+                String[] keySet = keys.split(MessageConst.KEY_SEPARATOR);
+                for (String key : keySet) {
                     if (key.length() > 0) {
-                        indexFile = putKey(indexFile, msg, buildKey(topic, key));
+                        indexFile = putKey(indexFile, req, buildKey(topic, key));
                         if (indexFile == null) {
-                            log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                            LOGGER.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                             return;
                         }
                     }
                 }
             }
         } else {
-            log.error("build index error, stop building index");
+            LOGGER.error("build index error, stop building index");
         }
     }
 
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
         for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
-            log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");
+            LOGGER.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");
 
             indexFile = retryGetAndCreateIndexFile();
             if (null == indexFile) {
@@ -268,22 +266,22 @@ public class IndexService {
     public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
-        for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
+        for (int times = 0; times < MAX_TRY_IDX_CREATE; times++) {
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
                 break;
 
             try {
-                log.info("Tried to create index file " + times + " times");
+                LOGGER.info("Tried to create index file " + times + " times");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                log.error("Interrupted", e);
+                LOGGER.error("Interrupted", e);
             }
         }
 
         if (null == indexFile) {
             this.defaultMessageStore.getAccessRights().makeIndexFileError();
-            log.error("Mark index file cannot build flag");
+            LOGGER.error("Mark index file cannot build flag");
         }
 
         return indexFile;
@@ -322,20 +320,14 @@ public class IndexService {
                 this.readWriteLock.writeLock().lock();
                 this.indexFileList.add(indexFile);
             } catch (Exception e) {
-                log.error("getLastIndexFile exception ", e);
+                LOGGER.error("getLastIndexFile exception ", e);
             } finally {
                 this.readWriteLock.writeLock().unlock();
             }
 
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
-                Thread flushThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        IndexService.this.flush(flushThisFile);
-                    }
-                }, "FlushIndexFileThread");
-
+                Thread flushThread = new Thread(() -> IndexService.this.flush(flushThisFile), "FlushIndexFileThread");
                 flushThread.setDaemon(true);
                 flushThread.start();
             }
