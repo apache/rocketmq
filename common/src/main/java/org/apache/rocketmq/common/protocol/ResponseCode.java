@@ -80,17 +80,17 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
 
-    public static final int POLLING_FULL = 209;
-
-    public static final int POLLING_TIMEOUT = 210;
-
-    public static final int BROKER_NOT_EXIST = 211;
-
     public static final int BROKER_DISPATCH_NOT_COMPLETE = 212;
 
     public static final int BROADCAST_CONSUMPTION = 213;
 
     public static final int FLOW_CONTROL = 215;
+
+    public static final int POLLING_FULL = 216;
+
+    public static final int POLLING_TIMEOUT = 217;
+
+    public static final int BROKER_NOT_EXIST = 218;
 
     public static final int NOT_LEADER_FOR_QUEUE = 501;
 
