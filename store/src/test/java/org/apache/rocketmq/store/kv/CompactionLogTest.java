@@ -31,6 +31,7 @@ import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -60,8 +61,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.apache.rocketmq.store.kv.CompactionLog.COMPACTING_SUB_FOLDER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -112,6 +116,7 @@ public class CompactionLogTest {
         defaultMessageStore = mock(DefaultMessageStore.class);
         doReturn(storeConfig).when(defaultMessageStore).getMessageStoreConfig();
         positionMgr = mock(CompactionPositionMgr.class);
+        doReturn(-1L).when(positionMgr).getOffset(topic, queueId);
     }
 
     static int queueOffset = 0;
@@ -122,7 +127,7 @@ public class CompactionLogTest {
         msg.setTags(System.currentTimeMillis() + "TAG");
         msg.setKeys(String.valueOf(queueOffset % keyCount));
         msg.setBody(RandomStringUtils.randomAlphabetic(100).getBytes(StandardCharsets.UTF_8));
-        msg.setQueueId(queueOffset % 8);
+        msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
@@ -144,15 +149,15 @@ public class CompactionLogTest {
         MappedFileQueue smfq = mock(MappedFileQueue.class);
         SparseConsumeQueue scq = mock(SparseConsumeQueue.class);
         doReturn(smfq).when(scq).getMappedFileQueue();
-        CompactionLog clog = mock(CompactionLog.class);
-        FieldUtils.writeField(clog, "currentMappedFileQueue", mfq, true);
-        FieldUtils.writeField(clog, "currentBcq", scq, true);
+        CompactionLog.TopicPartitionLog tpLog = mock(CompactionLog.TopicPartitionLog.class);
+        FieldUtils.writeField(tpLog, "mappedFileQueue", mfq, true);
+        FieldUtils.writeField(tpLog, "consumeQueue", scq, true);
 
         doReturn(Lists.newArrayList()).when(mfq).getMappedFiles();
         doReturn(Lists.newArrayList()).when(smfq).getMappedFiles();
 
-        doCallRealMethod().when(clog).sanityCheck();
-        clog.sanityCheck();
+        doCallRealMethod().when(tpLog).sanityCheck();
+        tpLog.sanityCheck();
     }
 
     @Test(expected = RuntimeException.class)
@@ -161,9 +166,9 @@ public class CompactionLogTest {
         MappedFileQueue smfq = mock(MappedFileQueue.class);
         SparseConsumeQueue scq = mock(SparseConsumeQueue.class);
         doReturn(smfq).when(scq).getMappedFileQueue();
-        CompactionLog clog = mock(CompactionLog.class);
-        FieldUtils.writeField(clog, "currentMappedFileQueue", mfq, true);
-        FieldUtils.writeField(clog, "currentBcq", scq, true);
+        CompactionLog.TopicPartitionLog tpLog = mock(CompactionLog.TopicPartitionLog.class);
+        FieldUtils.writeField(tpLog, "mappedFileQueue", mfq, true);
+        FieldUtils.writeField(tpLog, "consumeQueue", scq, true);
 
         Files.createDirectories(Paths.get(logPath, topic, String.valueOf(queueId)));
         Files.write(Paths.get(logPath, topic, String.valueOf(queueId), "102400"),
@@ -175,8 +180,8 @@ public class CompactionLogTest {
         doReturn(Lists.newArrayList(mappedFile)).when(mfq).getMappedFiles();
         doReturn(Lists.newArrayList()).when(smfq).getMappedFiles();
 
-        doCallRealMethod().when(clog).sanityCheck();
-        clog.sanityCheck();
+        doCallRealMethod().when(tpLog).sanityCheck();
+        tpLog.sanityCheck();
     }
 
     @Test
@@ -184,8 +189,8 @@ public class CompactionLogTest {
         Iterator<SelectMappedBufferResult> iterator = mock(Iterator.class);
         SelectMappedBufferResult smb = mock(SelectMappedBufferResult.class);
         when(iterator.hasNext()).thenAnswer((Answer<Boolean>)invocationOnMock -> queueOffset < 1024);
-        when(iterator.next()).thenReturn(smb);
-        when(smb.getByteBuffer()).thenAnswer((Answer<ByteBuffer>)invocation -> buildMessage());
+        when(iterator.next()).thenAnswer((Answer<SelectMappedBufferResult>)invocation ->
+            new SelectMappedBufferResult(0, buildMessage(), 0, null));
 
         MappedFile mf = mock(MappedFile.class);
         List<MappedFile> mappedFileList = Lists.newArrayList(mf);
@@ -198,6 +203,7 @@ public class CompactionLogTest {
         CompactionLog clog = mock(CompactionLog.class);
         FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
         doCallRealMethod().when(clog).getOffsetMap(any());
+        FieldUtils.writeField(clog, "positionMgr", positionMgr, true);
 
         queueOffset = 0;
         CompactionLog.OffsetMap offsetMap = clog.getOffsetMap(mappedFileList);
@@ -205,12 +211,12 @@ public class CompactionLogTest {
 
         doCallRealMethod().when(clog).compaction(any(List.class), any(CompactionLog.OffsetMap.class));
         doNothing().when(clog).putEndMessage(any(MappedFileQueue.class));
-        doCallRealMethod().when(clog).checkAndPutMessage(any(SelectMappedBufferResult.class), any(MessageExt.class), any(
-            CompactionLog.OffsetMap.class), any(MappedFileQueue.class), any(SparseConsumeQueue.class));
+        doCallRealMethod().when(clog).checkAndPutMessage(any(SelectMappedBufferResult.class),
+            any(MessageExt.class), any(CompactionLog.OffsetMap.class), any(CompactionLog.TopicPartitionLog.class));
         doCallRealMethod().when(clog).shouldRetainMsg(any(MessageExt.class), any(CompactionLog.OffsetMap.class));
         List<MessageExt> compactResult = Lists.newArrayList();
-        when(clog.asyncPutMessage(any(SelectMappedBufferResult.class), any(MessageExt.class),
-            any(MappedFileQueue.class), any(SparseConsumeQueue.class)))
+        when(clog.asyncPutMessage(any(ByteBuffer.class), any(MessageExt.class),
+            any(CompactionLog.TopicPartitionLog.class)))
             .thenAnswer((Answer<CompletableFuture< PutMessageResult >>)invocation -> {
                 compactResult.add(invocation.getArgument(1));
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK,
@@ -221,6 +227,38 @@ public class CompactionLogTest {
         assertEquals(keyCount, compactResult.size());
         assertEquals(1014, compactResult.stream().mapToLong(MessageExt::getQueueOffset).min().orElse(1024));
         assertEquals(1023, compactResult.stream().mapToLong(MessageExt::getQueueOffset).max().orElse(0));
+    }
+
+    @Test
+    public void testReplaceFiles() throws IOException, IllegalAccessException {
+        CompactionLog clog = mock(CompactionLog.class);
+        doCallRealMethod().when(clog).replaceFiles(anyList(), any(CompactionLog.TopicPartitionLog.class),
+            any(CompactionLog.TopicPartitionLog.class));
+        doCallRealMethod().when(clog).replaceCqFiles(any(SparseConsumeQueue.class),
+            any(SparseConsumeQueue.class), anyList());
+
+        CompactionLog.TopicPartitionLog dest = mock(CompactionLog.TopicPartitionLog.class);
+        MappedFileQueue destMFQ = mock(MappedFileQueue.class);
+        when(dest.getLog()).thenReturn(destMFQ);
+        List<MappedFile> destFiles = Lists.newArrayList();
+        when(destMFQ.getMappedFiles()).thenReturn(destFiles);
+
+        List<MappedFile> srcFiles = Lists.newArrayList();
+        String fileName = logPath + File.separator + COMPACTING_SUB_FOLDER + File.separator + String.format("%010d", 0);
+        MappedFile mf = new DefaultMappedFile(fileName, 1024);
+        srcFiles.add(mf);
+        MappedFileQueue srcMFQ = mock(MappedFileQueue.class);
+        when(srcMFQ.getMappedFiles()).thenReturn(srcFiles);
+        CompactionLog.TopicPartitionLog src = mock(CompactionLog.TopicPartitionLog.class);
+        when(src.getLog()).thenReturn(srcMFQ);
+
+        FieldUtils.writeField(clog, "readMessageLock", new PutMessageSpinLock(), true);
+
+        clog.replaceFiles(Lists.newArrayList(), dest, src);
+        assertEquals(destFiles.size(), 1);
+        destFiles.forEach(f -> {
+            assertFalse(f.getFileName().contains(COMPACTING_SUB_FOLDER));
+        });
     }
 
 }

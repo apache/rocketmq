@@ -776,4 +776,8 @@ public class MappedFileQueue implements Swappable {
     public long getTotalFileSize() {
         return (long) mappedFileSize * mappedFiles.size();
     }
+
+    public String getStorePath() {
+        return storePath;
+    }
 }

@@ -211,8 +211,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
-        this.compactionService.start();
-
         this.scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
 
@@ -284,6 +282,8 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
 
+            result = result && this.compactionService.load(lastExitOK);
+
             if (result) {
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
@@ -349,6 +349,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
+        this.compactionService.start();
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -1212,6 +1213,9 @@ public class DefaultMessageStore implements MessageStore {
     public void updateMasterAddress(String newAddr) {
         if (this.haService != null) {
             this.haService.updateMasterAddress(newAddr);
+        }
+        if (this.compactionService != null) {
+            this.compactionService.updateMasterAddress(newAddr);
         }
     }
 
@@ -2355,7 +2359,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
 
-            compactionStore.flushCq(flushConsumeQueueLeastPages);
+            compactionStore.flushCQ(flushConsumeQueueLeastPages);
 
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {

@@ -49,6 +49,10 @@ public class CompactionPositionMgr extends ConfigManager {
         return queueOffsetMap.getOrDefault(topic + "_" + queueId, -1L);
     }
 
+    public boolean isEmpty() {
+        return queueOffsetMap.isEmpty();
+    }
+
     public boolean isCompaction(String topic, int queueId, long offset) {
         return getOffset(topic, queueId) > offset;
     }

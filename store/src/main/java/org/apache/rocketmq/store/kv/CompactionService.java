@@ -107,16 +107,30 @@ public class CompactionService extends ServiceThread {
         }
     }
 
-    @Override
-    public void start() {
-        compactionStore.load();
-        super.start();
+    public boolean load(boolean exitOK) {
+        try {
+            compactionStore.load(exitOK);
+            return true;
+        } catch (Exception e) {
+            log.error("load compaction store error ", e);
+            return false;
+        }
     }
+
+//    @Override
+//    public void start() {
+//        compactionStore.load();
+//        super.start();
+//    }
 
     @Override
     public void shutdown() {
         super.shutdown();
         compactionStore.shutdown();
+    }
+
+    public void updateMasterAddress(String addr) {
+        compactionStore.updateMasterAddress(addr);
     }
 
     static class TopicPartitionOffset {
