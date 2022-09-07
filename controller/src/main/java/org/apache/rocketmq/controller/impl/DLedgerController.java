@@ -210,16 +210,16 @@ public class DLedgerController implements Controller {
     /**
      * Append the request to dledger, wait the dledger to commit the request.
      */
-    private boolean appendToDledgerAndWait(final AppendEntryRequest request) throws Throwable {
+    private boolean appendToDLedgerAndWait(final AppendEntryRequest request) throws Throwable {
         if (request != null) {
             request.setGroup(this.dLedgerConfig.getGroup());
             request.setRemoteId(this.dLedgerConfig.getSelfId());
 
-            final AppendFuture<AppendEntryResponse> dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dledgerFuture.getPos() == -1) {
+            final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (dLedgerFuture.getPos() == -1) {
                 return false;
             }
-            dledgerFuture.get(5, TimeUnit.SECONDS);
+            dLedgerFuture.get(5, TimeUnit.SECONDS);
             return true;
         }
         return false;
@@ -343,7 +343,18 @@ public class DLedgerController implements Controller {
             final ControllerResult<T> result = this.supplier.get();
             log.info("Event queue run event {}, get the result {}", this.name, result);
             boolean appendSuccess = true;
-            if (this.isWriteEvent) {
+
+            if (!this.isWriteEvent || result.getEvents() == null || result.getEvents().isEmpty()) {
+                // read event, or write event with empty events in response which also equals to read event
+                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
+                    // Now the dledger don't have the function of Read-Index or Lease-Read,
+                    // So we still need to propose an empty request to dledger.
+                    final AppendEntryRequest request = new AppendEntryRequest();
+                    request.setBody(new byte[0]);
+                    appendSuccess = appendToDLedgerAndWait(request);
+                }
+            } else {
+                // write event
                 final List<EventMessage> events = result.getEvents();
                 final List<byte[]> eventBytes = new ArrayList<>(events.size());
                 for (final EventMessage event : events) {
@@ -356,19 +367,13 @@ public class DLedgerController implements Controller {
                 }
                 // Append events to dledger
                 if (!eventBytes.isEmpty()) {
+                    // batch append events
                     final BatchAppendEntryRequest request = new BatchAppendEntryRequest();
                     request.setBatchMsgs(eventBytes);
-                    appendSuccess = appendToDledgerAndWait(request);
-                }
-            } else {
-                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
-                    // Now the dledger don't have the function of Read-Index or Lease-Read,
-                    // So we still need to propose an empty request to dledger.
-                    final AppendEntryRequest request = new AppendEntryRequest();
-                    request.setBody(new byte[0]);
-                    appendSuccess = appendToDledgerAndWait(request);
+                    appendSuccess = appendToDLedgerAndWait(request);
                 }
             }
+
             if (appendSuccess) {
                 final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
                 if (result.getBody() != null) {
@@ -433,17 +438,23 @@ public class DLedgerController implements Controller {
                             final AppendEntryRequest request = new AppendEntryRequest();
                             request.setBody(new byte[0]);
                             try {
-                                if (appendToDledgerAndWait(request)) {
+                                if (appendToDLedgerAndWait(request)) {
                                     this.currentRole = MemberState.Role.LEADER;
                                     DLedgerController.this.startScheduling();
                                     break;
                                 }
                             } catch (final Throwable e) {
                                 log.error("Error happen when controller leader append initial request to dledger", e);
-                                tryTimes++;
-                                if (tryTimes % 3 == 0) {
-                                    log.warn("Controller leader append initial log failed too many times, please wait a while");
-                                }
+                            }
+                            if (!DLedgerController.this.getMemberState().isLeader()) {
+                                // now is not a leader
+                                log.error("Append a initial log failed because current state is not leader");
+                                break;
+                            }
+                            tryTimes++;
+                            log.error(String.format("Controller leader append initial log failed, try %d times", tryTimes));
+                            if (tryTimes % 3 == 0) {
+                                log.warn("Controller leader append initial log failed too many times, please wait a while");
                             }
                         }
                         break;

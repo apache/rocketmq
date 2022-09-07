@@ -309,7 +309,7 @@ public class TransactionalMessageBridge {
      */
     private boolean addRemoveTagInTransactionOp(MessageExt prepareMessage, MessageQueue messageQueue) {
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
-            String.valueOf(prepareMessage.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
+            String.valueOf(prepareMessage.getQueueOffset()).getBytes(TransactionalMessageUtil.CHARSET));
         writeOp(message, messageQueue);
         return true;
     }

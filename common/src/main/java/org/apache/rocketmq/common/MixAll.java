@@ -19,13 +19,13 @@ package org.apache.rocketmq.common;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -184,18 +186,7 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        FileWriter fileWriter = null;
-
-        try {
-            fileWriter = new FileWriter(file);
-            fileWriter.write(str);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
-        }
+        IOTinyUtils.writeStringToFile(file, str, "UTF-8");
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -288,8 +279,13 @@ public class MixAll {
     }
 
     public static String properties2String(final Properties properties) {
+        return properties2String(properties, false);
+    }
+
+    public static String properties2String(final Properties properties, final boolean isSort) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+        Set<Map.Entry<Object, Object>> entrySet = isSort ? new TreeMap<>(properties).entrySet() : properties.entrySet();
+        for (Map.Entry<Object, Object> entry : entrySet) {
             if (entry.getValue() != null) {
                 sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
             }

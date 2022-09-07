@@ -111,7 +111,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
             int queueId = -1;
             if (commandLine.hasOption("q")) {
-                queueId = Integer.valueOf(commandLine.getOptionValue('q'));
+                queueId = Integer.parseInt(commandLine.getOptionValue('q'));
             }
 
             if (commandLine.hasOption('n')) {

@@ -301,7 +301,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
 
                 int commercialBaseCount = brokerController.getBrokerConfig().getCommercialBaseCount();
                 int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
-                int incValue = (int) Math.ceil(wroteSize / commercialSizePerMsg) * commercialBaseCount;
+                int incValue = (int) Math.ceil(wroteSize * 1.0 / commercialSizePerMsg) * commercialBaseCount;
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                 sendMessageContext.setCommercialSendTimes(incValue);
@@ -311,7 +311,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         } else {
             if (hasSendMessageHook()) {
                 int wroteSize = request.getBody().length;
-                int incValue = (int) Math.ceil(wroteSize / commercialSizePerMsg);
+                int incValue = (int) Math.ceil(wroteSize * 1.0 / commercialSizePerMsg);
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                 sendMessageContext.setCommercialSendTimes(incValue);

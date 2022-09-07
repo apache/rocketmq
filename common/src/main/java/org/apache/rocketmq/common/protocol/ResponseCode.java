@@ -88,6 +88,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int BROKER_DISPATCH_NOT_COMPLETE = 212;
 
+    public static final int BROADCAST_CONSUMPTION = 213;
+
     public static final int FLOW_CONTROL = 215;
 
     public static final int NOT_LEADER_FOR_QUEUE = 501;

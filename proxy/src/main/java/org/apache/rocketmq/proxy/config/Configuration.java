@@ -23,6 +23,7 @@ import com.google.common.io.CharStreams;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -65,7 +66,7 @@ public class Configuration {
             return null;
         }
 
-        return new String(Files.readAllBytes(file.toPath()));
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
 
     public ProxyConfig getProxyConfig() {

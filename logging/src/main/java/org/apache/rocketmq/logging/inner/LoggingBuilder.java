@@ -27,6 +27,7 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -534,7 +535,7 @@ public class LoggingBuilder {
                 }
             }
             if (retval == null) {
-                retval = new OutputStreamWriter(os);
+                retval = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             }
             return retval;
         }

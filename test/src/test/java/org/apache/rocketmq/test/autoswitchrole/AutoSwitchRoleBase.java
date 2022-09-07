@@ -18,8 +18,10 @@
 package org.apache.rocketmq.test.autoswitchrole;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +61,9 @@ public class AutoSwitchRoleBase {
     protected List<BrokerController> brokerList;
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
-
+    private static Integer No= 0;
+    
+    
     protected void initialize() {
         this.brokerList = new ArrayList<>();
         try {
@@ -68,9 +72,32 @@ public class AutoSwitchRoleBase {
         } catch (Exception ignored) {
         }
     }
-
-    public int nextPort() {
-        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
+    
+    public static Integer nextPort() throws IOException {
+        return nextPort(1001,9999);
+    }
+    
+    public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException  {
+        Random random = new Random();
+        int tempPort;
+        int port;
+        try{
+            while (true){
+                tempPort = random.nextInt(maxPort)%(maxPort-minPort+1) + minPort;
+                ServerSocket serverSocket =  new ServerSocket(tempPort);
+                port = serverSocket.getLocalPort();
+                serverSocket.close();
+                break;
+            }
+        }catch (Exception ignored){
+            if (No>200){
+                throw new IOException("This server's open ports are temporarily full!");
+            }
+            No++;
+            port = nextPort(minPort,maxPort);
+        }
+        No = 0;
+        return port;
     }
 
     public BrokerController startBroker(String namesrvAddress, String controllerAddress, int brokerId, int haPort, int brokerListenPort,
