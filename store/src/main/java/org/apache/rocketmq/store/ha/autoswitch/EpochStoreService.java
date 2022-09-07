@@ -247,13 +247,13 @@ public class EpochStoreService implements EpochStore {
 
     @Override
     public void truncateSuffixByEpoch(final long truncateEpoch) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getEpoch() > truncateEpoch;
+        Predicate<EpochEntry> predict = entry -> entry.getEpoch() > truncateEpoch;
         doTruncateSuffix(predict);
     }
 
     @Override
     public void truncateSuffixByOffset(final long truncateOffset) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getStartOffset() > truncateOffset;
+        Predicate<EpochEntry> predict = entry -> entry.getStartOffset() > truncateOffset;
         doTruncateSuffix(predict);
     }
 
@@ -276,7 +276,7 @@ public class EpochStoreService implements EpochStore {
 
     @Override
     public void truncatePrefixByOffset(final long truncateOffset) {
-        Predicate<EpochEntry> predict = (entry) -> entry.getEndOffset() <= truncateOffset;
+        Predicate<EpochEntry> predict = entry -> entry.getEndOffset() <= truncateOffset;
         this.writeLock.lock();
         try {
             this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));

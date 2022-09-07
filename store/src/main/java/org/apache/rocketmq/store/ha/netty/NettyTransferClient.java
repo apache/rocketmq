@@ -32,7 +32,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -41,8 +40,6 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAClient;
-import org.apache.rocketmq.store.ha.autoswitch.EpochStore;
-import org.apache.rocketmq.store.ha.protocol.HandshakeMaster;
 
 public class NettyTransferClient {
 

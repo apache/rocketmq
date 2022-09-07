@@ -25,7 +25,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
 public class NettyTransferDecoder extends LengthFieldBasedFrameDecoder {
 

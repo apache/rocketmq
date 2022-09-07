@@ -342,7 +342,7 @@ public class AutoSwitchHAService implements HAService {
                     maxConfirmOffset = Math.max(maxConfirmOffset, haConnection.getSlaveAckOffset());
                 }
             }
-            result &= (maxConfirmOffset < this.defaultMessageStore.getMessageStoreConfig().getHaMaxGapNotInSync());
+            result &= maxConfirmOffset < this.defaultMessageStore.getMessageStoreConfig().getHaMaxGapNotInSync();
         } catch (Exception e) {
             LOGGER.error("Check slave status error, masterPutOffset:{}", masterPutWhere, e);
         }
