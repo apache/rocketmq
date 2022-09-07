@@ -99,8 +99,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
             this.mappedFileQueue = new MultiPathMappedFileQueue(
                     messageStore.getMessageStoreConfig(),
-                    storePathSet,
-                    readOnlyPathSet,
+                    this::getStorePathSet,
+                    this::getReadOnlyPathsSet,
                     mappedFileSize,
                     null,
                     this::getFullPath);
@@ -112,6 +112,16 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
             this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
         }
         this.byteBufferItem = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
+    }
+
+    private Set<String> getStorePathSet() {
+        String[] storePaths = storePath.split(MixAll.MULTI_PATH_SPLITTER);
+        Set<String> storePathSet = new HashSet<>();
+
+        for (String path : storePaths) {
+            storePathSet.add(path + File.separator + topic + File.separator + queueId);
+        }
+        return storePathSet;
     }
 
     private Set<String> getReadOnlyPathsSet() {

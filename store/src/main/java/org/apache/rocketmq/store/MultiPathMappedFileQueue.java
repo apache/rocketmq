@@ -35,8 +35,8 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
     private final MessageStoreConfig config;
     private final Supplier<Set<String>> fullStorePathsSupplier;
-    private final Set<String> storePathSet;
-    private final Set<String> readOnlyPathSet;
+    private final Supplier<Set<String>> storePathSet;
+    private final Supplier<Set<String>> readOnlyPathSet;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
                                     AllocateMappedFileService allocateMappedFileService,
@@ -48,7 +48,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         readOnlyPathSet = null;
     }
 
-    public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, Set<String> storePathSet, Set<String> readOnlyPathSet,
+    public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, Supplier<Set<String>> storePathSet, Supplier<Set<String>> readOnlyPathSet,
                                     int mappedFileSize, AllocateMappedFileService allocateMappedFileService,
                                     Supplier<Set<String>> fullStorePathsSupplier) {
         super(messageStoreConfig.getStorePathRootDir(), mappedFileSize, allocateMappedFileService);
@@ -60,7 +60,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
     private Set<String> getPaths() {
         if (storePathSet != null) {
-            return storePathSet;
+            return storePathSet.get();
         }
         String[] paths = config.getStorePathCommitLog().trim().split(MixAll.MULTI_PATH_SPLITTER);
         return new HashSet<>(Arrays.asList(paths));
@@ -68,7 +68,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
     private Set<String> getReadonlyPaths() {
         if (readOnlyPathSet != null) {
-            return readOnlyPathSet;
+            return readOnlyPathSet.get();
         }
         String pathStr = config.getReadOnlyCommitLogStorePaths();
         if (StringUtils.isBlank(pathStr)) {
@@ -84,7 +84,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         if (storePathSet == null) {
             loadStorePathSet = getPaths();
         } else {
-            loadStorePathSet = storePathSet;
+            loadStorePathSet = storePathSet.get();
         }
         loadStorePathSet.addAll(getReadonlyPaths());
 

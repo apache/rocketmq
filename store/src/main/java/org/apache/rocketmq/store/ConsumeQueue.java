@@ -55,7 +55,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
 
-    private final String storePath;
+    private String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
 
@@ -79,18 +79,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         this.queueId = queueId;
 
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
-            String[] storePaths = storePath.split(MixAll.MULTI_PATH_SPLITTER);
-            Set<String> readOnlyPathSet = getReadOnlyPathsSet();
-            Set<String> storePathSet = new HashSet<>();
-
-            for (String path : storePaths) {
-                storePathSet.add(path + File.separator + topic + File.separator + queueId);
-            }
-
             this.mappedFileQueue = new MultiPathMappedFileQueue(
                     messageStore.getMessageStoreConfig(),
-                    storePathSet,
-                    readOnlyPathSet,
+                    this::getStorePathSet,
+                    this::getReadOnlyPathsSet,
                     mappedFileSize,
                     null,
                     this::getFullPath);
@@ -111,6 +103,16 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt()
             );
         }
+    }
+
+    private Set<String> getStorePathSet() {
+        storePath = messageStore.getMessageStoreConfig().getStorePathRootDir();
+        String[] storePaths = storePath.split(MixAll.MULTI_PATH_SPLITTER);
+        Set<String> storePathSet = new HashSet<>();
+        for (String path : storePaths) {
+            storePathSet.add(path + File.separator + topic + File.separator + queueId);
+        }
+        return storePathSet;
     }
 
     private Set<String> getReadOnlyPathsSet() {

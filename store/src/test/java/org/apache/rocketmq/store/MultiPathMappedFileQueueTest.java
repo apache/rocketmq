@@ -23,6 +23,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
+
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -60,13 +62,14 @@ public class MultiPathMappedFileQueueTest {
         storePaths = config.getStorePathRootDir().split(MixAll.MULTI_PATH_SPLITTER);
         Set<String> storePathSet = new HashSet<>();
 
-        Set<String> readOnlyPathSet = new HashSet<>();
-
         for (String path : storePaths) {
             storePathSet.add(path + File.separator + "consumequeue" +  File.separator + "unit_test_topic" + File.separator + 1);
         }
 
-        MappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, storePathSet, readOnlyPathSet, 1024, null, null);
+        Supplier<Set<String>> supplierStorePathSet = () -> storePathSet;
+        Supplier<Set<String>> supplierReadOnlyPathSet = HashSet::new;
+
+        MappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, supplierStorePathSet, supplierReadOnlyPathSet, 1024, null, null);
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue2.getLastMappedFile(fixedMsg.length * i);
             assertThat(mappedFile).isNotNull();
@@ -125,7 +128,10 @@ public class MultiPathMappedFileQueueTest {
         Set<String> readOnlyPathSet = new HashSet<>();
         storePathSet.addAll(Arrays.asList(storePaths));
         readOnlyPathSet.addAll(Arrays.asList(readOnlyStorePaths));
-        MultiPathMappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, storePathSet, readOnlyPathSet, 1024, null, null);
+
+        Supplier<Set<String>> supplierStorePathSet = () -> storePathSet;
+        Supplier<Set<String>> supplierReadOnlyPathSet = () -> readOnlyPathSet;
+        MultiPathMappedFileQueue mappedFileQueue2 = new MultiPathMappedFileQueue(config, supplierStorePathSet, supplierReadOnlyPathSet, 1024, null, null);
 
         mappedFileQueue2.load();
 
