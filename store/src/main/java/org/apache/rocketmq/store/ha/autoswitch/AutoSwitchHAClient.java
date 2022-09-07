@@ -291,8 +291,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         if (!this.doFlowMonitor()) {
                             this.closeMaster();
                             this.changeCurrentState(READY);
-                            this.waitForRunning(1000);
                         }
+                        this.waitForRunning(1000);
                         continue;
                     case SHUTDOWN:
                     default:
