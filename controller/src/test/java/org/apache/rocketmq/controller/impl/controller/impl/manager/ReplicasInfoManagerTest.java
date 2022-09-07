@@ -81,7 +81,7 @@ public class ReplicasInfoManagerTest {
     }
 
     public void registerNewBroker(String clusterName, String brokerName, String brokerAddress,
-        long exceptBrokerId) {
+        long exceptBrokerId, String exceptMasterAddress) {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
             new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
@@ -90,7 +90,7 @@ public class ReplicasInfoManagerTest {
         // check response
         assertEquals(ResponseCode.SUCCESS, registerResult.getResponseCode());
         assertEquals(exceptBrokerId, registerResult.getResponse().getBrokerId());
-
+        assertEquals(exceptMasterAddress, registerResult.getResponse().getMasterAddress());
         // check it in state machine
         final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
         assertEquals(exceptBrokerId, replicaInfo.getBrokerId());
@@ -166,9 +166,9 @@ public class ReplicasInfoManagerTest {
     }
 
     public void mockMetaData() {
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "");
         tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
         tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
         tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
@@ -208,11 +208,21 @@ public class ReplicasInfoManagerTest {
 
     @Test
     public void testRegisterBrokerSuccess() {
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L);
-        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "");
         tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
         tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
+    }
+
+    @Test
+    public void testRegisterWithMasterExistResp() {
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
+        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "127.0.0.1:9000");
         tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
     }
 
