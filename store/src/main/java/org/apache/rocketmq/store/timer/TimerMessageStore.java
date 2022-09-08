@@ -1603,7 +1603,7 @@ public class TimerMessageStore {
                             storeConfig.getBrokerRole(),
                             format(commitReadTimeMs), format(currReadTimeMs), format(currWriteTimeMs), getReadBehind(),
                             tmpQueueOffset, maxOffsetInQueue - tmpQueueOffset, timerCheckpoint.getMasterTimerQueueOffset() - tmpQueueOffset,
-                            enqueuePutQueue.size(), dequeueGetQueue.size(), dequeuePutQueue.size(), getALlCongestNum(), format(lastEnqueueButExpiredStoreTime));
+                            enqueuePutQueue.size(), dequeueGetQueue.size(), dequeuePutQueue.size(), getAllCongestNum(), format(lastEnqueueButExpiredStoreTime));
                     }
                     timerMetrics.persist();
                     waitForRunning(storeConfig.getTimerFlushIntervalMs());
@@ -1615,7 +1615,7 @@ public class TimerMessageStore {
         }
     }
 
-    public long getALlCongestNum() {
+    public long getAllCongestNum() {
         return timerWheel.getAllNum(currReadTimeMs);
     }
 
