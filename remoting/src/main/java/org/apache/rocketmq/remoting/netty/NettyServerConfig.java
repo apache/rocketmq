@@ -17,7 +17,12 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
-    private String bindIP = "0.0.0.0";
+
+    /**
+     * Bind address may be hostname, IPv4 or IPv6.
+     * By default, it's wildcard address, listening all network interfaces.
+     */
+    private String bindAddress = "0.0.0.0";
     private int listenPort = 0;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
@@ -42,12 +47,12 @@ public class NettyServerConfig implements Cloneable {
      */
     private boolean useEpollNativeSelector = false;
 
-    public String getBindIP() {
-        return bindIP;
+    public String getBindAddress() {
+        return bindAddress;
     }
 
-    public void setBindIP(String bindIP) {
-        this.bindIP = bindIP;
+    public void setBindAddress(String bindAddress) {
+        this.bindAddress = bindAddress;
     }
 
     public int getListenPort() {
