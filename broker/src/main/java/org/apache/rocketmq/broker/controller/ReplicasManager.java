@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
@@ -103,6 +104,9 @@ public class ReplicasManager {
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
+
+        WAIT_MASTER_IS_ELECTED,
+
         RUNNING,
         SHUTDOWN,
     }
@@ -141,6 +145,15 @@ public class ReplicasManager {
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
             if (registerBrokerToController()) {
                 LOGGER.info("First time register broker success");
+                this.state = State.WAIT_MASTER_IS_ELECTED;
+            } else {
+                return false;
+            }
+        }
+
+        if (this.state == State.WAIT_MASTER_IS_ELECTED) {
+            if (StringUtils.isNotEmpty(this.masterAddress) || brokerTryElect()) {
+                LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
             } else {
                 return false;
@@ -287,6 +300,30 @@ public class ReplicasManager {
         }
     }
 
+    private boolean brokerTryElect() {
+        // Broker try to elect itself as a master in broker set.
+        try {
+            BrokerTryElectResponseHeader tryElectResponse = this.brokerOuterAPI.brokerTryElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
+                this.brokerConfig.getBrokerName(), this.localAddress);
+            final String masterAddress = tryElectResponse.getMasterAddress();
+            if (StringUtils.isEmpty(masterAddress)) {
+                LOGGER.warn("Now no master in broker set");
+                return false;
+            }
+
+            if (StringUtils.equals(masterAddress, this.localAddress)) {
+                changeToMaster(tryElectResponse.getMasterEpoch(), tryElectResponse.getSyncStateSetEpoch());
+            } else {
+                changeToSlave(masterAddress, tryElectResponse.getMasterEpoch(), tryElectResponse.getBrokerId());
+            }
+            brokerController.setIsolated(false);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("Failed to try elect", e);
+            return false;
+        }
+    }
+
     private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
@@ -303,8 +340,8 @@ public class ReplicasManager {
                 // Set isolated to false, make broker can register to namesrv regularly
                 brokerController.setIsolated(false);
             } else {
-                LOGGER.warn("No master in controller");
-                return false;
+                // if master address is empty, just apply the brokerId
+                this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
             }
             return true;
         } catch (final Exception e) {
@@ -340,8 +377,8 @@ public class ReplicasManager {
                                 }
                             }
                         } else {
-                            // In this case, the master in controller is null, try register to controller again, this will trigger the electMasterEvent in controller.
-                            registerBrokerToController();
+                            // In this case, the master in controller is null, try elect in controller, this will trigger the electMasterEvent in controller.
+                            brokerTryElect();
                         }
                     } else if (newMasterEpoch == this.masterEpoch) {
                         // Check if sync state set changed

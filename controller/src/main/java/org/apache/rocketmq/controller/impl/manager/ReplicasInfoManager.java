@@ -155,7 +155,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<BrokerTryElectResponseHeader> brokerTryElectMaster(final BrokerTryElectRequestHeader request) {
+    public ControllerResult<BrokerTryElectResponseHeader> brokerTryElectMaster(
+        final BrokerTryElectRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
         final ControllerResult<BrokerTryElectResponseHeader> result = new ControllerResult<>(new BrokerTryElectResponseHeader());
@@ -167,11 +168,13 @@ public class ReplicasInfoManager {
             return result;
         }
         final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+        final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
         if (syncStateInfo.isMasterExist()) {
             // the master still exist
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
             response.setMasterAddress(syncStateInfo.getMasterAddress());
+            response.setBrokerId(brokerReplicaInfo.getBrokerId(request.getBrokerAddress()));
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, "Broker master still exist, try elect a new master failed");
             return result;
         }
@@ -191,6 +194,7 @@ public class ReplicasInfoManager {
             response.setMasterAddress("");
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
+            response.setBrokerId(brokerReplicaInfo.getBrokerId(request.getBrokerAddress()));
             result.setCodeAndRemark(ResponseCode.CONTROLLER_TRY_ELECT_FAILED, "Broker try to elect itself as master failed");
             return result;
         }
@@ -199,6 +203,7 @@ public class ReplicasInfoManager {
         response.setMasterEpoch(syncStateInfo.getMasterEpoch() + 1);
         response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch() + 1);
         response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
+        response.setBrokerId(brokerReplicaInfo.getBrokerId(request.getBrokerAddress()));
         result.addEvent(new ElectMasterEvent(brokerName, brokerAddress));
         return result;
     }
@@ -305,7 +310,6 @@ public class ReplicasInfoManager {
             final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getClusterName(), brokerName, brokerAddress, brokerId);
             result.addEvent(applyIdEvent);
         }
-
         return result;
     }
 

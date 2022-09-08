@@ -94,6 +94,8 @@ import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionRespon
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -127,8 +129,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED;
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_TRY_ELECT_FAILED;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class BrokerOuterAPI {
@@ -1134,6 +1139,31 @@ public class BrokerOuterAPI {
     }
 
     /**
+     * Broker try to elect itself as a master in broker set
+     */
+    public BrokerTryElectResponseHeader brokerTryElect(String controllerAddress, String clusterName, String brokerName,
+        String brokerAddress) throws Exception {
+
+        final BrokerTryElectRequestHeader requestHeader = new BrokerTryElectRequestHeader(clusterName, brokerName, brokerAddress);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.TRY_ELECT_MASTER, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case CONTROLLER_NOT_LEADER: {
+                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
+            }
+            case CONTROLLER_BROKER_NEED_TO_BE_REGISTERED:
+                throw new MQBrokerException(response.getCode(), response.getRemark());
+            case CONTROLLER_TRY_ELECT_FAILED:
+            case CONTROLLER_MASTER_STILL_EXIST:
+            case SUCCESS:
+                return (BrokerTryElectResponseHeader) response.decodeCommandCustomHeader(BrokerTryElectResponseHeader.class);
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
      * Register broker to controller
      */
     public RegisterBrokerToControllerResponseHeader registerBrokerToController(
@@ -1311,6 +1341,4 @@ public class BrokerOuterAPI {
 
         return pullResult;
     }
-
-
 }

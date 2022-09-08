@@ -26,6 +26,9 @@ public class BrokerTryElectResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
     private int syncStateSetEpoch;
+
+    private long brokerId;
+
     private BrokerMemberGroup brokerMemberGroup;
 
     public BrokerTryElectResponseHeader() {
@@ -63,13 +66,22 @@ public class BrokerTryElectResponseHeader implements CommandCustomHeader {
         this.brokerMemberGroup = brokerMemberGroup;
     }
 
+    public void setBrokerId(long brokerId) {
+        this.brokerId = brokerId;
+    }
+
+    public long getBrokerId() {
+        return brokerId;
+    }
+
     @Override
     public String toString() {
         return "BrokerTryElectResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMember=" + brokerMemberGroup +
+            ", brokerId=" + brokerId +
+            ", brokerMemberGroup=" + brokerMemberGroup +
             '}';
     }
 

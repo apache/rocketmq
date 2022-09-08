@@ -39,10 +39,10 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private final String dLedgerId;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
-        final EventSerializer eventSerializer, final String dLedgerId) {
+        final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
-        this.dLedgerId = dLedgerId;
+        this.dLedgerId = generateDLedgerId(dLedgerGroupId, dLedgerSelfId);
     }
 
     @Override
@@ -71,5 +71,10 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onShutdown() {
+    }
+
+    @Override
+    public String getBindDLedgerId() {
+        return this.dLedgerId;
     }
 }
