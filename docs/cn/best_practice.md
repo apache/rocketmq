@@ -185,7 +185,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerIP2 | 跟 brokerIP1 一样                         | 存在主从 broker 时，如果在 broker 主节点上配置了 brokerIP2 属性，broker 从节点会连接主节点配置的 brokerIP2 进行同步  |
 | brokerName        | null                         | broker 的名称                           |
 | brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluster 名称           |
-| brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
+| brokerId             | 0                              | broker id，0 表示 master，其他的正整数表示 slave                                                 |
 | storePathRootDir                         | $HOME/store/                   | 存储根路径                                            |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
 | mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
@@ -209,7 +209,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 
 ### 5.1 客户端寻址方式
 
-RocketMQ可以令客户端找到Name Server, 然后通过Name Server再找到Broker。如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
+RocketMQ可以令客户端找到Name Server，然后通过Name Server再找到Broker。如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
 
 - 代码中指定Name Server地址，多个namesrv地址之间用分号分割   
 

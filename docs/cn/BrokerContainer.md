@@ -96,7 +96,7 @@ usage: mqadmin removeBroker -b <arg> -c <arg> [-h] [-n <arg>]
 
 ## 存储变化
 
-storePathRootDir, storePathCommitLog路径依然为MessageStoreConfig中配置值，需要注意的是同一个brokerContainer中的broker不能使用相同的storePathRootDir, storePathCommitLog，否则不同的broker占用同一个存储目录，发生数据混乱。
+storePathRootDir，storePathCommitLog路径依然为MessageStoreConfig中配置值，需要注意的是同一个brokerContainer中的broker不能使用相同的storePathRootDir，storePathCommitLog，否则不同的broker占用同一个存储目录，发生数据混乱。
 
 在文件删除策略上，仍然单个Broker的视角来进行删除，但MessageStoreConfig新增replicasPerDiskPartition参数和logicalDiskSpaceCleanForciblyThreshold。
 
@@ -149,4 +149,4 @@ InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName())
 通过线程名和线程本地变量区分可以参考org.apache.rocketmq.common.AbstractBrokerRunnable、org.apache.rocketmq.common.ThreadFactoryImpl以及各个ServiceThread中getServiceName的实现。
 
 
-参考文档: [原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)
+参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)
