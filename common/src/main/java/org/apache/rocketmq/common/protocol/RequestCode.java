@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common.protocol;
 
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+
 public class RequestCode {
 
     public static final int SEND_MESSAGE = 10;
@@ -240,6 +242,8 @@ public class RequestCode {
     public static final int GET_ALL_PRODUCER_INFO = 328;
 
     public static final int DELETE_EXPIRED_COMMITLOG = 329;
+
+    public static final int HEALTH_CHECK = RemotingHelper.REQUEST_CODE_HEALTH_CHECK; // 330
 
     /**
      * Controller code

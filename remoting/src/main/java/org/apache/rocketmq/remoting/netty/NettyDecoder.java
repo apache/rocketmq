@@ -19,10 +19,11 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
@@ -45,6 +46,14 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
             }
             return RemotingCommand.decode(frame);
         } catch (Exception e) {
+            in.resetReaderIndex();
+            // user input may be HiRMQ, HiRMQ\n or HiRMQ\r\n
+            if (in.readableBytes() >= 5 || in.readableBytes() <= 7) {
+                String magicCode = in.readCharSequence(5, StandardCharsets.UTF_8).toString();
+                if (magicCode.equalsIgnoreCase("HiRMQ")) {
+                    return RemotingCommand.createRequestCommand(RemotingHelper.REQUEST_CODE_HEALTH_CHECK, null);
+                }
+            }
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
             RemotingUtil.closeChannel(ctx.channel());
         } finally {

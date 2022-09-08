@@ -61,6 +61,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerR
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -133,6 +134,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.getConfig(ctx, request);
             case RequestCode.GET_CLIENT_CONFIG:
                 return this.getClientConfigs(ctx, request);
+            case RequestCode.HEALTH_CHECK:
+                return this.healthCheck(ctx, request);
             default:
                 String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
@@ -351,7 +354,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-            RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final UnRegisterBrokerRequestHeader requestHeader = (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
@@ -371,7 +374,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final BrokerHeartbeatRequestHeader requestHeader =
             (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-
 
         this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
 
@@ -674,4 +676,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private RemotingCommand healthCheck(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.RAW, "RocketMQ NameServer " + MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        ctx.writeAndFlush(response)
+            .addListener(future -> RemotingUtil.closeChannel(ctx.channel()));
+        return null;
+    }
 }
