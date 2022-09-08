@@ -193,7 +193,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(6);
+        final CountDownLatch countDownLatch = new CountDownLatch(12);
 
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
@@ -216,6 +216,10 @@ public class DefaultMQProducerTest {
             }
         };
 
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
+        producer.setBackPressureForAsyncSendNum(5000);
+        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
@@ -229,6 +233,19 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
+
+        // off enableBackpressureForAsyncMode 
+        producer.setEnableBackpressureForAsyncMode(false);
+        producer.send(new Message(), sendCallback);
+        producer.send(message, new MessageQueue(), sendCallback);
+        producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
+        producer.send(new Message(), messageQueueSelector, null, sendCallback);
+        producer.send(message, messageQueueSelector, null, sendCallback, 1000);
+        //this message is send success
+        producer.send(message, sendCallback, 1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(10);
     }
     
     @Test
@@ -265,6 +282,9 @@ public class DefaultMQProducerTest {
             message.setBody(("hello world" + i).getBytes());
             msgs.add(message);
         }
+
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
         producer.send(msgs, sendCallback);
         producer.send(msgs, sendCallback, 1000);
         MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
@@ -274,6 +294,17 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
+
+        // off enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(false);
+        producer.send(msgs, sendCallback);
+        producer.send(msgs, sendCallback, 1000);
+        producer.send(msgs, mq, sendCallback);
+        // this message is send failed
+        producer.send(msgs, new MessageQueue(), sendCallback, 1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(2);
     }
 
     @Test

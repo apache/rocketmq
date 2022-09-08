@@ -118,7 +118,7 @@ public class TopicRouteData extends RemotingSerializable {
         return topicRouteData;
     }
 
-    public boolean topicRouteDataIsChange(TopicRouteData oldData) {
+    public boolean topicRouteDataChanged(TopicRouteData oldData) {
         if (oldData == null)
             return true;
         TopicRouteData old = new TopicRouteData(oldData);
