@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
  * Queue consumption snapshot
+ * 从broker拉取消息后暂存的本地队列
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
@@ -182,6 +183,11 @@ public class ProcessQueue {
         return 0;
     }
 
+    /**
+     * 移除已成功消费的消息，返回最前面一条未消费offset
+     * 如果是中间或尾部消息被消费成功，将出现重复消费情况
+     * 如果全部消费，offset为最后一条消息的后一条
+     */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();

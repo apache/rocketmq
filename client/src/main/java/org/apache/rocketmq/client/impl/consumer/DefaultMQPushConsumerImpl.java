@@ -107,6 +107,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private volatile boolean pause = false;
     private boolean consumeOrderly = false;
     private MessageListener messageListenerInner;
+    //广播模式下使用本地文件保存
+    //cluster模式下使用远程更新
     private OffsetStore offsetStore;
     private ConsumeMessageService consumeMessageService;
     private long queueFlowControlTimes = 0;
@@ -1010,6 +1012,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    //更新offset
     @Override
     public void persistConsumerOffset() {
         try {
