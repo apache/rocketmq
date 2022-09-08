@@ -105,7 +105,7 @@ public class ReplicasManager {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
 
-        WAIT_MASTER_IS_ELECTED,
+        FIRST_TIME_WAIT_MASTER_IS_ELECTED,
 
         RUNNING,
         SHUTDOWN,
@@ -145,13 +145,13 @@ public class ReplicasManager {
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
             if (registerBrokerToController()) {
                 LOGGER.info("First time register broker success");
-                this.state = State.WAIT_MASTER_IS_ELECTED;
+                this.state = State.FIRST_TIME_WAIT_MASTER_IS_ELECTED;
             } else {
                 return false;
             }
         }
 
-        if (this.state == State.WAIT_MASTER_IS_ELECTED) {
+        if (this.state == State.FIRST_TIME_WAIT_MASTER_IS_ELECTED) {
             if (StringUtils.isNotEmpty(this.masterAddress) || brokerTryElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
