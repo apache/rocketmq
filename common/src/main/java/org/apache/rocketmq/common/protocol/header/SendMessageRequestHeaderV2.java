@@ -17,15 +17,21 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import java.util.HashMap;
+
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import io.netty.buffer.ByteBuf;
+
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
-public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
+public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String a; // producerGroup;
     @CFNotNull
@@ -92,6 +98,92 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "a", a);
+        writeIfNotNull(out, "b", b);
+        writeIfNotNull(out, "c", c);
+        writeIfNotNull(out, "d", d);
+        writeIfNotNull(out, "e", e);
+        writeIfNotNull(out, "f", f);
+        writeIfNotNull(out, "g", g);
+        writeIfNotNull(out, "h", h);
+        writeIfNotNull(out, "i", i);
+        writeIfNotNull(out, "j", j);
+        writeIfNotNull(out, "k", k);
+        writeIfNotNull(out, "l", l);
+        writeIfNotNull(out, "m", m);
+    }
+
+    @Override
+    public void decode(HashMap<String, String> fields) throws RemotingCommandException {
+
+        String str = getAndCheckNotNull(fields, "a");
+        if (str != null) {
+            a = str;
+        }
+
+        str = getAndCheckNotNull(fields, "b");
+        if (str != null) {
+            b = str;
+        }
+
+        str = getAndCheckNotNull(fields, "c");
+        if (str != null) {
+            c = str;
+        }
+
+        str = getAndCheckNotNull(fields, "d");
+        if (str != null) {
+            d = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "e");
+        if (str != null) {
+            e = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "f");
+        if (str != null) {
+            f = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "g");
+        if (str != null) {
+            g = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "h");
+        if (str != null) {
+            h = Integer.parseInt(str);
+        }
+
+        str = fields.get("i");
+        if (str != null) {
+            i = str;
+        }
+
+        str = fields.get("j");
+        if (str != null) {
+            j = Integer.parseInt(str);
+        }
+
+        str = fields.get("k");
+        if (str != null) {
+            k = Boolean.parseBoolean(str);
+        }
+
+        str = fields.get("l");
+        if (str != null) {
+            l = Integer.parseInt(str);
+        }
+
+        str = fields.get("m");
+        if (str != null) {
+            m = Boolean.parseBoolean(str);
+        }
     }
 
     public String getA() {
@@ -196,5 +288,24 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setM(boolean m) {
         this.m = m;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("a", a)
+            .add("b", b)
+            .add("c", c)
+            .add("d", d)
+            .add("e", e)
+            .add("f", f)
+            .add("g", g)
+            .add("h", h)
+            .add("i", i)
+            .add("j", j)
+            .add("k", k)
+            .add("l", l)
+            .add("m", m)
+            .toString();
     }
 }

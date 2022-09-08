@@ -1,7 +1,7 @@
 ﻿Apache RocketMQ Developer Guide
 --------
 
-##### This guide helps develpers understand and use Apache RocketMQ quickly.
+##### This guide helps developers to understand and use Apache RocketMQ quickly.
 
 ### 1. Concepts & Features
 
@@ -32,6 +32,9 @@
 - [Quick Start](dledger/quick_start.md)：introduce how to deploy Dledger quickly.
 
 - [Cluster Deployment](dledger/deploy_guide.md)：introduce how to deploy Dledger in cluster.
+
+- [Proxy Deployment](proxy/deploy_guide.md)
+  Introduce how to deploy proxy (both `Local` mode and `Cluster` mode).
 
 ### 5. Operation and maintenance management
 - [Operation](operation.md)：introduce RocketMQ's deployment modes that including single-master mode, multi-master mode, multi-master multi-slave mode and so on, as well as the usage of operation tool mqadmin.

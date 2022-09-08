@@ -18,11 +18,19 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.time.Duration;
+import java.util.concurrent.Executors;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -38,7 +46,7 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -59,6 +67,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -71,7 +80,8 @@ public class SendMessageProcessorTest {
     @Mock
     private ChannelHandlerContext handlerContext;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
+        new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private MessageStore messageStore;
 
@@ -84,6 +94,12 @@ public class SendMessageProcessorTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+        topicConfigManager.getTopicConfigTable().put(topic, new TopicConfig(topic));
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
@@ -93,16 +109,16 @@ public class SendMessageProcessorTest {
     }
 
     @Test
-    public void testProcessRequest() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+    public void testProcessRequest() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         assertPutResult(ResponseCode.SUCCESS);
     }
 
     @Test
-    public void testProcessRequest_WithHook() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+    public void testProcessRequest_WithHook() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         List<SendMessageHook> sendMessageHookList = new ArrayList<>();
         final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
         SendMessageHook sendMessageHook = new SendMessageHook() {
@@ -131,65 +147,65 @@ public class SendMessageProcessorTest {
     }
 
     @Test
-    public void testProcessRequest_FlushTimeOut() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_DISK_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_FlushTimeOut() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_DISK_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.FLUSH_DISK_TIMEOUT);
     }
 
     @Test
-    public void testProcessRequest_MessageIllegal() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_MessageIllegal() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.MESSAGE_ILLEGAL);
     }
 
     @Test
-    public void testProcessRequest_CreateMappedFileFailed() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_CreateMappedFileFailed() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test
-    public void testProcessRequest_FlushSlaveTimeout() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_FlushSlaveTimeout() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.FLUSH_SLAVE_TIMEOUT);
     }
 
     @Test
-    public void testProcessRequest_PageCacheBusy() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_PageCacheBusy() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test
-    public void testProcessRequest_PropertiesTooLong() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_PropertiesTooLong() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.MESSAGE_ILLEGAL);
     }
 
     @Test
-    public void testProcessRequest_ServiceNotAvailable() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_ServiceNotAvailable() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SERVICE_NOT_AVAILABLE);
     }
 
     @Test
-    public void testProcessRequest_SlaveNotAvailable() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SLAVE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+    public void testProcessRequest_SlaveNotAvailable() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SLAVE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SLAVE_NOT_AVAILABLE);
     }
 
     @Test
-    public void testProcessRequest_WithMsgBack() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+    public void testProcessRequest_WithMsgBack() throws Exception {
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         final RemotingCommand request = createSendMsgBackCommand(RequestCode.CONSUMER_SEND_MSG_BACK);
 
         sendMessageProcessor = new SendMessageProcessor(brokerController);
@@ -202,7 +218,7 @@ public class SendMessageProcessorTest {
     public void testProcessRequest_Transaction() throws RemotingCommandException {
         brokerController.setTransactionalMessageService(transactionMsgService);
         when(brokerController.getTransactionalMessageService().asyncPrepareMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+            .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
         doAnswer(new Answer() {
@@ -212,14 +228,85 @@ public class SendMessageProcessorTest {
                 return null;
             }
         }).when(handlerContext).writeAndFlush(any(Object.class));
-        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
-        if (responseToReturn != null) {
-            assertThat(response[0]).isNull();
-            response[0] = responseToReturn;
-        }
-        assertThat(response[0].getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(Duration.ofSeconds(10)).until(() -> {
+            RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
+            if (responseToReturn != null) {
+                assertThat(response[0]).isNull();
+                response[0] = responseToReturn;
+            }
 
+            if (response[0] == null) {
+                return false;
+            }
+            assertThat(response[0].getCode()).isEqualTo(ResponseCode.SUCCESS);
+            assertThat(response[0].getOpaque()).isEqualTo(request.getOpaque());
+            return true;
+        });
     }
+
+    @Test
+    public void testProcessRequest_WithAbortProcessSendMessageBeforeHook() throws Exception {
+        List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+        final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
+        SendMessageHook sendMessageHook = new SendMessageHook() {
+            @Override
+            public String hookName() {
+                return null;
+            }
+
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
+                sendMessageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
+
+            }
+        };
+        sendMessageHookList.add(sendMessageHook);
+        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        assertPutResult(ResponseCode.FLOW_CONTROL);
+        System.out.println(sendMessageContext[0]);
+        assertThat(sendMessageContext[0]).isNotNull();
+        assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
+        assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
+    }
+
+    @Test
+    public void testProcessRequest_WithMsgBackWithConsumeMessageAfterHook() throws Exception {
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).
+            thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        final RemotingCommand request = createSendMsgBackCommand(RequestCode.CONSUMER_SEND_MSG_BACK);
+
+        sendMessageProcessor = new SendMessageProcessor(brokerController);
+        List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+        final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
+        ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
+            @Override
+            public String hookName() {
+                return "TestHook";
+            }
+
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
+
+            }
+
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
+                messageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+        };
+        consumeMessageHookList.add(consumeMessageHook);
+        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        final RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
     private RemotingCommand createSendTransactionMsgCommand(int requestCode) {
         SendMessageRequestHeader header = createSendMsgRequestHeader();
         int sysFlag = header.getSysFlag();
@@ -270,6 +357,14 @@ public class SendMessageProcessorTest {
         return request;
     }
 
+    /**
+     * We will explain the logic of this method so you can get a better feeling of how to use it: This method assumes
+     * that if responseToReturn is not null, then there would be an error, which means the writeAndFlush are never
+     * reached. If responseToReturn is null, means everything ok, so writeAndFlush should record the actual response.
+     *
+     * @param responseCode
+     * @throws RemotingCommandException
+     */
     private void assertPutResult(int responseCode) throws RemotingCommandException {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
@@ -280,12 +375,19 @@ public class SendMessageProcessorTest {
                 return null;
             }
         }).when(handlerContext).writeAndFlush(any(Object.class));
-        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
-        if (responseToReturn != null) {
-            assertThat(response[0]).isNull();
-            response[0] = responseToReturn;
-        }
-        assertThat(response[0].getCode()).isEqualTo(responseCode);
-        assertThat(response[0].getOpaque()).isEqualTo(request.getOpaque());
+        await().atMost(Duration.ofSeconds(10)).until(() -> {
+            RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
+            if (responseToReturn != null) {
+                assertThat(response[0]).isNull();
+                response[0] = responseToReturn;
+            }
+
+            if (response[0] == null) {
+                return false;
+            }
+            assertThat(response[0].getCode()).isEqualTo(responseCode);
+            assertThat(response[0].getOpaque()).isEqualTo(request.getOpaque());
+            return true;
+        });
     }
 }

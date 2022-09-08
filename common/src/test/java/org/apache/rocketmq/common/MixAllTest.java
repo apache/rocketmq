@@ -75,7 +75,7 @@ public class MixAllTest {
             file.delete();
         }
         file.createNewFile();
-        PrintWriter out = new PrintWriter(fileName);
+        PrintWriter out = new PrintWriter(fileName, "UTF-8");
         out.write("TestForMixAll_中文");
         out.close();
         String string = MixAll.file2String(fileName);
@@ -94,5 +94,17 @@ public class MixAllTest {
     public void testGetLocalhostByNetworkInterface() throws Exception {
         assertThat(MixAll.LOCALHOST).isNotNull();
         assertThat(MixAll.getLocalhostByNetworkInterface()).isNotNull();
+    }
+
+    @Test
+    public void testIsLmq() {
+        String testLmq = null;
+        assertThat(MixAll.isLmq(testLmq)).isFalse();
+        testLmq = "lmq";
+        assertThat(MixAll.isLmq(testLmq)).isFalse();
+        testLmq = "%LMQ%queue123";
+        assertThat(MixAll.isLmq(testLmq)).isTrue();
+        testLmq = "%LMQ%GID_TEST";
+        assertThat(MixAll.isLmq(testLmq)).isTrue();
     }
 }

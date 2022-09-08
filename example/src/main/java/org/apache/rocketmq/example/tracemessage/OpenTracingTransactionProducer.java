@@ -35,10 +35,21 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import java.io.UnsupportedEncodingException;
 
 public class OpenTracingTransactionProducer {
+
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final String TAG = "Tag";
+    public static final String KEY = "KEY";
+    public static final int MESSAGE_COUNT = 100000;
+
     public static void main(String[] args) throws MQClientException, InterruptedException {
         Tracer tracer = initTracer();
 
-        TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
+        TransactionMQProducer producer = new TransactionMQProducer(PRODUCER_GROUP);
+
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.getDefaultMQProducerImpl().registerEndTransactionHook(new EndTransactionOpenTracingHookImpl(tracer));
 
@@ -56,15 +67,15 @@ public class OpenTracingTransactionProducer {
         producer.start();
 
         try {
-            Message msg = new Message("TopicTest", "Tag", "KEY",
-                    "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message(TOPIC, TAG, KEY,
+                "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET));
             SendResult sendResult = producer.sendMessageInTransaction(msg, null);
             System.out.printf("%s%n", sendResult);
         } catch (MQClientException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
             Thread.sleep(1000);
         }
         producer.shutdown();
@@ -72,14 +83,14 @@ public class OpenTracingTransactionProducer {
 
     private static Tracer initTracer() {
         Configuration.SamplerConfiguration samplerConfig = Configuration.SamplerConfiguration.fromEnv()
-                .withType(ConstSampler.TYPE)
-                .withParam(1);
+            .withType(ConstSampler.TYPE)
+            .withParam(1);
         Configuration.ReporterConfiguration reporterConfig = Configuration.ReporterConfiguration.fromEnv()
-                .withLogSpans(true);
+            .withLogSpans(true);
 
         Configuration config = new Configuration("rocketmq")
-                .withSampler(samplerConfig)
-                .withReporter(reporterConfig);
+            .withSampler(samplerConfig)
+            .withReporter(reporterConfig);
         GlobalTracer.registerIfAbsent(config.getTracer());
         return config.getTracer();
     }

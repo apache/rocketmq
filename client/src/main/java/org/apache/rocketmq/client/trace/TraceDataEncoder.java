@@ -17,9 +17,11 @@
 package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -144,7 +146,7 @@ public class TraceDataEncoder {
         if (ctx == null) {
             return null;
         }
-        //build message trace of the transfering entity content bean
+        //build message trace of the transferring entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {
@@ -218,7 +220,8 @@ public class TraceDataEncoder {
 
             transferBean.getTransKey().add(bean.getMsgId());
             if (bean.getKeys() != null && bean.getKeys().length() > 0) {
-                transferBean.getTransKey().add(bean.getKeys());
+                String[] keys = bean.getKeys().split(MessageConst.KEY_SEPARATOR);
+                transferBean.getTransKey().addAll(Arrays.asList(keys));
             }
         }
         return transferBean;

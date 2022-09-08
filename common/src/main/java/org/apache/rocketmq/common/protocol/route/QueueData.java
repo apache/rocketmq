@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-/**
- * $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+/*
+  $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.common.protocol.route;
 
@@ -26,6 +26,19 @@ public class QueueData implements Comparable<QueueData> {
     private int writeQueueNums;
     private int perm;
     private int topicSysFlag;
+
+    public QueueData() {
+
+    }
+
+    // Deep copy QueueData
+    public QueueData(QueueData queueData) {
+        this.brokerName = queueData.brokerName;
+        this.readQueueNums = queueData.readQueueNums;
+        this.writeQueueNums = queueData.writeQueueNums;
+        this.perm = queueData.perm;
+        this.topicSysFlag = queueData.topicSysFlag;
+    }
 
     public int getReadQueueNums() {
         return readQueueNums;
@@ -91,9 +104,7 @@ public class QueueData implements Comparable<QueueData> {
             return false;
         if (writeQueueNums != other.writeQueueNums)
             return false;
-        if (topicSysFlag != other.topicSysFlag)
-            return false;
-        return true;
+        return topicSysFlag == other.topicSysFlag;
     }
 
     @Override

@@ -64,6 +64,15 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt = new Option("c", "cplus", false, "reset c++ client offset");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("b", "broker", true, "broker addr");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("q", "queue", true, "queue id");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -75,7 +84,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
-            long timestamp = timeStampStr.equals("now") ? System.currentTimeMillis() : 0;
+            long timestamp = timeStampStr.equals("now") ? -1 : 0;
 
             try {
                 if (timestamp == 0) {
@@ -96,7 +105,36 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 isC = true;
             }
 
+            String brokerAddr = null;
+            if (commandLine.hasOption('b')) {
+                brokerAddr = commandLine.getOptionValue("b");
+            }
+            int queueId = -1;
+            if (commandLine.hasOption("q")) {
+                queueId = Integer.parseInt(commandLine.getOptionValue('q'));
+            }
+
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+            }
+
             defaultMQAdminExt.start();
+
+            if (brokerAddr != null && queueId > -1) {
+                System.out.printf("rollback consumer offset by specified group[%s], topic[%s], queueId[%s], broker[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+                        group, topic, queueId, brokerAddr, timeStampStr, timestamp);
+                try {
+                    long resetOffset = defaultMQAdminExt.searchOffset(brokerAddr, topic, queueId, timestamp, 3000);
+                    System.out.printf("Rollback Offset is: %s", resetOffset);
+                    if (resetOffset > 0) {
+                        defaultMQAdminExt.resetOffsetByQueueId(brokerAddr, group, topic, queueId, resetOffset);
+                    }
+                } catch (Throwable e) {
+                    throw e;
+                }
+                return;
+            }
+
             Map<MessageQueue, Long> offsetTable;
             try {
                 offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force, isC);

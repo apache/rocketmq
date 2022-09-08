@@ -17,25 +17,33 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
     public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
@@ -93,7 +101,16 @@ public class RemotingCommand {
         return cmd;
     }
 
-    private static void setCmdVersion(RemotingCommand cmd) {
+    public static RemotingCommand createResponseCommandWithHeader(int code, CommandCustomHeader customHeader) {
+        RemotingCommand cmd = new RemotingCommand();
+        cmd.setCode(code);
+        cmd.markResponseType();
+        cmd.customHeader = customHeader;
+        setCmdVersion(cmd);
+        return cmd;
+    }
+
+    protected static void setCmdVersion(RemotingCommand cmd) {
         if (configVersion >= 0) {
             cmd.setVersion(configVersion);
         } else {
@@ -110,6 +127,18 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
+    public static RemotingCommand buildErrorResponse(int code, String remark,
+        Class<? extends CommandCustomHeader> classHeader) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(classHeader);
+        response.setCode(code);
+        response.setRemark(remark);
+        return response;
+    }
+
+    public static RemotingCommand buildErrorResponse(int code, String remark) {
+        return buildErrorResponse(code, remark, null);
+    }
+
     public static RemotingCommand createResponseCommand(int code, String remark,
         Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
@@ -120,11 +149,15 @@ public class RemotingCommand {
 
         if (classHeader != null) {
             try {
-                CommandCustomHeader objectHeader = classHeader.newInstance();
+                CommandCustomHeader objectHeader = classHeader.getDeclaredConstructor().newInstance();
                 cmd.customHeader = objectHeader;
             } catch (InstantiationException e) {
                 return null;
             } catch (IllegalAccessException e) {
+                return null;
+            } catch (InvocationTargetException e) {
+                return null;
+            } catch (NoSuchMethodException e) {
                 return null;
             }
         }
@@ -136,26 +169,30 @@ public class RemotingCommand {
         return createResponseCommand(code, remark, null);
     }
 
-    public static RemotingCommand decode(final byte[] array) {
+    public static RemotingCommand decode(final byte[] array) throws RemotingCommandException {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
     }
 
-    public static RemotingCommand decode(final ByteBuffer byteBuffer) {
-        int length = byteBuffer.limit();
-        int oriHeaderLen = byteBuffer.getInt();
+    public static RemotingCommand decode(final ByteBuffer byteBuffer) throws RemotingCommandException {
+        return decode(Unpooled.wrappedBuffer(byteBuffer));
+    }
+
+    public static RemotingCommand decode(final ByteBuf byteBuffer) throws RemotingCommandException {
+        int length = byteBuffer.readableBytes();
+        int oriHeaderLen = byteBuffer.readInt();
         int headerLength = getHeaderLength(oriHeaderLen);
+        if (headerLength > length - 4) {
+            throw new RemotingCommandException("decode error, bad header length: " + headerLength);
+        }
 
-        byte[] headerData = new byte[headerLength];
-        byteBuffer.get(headerData);
-
-        RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
+        RemotingCommand cmd = headerDecode(byteBuffer, headerLength, getProtocolType(oriHeaderLen));
 
         int bodyLength = length - 4 - headerLength;
         byte[] bodyData = null;
         if (bodyLength > 0) {
             bodyData = new byte[bodyLength];
-            byteBuffer.get(bodyData);
+            byteBuffer.readBytes(bodyData);
         }
         cmd.body = bodyData;
 
@@ -166,14 +203,17 @@ public class RemotingCommand {
         return length & 0xFFFFFF;
     }
 
-    private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
+    private static RemotingCommand headerDecode(ByteBuf byteBuffer, int len,
+        SerializeType type) throws RemotingCommandException {
         switch (type) {
             case JSON:
+                byte[] headerData = new byte[len];
+                byteBuffer.readBytes(headerData);
                 RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
                 resultJson.setSerializeTypeCurrentRPC(type);
                 return resultJson;
             case ROCKETMQ:
-                RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(headerData);
+                RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(byteBuffer, len);
                 resultRMQ.setSerializeTypeCurrentRPC(type);
                 return resultRMQ;
             default:
@@ -208,14 +248,8 @@ public class RemotingCommand {
         return true;
     }
 
-    public static byte[] markProtocolType(int source, SerializeType type) {
-        byte[] result = new byte[4];
-
-        result[0] = type.getCode();
-        result[1] = (byte) ((source >> 16) & 0xFF);
-        result[2] = (byte) ((source >> 8) & 0xFF);
-        result[3] = (byte) (source & 0xFF);
-        return result;
+    public static int markProtocolType(int source, SerializeType type) {
+        return (type.getCode() << 24) | (source & 0x00FFFFFF);
     }
 
     public void markResponseType() {
@@ -233,16 +267,30 @@ public class RemotingCommand {
 
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+        return decodeCommandCustomHeader(classHeader, true);
+    }
+
+    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader,
+        boolean useFastEncode) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
-            objectHeader = classHeader.newInstance();
+            objectHeader = classHeader.getDeclaredConstructor().newInstance();
         } catch (InstantiationException e) {
             return null;
         } catch (IllegalAccessException e) {
             return null;
+        } catch (InvocationTargetException e) {
+            return null;
+        } catch (NoSuchMethodException e) {
+            return null;
         }
 
         if (this.extFields != null) {
+            if (objectHeader instanceof FastCodesHeader && useFastEncode) {
+                ((FastCodesHeader) objectHeader).decode(this.extFields);
+                objectHeader.checkFields();
+                return objectHeader;
+            }
 
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
@@ -291,11 +339,17 @@ public class RemotingCommand {
         return objectHeader;
     }
 
-    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
+    //make it able to test
+    Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
         Field[] field = CLASS_HASH_MAP.get(classHeader);
 
         if (field == null) {
-            field = classHeader.getDeclaredFields();
+            Set<Field> fieldList = new HashSet<Field>();
+            for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
+                Field[] fields = className.getDeclaredFields();
+                fieldList.addAll(Arrays.asList(fields));
+            }
+            field = fieldList.toArray(new Field[0]);
             synchronized (CLASS_HASH_MAP) {
                 CLASS_HASH_MAP.put(classHeader, field);
             }
@@ -344,7 +398,7 @@ public class RemotingCommand {
         result.putInt(length);
 
         // header length
-        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
+        result.putInt(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
         result.put(headerData);
@@ -396,6 +450,27 @@ public class RemotingCommand {
         }
     }
 
+    public void fastEncodeHeader(ByteBuf out) {
+        int bodySize = this.body != null ? this.body.length : 0;
+        int beginIndex = out.writerIndex();
+        // skip 8 bytes
+        out.writeLong(0);
+        int headerSize;
+        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
+            if (customHeader != null && !(customHeader instanceof FastCodesHeader)) {
+                this.makeCustomHeaderToNet();
+            }
+            headerSize = RocketMQSerializable.rocketMQProtocolEncode(this, out);
+        } else {
+            this.makeCustomHeaderToNet();
+            byte[] header = RemotingSerializable.encode(this);
+            headerSize = header.length;
+            out.writeBytes(header);
+        }
+        out.setInt(beginIndex, 4 + headerSize + bodySize);
+        out.setInt(beginIndex + 4, markProtocolType(headerSize, serializeTypeCurrentRPC));
+    }
+
     public ByteBuffer encodeHeader() {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
@@ -419,7 +494,7 @@ public class RemotingCommand {
         result.putInt(length);
 
         // header length
-        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
+        result.putInt(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
         result.put(headerData);

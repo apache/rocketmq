@@ -68,6 +68,9 @@ public class LoggingEvent implements java.io.Serializable {
             } else {
                 renderedMessage = message.toString();
             }
+            if (renderedMessage != null) {
+                renderedMessage = renderedMessage.replace('\r', ' ').replace('\n', ' ');
+            }
         }
         return renderedMessage;
     }

@@ -70,8 +70,11 @@ public class DefaultMessageStoreShutDownTest {
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), null, new BrokerConfig());
+        messageStoreConfig.setHaListenPort(0);
+        String storeRootPath = System.getProperty("java.io.tmpdir") + File.separator + "store";
+        messageStoreConfig.setStorePathRootDir(storeRootPath);
+        messageStoreConfig.setHaListenPort(0);
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig());
     }
-
 
 }

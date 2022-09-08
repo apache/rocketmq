@@ -39,11 +39,11 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -58,7 +58,7 @@ public class ExportMetricsCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export metrics";
+        return "Export metrics";
     }
 
     @Override
@@ -186,7 +186,7 @@ public class ExportMetricsCommand implements SubCommand {
 
         try {
             transStatsData = defaultMQAdminExt.viewBrokerStatsData(brokerAddr,
-                BrokerStatsManager.TOPIC_PUT_NUMS,
+                Stats.TOPIC_PUT_NUMS,
                 TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         } catch (MQClientException e) {
         }
@@ -194,7 +194,7 @@ public class ExportMetricsCommand implements SubCommand {
         BrokerStatsData scheduleStatsData = null;
         try {
             scheduleStatsData = defaultMQAdminExt.viewBrokerStatsData(brokerAddr,
-                BrokerStatsManager.TOPIC_PUT_NUMS, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+                Stats.TOPIC_PUT_NUMS, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
         } catch (MQClientException e) {
         }
 
@@ -210,13 +210,13 @@ public class ExportMetricsCommand implements SubCommand {
         double normalInTps = 0;
         double normalOutTps = 0;
         String putTps = kvTable.getTable().get("putTps");
-        String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+        String getTransferredTps = kvTable.getTable().get("getTransferredTps");
         String[] inTpss = putTps.split(" ");
         if (inTpss.length > 0) {
             normalInTps = Double.parseDouble(inTpss[0]);
         }
 
-        String[] outTpss = getTransferedTps.split(" ");
+        String[] outTpss = getTransferredTps.split(" ");
         if (outTpss.length > 0) {
             normalOutTps = Double.parseDouble(outTpss[0]);
         }

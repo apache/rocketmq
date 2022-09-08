@@ -17,22 +17,44 @@
 
 package org.apache.rocketmq.broker.plugin;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.SystemClock;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.store.AllocateMappedFileService;
+import org.apache.rocketmq.store.AppendMessageResult;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.CommitLogDispatcher;
-import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.StoreCheckpoint;
+import org.apache.rocketmq.store.StoreStatsService;
+import org.apache.rocketmq.store.TransientStorePool;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.hook.PutMessageHook;
+import org.apache.rocketmq.store.hook.SendMessageBackHook;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.util.PerfCounter;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
@@ -107,6 +129,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId) {
         return next.getMaxOffsetInQueue(topic, queueId);
+    }
+
+    @Override
+    public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
+        return next.getMaxOffsetInQueue(topic, queueId, committed);
     }
 
     @Override
@@ -196,16 +223,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void updateHaMasterAddress(String newAddr) {
-        next.updateHaMasterAddress(newAddr);
-    }
-
-    @Override
-    public long slaveFallBehindMuch() {
-        return next.slaveFallBehindMuch();
-    }
-
-    @Override
     public long now() {
         return next.now();
     }
@@ -256,12 +273,310 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueue getConsumeQueue(String topic, int queueId) {
+    public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
         return next.getConsumeQueue(topic, queueId);
+    }
+
+    @Override
+    public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
+        return next.findConsumeQueue(topic, queueId);
     }
 
     @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return next.getBrokerStatsManager();
-    };
+    }
+
+    @Override
+    public int remainTransientStoreBufferNumbs() {
+        return next.remainTransientStoreBufferNumbs();
+    }
+
+    @Override
+    public long remainHowManyDataToCommit() {
+        return next.remainHowManyDataToCommit();
+    }
+
+    @Override
+    public long remainHowManyDataToFlush() {
+        return next.remainHowManyDataToFlush();
+    }
+
+    @Override
+    public DispatchRequest checkMessageAndReturnSize(final ByteBuffer byteBuffer, final boolean checkCRC,
+        final boolean checkDupInfo, final boolean readBody) {
+        return next.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, readBody);
+    }
+
+    @Override
+    public long getStateMachineVersion() {
+        return next.getStateMachineVersion();
+    }
+
+    @Override
+    public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
+        return next.putMessages(messageExtBatch);
+    }
+
+    @Override
+    public HARuntimeInfo getHARuntimeInfo() {
+        return next.getHARuntimeInfo();
+    }
+
+    @Override
+    public boolean getLastMappedFile(long startOffset) {
+        return next.getLastMappedFile(startOffset);
+    }
+
+    @Override
+    public void updateHaMasterAddress(String newAddr) {
+        next.updateHaMasterAddress(newAddr);
+    }
+
+    @Override
+    public void updateMasterAddress(String newAddr) {
+        next.updateMasterAddress(newAddr);
+    }
+
+    @Override
+    public long slaveFallBehindMuch() {
+        return next.slaveFallBehindMuch();
+    }
+
+    @Override
+    public long getFlushedWhere() {
+        return next.getFlushedWhere();
+    }
+
+    @Override
+    public MessageStore getMasterStoreInProcess() {
+        return next.getMasterStoreInProcess();
+    }
+
+    @Override
+    public void setMasterStoreInProcess(MessageStore masterStoreInProcess) {
+        next.setMasterStoreInProcess(masterStoreInProcess);
+    }
+
+    @Override
+    public boolean getData(long offset, int size, ByteBuffer byteBuffer) {
+        return next.getData(offset, size, byteBuffer);
+    }
+
+    @Override
+    public void setAliveReplicaNumInGroup(int aliveReplicaNums) {
+        next.setAliveReplicaNumInGroup(aliveReplicaNums);
+    }
+
+    @Override
+    public int getAliveReplicaNumInGroup() {
+        return next.getAliveReplicaNumInGroup();
+    }
+
+    @Override
+    public void wakeupHAClient() {
+        next.wakeupHAClient();
+    }
+
+    @Override
+    public long getMasterFlushedOffset() {
+        return next.getMasterFlushedOffset();
+    }
+
+    @Override
+    public long getBrokerInitMaxOffset() {
+        return next.getBrokerInitMaxOffset();
+    }
+
+    @Override
+    public void setMasterFlushedOffset(long masterFlushedOffset) {
+        next.setMasterFlushedOffset(masterFlushedOffset);
+    }
+
+    @Override
+    public void setBrokerInitMaxOffset(long brokerInitMaxOffset) {
+        next.setBrokerInitMaxOffset(brokerInitMaxOffset);
+    }
+
+    @Override
+    public byte[] calcDeltaChecksum(long from, long to) {
+        return next.calcDeltaChecksum(from, to);
+    }
+
+    @Override
+    public HAService getHaService() {
+        return next.getHaService();
+    }
+
+    @Override
+    public boolean truncateFiles(long offsetToTruncate) {
+        return next.truncateFiles(offsetToTruncate);
+    }
+
+    @Override
+    public boolean isOffsetAligned(long offset) {
+        return next.isOffsetAligned(offset);
+    }
+
+    @Override
+    public RunningFlags getRunningFlags() {
+        return next.getRunningFlags();
+    }
+
+    @Override
+    public void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook) {
+        next.setSendMessageBackHook(sendMessageBackHook);
+    }
+
+    @Override
+    public SendMessageBackHook getSendMessageBackHook() {
+        return next.getSendMessageBackHook();
+    }
+
+    @Override
+    public GetMessageResult getMessage(String group, String topic, int queueId, long offset,
+        int maxMsgNums, int maxTotalMsgSize, MessageFilter messageFilter) {
+        return next.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize, messageFilter);
+    }
+
+    @Override
+    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
+        return next.lookMessageByOffset(commitLogOffset, size);
+    }
+
+    @Override
+    public List<SelectMappedBufferResult> getBulkCommitLogData(long offset, int size) {
+        return next.getBulkCommitLogData(offset, size);
+    }
+
+    @Override
+    public void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
+        next.onCommitLogAppend(msg, result, commitLogFile);
+    }
+
+    @Override
+    public void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
+        boolean isRecover, boolean isFileEnd) {
+        next.onCommitLogDispatch(dispatchRequest, doDispatch, commitLogFile, isRecover, isFileEnd);
+    }
+
+    @Override
+    public MessageStoreConfig getMessageStoreConfig() {
+        return next.getMessageStoreConfig();
+    }
+
+    @Override
+    public StoreStatsService getStoreStatsService() {
+        return next.getStoreStatsService();
+    }
+
+    @Override
+    public StoreCheckpoint getStoreCheckpoint() {
+        return next.getStoreCheckpoint();
+    }
+
+    @Override
+    public SystemClock getSystemClock() {
+        return next.getSystemClock();
+    }
+
+    @Override
+    public CommitLog getCommitLog() {
+        return next.getCommitLog();
+    }
+
+    @Override
+    public TransientStorePool getTransientStorePool() {
+        return next.getTransientStorePool();
+    }
+
+    @Override
+    public AllocateMappedFileService getAllocateMappedFileService() {
+        return next.getAllocateMappedFileService();
+    }
+
+    @Override
+    public void truncateDirtyLogicFiles(long phyOffset) {
+        next.truncateDirtyLogicFiles(phyOffset);
+    }
+
+    @Override
+    public void destroyLogics() {
+        next.destroyLogics();
+    }
+
+    @Override
+    public void unlockMappedFile(MappedFile unlockMappedFile) {
+        next.unlockMappedFile(unlockMappedFile);
+    }
+
+    @Override
+    public PerfCounter.Ticks getPerfCounter() {
+        return next.getPerfCounter();
+    }
+
+    @Override
+    public ConsumeQueueStore getQueueStore() {
+        return next.getQueueStore();
+    }
+
+    @Override
+    public boolean isSyncDiskFlush() {
+        return next.isSyncDiskFlush();
+    }
+
+    @Override
+    public boolean isSyncMaster() {
+        return next.isSyncMaster();
+    }
+
+    @Override
+    public void assignOffset(MessageExtBrokerInner msg, short messageNum) {
+        next.assignOffset(msg, messageNum);
+    }
+
+    @Override
+    public Optional<TopicConfig> getTopicConfig(String topic) {
+        return next.getTopicConfig(topic);
+    }
+
+    @Override
+    public List<PutMessageHook> getPutMessageHookList() {
+        return next.getPutMessageHookList();
+    }
+
+    @Override
+    public long getLastFileFromOffset() {
+        return next.getLastFileFromOffset();
+    }
+
+    @Override
+    public void setPhysicalOffset(long phyOffset) {
+        next.setPhysicalOffset(phyOffset);
+    }
+
+    @Override
+    public boolean isMappedFilesEmpty() {
+        return next.isMappedFilesEmpty();
+    }
+
+    @Override
+    public TimerMessageStore getTimerMessageStore() {
+        return next.getTimerMessageStore();
+    }
+
+    @Override
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        next.setTimerMessageStore(timerMessageStore);
+    }
+
+    @Override
+    public long getTimingMessageCount(String topic) {
+        return next.getTimingMessageCount(topic);
+    }
+
+    @Override
+    public boolean isShutdown() {
+        return next.isShutdown();
+    }
 }

@@ -17,10 +17,16 @@
 package org.apache.rocketmq.common.constant;
 
 public class PermName {
-    public static final int PERM_PRIORITY = 0x1 << 3;
-    public static final int PERM_READ = 0x1 << 2;
-    public static final int PERM_WRITE = 0x1 << 1;
-    public static final int PERM_INHERIT = 0x1;
+    public static final int INDEX_PERM_PRIORITY = 3;
+    public static final int INDEX_PERM_READ = 2;
+    public static final int INDEX_PERM_WRITE = 1;
+    public static final int INDEX_PERM_INHERIT = 0;
+
+
+    public static final int PERM_PRIORITY = 0x1 << INDEX_PERM_PRIORITY;
+    public static final int PERM_READ = 0x1 << INDEX_PERM_READ;
+    public static final int PERM_WRITE = 0x1 << INDEX_PERM_WRITE;
+    public static final int PERM_INHERIT = 0x1 << INDEX_PERM_INHERIT;
 
     public static String perm2String(final int perm) {
         final StringBuilder sb = new StringBuilder("---");
@@ -49,5 +55,17 @@ public class PermName {
 
     public static boolean isInherited(final int perm) {
         return (perm & PERM_INHERIT) == PERM_INHERIT;
+    }
+
+    public static boolean isValid(final String perm) {
+        return isValid(Integer.parseInt(perm));
+    }
+
+    public static boolean isValid(final int perm) {
+        return perm >= PERM_INHERIT && perm < PERM_PRIORITY;
+    }
+    
+    public static boolean isPriority(final int perm) {
+        return (perm & PERM_PRIORITY) == PERM_PRIORITY;
     }
 }

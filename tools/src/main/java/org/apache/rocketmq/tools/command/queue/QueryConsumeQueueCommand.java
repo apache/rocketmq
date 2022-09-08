@@ -22,6 +22,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.protocol.body.ConsumeQueueData;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -92,9 +93,9 @@ public class QueryConsumeQueueCommand implements SubCommand {
             defaultMQAdminExt.start();
 
             String topic = commandLine.getOptionValue("t").trim();
-            int queueId = Integer.valueOf(commandLine.getOptionValue("q").trim());
-            long index = Long.valueOf(commandLine.getOptionValue("i").trim());
-            int count = Integer.valueOf(commandLine.getOptionValue("c", "10").trim());
+            int queueId = Integer.parseInt(commandLine.getOptionValue("q").trim());
+            long index = Long.parseLong(commandLine.getOptionValue("i").trim());
+            int count = Integer.parseInt(commandLine.getOptionValue("c", "10").trim());
             String broker = null;
             if (commandLine.hasOption("b")) {
                 broker = commandLine.getOptionValue("b").trim();
@@ -104,7 +105,7 @@ public class QueryConsumeQueueCommand implements SubCommand {
                 consumerGroup = commandLine.getOptionValue("g").trim();
             }
 
-            if (broker == null || broker == "") {
+            if (StringUtils.isEmpty(broker)) {
                 TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
 
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null
