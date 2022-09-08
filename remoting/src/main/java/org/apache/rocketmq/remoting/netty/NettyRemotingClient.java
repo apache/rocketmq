@@ -468,7 +468,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return response;
             } catch (RemotingSendRequestException e) {
                 LOGGER.warn("invokeSync: send request exception, so close the channel[{}]", addr);
-                doAfterRpcFailure(addr, request, false);
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
@@ -476,7 +475,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     this.closeChannel(addr, channel);
                     LOGGER.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                 }
-                doAfterRpcFailure(addr, request, true);
                 LOGGER.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
                 throw e;
             }
@@ -686,7 +684,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
                 LOGGER.warn("invokeOneway: send request exception, so close the channel[{}]", addr);
-                doAfterRpcFailure(addr, request, false);
                 this.closeChannel(addr, channel);
                 throw e;
             }

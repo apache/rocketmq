@@ -743,11 +743,31 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setTotalReplicas(2);
         messageStoreConfig.setInSyncReplicas(2);
         messageStoreConfig.setEnableAutoInSyncReplicas(false);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
         this.messageStore.setAliveReplicaNumInGroup(1);
 
         MessageExtBrokerInner msg = buildMessage();
         PutMessageResult result = this.messageStore.putMessage(msg);
         assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+    }
+
+
+    @Test
+    public void testPutMsgWhenAdaptiveDegradation () {
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) this.messageStore).getMessageStoreConfig();
+        messageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
+        messageStoreConfig.setTotalReplicas(2);
+        messageStoreConfig.setInSyncReplicas(2);
+        messageStoreConfig.setEnableAutoInSyncReplicas(true);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        this.messageStore.setAliveReplicaNumInGroup(1);
+
+        MessageExtBrokerInner msg = buildMessage();
+        PutMessageResult result = this.messageStore.putMessage(msg);
+        assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+        messageStoreConfig.setEnableAutoInSyncReplicas(false);
     }
 
 

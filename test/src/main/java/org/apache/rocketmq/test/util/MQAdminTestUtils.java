@@ -23,12 +23,15 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -45,6 +48,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
+
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 
 public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
@@ -153,6 +158,36 @@ public class MQAdminTestUtils {
         return false;
     }
 
+
+    public static boolean awaitStaticTopicMs(long timeMs, String topic, DefaultMQAdminExt defaultMQAdminExt, MQClientInstance clientInstance) throws Exception {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start <= timeMs) {
+            if (checkStaticTopic(topic, defaultMQAdminExt, clientInstance)) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
+    }
+
+    //Check if the client metadata is consistent with server metadata
+    public static boolean checkStaticTopic(String topic, DefaultMQAdminExt defaultMQAdminExt, MQClientInstance clientInstance) throws Exception {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+        assert !brokerConfigMap.isEmpty();
+        TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+        TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+        Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+        for (int i = 0; i < globalIdMap.size(); i++) {
+            TopicQueueMappingOne mappingOne = globalIdMap.get(i);
+            String mockBrokerName = TopicQueueMappingUtils.getMockBrokerName(mappingOne.getMappingDetail().getScope());
+            String bnameFromRoute = clientInstance.getBrokerNameFromMessageQueue(new MessageQueue(topic, mockBrokerName, mappingOne.getGlobalId()));
+            if (!mappingOne.getBname().equals(bnameFromRoute)) {
+                return false;
+            }
+        }
+        return  true;
+    }
+
     //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
     public static Map<String, TopicConfigAndQueueMapping> createStaticTopic(String topic, int queueNum, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
@@ -171,6 +206,7 @@ public class MQAdminTestUtils {
         MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
         MQAdminUtils.remappingStaticTopic(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), brokerConfigMap, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, false, defaultMQAdminExt);
     }
+
 
     //for test only
     public static void remappingStaticTopicWithNegativeLogicOffset(String topic, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {

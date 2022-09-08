@@ -24,6 +24,4 @@ public interface RPCHook {
 
     void doAfterResponse(final String remoteAddr, final RemotingCommand request,
                          final RemotingCommand response);
-
-    void doAfterRpcFailure(final String remoteAddr, RemotingCommand request, Boolean remoteTimeout);
 }

@@ -56,6 +56,8 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setdLegerGroup(group);
         storeConfig.setdLegerPeers(peers);
         storeConfig.setdLegerSelfId(selfId);
+
+        storeConfig.setRecheckReputOffsetFromCq(true);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());

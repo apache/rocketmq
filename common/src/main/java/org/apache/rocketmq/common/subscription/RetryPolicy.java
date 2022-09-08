@@ -17,15 +17,12 @@
 
 package org.apache.rocketmq.common.subscription;
 
-import java.util.concurrent.TimeUnit;
-
 public interface RetryPolicy {
     /**
      * Compute message's next delay duration by specify reconsumeTimes
      *
      * @param reconsumeTimes Message reconsumeTimes
-     * @param timeUnit       Given timeUnit
-     * @return Message's nextDelayDuration in given timeUnit
+     * @return Message's nextDelayDuration in milliseconds
      */
-    long nextDelayDuration(int reconsumeTimes, TimeUnit timeUnit);
+    long nextDelayDuration(int reconsumeTimes);
 }
