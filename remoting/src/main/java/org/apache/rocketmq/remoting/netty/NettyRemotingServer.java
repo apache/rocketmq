@@ -245,9 +245,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             if (0 == nettyServerConfig.getListenPort()) {
                 this.nettyServerConfig.setListenPort(addr.getPort());
-                log.info("Server is listening {}:{}", this.nettyServerConfig.getBindAddress(),
-                    this.nettyServerConfig.getListenPort());
             }
+            log.info("RemotingServer started, listening {}:{}", this.nettyServerConfig.getBindAddress(),
+                this.nettyServerConfig.getListenPort());
             this.remotingServerTable.put(this.nettyServerConfig.getListenPort(), this);
         } catch (Exception e) {
             throw new IllegalStateException(String.format("Failed to bind to %s:%d", nettyServerConfig.getBindAddress(),
