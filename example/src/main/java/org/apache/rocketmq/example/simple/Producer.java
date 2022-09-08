@@ -23,22 +23,25 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class Producer {
+
+    public static final String PRODUCER_GROUP = "ProducerGroupName";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final String TAG = "TagA";
+
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
-        producer.start();
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
 
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+        //producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+
+        producer.start();
         for (int i = 0; i < 128; i++)
             try {
-                {
-                    Message msg = new Message("TopicTest",
-                        "TagA",
-                        "OrderID188",
-                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-                    SendResult sendResult = producer.send(msg);
-                    System.out.printf("%s%n", sendResult);
-                }
-
+                Message msg = new Message(TOPIC, TAG, "OrderID188", "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                SendResult sendResult = producer.send(msg);
+                System.out.printf("%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
             }
