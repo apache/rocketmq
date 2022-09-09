@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -53,9 +54,11 @@ public class PlainPermissionManagerTest {
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
 
-    private static final String PATH = PlainPermissionManagerTest.class.getResource(File.separator).getFile();
+    private static final String PATH = "src/test/resources";
 
     private static final String DEFAULT_TOPIC = "topic-acl";
+
+    private static final String OS = System.getProperty("os.name").toLowerCase();
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
@@ -232,23 +235,24 @@ public class PlainPermissionManagerTest {
 
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
 
-        String samefilePath = file.getAbsolutePath()+"/conf/acl/.";
+        String samefilePath = file.getAbsolutePath()+"/conf/acl/.".replace("/", File.separator);
         String samefilePath2 = "/" +file.getAbsolutePath()+"/conf/acl";
         String samefilePath3 = file.getAbsolutePath()+"/conf/acl/../"+file.getAbsolutePath();
-        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///";
-        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./";
+        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///".replace("/", File.separator);;
+        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./".replace("/", File.separator);;
 
         int size = plainPermissionManager.getDataVersionMap().size();
 
         plainPermissionManager.load(samefilePath);
         Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
 
-        plainPermissionManager.load(samefilePath2);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+        if(!StringUtils.contains(OS, "windows")){
+            plainPermissionManager.load(samefilePath2);
+            Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
 
-        plainPermissionManager.load(samefilePath3);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
+            plainPermissionManager.load(samefilePath3);
+            Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+        }
         plainPermissionManager.load(samefilePath4);
         Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
 
@@ -262,7 +266,7 @@ public class PlainPermissionManagerTest {
         File file = new File(PATH);
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
 
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "/conf/acl/plain_acl_test.yml";
+        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "/conf/acl/plain_acl_test.yml".replace("/", File.separator);
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
