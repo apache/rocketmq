@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
@@ -37,7 +38,6 @@ import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.rocketmq.test.base.IntegrationTestBase.nextPort;
 import static sun.util.locale.BaseLocale.SEP;
 
 public class DLedgerProduceAndConsumeIT {
@@ -56,7 +56,7 @@ public class DLedgerProduceAndConsumeIT {
         String baseDir =  IntegrationTestBase.createBaseDir();
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setHaListenPort(nextPort());
+        storeConfig.setHaListenPort(0);
         storeConfig.setMappedFileSizeCommitLog(10 * 1024 * 1024);
         storeConfig.setEnableDLegerCommitLog(true);
         storeConfig.setdLegerGroup(brokerName);
@@ -70,18 +70,19 @@ public class DLedgerProduceAndConsumeIT {
         String cluster = UUID.randomUUID().toString();
         String brokerName = UUID.randomUUID().toString();
         String selfId = "n0";
-        String peers = String.format("n0-localhost:%d", nextPort());
+        // TODO: We need to acquire the actual listening port after the peer has started.
+        String peers = String.format("n0-localhost:%d", 0);
         BrokerConfig brokerConfig = buildBrokerConfig(cluster, brokerName);
         MessageStoreConfig storeConfig = buildStoreConfig(brokerName, peers, selfId);
         BrokerController brokerController = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
-        Thread.sleep(3000);
+        BaseConf.waitBrokerRegistered(BaseConf.nsAddr, brokerConfig.getBrokerName(), 1);
 
         Assert.assertEquals(BrokerRole.SYNC_MASTER, storeConfig.getBrokerRole());
 
 
         String topic = UUID.randomUUID().toString();
         String consumerGroup = UUID.randomUUID().toString();
-        IntegrationTestBase.initTopic(topic, BaseConf.nsAddr, cluster, 1);
+        IntegrationTestBase.initTopic(topic, BaseConf.nsAddr, cluster, 1, CQType.SimpleCQ);
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(BaseConf.nsAddr);
         DefaultMQPullConsumer consumer = ConsumerFactory.getRMQPullConsumer(BaseConf.nsAddr, consumerGroup);
 

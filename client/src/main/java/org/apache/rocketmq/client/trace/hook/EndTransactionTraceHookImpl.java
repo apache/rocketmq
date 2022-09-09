@@ -63,7 +63,7 @@ public class EndTransactionTraceHookImpl implements EndTransactionHook {
         traceBean.setKeys(context.getMessage().getKeys());
         traceBean.setStoreHost(context.getBrokerAddr());
         traceBean.setMsgType(MessageType.Trans_msg_Commit);
-        traceBean.setClientHost(((AsyncTraceDispatcher)localDispatcher).getHostProducer().getmQClientFactory().getClientId());
+        traceBean.setClientHost(((AsyncTraceDispatcher)localDispatcher).getHostProducer().getMqClientFactory().getClientId());
         traceBean.setMsgId(context.getMsgId());
         traceBean.setTransactionState(context.getTransactionState());
         traceBean.setTransactionId(context.getTransactionId());

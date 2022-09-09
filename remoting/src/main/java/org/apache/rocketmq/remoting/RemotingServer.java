@@ -36,6 +36,12 @@ public interface RemotingServer extends RemotingService {
 
     Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(final int requestCode);
 
+    Pair<NettyRequestProcessor, ExecutorService> getDefaultProcessorPair();
+
+    RemotingServer newRemotingServer(int port);
+
+    void removeRemotingServer(int port);
+
     RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
         RemotingTimeoutException;

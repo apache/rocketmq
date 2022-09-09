@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -102,7 +103,7 @@ public class DefaultMQProducerTest {
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
-        producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
+        producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
@@ -192,7 +193,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(6);
+        final CountDownLatch countDownLatch = new CountDownLatch(12);
 
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
@@ -215,6 +216,10 @@ public class DefaultMQProducerTest {
             }
         };
 
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
+        producer.setBackPressureForAsyncSendNum(5000);
+        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
@@ -228,6 +233,19 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
+
+        // off enableBackpressureForAsyncMode 
+        producer.setEnableBackpressureForAsyncMode(false);
+        producer.send(new Message(), sendCallback);
+        producer.send(message, new MessageQueue(), sendCallback);
+        producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
+        producer.send(new Message(), messageQueueSelector, null, sendCallback);
+        producer.send(message, messageQueueSelector, null, sendCallback, 1000);
+        //this message is send success
+        producer.send(message, sendCallback, 1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(10);
     }
     
     @Test
@@ -257,13 +275,16 @@ public class DefaultMQProducerTest {
             }
         };
 
-        List<Message> msgs = new ArrayList<Message>();
+        List<Message> msgs = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             Message message = new Message();
             message.setTopic("test");
             message.setBody(("hello world" + i).getBytes());
             msgs.add(message);
         }
+
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
         producer.send(msgs, sendCallback);
         producer.send(msgs, sendCallback, 1000);
         MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
@@ -273,6 +294,17 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
+
+        // off enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(false);
+        producer.send(msgs, sendCallback);
+        producer.send(msgs, sendCallback, 1000);
+        producer.send(msgs, mq, sendCallback);
+        // this message is send failed
+        producer.send(msgs, new MessageQueue(), sendCallback, 1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(2);
     }
 
     @Test
@@ -358,7 +390,7 @@ public class DefaultMQProducerTest {
         producer.setCallbackExecutor(customized);
 
         NettyRemotingClient remotingClient = (NettyRemotingClient) producer.getDefaultMQProducerImpl()
-            .getmQClientFactory().getMQClientAPIImpl().getRemotingClient();
+            .getMqClientFactory().getMQClientAPIImpl().getRemotingClient();
 
         assertThat(remotingClient.getCallbackExecutor()).isEqualTo(customized);
     }
@@ -368,7 +400,8 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicBoolean finish = new AtomicBoolean(false);
         new Thread(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
@@ -376,15 +409,19 @@ public class DefaultMQProducerTest {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
                     }
+                    MessageExt responseMsg = new MessageExt();
+                    responseMsg.setTopic(message.getTopic());
+                    responseMsg.setBody(message.getBody());
                     for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                         RequestResponseFuture future = entry.getValue();
-                        future.putResponseMessage(message);
+                        future.putResponseMessage(responseMsg);
                     }
                 }
             }
         }).start();
         Message result = producer.request(message, 3 * 1000L);
         finish.getAndSet(true);
+        assertThat(result).isExactlyInstanceOf(MessageExt.class);
         assertThat(result.getTopic()).isEqualTo("FooBar");
         assertThat(result.getBody()).isEqualTo(new byte[] {'a'});
     }
@@ -400,24 +437,31 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {
+                assertThat(message).isExactlyInstanceOf(MessageExt.class);
                 assertThat(message.getTopic()).isEqualTo("FooBar");
                 assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
                 assertThat(message.getFlag()).isEqualTo(1);
                 countDownLatch.countDown();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
             }
         };
         producer.request(message, requestCallback, 3 * 1000L);
         ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
         assertThat(responseMap).isNotNull();
+
+        MessageExt responseMsg = new MessageExt();
+        responseMsg.setTopic(message.getTopic());
+        responseMsg.setBody(message.getBody());
+        responseMsg.setFlag(1);
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
             future.setSendRequestOk(true);
-            message.setFlag(1);
-            future.getRequestCallback().onSuccess(message);
+            future.getRequestCallback().onSuccess(responseMsg);
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
@@ -427,11 +471,13 @@ public class DefaultMQProducerTest {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {
 
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 cc.incrementAndGet();
                 countDownLatch.countDown();
             }

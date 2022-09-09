@@ -75,7 +75,7 @@ public class MixAllTest {
             file.delete();
         }
         file.createNewFile();
-        PrintWriter out = new PrintWriter(fileName);
+        PrintWriter out = new PrintWriter(fileName, "UTF-8");
         out.write("TestForMixAll_中文");
         out.close();
         String string = MixAll.file2String(fileName);

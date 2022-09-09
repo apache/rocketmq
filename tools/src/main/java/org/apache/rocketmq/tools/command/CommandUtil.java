@@ -39,6 +39,8 @@ public class CommandUtil {
     private static final String ERROR_MESSAGE = "Make sure the specified clusterName exists or the name server " +
         "connected to is correct.";
 
+    public static final String NO_MASTER_PLACEHOLDER = "NO_MASTER";
+
     public static Map<String/*master addr*/, List<String>/*slave addr*/> fetchMasterAndSlaveDistinguish(
         final MQAdminExt adminExt, final String clusterName)
         throws InterruptedException, RemotingConnectException,
@@ -62,14 +64,23 @@ public class CommandUtil {
             }
 
             String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-            masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
+
+            if (masterAddr == null) {
+                masterAndSlaveMap.putIfAbsent(NO_MASTER_PLACEHOLDER, new ArrayList<>());
+            } else {
+                masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
+            }
 
             for (Entry<Long, String> brokerAddrEntry : brokerData.getBrokerAddrs().entrySet()) {
                 if (brokerAddrEntry.getValue() == null || brokerAddrEntry.getKey() == MixAll.MASTER_ID) {
                     continue;
                 }
 
-                masterAndSlaveMap.get(masterAddr).add(brokerAddrEntry.getValue());
+                if (masterAddr == null) {
+                    masterAndSlaveMap.get(NO_MASTER_PLACEHOLDER).add(brokerAddrEntry.getValue());
+                } else {
+                    masterAndSlaveMap.get(masterAddr).add(brokerAddrEntry.getValue());
+                }
             }
         }
 
@@ -124,11 +135,23 @@ public class CommandUtil {
         return brokerAddressSet;
     }
 
+    public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)
+        throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
+        RemotingSendRequestException, MQBrokerException {
+        Set<String> brokerAddressSet = new HashSet<>();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        final BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+        if (brokerData != null) {
+            brokerAddressSet.addAll(brokerData.getBrokerAddrs().values());
+        }
+        return brokerAddressSet;
+    }
+
     public static Set<String> fetchBrokerNameByClusterName(final MQAdminExt adminExt, final String clusterName)
         throws Exception {
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
-        if (brokerNameSet.isEmpty()) {
+        if (brokerNameSet == null || brokerNameSet.isEmpty()) {
             throw new Exception(ERROR_MESSAGE);
         }
         return brokerNameSet;
@@ -136,7 +159,7 @@ public class CommandUtil {
 
     public static String fetchBrokerNameByAddr(final MQAdminExt adminExt, final String addr) throws Exception {
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
-        HashMap<String/* brokerName */, BrokerData> brokerAddrTable = clusterInfoSerializeWrapper.getBrokerAddrTable();
+        Map<String/* brokerName */, BrokerData> brokerAddrTable = clusterInfoSerializeWrapper.getBrokerAddrTable();
         Iterator<Map.Entry<String, BrokerData>> it = brokerAddrTable.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, BrokerData> entry = it.next();

@@ -31,7 +31,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
-public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
+public class ClusterTestRequestProcessor extends ClientRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final DefaultMQAdminExt adminExt;
     private final String productEnvName;

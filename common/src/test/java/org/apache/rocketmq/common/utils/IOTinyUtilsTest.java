@@ -32,7 +32,10 @@ import java.util.List;
 
 public class IOTinyUtilsTest {
 
-    private String testRootDir = System.getProperty("user.home") + File.separator + "iotinyutilstest";
+    /**
+     * https://bazel.build/reference/test-encyclopedia#filesystem
+     */
+    private String testRootDir = System.getProperty("java.io.tmpdir") + File.separator + "iotinyutilstest";
 
     @Before
     public void init() {
@@ -45,11 +48,10 @@ public class IOTinyUtilsTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File(testRootDir);
         UtilAll.deleteFile(file);
     }
-
 
     @Test
     public void testToString() throws Exception {
@@ -150,7 +152,7 @@ public class IOTinyUtilsTest {
 
     @Test
     public void testCopyFile() throws Exception {
-        File source = new File(testRootDir, "soruce");
+        File source = new File(testRootDir, "source");
         String target = testRootDir + File.separator + "dest";
 
         IOTinyUtils.writeStringToFile(source, "testCopyFile", RemotingHelper.DEFAULT_CHARSET);

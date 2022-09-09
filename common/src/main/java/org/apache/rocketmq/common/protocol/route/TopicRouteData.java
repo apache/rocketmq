@@ -20,9 +20,15 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
@@ -30,27 +36,98 @@ public class TopicRouteData extends RemotingSerializable {
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    //It could be null or empty
+    private Map<String/*brokerName*/, TopicQueueMappingInfo> topicQueueMappingByBroker;
+
+    public TopicRouteData() {
+        queueDatas = new ArrayList<QueueData>();
+        brokerDatas = new ArrayList<BrokerData>();
+        filterServerTable = new HashMap<String, List<String>>();
+    }
+
+    public TopicRouteData(TopicRouteData topicRouteData) {
+        this.queueDatas = new ArrayList<QueueData>();
+        this.brokerDatas = new ArrayList<BrokerData>();
+        this.filterServerTable = new HashMap<String, List<String>>();
+        this.orderTopicConf = topicRouteData.orderTopicConf;
+
+        if (topicRouteData.queueDatas != null) {
+            this.queueDatas.addAll(topicRouteData.queueDatas);
+        }
+
+        if (topicRouteData.brokerDatas != null) {
+            this.brokerDatas.addAll(topicRouteData.brokerDatas);
+        }
+
+        if (topicRouteData.filterServerTable != null) {
+            this.filterServerTable.putAll(topicRouteData.filterServerTable);
+        }
+
+        if (topicRouteData.topicQueueMappingByBroker != null) {
+            this.topicQueueMappingByBroker = new HashMap<String, TopicQueueMappingInfo>(topicRouteData.topicQueueMappingByBroker);
+        }
+    }
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
-        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
-        topicRouteData.setBrokerDatas(new ArrayList<BrokerData>());
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        topicRouteData.setQueueDatas(new ArrayList<>());
+        topicRouteData.setBrokerDatas(new ArrayList<>());
+        topicRouteData.setFilterServerTable(new HashMap<>());
         topicRouteData.setOrderTopicConf(this.orderTopicConf);
 
-        if (this.queueDatas != null) {
-            topicRouteData.getQueueDatas().addAll(this.queueDatas);
+        topicRouteData.getQueueDatas().addAll(this.queueDatas);
+        topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
+        if (this.topicQueueMappingByBroker != null) {
+            Map<String, TopicQueueMappingInfo> cloneMap = new HashMap<>(this.topicQueueMappingByBroker);
+            topicRouteData.setTopicQueueMappingByBroker(cloneMap);
+        }
+        return topicRouteData;
+    }
+
+    public TopicRouteData deepCloneTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+
+        topicRouteData.setOrderTopicConf(this.orderTopicConf);
+
+        for (final QueueData queueData : this.queueDatas) {
+            topicRouteData.getQueueDatas().add(new QueueData(queueData));
         }
 
-        if (this.brokerDatas != null) {
-            topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        for (final BrokerData brokerData : this.brokerDatas) {
+            topicRouteData.getBrokerDatas().add(new BrokerData(brokerData));
         }
 
-        if (this.filterServerTable != null) {
-            topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
+        for (final Map.Entry<String, List<String>> listEntry : this.filterServerTable.entrySet()) {
+            topicRouteData.getFilterServerTable().put(listEntry.getKey(),
+                new ArrayList<String>(listEntry.getValue()));
+        }
+        if (this.topicQueueMappingByBroker != null) {
+            Map<String, TopicQueueMappingInfo> cloneMap = new HashMap<>(this.topicQueueMappingByBroker.size());
+            for (final Map.Entry<String, TopicQueueMappingInfo> entry : this.getTopicQueueMappingByBroker().entrySet()) {
+                TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(entry.getValue().getTopic(), entry.getValue().getTotalQueues(), entry.getValue().getBname(), entry.getValue().getEpoch());
+                topicQueueMappingInfo.setDirty(entry.getValue().isDirty());
+                topicQueueMappingInfo.setScope(entry.getValue().getScope());
+                ConcurrentMap<Integer, Integer> concurrentMap = new ConcurrentHashMap<Integer, Integer>(entry.getValue().getCurrIdMap());
+                topicQueueMappingInfo.setCurrIdMap(concurrentMap);
+                cloneMap.put(entry.getKey(), topicQueueMappingInfo);
+            }
+            topicRouteData.setTopicQueueMappingByBroker(cloneMap);
         }
 
         return topicRouteData;
+    }
+
+    public boolean topicRouteDataChanged(TopicRouteData oldData) {
+        if (oldData == null)
+            return true;
+        TopicRouteData old = new TopicRouteData(oldData);
+        TopicRouteData now = new TopicRouteData(this);
+        Collections.sort(old.getQueueDatas());
+        Collections.sort(old.getBrokerDatas());
+        Collections.sort(now.getQueueDatas());
+        Collections.sort(now.getBrokerDatas());
+        return !old.equals(now);
     }
 
     public List<QueueData> getQueueDatas() {
@@ -85,6 +162,14 @@ public class TopicRouteData extends RemotingSerializable {
         this.orderTopicConf = orderTopicConf;
     }
 
+    public Map<String, TopicQueueMappingInfo> getTopicQueueMappingByBroker() {
+        return topicQueueMappingByBroker;
+    }
+
+    public void setTopicQueueMappingByBroker(Map<String, TopicQueueMappingInfo> topicQueueMappingByBroker) {
+        this.topicQueueMappingByBroker = topicQueueMappingByBroker;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -93,6 +178,7 @@ public class TopicRouteData extends RemotingSerializable {
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
         result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
         result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
+        result = prime * result + ((topicQueueMappingByBroker == null) ? 0 : topicQueueMappingByBroker.hashCode());
         return result;
     }
 
@@ -125,12 +211,17 @@ public class TopicRouteData extends RemotingSerializable {
                 return false;
         } else if (!filterServerTable.equals(other.filterServerTable))
             return false;
+        if (topicQueueMappingByBroker == null) {
+            if (other.topicQueueMappingByBroker != null)
+                return false;
+        } else if (!topicQueueMappingByBroker.equals(other.topicQueueMappingByBroker))
+            return false;
         return true;
     }
 
     @Override
     public String toString() {
         return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
-            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + ", topicQueueMappingInfoTable=" + topicQueueMappingByBroker + "]";
     }
 }

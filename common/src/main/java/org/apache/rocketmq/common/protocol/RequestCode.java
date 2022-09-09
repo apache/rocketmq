@@ -70,6 +70,8 @@ public class RequestCode {
 
     public static final int CHECK_CLIENT_CONFIG = 46;
 
+    public static final int GET_CLIENT_CONFIG = 47;
+
     public static final int UPDATE_AND_CREATE_ACL_CONFIG = 50;
 
     public static final int DELETE_ACL_CONFIG = 51;
@@ -79,6 +81,17 @@ public class RequestCode {
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
 
     public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
+
+    public static final int GET_TIMER_CHECK_POINT = 60;
+
+    public static final int GET_TIMER_METRICS = 61;
+
+    public static final int POP_MESSAGE = 200050;
+    public static final int ACK_MESSAGE = 200051;
+    public static final int PEEK_MESSAGE = 200052;
+    public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
+    public static final int NOTIFICATION = 200054;
+    public static final int POLLING_INFO = 200055;
 
     public static final int PUT_KV_CONFIG = 100;
 
@@ -117,6 +130,7 @@ public class RequestCode {
     public static final int DELETE_TOPIC_IN_BROKER = 215;
 
     public static final int DELETE_TOPIC_IN_NAMESRV = 216;
+    public static final int REGISTER_TOPIC_IN_NAMESRV = 217;
     public static final int GET_KVLIST_BY_NAMESPACE = 219;
 
     public static final int RESET_CONSUMER_CLIENT_OFFSET = 220;
@@ -130,6 +144,9 @@ public class RequestCode {
     public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 
     public static final int GET_TOPICS_BY_CLUSTER = 224;
+
+    public static final int QUERY_TOPICS_BY_CONSUMER = 343;
+    public static final int QUERY_SUBSCRIPTION_BY_CONSUMER = 345;
 
     public static final int REGISTER_FILTER_SERVER = 301;
     public static final int REGISTER_MESSAGE_FILTER_CLASS = 302;
@@ -190,4 +207,73 @@ public class RequestCode {
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
+
+    public static final int GET_TOPIC_CONFIG = 351;
+
+    public static final int GET_SUBSCRIPTIONGROUP_CONFIG = 352;
+    public static final int UPDATE_AND_GET_GROUP_FORBIDDEN = 353;
+
+    public static final int LITE_PULL_MESSAGE = 361;
+
+    public static final int QUERY_ASSIGNMENT = 400;
+    public static final int SET_MESSAGE_REQUEST_MODE = 401;
+    public static final int GET_ALL_MESSAGE_REQUEST_MODE = 402;
+
+    public static final int UPDATE_AND_CREATE_STATIC_TOPIC = 513;
+
+    public static final int GET_BROKER_MEMBER_GROUP = 901;
+
+    public static final int ADD_BROKER = 902;
+
+    public static final int REMOVE_BROKER = 903;
+
+    public static final int BROKER_HEARTBEAT = 904;
+
+    public static final int NOTIFY_MIN_BROKER_ID_CHANGE = 905;
+
+    public static final int EXCHANGE_BROKER_HA_INFO = 906;
+
+    public static final int GET_BROKER_HA_STATUS = 907;
+
+    public static final int RESET_MASTER_FLUSH_OFFSET = 908;
+
+    public static final int GET_ALL_PRODUCER_INFO = 328;
+
+    public static final int DELETE_EXPIRED_COMMITLOG = 329;
+
+    /**
+     * Controller code
+     */
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
+
+    public static final int CONTROLLER_ELECT_MASTER = 1002;
+
+    public static final int CONTROLLER_REGISTER_BROKER = 1003;
+
+    public static final int CONTROLLER_GET_REPLICA_INFO = 1004;
+
+    public static final int CONTROLLER_GET_METADATA_INFO = 1005;
+
+    public static final int CONTROLLER_GET_SYNC_STATE_DATA = 1006;
+
+    public static final int GET_BROKER_EPOCH_CACHE = 1007;
+
+    public static final int NOTIFY_BROKER_ROLE_CHANGED = 1008;
+
+    /**
+     * update the config of controller
+     */
+    public static final int UPDATE_CONTROLLER_CONFIG = 1009;
+
+    /**
+     * get config from controller
+     */
+    public static final int GET_CONTROLLER_CONFIG = 1010;
+
+    /**
+     * clean broker data
+     */
+    public static final int CLEAN_BROKER_DATA = 1011;
+
+
 }

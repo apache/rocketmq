@@ -18,13 +18,17 @@
 package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +49,8 @@ import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Test case for DefaultMessageStore.CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
@@ -105,10 +111,10 @@ public class DefaultMessageStoreCleanFilesTest {
         String storePath = config.getStorePathCommitLog();
         StringBuilder storePathBuilder = new StringBuilder();
         for (int i = 0; i < 3; i++) {
-            storePathBuilder.append(storePath).append(i).append(MessageStoreConfig.MULTI_PATH_SPLITTER);
+            storePathBuilder.append(storePath).append(i).append(MixAll.MULTI_PATH_SPLITTER);
         }
         config.setStorePathCommitLog(storePathBuilder.toString());
-        String[] paths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+        String[] paths = config.getStorePathCommitLog().trim().split(MixAll.MULTI_PATH_SPLITTER);
         assertEquals(3, paths.length);
         initMessageStore(config, diskSpaceCleanForciblyRatio);
 
@@ -332,7 +338,7 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio)
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
@@ -340,15 +346,6 @@ public class DefaultMessageStoreCleanFilesTest {
                 (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
 
-        Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
-        warningLevelRatioField.setAccessible(true);
-        warningLevelRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
-        warningLevelRatioField.setAccessible(false);
-
-        Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
-        cleanForciblyRatioField.setAccessible(true);
-        cleanForciblyRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
-        cleanForciblyRatioField.setAccessible(false);
         return cleanCommitLogService;
     }
 
@@ -364,7 +361,7 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private MappedFileQueue getMappedFileQueueConsumeQueue()
             throws Exception {
-        ConsumeQueue consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+        ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
         Field queueField = consumeQueue.getClass().getDeclaredField("mappedFileQueue");
         queueField.setAccessible(true);
         MappedFileQueue fileQueue = (MappedFileQueue) queueField.get(consumeQueue);
@@ -476,7 +473,7 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setDeleteWhen(deleteWhen);
         messageStoreConfig.setDiskMaxUsedSpaceRatio(diskMaxUsedSpaceRatio);
 
-        String storePathRootDir = System.getProperty("user.home") + File.separator
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator
                 + "DefaultMessageStoreCleanFilesTest-" + UUID.randomUUID();
         String storePathCommitLog = storePathRootDir + File.separator + "commitlog";
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
@@ -488,11 +485,25 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig());
 
-        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio);
+        cleanCommitLogService = getCleanCommitLogService();
         cleanConsumeQueueService = getCleanConsumeQueueService();
 
         assertTrue(messageStore.load());
         messageStore.start();
+
+        // partially mock a real obj
+        cleanCommitLogService = spy(cleanCommitLogService);
+        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+
+        putFiledBackToMessageStore(cleanCommitLogService);
+    }
+
+    private void putFiledBackToMessageStore(DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
+        Field cleanCommitLogServiceField = DefaultMessageStore.class.getDeclaredField("cleanCommitLogService");
+        cleanCommitLogServiceField.setAccessible(true);
+        cleanCommitLogServiceField.set(messageStore, cleanCommitLogService);
+        cleanCommitLogServiceField.setAccessible(false);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

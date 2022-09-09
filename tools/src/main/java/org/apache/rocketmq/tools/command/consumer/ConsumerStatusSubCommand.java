@@ -77,6 +77,10 @@ public class ConsumerStatusSubCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+        if (commandLine.hasOption('n')) {
+            defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+        }
+
         try {
             defaultMQAdminExt.start();
             String group = commandLine.getOptionValue('g').trim();
@@ -88,6 +92,11 @@ public class ConsumerStatusSubCommand implements SubCommand {
                 int i = 1;
                 long now = System.currentTimeMillis();
                 final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable = new TreeMap<String, ConsumerRunningInfo>();
+                System.out.printf("%-10s %-40s %-20s %s%n",
+                    "#Index",
+                    "#ClientId",
+                    "#Version",
+                    "#ConsumerRunningInfoFile");
                 for (Connection conn : cc.getConnectionSet()) {
                     try {
                         ConsumerRunningInfo consumerRunningInfo =
@@ -96,7 +105,7 @@ public class ConsumerStatusSubCommand implements SubCommand {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                            System.out.printf("%03d  %-40s %-20s %s%n",
+                            System.out.printf("%-10d %-40s %-20s %s%n",
                                 i++,
                                 conn.getClientId(),
                                 MQVersion.getVersionDesc(conn.getVersion()),

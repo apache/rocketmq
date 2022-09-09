@@ -32,6 +32,8 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.SerializeType;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.UnsupportedEncodingException;
@@ -61,6 +63,7 @@ public class TransactionProducer {
     static final int MAX_CHECK_RESULT_IN_MSG = 20;
 
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, SerializeType.ROCKETMQ.name());
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("TransactionProducer", args, buildCommandlineOptions(options), new PosixParser());
         TxSendConfig config = new TxSendConfig();

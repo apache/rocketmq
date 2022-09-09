@@ -27,10 +27,12 @@ public class ListSplitter implements Iterator<List<Message>> {
     public ListSplitter(List<Message> messages) { 
         this.messages = messages;
     }
-    @Override public boolean hasNext() {
+    @Override 
+    public boolean hasNext() {
         return currIndex < messages.size(); 
     }
-    @Override public List<Message> next() { 
+    @Override 
+    public List<Message> next() { 
         int startIndex = getStartIndex();
         int nextIndex = startIndex;
         int totalSize = 0;

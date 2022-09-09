@@ -146,7 +146,7 @@ public class TraceDataEncoder {
         if (ctx == null) {
             return null;
         }
-        //build message trace of the transfering entity content bean
+        //build message trace of the transferring entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {

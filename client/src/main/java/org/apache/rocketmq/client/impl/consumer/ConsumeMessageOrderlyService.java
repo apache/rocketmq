@@ -26,7 +26,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -39,17 +38,17 @@ import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.CMResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ConsumeMessageOrderlyService implements ConsumeMessageService {
@@ -215,6 +214,13 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         }
     }
 
+    @Override
+    public void submitPopConsumeRequest(final List<MessageExt> msgs,
+                                        final PopProcessQueue processQueue,
+                                        final MessageQueue messageQueue) {
+        throw new UnsupportedOperationException();
+    }
+
     public synchronized void lockMQPeriodically() {
         if (!this.stopped) {
             this.defaultMQPushConsumerImpl.getRebalanceImpl().lockAll();
@@ -378,10 +384,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         try {
             // max reconsume times exceeded then send to dead letter queue.
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
+            MessageAccessor.setProperties(newMsg, msg.getProperties());
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
             MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
             newMsg.setFlag(msg.getFlag());
-            MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes()));
             MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
