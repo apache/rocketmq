@@ -18,21 +18,20 @@
 package org.apache.rocketmq.broker;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.broker.latency.FutureTaskExt;
-import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -91,7 +90,7 @@ public class BrokerControllerTest {
     }
 
     @Test
-    public void testMultiPathLoadConfig() {
+    public void testMultiPathLoadConfig() throws IOException {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(
                 "target/unit_test_store/a/store" + MixAll.MULTI_PATH_SPLITTER
@@ -103,14 +102,10 @@ public class BrokerControllerTest {
                 new NettyServerConfig(),
                 new NettyClientConfig(),
                 messageStoreConfig);
-        // pre-write config/topic.json
-        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
-        String topic = "test_multi_path";
-        TopicConfig topicConfig = new TopicConfig(topic);
-        TopicValidator.addSystemTopic(topic);
-        topicConfig.setReadQueueNums(1);
-        topicConfig.setWriteQueueNums(1);
-        topicConfigManager.createTopicIfAbsent(topicConfig);
+        // pre-write a checkpoint file
+        StoreCheckpoint storeCheckpoint = new StoreCheckpoint("target/unit_test_store/a/store/checkpoint");
+        storeCheckpoint.setPhysicMsgTimestamp(System.currentTimeMillis());
+        storeCheckpoint.flush();
 
         assertThat(brokerController.initializeLoadRootPath().equals("target/unit_test_store/a/store")).isTrue();
 

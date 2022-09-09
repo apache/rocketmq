@@ -144,6 +144,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
@@ -712,18 +713,22 @@ public class BrokerController {
 
     public String initializeLoadRootPath() {
         if (this.messageStoreConfig.getStorePathRootDir().contains(MixAll.MULTI_PATH_SPLITTER)) {
-            // choose latest topic dateversion to load config
+            // choose latest checkpoint path to load config and checkpoint/bak/lock file
             String[] paths = this.messageStoreConfig.getStorePathRootDir().trim().split(MixAll.MULTI_PATH_SPLITTER);
             String latestPath = paths[0];
             long latestTime = 0L;
             for (String path : paths) {
-                String topicPath = path + File.separator + "config" + File.separator + "topics.json";
-                File file = new File(topicPath);
+                String checkpointPath = path + File.separator + "checkpoint";
+                File file = new File(checkpointPath);
                 if (file.exists()) {
-                    TopicConfigManager topicConfigManager1 = new TopicConfigManager();
-                    topicConfigManager1.load(topicPath);
-                    if (latestTime < topicConfigManager1.getDataVersion().getTimestamp()) {
-                        latestTime = topicConfigManager1.getDataVersion().getTimestamp();
+                    StoreCheckpoint storeCheckpoint1;
+                    try {
+                        storeCheckpoint1 = new StoreCheckpoint(checkpointPath);
+                    } catch (IOException e) {
+                        continue;
+                    }
+                    if (latestTime < storeCheckpoint1.getPhysicMsgTimestamp()) {
+                        latestTime = storeCheckpoint1.getPhysicMsgTimestamp();
                         latestPath = path;
                     }
                 }
