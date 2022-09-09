@@ -308,6 +308,9 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    private long sendSlowTimeThreshold = 10;
+    private long pullSlowTimeThreshold = 10;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1322,5 +1325,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
         this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
+    }
+
+    public long getSendSlowTimeThreshold() {
+        return sendSlowTimeThreshold;
+    }
+
+    public void setSendSlowTimeThreshold(long sendSlowTimeThreshold) {
+        this.sendSlowTimeThreshold = sendSlowTimeThreshold;
+    }
+
+    public long getPullSlowTimeThreshold() {
+        return pullSlowTimeThreshold;
+    }
+
+    public void setPullSlowTimeThreshold(long pullSlowTimeThreshold) {
+        this.pullSlowTimeThreshold = pullSlowTimeThreshold;
     }
 }

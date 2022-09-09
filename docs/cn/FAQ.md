@@ -69,19 +69,33 @@
 
 ## 4 错误
 
-1. **当你启动一个生产者或消费者的过程失败了并且错误信息是生产者组或消费者重复**
+1. **生产者/消费者连接 NameServer/Broker 超时**
+   
+   排查方法： 检查网络连接和 NameServer/Broker 服务状态
+   ```shell
+   ### 以检查 Broker 为例：
+   $ nc <broker-ip> 10911 -v
+   ### 如果返回 Connection refused 请检查网络问题或 Broker 是否启动
+   Connection to <broker-ip> port 10911 [tcp/*] succeeded!
+   ### 输入 "HiRMQ" 然后按下回车
+   HiRMQ
+   RocketMQ Broker V5_0_0 OK
+   ### 如果 Broker 压力较大，会返回类似 "RocketMQ Broker V5_0_0 BUSY"
+   ```
+
+2. **当你启动一个生产者或消费者的过程失败了并且错误信息是生产者组或消费者重复**
 
    原因：使用同一个Producer/Consumer Group在同一个JVM中启动多个Producer/Consumer实例可能会导致客户端无法启动。
 
    解决方案：确保一个 Producer/Consumer Group 对应的 JVM 只启动一个 Producer/Consumer 实例。
 
-2. **消费者无法在广播模式下开始加载 json 文件**
+3. **消费者无法在广播模式下开始加载 json 文件**
 
    原因：fastjson 版本太低，无法让广播消费者加载本地 offsets.json，导致消费者启动失败。 损坏的 fastjson 文件也会导致同样的问题。
 
    解决方案：Fastjson 版本必须升级到 RocketMQ 客户端依赖版本，以确保可以加载本地 offsets.json。 默认情况下，offsets.json 文件在 /home/{user}/.rocketmq_offsets 中。 或者检查fastjson的完整性。
 
-3. **Broker崩溃以后有什么影响？**
+4. **Broker崩溃以后有什么影响？**
 
    1）Master节点崩溃
 
@@ -95,7 +109,7 @@
 
    向master发送消息不会有任何影响，但是，如果master是SYNC_MASTER，producer会得到一个SLAVE_NOT_AVAILABLE，表示消息没有发送给任何slave。 对消费消息也没有影响，除非消费者组设置为优先从slave消费。 默认情况下，消费者组从master消费。
 
-4. **Producer提示“No Topic Route Info”，如何诊断？**
+5. **Producer提示“No Topic Route Info”，如何诊断？**
 
    当您尝试将消息发送到一个路由信息对生产者不可用的主题时，就会发生这种情况。
 

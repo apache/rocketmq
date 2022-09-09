@@ -2478,7 +2478,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand healthCheck(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.RAW, "RocketMQ Broker " + MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        String serviceStatus = "OK";
+        if (brokerController.headSlowTimeMills4PullThreadPoolQueue() > brokerConfig.getPullSlowTimeThreshold() ||
+            brokerController.headSlowTimeMills4LitePullThreadPoolQueue() > brokerConfig.getPullSlowTimeThreshold() ||
+            brokerController.headSlowTimeMills4SendThreadPoolQueue() > brokerConfig.getSendSlowTimeThreshold()) {
+            serviceStatus = "BUSY";
+        }
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.RAW,
+            "RocketMQ Broker " + MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION) + " " + serviceStatus);
         ctx.writeAndFlush(response)
             .addListener(future -> RemotingUtil.closeChannel(ctx.channel()));
         return null;

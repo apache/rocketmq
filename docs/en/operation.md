@@ -17,6 +17,13 @@ $ nohup sh mqnamesrv &
 ### check whether Name Server is successfully started
 $ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
+
+### check service status of Name Server:
+$ nc localhost 9876
+### type in magic code "HiRMQ" and press enter
+HiRMQ
+RocketMQ NameServer V5_0_0 OK
+### if Name Server is overstressed, result is something like "RocketMQ NameServer V5_0_0 BUSY"
 ```
 
 ##### 2）Start Broker
@@ -28,6 +35,13 @@ $ nohup sh bin/mqbroker -n localhost:9876 &
 ### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
 $ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
+
+check service status of Broker:
+$ nc localhost 10911
+### type in magic code "HiRMQ" and press enter
+HiRMQ
+RocketMQ Broker V5_0_0 OK
+### if Broker is overstressed, result is something like "RocketMQ Broker V5_0_0 BUSY"
 ```
 
 #### 1.2 Multi Master mode

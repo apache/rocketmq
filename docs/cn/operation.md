@@ -17,6 +17,13 @@ $ nohup sh mqnamesrv &
 ### 验证Name Server 是否启动成功
 $ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
+
+### 检查 Name Server 能否正常提供服务：
+$ nc localhost 9876
+### 输入 "HiRMQ" 然后按下回车
+HiRMQ
+RocketMQ NameServer V5_0_0 OK
+### 如果 Name Server 压力较大，会返回类似 "RocketMQ NameServer V5_0_0 BUSY"
 ```
 
 ##### 2）启动 Broker
@@ -49,6 +56,13 @@ $ nohup sh mqnamesrv &
 ### 验证Name Server 是否启动成功
 $ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
+
+### 检查 Broker 能否正常提供服务：
+$ nc localhost 10911
+### 输入 "HiRMQ" 然后按下回车
+HiRMQ
+RocketMQ Broker V5_0_0 OK
+### 如果 Broker 压力较大，会返回类似 "RocketMQ Broker V5_0_0 BUSY"
 ```
 
 ##### 2）启动Broker集群

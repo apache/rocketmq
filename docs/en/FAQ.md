@@ -68,19 +68,34 @@ consumer.setConsumeThreadMax(20);
 
 ## 4 Errors
 
-### 1. If you start a producer or consumer failed and the error message is producer group or consumer repeat.
+### 1. If producer or consumer connects to Name Server or Broker timeout.
+
+   troubleshoot: check network and service status of Name Server or Broker.
+   ```shell
+   ### check Broker：
+   $ nc <broker-ip> 10911 -v
+   ### if result contains "Connection refused" please check your network or whether the broker is running.
+   Connection to <broker-ip> port 10911 [tcp/*] succeeded!
+   ### type in magic code "HiRMQ" and press enter
+   HiRMQ
+   RocketMQ Broker V5_0_0 OK
+   ### if Broker is overstressed, result is something like "RocketMQ Broker V5_0_0 BUSY"
+   ```
+
+
+### 2. If you start a producer or consumer failed and the error message is producer group or consumer repeat.
 
 Reason：Using the same Producer /Consumer Group to launch multiple instances of Producer/Consumer in the same JVM may cause the client fail to start.
 
 Solution: Make sure that a JVM corresponding to one Producer /Consumer Group starts only with one Producer/Consumer instance.
 
-### 2. Consumer failed to start loading json file in broadcast mode.
+### 3. Consumer failed to start loading json file in broadcast mode.
 
 Reason: Fastjson version is too low to allow the broadcast consumer to load local offsets.json, causing the consumer boot failure. Damaged fastjson file can also cause the same problem.
 
 Solution: Fastjson version has to be upgraded to rocketmq client dependent version to ensure that the local offsets.json can be loaded. By default offsets.json file is in /home/{user}/.rocketmq_offsets. Or check the integrity of fastjson.
 
-### 3. What is the impact of a broker crash.
+### 4. What is the impact of a broker crash.
 
 &#8195;1) Master crashes
 
@@ -94,7 +109,7 @@ As long as there is another working slave, there will be no impact on sending me
 
 There will be no impact on sending messages to master, but, if the master is SYNC_MASTER, producer will get a SLAVE_NOT_AVAILABLE indicating that the message is not sent to any slaves. There will also be no impact on consuming messages except that if the consumer group is set to consume from slave preferably. By default, consumer group consumes from master.
 
-### 4. Producer complains “No Topic Route Info”, how to diagnose?
+### 5. Producer complains “No Topic Route Info”, how to diagnose?
 
 This happens when you are trying to send messages to a topic whose routing info is not available to the producer.
 

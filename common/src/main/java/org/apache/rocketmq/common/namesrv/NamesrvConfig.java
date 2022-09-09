@@ -78,6 +78,7 @@ public class NamesrvConfig {
      */
     private boolean enableControllerInNamesrv = false;
 
+    private long requestSlowTimeThreshold = 10;
 
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
@@ -221,5 +222,13 @@ public class NamesrvConfig {
 
     public void setEnableControllerInNamesrv(boolean enableControllerInNamesrv) {
         this.enableControllerInNamesrv = enableControllerInNamesrv;
+    }
+
+    public long getRequestSlowTimeThreshold() {
+        return requestSlowTimeThreshold;
+    }
+
+    public void setRequestSlowTimeThreshold(long requestSlowTimeThreshold) {
+        this.requestSlowTimeThreshold = requestSlowTimeThreshold;
     }
 }

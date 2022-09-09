@@ -18,8 +18,8 @@ package org.apache.rocketmq.namesrv.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
-import java.util.Properties;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
@@ -27,24 +27,22 @@ import org.apache.rocketmq.common.MQVersion.Version;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.common.protocol.body.GetBrokerMemberGroupResponseBody;
-import org.apache.rocketmq.common.protocol.body.GetRemoteClientConfigBody;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.header.GetBrokerMemberGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterTopicRequestHeader;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.common.protocol.body.GetBrokerMemberGroupResponseBody;
+import org.apache.rocketmq.common.protocol.body.GetRemoteClientConfigBody;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicList;
+import org.apache.rocketmq.common.protocol.header.GetBrokerMemberGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteTopicFromNamesrvRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
@@ -55,10 +53,13 @@ import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionReques
 import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.RegisterTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -677,7 +678,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand healthCheck(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.RAW, "RocketMQ NameServer " + MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        NamesrvConfig namesrvConfig = namesrvController.getNamesrvConfig();
+        String serviceStatus = "OK";
+        if (namesrvController.headSlowTimeMills4ClientRequestThreadPoolQueue() > namesrvConfig.getRequestSlowTimeThreshold() ||
+            namesrvController.headSlowTimeMills4DefaultThreadPoolQueue() > namesrvConfig.getRequestSlowTimeThreshold()) {
+            serviceStatus = "BUSY";
+        }
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.RAW,
+            "RocketMQ NameServer " + MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION) + " " + serviceStatus);
         ctx.writeAndFlush(response)
             .addListener(future -> RemotingUtil.closeChannel(ctx.channel()));
         return null;

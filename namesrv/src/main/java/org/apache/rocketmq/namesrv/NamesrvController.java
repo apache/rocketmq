@@ -213,6 +213,14 @@ public class NamesrvController {
         return slowTimeMills;
     }
 
+    public long headSlowTimeMills4ClientRequestThreadPoolQueue() {
+        return headSlowTimeMills(clientRequestThreadPoolQueue);
+    }
+
+    public long headSlowTimeMills4DefaultThreadPoolQueue() {
+        return headSlowTimeMills(defaultThreadPoolQueue);
+    }
+
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
 
