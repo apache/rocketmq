@@ -227,7 +227,6 @@ public class Configuration {
     public void persistBrokerConf(Properties from) {
         BufferedReader reader = null;
         try {
-            readWriteLock.readLock().lockInterruptibly();
             String fileName = this.getStorePath();
             File file = new File(fileName);
             if (!file.exists()) {
@@ -242,7 +241,6 @@ public class Configuration {
         } catch (Exception e) {
             log.error("persist brokerConf error", e);
         } finally {
-            readWriteLock.readLock().unlock();
             if (reader != null) {
                 try {
                     reader.close();
