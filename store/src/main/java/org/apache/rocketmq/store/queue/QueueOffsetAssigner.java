@@ -20,12 +20,12 @@ package org.apache.rocketmq.store.queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * QueueOffsetAssigner is a component for assigning offsets for queues.
- *
  */
 public class QueueOffsetAssigner {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -35,7 +35,7 @@ public class QueueOffsetAssigner {
     private ConcurrentMap<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
 
     public long assignQueueOffset(String topicQueueKey, short messageNum) {
-        long queueOffset = this.topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        Long queueOffset = ConcurrentHashMapUtils.computeIfAbsent(this.topicQueueTable, topicQueueKey, k -> 0L);
         this.topicQueueTable.put(topicQueueKey, queueOffset + messageNum);
         return queueOffset;
     }
@@ -45,13 +45,13 @@ public class QueueOffsetAssigner {
     }
 
     public long assignBatchQueueOffset(String topicQueueKey, short messageNum) {
-        Long topicOffset = this.batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        Long topicOffset = ConcurrentHashMapUtils.computeIfAbsent(this.batchTopicQueueTable, topicQueueKey, k -> 0L);
         this.batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
         return topicOffset;
     }
 
     public long assignLmqOffset(String topicQueueKey, short messageNum) {
-        long topicOffset = this.lmqTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        Long topicOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
         this.lmqTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
         return topicOffset;
     }
