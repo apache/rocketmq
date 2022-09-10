@@ -3,7 +3,7 @@
 ## 1 技术架构
 ![](image/rocketmq_architecture_1.png)
 
-RocketMQ架构上主要分为四部分，如上图所示:
+RocketMQ架构上主要分为四部分，如上图所示：
 
 - Producer：消息发布的角色，支持分布式集群方式部署。Producer通过MQ的负载均衡模块选择相应的Broker集群队列进行消息投递，投递的过程支持快速失败并且低延迟。
 

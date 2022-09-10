@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -75,6 +76,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
+import org.apache.rocketmq.tools.admin.api.TrackType;
 import org.assertj.core.util.Maps;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -88,6 +90,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -318,6 +321,29 @@ public class DefaultMQAdminExtTest {
     public void testExamineConsumeStats() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats("default-consumer-group", "unit-test");
         assertThat(consumeStats.getConsumeTps()).isGreaterThanOrEqualTo(1234);
+        ConsumerConnection connection = new ConsumerConnection();
+        connection.setMessageModel(MessageModel.BROADCASTING);
+        HashSet<Connection> connections = new HashSet<>();
+        connections.add(new Connection());
+        connection.setConnectionSet(connections);
+        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong()))
+            .thenReturn(new ConsumeStats());
+        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong()))
+            .thenReturn(new ConsumerConnection()).thenReturn(connection);
+        // CONSUMER_NOT_ONLINE
+        try {
+            defaultMQAdminExt.examineConsumeStats("default-consumer-group", "unit-test");
+        } catch (Exception e) {
+            assertThat(e instanceof MQClientException).isTrue();
+            assertThat(((MQClientException) e).getResponseCode()).isEqualTo(ResponseCode.CONSUMER_NOT_ONLINE);
+        }
+        // BROADCAST_CONSUMPTION
+        try {
+            defaultMQAdminExt.examineConsumeStats("default-consumer-group", "unit-test");
+        } catch (Exception e) {
+            assertThat(e instanceof MQClientException).isTrue();
+            assertThat(((MQClientException) e).getResponseCode()).isEqualTo(ResponseCode.BROADCAST_CONSUMPTION);
+        }
     }
 
     @Test
@@ -426,6 +452,19 @@ public class DefaultMQAdminExtTest {
         messageExt.setTopic("unit-test");
         List<MessageTrack> messageTrackList = defaultMQAdminExt.messageTrackDetail(messageExt);
         assertThat(messageTrackList.size()).isEqualTo(2);
+
+        ConsumerConnection connection = new ConsumerConnection();
+        connection.setMessageModel(MessageModel.BROADCASTING);
+        connection.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
+        HashSet<Connection> connections = new HashSet<>();
+        connections.add(new Connection());
+        connection.setConnectionSet(connections);
+        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(connection);
+        ConsumeStats consumeStats = new ConsumeStats();
+        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), isNull(), anyLong())).thenReturn(consumeStats);
+        List<MessageTrack> broadcastMessageTracks = defaultMQAdminExt.messageTrackDetail(messageExt);
+        assertThat(broadcastMessageTracks.size()).isEqualTo(2);
+        assertThat(broadcastMessageTracks.get(0).getTrackType()).isEqualTo(TrackType.CONSUME_BROADCASTING);
     }
 
     @Test

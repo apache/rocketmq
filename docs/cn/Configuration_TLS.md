@@ -73,12 +73,12 @@ tls.client.trustCertPath=/opt/certFiles/ca.pem
 
 编辑rocketmq/bin路径下的配置文件，使tls.properties配置生效.-Dtls.config.file的值需要替换为步骤2中创建的tls.peoperties文件的路径
 
-### 3.1 编辑runserver.sh,,在JAVA_OPT中增加以下内容：
+### 3.1 编辑runserver.sh，在JAVA_OPT中增加以下内容：
 ```shell
 JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties"
 ```
 
-### 3.2 编辑runbroker.sh,在JAVA_OPT中增加以下内容：
+### 3.2 编辑runbroker.sh，在JAVA_OPT中增加以下内容：
 
 ```shell
 JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties  -Dtls.enable=true"
@@ -86,7 +86,7 @@ JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.co
 
 # 4 客户端连接
 
-创建客户端使用的tlsclient.properties,并加入以下内容:
+创建客户端使用的tlsclient.properties，并加入以下内容：
 ```properties
 # The store path of client-side private key 
 tls.client.keyPath=/opt/certFiles/client.key
@@ -103,7 +103,7 @@ JVM中需要加以下参数.tls.config.file的值需要使用之前创建的文�
 -Dtls.client.authServer=true -Dtls.enable=true  -Dtls.test.mode.enable=false  -Dtls.config.file=/opt/certs/tlsclient.properties
 ```
 
-在客户端连接的代码中，需要将setUseTLS设置为true:
+在客户端连接的代码中，需要将setUseTLS设置为true：
 ```java
 public class ExampleProducer {
     public static void main(String[] args) throws Exception {
