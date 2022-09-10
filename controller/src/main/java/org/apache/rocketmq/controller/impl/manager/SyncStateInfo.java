@@ -27,7 +27,6 @@ import org.apache.commons.lang3.StringUtils;
 public class SyncStateInfo {
     private final String clusterName;
     private final String brokerName;
-
     private Set<String/*Address*/> syncStateSet;
     private int syncStateSetEpoch;
 
