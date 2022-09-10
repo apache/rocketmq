@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.srvutil;
+package org.apache.rocketmq.common.utils;
 
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-public class ConcurrentHashMapUtil {
+public abstract class ConcurrentHashMapUtils {
+
     private static final boolean IS_JDK8;
 
     static {
-        // Java 8 or lower: 1.6.0_23, 1.7.0, 1.7.0_80, 1.8.0_211
-        // Java 9 or higher: 9.0.1, 11.0.4, 12, 12.0.1
+        // Java 8
+        // Java 9+: 9,11,17
         IS_JDK8 = System.getProperty("java.version").startsWith("1.8.");
-    }
-
-    private ConcurrentHashMapUtil() {
     }
 
     /**
@@ -39,10 +37,11 @@ public class ConcurrentHashMapUtil {
      */
     public static <K, V> V computeIfAbsent(ConcurrentMap<K, V> map, K key, Function<? super K, ? extends V> func) {
         if (IS_JDK8) {
-            V v, newValue;
-            return ((v = map.get(key)) == null &&
-                (newValue = func.apply(key)) != null &&
-                (v = map.putIfAbsent(key, newValue)) == null) ? newValue : v;
+            V v = map.get(key);
+            if (null == v) {
+                v = map.computeIfAbsent(key, func);
+            }
+            return v;
         } else {
             return map.computeIfAbsent(key, func);
         }

@@ -26,6 +26,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class ReceiptHandleGroup {
@@ -74,7 +75,8 @@ public class ReceiptHandleGroup {
 
     public void put(String msgID, String handle, MessageReceiptHandle value) {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
-        Map<String, HandleData> handleMap = receiptHandleMap.computeIfAbsent(msgID, msgIDKey -> new ConcurrentHashMap<>());
+        Map<String, HandleData> handleMap = ConcurrentHashMapUtils.computeIfAbsent((ConcurrentHashMap<String, Map<String, HandleData>>) this.receiptHandleMap,
+            msgID, msgIDKey -> new ConcurrentHashMap<>());
         handleMap.compute(handle, (handleKey, handleData) -> {
             if (handleData == null || handleData.needRemove) {
                 return new HandleData(value);

@@ -4,11 +4,11 @@
 
 1. `DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer`
 
-2. `DefaultMQPullConsumer`主动的从Broker拉取消息，主动权由应用控制，可以实现批量的消费消息。Pull方式取消息的过程需要用户自己写,首先通过打算消费的Topic拿到MessageQueue的集合,遍历MessageQueue集合,然后针对每个MessageQueue批量取消息,也可以自定义与控制offset位置。
+2. `DefaultMQPullConsumer`主动的从Broker拉取消息，主动权由应用控制，可以实现批量的消费消息。Pull方式取消息的过程需要用户自己写，首先通过打算消费的Topic拿到MessageQueue的集合，遍历MessageQueue集合，然后针对每个MessageQueue批量取消息，也可以自定义与控制offset位置。
                         
-3. 优势:consumer可以按需消费,不用担心自己处理能力,而broker堆积消息也会相对简单,无需记录每一个要发送消息的状态,只需要维护所有消息的队列和偏移量就可以了。所以对于慢消费,消息量有限且到来的速度不均匀的情况,pull模式比较合适消息延迟与忙等。
+3. 优势：consumer可以按需消费，不用担心自己处理能力，而broker堆积消息也会相对简单，无需记录每一个要发送消息的状态，只需要维护所有消息的队列和偏移量就可以了。所以对于慢消费，消息量有限且到来的速度不均匀的情况，pull模式比较合适消息延迟与忙等。
                         
-4. 缺点:由于主动权在消费方,消费方无法及时获取最新的消息。比较适合不及时批处理场景。
+4. 缺点：由于主动权在消费方，消费方无法及时获取最新的消息。比较适合不及时批处理场景。
                         
 ``` java 
 
@@ -112,32 +112,32 @@ public class MQPullConsumer {
 
 ### 使用方法摘要
 
-|返回值|方法名称|方法描述|
-|-------|-------|------------|
-|MQAdmin接口method|-------|------------|
-|void|createTopic(String key, String newTopic, int queueNum)|在broker上创建指定的topic|
-|void|createTopic(String key, String newTopic, int queueNum, int topicSysFlag)|在broker上创建指定的topic|
-|long|earliestMsgStoreTime(MessageQueue mq)|查询最早的消息存储时间|
-|long|maxOffset(MessageQueue mq)|查询给定消息队列的最大offset|
-|long|minOffset(MessageQueue mq)|查询给定消息队列的最小offset|
-|QueryResult|queryMessage(String topic, String key, int maxNum, long begin, long end)|按关键字查询消息|
-|long|searchOffset(MessageQueue mq, long timestamp)|查找指定时间的消息队列的物理offset|
-|MessageExt|viewMessage(String offsetMsgId)|根据给定的msgId查询消息|
-|MessageExt|public MessageExt viewMessage(String topic, String msgId)|根据给定的msgId查询消息，并指定topic|
-|MQConsumer接口method|-------|------------|
-|Set<MessageQueue>|fetchSubscribeMessageQueues(String topic)|根据topic获取订阅的Queue|
-|void|sendMessageBack(final MessageExt msg, final int delayLevel)|如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL|
-|void|sendMessageBack(final MessageExt msg, final int delayLevel, final String brokerName)|如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL|
-|MQPullConsumer接口method|-------|------------|
-|long|fetchConsumeOffset(MessageQueue mq, boolean fromStore)|查询给定消息队列的最大offset|
-|PullResult |pull(final MessageQueue mq, final String subExpression, final long offset,final int maxNums)|异步拉取制定匹配的消息|
-|PullResult| pull(final MessageQueue mq, final String subExpression, final long offset,final int maxNums, final long timeout)|异步拉取制定匹配的消息|
-|PullResult|pull(final MessageQueue mq, final MessageSelector selector, final long offset,final int maxNums)|异步拉取制定匹配的消息，通过MessageSelector器来过滤消息，参考org.apache.rocketmq.common.filter.ExpressionType|
-|PullResult|pullBlockIfNotFound(final MessageQueue mq, final String subExpression,final long offset, final int maxNums)|异步拉取制定匹配的消息，如果没有消息讲block住，并指定超时时间consumerPullTimeoutMillis|
-|void|pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,final int maxNums, final PullCallback pullCallback)|异步拉取制定匹配的消息，如果没有消息讲block住，并指定超时时间consumerPullTimeoutMillis，通过回调pullCallback来消费|    
-|void|updateConsumeOffset(final MessageQueue mq, final long offset)|更新指定mq的offset|
-|long|fetchMessageQueuesInBalance(String topic)|根据topic获取订阅的Queue(是balance分配后的)|
-|void|void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)|如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL,消息可能在同一个consumerGroup消费|
-|void|shutdown()|关闭当前消费者实例并释放相关资源|
-|void|start()|启动消费者|
+|返回值|方法名称| 方法描述                                                                                   |
+|-------|-------|----------------------------------------------------------------------------------------|
+|MQAdmin接口method|-------| ------------                                                                           |
+|void|createTopic(String key, String newTopic, int queueNum)| 在broker上创建指定的topic                                                                     |
+|void|createTopic(String key, String newTopic, int queueNum, int topicSysFlag)| 在broker上创建指定的topic                                                                     |
+|long|earliestMsgStoreTime(MessageQueue mq)| 查询最早的消息存储时间                                                                            |
+|long|maxOffset(MessageQueue mq)| 查询给定消息队列的最大offset                                                                      |
+|long|minOffset(MessageQueue mq)| 查询给定消息队列的最小offset                                                                      |
+|QueryResult|queryMessage(String topic, String key, int maxNum, long begin, long end)| 按关键字查询消息                                                                               |
+|long|searchOffset(MessageQueue mq, long timestamp)| 查找指定时间的消息队列的物理offset                                                                   |
+|MessageExt|viewMessage(String offsetMsgId)| 根据给定的msgId查询消息                                                                         |
+|MessageExt|public MessageExt viewMessage(String topic, String msgId)| 根据给定的msgId查询消息，并指定topic                                                                |
+|MQConsumer接口method|-------| ------------                                                                           |
+|Set<MessageQueue>|fetchSubscribeMessageQueues(String topic)| 根据topic获取订阅的Queue                                                                      |
+|void|sendMessageBack(final MessageExt msg, final int delayLevel)| 如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL                                   |
+|void|sendMessageBack(final MessageExt msg, final int delayLevel, final String brokerName)| 如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL                                   |
+|MQPullConsumer接口method|-------| ------------                                                                           |
+|long|fetchConsumeOffset(MessageQueue mq, boolean fromStore)| 查询给定消息队列的最大offset                                                                      |
+|PullResult |pull(final MessageQueue mq, final String subExpression, final long offset,final int maxNums)| 异步拉取制定匹配的消息                                                                            |
+|PullResult| pull(final MessageQueue mq, final String subExpression, final long offset,final int maxNums, final long timeout)| 异步拉取制定匹配的消息                                                                            |
+|PullResult|pull(final MessageQueue mq, final MessageSelector selector, final long offset,final int maxNums)| 异步拉取制定匹配的消息，通过MessageSelector器来过滤消息，参考org.apache.rocketmq.common.filter.ExpressionType |
+|PullResult|pullBlockIfNotFound(final MessageQueue mq, final String subExpression,final long offset, final int maxNums)| 异步拉取制定匹配的消息，如果没有消息讲block住，并指定超时时间consumerPullTimeoutMillis                             |
+|void|pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,final int maxNums, final PullCallback pullCallback)| 异步拉取制定匹配的消息，如果没有消息讲block住，并指定超时时间consumerPullTimeoutMillis，通过回调pullCallback来消费         |    
+|void|updateConsumeOffset(final MessageQueue mq, final long offset)| 更新指定mq的offset                                                                          |
+|long|fetchMessageQueuesInBalance(String topic)| 根据topic获取订阅的Queue(是balance分配后的)                                                        |
+|void|void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)| 如果消息出来失败，可以发送回去延迟消费，delayLevel=DelayConf.DELAY_LEVEL，消息可能在同一个consumerGroup消费           |
+|void|shutdown()| 关闭当前消费者实例并释放相关资源                                                                       |
+|void|start()| 启动消费者                                                                                  |
 

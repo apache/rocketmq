@@ -13,7 +13,7 @@ RocketMQ的集群设计，是一个多集群、动态、零耦合的设计，具
 - 开发用户对 Cluster 无感知
 - 不同 Broker 之间没有任何关联
 
-这样的设计，在运维时带来了极大的便利，但也带来了一个问题:
+这样的设计，在运维时带来了极大的便利，但也带来了一个问题：
 - Topic 的队列数无法固定
 
 基于 Logic Queue 技术而实现的 Static Topic，就是用来解决『固定队列数量』的问题。
@@ -52,19 +52,19 @@ __logic__global
 主要原因是，不想完全放弃 RocketMQ 『多集群、动态、零耦合』的设计优势。
 而全网固定，则意味着彻底失去了这个优势。
 
-举1个『多活保序』的场景:
+举1个『多活保序』的场景：
 - ClusterA 部署在 SiteA 内，创建 Static Topic 『TopicTest』，有50个队列。
 - ClusterB 部署在 SiteB 内，创建 Static Topic 『TopicTest』，有50个队列。
 
 对Nameserver稍作修改，支持传入标识符(比如为scope或者unitName)，来获取特定范围内的 Topic Route。
 
 正常情况下：
-- SiteA 的Producer和Consumer 只能看见 ClusterA 的 MessageQueue, brokerName为 "__logic__clusterA"。
-- SiteB 的Producer和Consumer 只能看见 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"。
+- SiteA 的Producer和Consumer 只能看见 ClusterA 的 MessageQueue，brokerName为 "__logic__clusterA"。
+- SiteB 的Producer和Consumer 只能看见 ClusterB 的 MessageQueue，brokerName为 "__logic__clusterB"。
 - 机房内就近访问，且机房内严格保序。
 
 假设 SiteA 宕机，此时对Nameserver发指令允许全网读，也即忽略客户端传入的 Scope或者unitName 标识符：
-- SiteB 的 Producer 仍然看见并写入 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"
+- SiteB 的 Producer 仍然看见并写入 ClusterB 的 MessageQueue，brokerName为 "__logic__clusterB"
 - SiteB 的 Consumer 可以同时看见并读取 ClusterA 的 MessageQueue 和 ClusterB MessageQueue, brokerName为 "__logic__clusterB" 和 "__logic__clusterA
 - 在这种场景下，Consumer 在消费 ClusterB 数据的同时，同时去消费 ClusterA 未消费完的数据
 
