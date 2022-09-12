@@ -22,6 +22,15 @@ import org.apache.rocketmq.common.message.MessageExt;
 public interface SendMessageBackHook {
 
     /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
+    /**
      * Slave send message back to master at certain offset when HA handshake
      *
      * @param msgList

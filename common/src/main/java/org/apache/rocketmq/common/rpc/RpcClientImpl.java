@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.rpc;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.netty.util.concurrent.Promise;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Future;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -54,24 +55,24 @@ public class RpcClientImpl implements RpcClient {
 
     public void registerHook(RpcClientHook hook) {
         clientHookList.add(hook);
+        clientHookList.sort(Comparator.comparing(RpcClientHook::order));
     }
 
     @Override
-    public Future<RpcResponse>  invoke(MessageQueue mq, RpcRequest request, long timeoutMs) throws RpcException {
-        String bname =  clientMetadata.getBrokerNameFromMessageQueue(mq);
+    public Future<RpcResponse> invoke(MessageQueue mq, RpcRequest request, long timeoutMs) throws RpcException {
+        String bname = clientMetadata.getBrokerNameFromMessageQueue(mq);
         request.getHeader().setBname(bname);
         return invoke(request, timeoutMs);
     }
 
-
-    public Promise<RpcResponse> createResponseFuture()  {
+    public Promise<RpcResponse> createResponseFuture() {
         return ImmediateEventExecutor.INSTANCE.newPromise();
     }
 
     @Override
-    public Future<RpcResponse>  invoke(RpcRequest request, long timeoutMs) throws RpcException {
+    public Future<RpcResponse> invoke(RpcRequest request, long timeoutMs) throws RpcException {
         if (clientHookList.size() > 0) {
-            for (RpcClientHook rpcClientHook: clientHookList) {
+            for (RpcClientHook rpcClientHook : clientHookList) {
                 RpcResponse response = rpcClientHook.beforeRequest(request);
                 if (response != null) {
                     //For 1.6, there is not easy-to-use future impl
@@ -121,7 +122,6 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-
     private String getBrokerAddrByNameOrException(String bname) throws RpcException {
         String addr = this.clientMetadata.findMasterBrokerAddr(bname);
         if (addr == null) {
@@ -130,8 +130,8 @@ public class RpcClientImpl implements RpcClient {
         return addr;
     }
 
-
-    private void processFailedResponse(String addr, RemotingCommand requestCommand,  ResponseFuture responseFuture, Promise<RpcResponse> rpcResponsePromise) {
+    private void processFailedResponse(String addr, RemotingCommand requestCommand, ResponseFuture responseFuture,
+        Promise<RpcResponse> rpcResponsePromise) {
         RemotingCommand responseCommand = responseFuture.getResponseCommand();
         if (responseCommand != null) {
             //this should not happen
@@ -151,8 +151,8 @@ public class RpcClientImpl implements RpcClient {
         rpcResponsePromise.setSuccess(new RpcResponse(new RpcException(errorCode, errorMessage)));
     }
 
-
-    public Promise<RpcResponse> handlePullMessage(final String addr, RpcRequest rpcRequest, long timeoutMillis)  throws Exception {
+    public Promise<RpcResponse> handlePullMessage(final String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
 
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
@@ -172,7 +172,7 @@ public class RpcClientImpl implements RpcClient {
                         case ResponseCode.PULL_RETRY_IMMEDIATELY:
                         case ResponseCode.PULL_OFFSET_MOVED:
                             PullMessageResponseHeader responseHeader =
-                                    (PullMessageResponseHeader) responseCommand.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+                                (PullMessageResponseHeader) responseCommand.decodeCommandCustomHeader(PullMessageResponseHeader.class);
                             rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                         default:
                             RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unexpected remote response code"));
@@ -181,7 +181,7 @@ public class RpcClientImpl implements RpcClient {
                     }
                 } catch (Exception e) {
                     String errorMessage = "process failed. addr: " + addr + ", timeoutMillis: " + responseFuture.getTimeoutMillis() + ". Request: " + requestCommand;
-                    RpcResponse  rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, e));
+                    RpcResponse rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, e));
                     rpcResponsePromise.setSuccess(rpcResponse);
                 }
             }
@@ -191,7 +191,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleSearchOffset(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleSearchOffset(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -200,7 +201,7 @@ public class RpcClientImpl implements RpcClient {
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
                 SearchOffsetResponseHeader responseHeader =
-                        (SearchOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                    (SearchOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                 break;
             }
@@ -211,9 +212,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-
-
-    public Promise<RpcResponse> handleQueryConsumerOffset(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleQueryConsumerOffset(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -222,7 +222,7 @@ public class RpcClientImpl implements RpcClient {
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
                 QueryConsumerOffsetResponseHeader responseHeader =
-                        (QueryConsumerOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+                    (QueryConsumerOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                 break;
             }
@@ -237,7 +237,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleUpdateConsumerOffset(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleUpdateConsumerOffset(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -257,7 +258,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleCommonBodyRequest(final String addr, RpcRequest rpcRequest, long timeoutMillis, Class bodyClass) throws Exception {
+    public Promise<RpcResponse> handleCommonBodyRequest(final String addr, RpcRequest rpcRequest, long timeoutMillis,
+        Class bodyClass) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
         RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
@@ -274,7 +276,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleGetMinOffset(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleGetMinOffset(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -284,7 +287,7 @@ public class RpcClientImpl implements RpcClient {
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetMinOffsetResponseHeader responseHeader =
-                        (GetMinOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+                    (GetMinOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                 break;
             }
@@ -295,7 +298,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleGetMaxOffset(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleGetMaxOffset(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -305,7 +309,7 @@ public class RpcClientImpl implements RpcClient {
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetMaxOffsetResponseHeader responseHeader =
-                        (GetMaxOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                    (GetMaxOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                 break;
             }
@@ -316,7 +320,8 @@ public class RpcClientImpl implements RpcClient {
         return rpcResponsePromise;
     }
 
-    public Promise<RpcResponse> handleGetEarliestMsgStoretime(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+    public Promise<RpcResponse> handleGetEarliestMsgStoretime(String addr, RpcRequest rpcRequest,
+        long timeoutMillis) throws Exception {
         final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
 
         RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
@@ -326,7 +331,7 @@ public class RpcClientImpl implements RpcClient {
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetEarliestMsgStoretimeResponseHeader responseHeader =
-                        (GetEarliestMsgStoretimeResponseHeader) responseCommand.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
+                    (GetEarliestMsgStoretimeResponseHeader) responseCommand.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
                 break;
             }

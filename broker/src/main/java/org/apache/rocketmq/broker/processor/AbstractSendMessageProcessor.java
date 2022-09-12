@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.net.SocketAddress;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -80,6 +81,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
         this.consumeMessageHookList = consumeMessageHookList;
+        if (null != this.consumeMessageHookList && this.consumeMessageHookList.size() > 1) {
+            this.consumeMessageHookList.sort(Comparator.comparing(ConsumeMessageHook::order));
+        }
     }
 
     protected RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
@@ -520,6 +524,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
         this.sendMessageHookList = sendMessageHookList;
+        if (null != this.sendMessageHookList && this.sendMessageHookList.size() > 1) {
+            this.sendMessageHookList.sort(Comparator.comparing(SendMessageHook::order));
+        }
     }
 
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,

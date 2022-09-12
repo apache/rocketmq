@@ -18,6 +18,7 @@ package org.apache.rocketmq.container;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -258,6 +259,7 @@ public class BrokerContainer implements IBrokerContainer {
     public void registerBrokerBootHook(BrokerBootHook brokerBootHook) {
         this.brokerBootHookList.add(brokerBootHook);
         LOG.info("register BrokerBootHook, {}", brokerBootHook.hookName());
+        this.brokerBootHookList.sort(Comparator.comparing(BrokerBootHook::order));
     }
 
     @Override
@@ -277,7 +279,8 @@ public class BrokerContainer implements IBrokerContainer {
         return null;
     }
 
-    public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig, final MessageStoreConfig storeConfig) throws Exception {
+    public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig,
+        final MessageStoreConfig storeConfig) throws Exception {
         brokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");

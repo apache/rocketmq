@@ -17,6 +17,16 @@
 package org.apache.rocketmq.broker.mqtrace;
 
 public interface SendMessageHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     String hookName();
 
     void sendMessageBefore(final SendMessageContext context);

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -52,7 +53,8 @@ public class HAWriter {
     }
 
     public void registerHook(HAWriteHook writeHook) {
-        writeHookList.add(writeHook);
+        this.writeHookList.add(writeHook);
+        this.writeHookList.sort(Comparator.comparing(HAWriteHook::order));
     }
 
     public void clearHook() {

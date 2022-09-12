@@ -20,8 +20,18 @@ package org.apache.rocketmq.remoting;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RPCHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     void doBeforeRequest(final String remoteAddr, final RemotingCommand request);
 
     void doAfterResponse(final String remoteAddr, final RemotingCommand request,
-                         final RemotingCommand response);
+        final RemotingCommand response);
 }

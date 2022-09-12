@@ -16,12 +16,21 @@
  */
 package org.apache.rocketmq.common.rpc;
 
-public abstract class RpcClientHook {
+public interface RpcClientHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
 
     //if the return is not null, return it
-    public abstract RpcResponse beforeRequest(RpcRequest rpcRequest) throws RpcException;
+    RpcResponse beforeRequest(RpcRequest rpcRequest) throws RpcException;
 
     //if the return is not null, return it
-    public abstract RpcResponse afterResponse(RpcResponse rpcResponse) throws RpcException;
+    RpcResponse afterResponse(RpcResponse rpcResponse) throws RpcException;
 
 }

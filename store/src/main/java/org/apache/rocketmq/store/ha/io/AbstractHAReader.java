@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -63,7 +64,9 @@ public abstract class AbstractHAReader {
     }
 
     public void registerHook(HAReadHook readHook) {
-        readHookList.add(readHook);
+        AbstractHAReader.this.readHookList.add(readHook);
+        AbstractHAReader.this.readHookList.sort(Comparator.comparing(HAReadHook::order));
+
     }
 
     public void clearHook() {

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.Comparator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -154,7 +155,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
     // only for test purpose, will be modified by reflection in unit test.
-    @SuppressWarnings("FieldMayBeFinal") private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
+    @SuppressWarnings("FieldMayBeFinal")
+    private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
 
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
@@ -175,6 +177,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);
         log.info("register consumeMessageHook Hook, {}", hook.hookName());
+        this.consumeMessageHookList.sort(Comparator.comparing(ConsumeMessageHook::order));
     }
 
     public void executeHookBefore(final ConsumeMessageContext context) {
@@ -347,6 +350,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         this.pullAPIWrapper = new PullAPIWrapper(
             mQClientFactory,
             this.defaultLitePullConsumer.getConsumerGroup(), isUnitMode());
+        this.filterMessageHookList.sort(Comparator.comparing(FilterMessageHook::order));
         this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
     }
 
@@ -480,12 +484,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * subscribe data by customizing messageQueueListener
+     *
      * @param topic
      * @param subExpression
      * @param messageQueueListener
      * @throws MQClientException
      */
-    public synchronized void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+    public synchronized void subscribe(String topic, String subExpression,
+        MessageQueueListener messageQueueListener) throws MQClientException {
         try {
             if (StringUtils.isEmpty(topic)) {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
@@ -511,7 +517,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("subscribe exception", e);
         }
     }
-
 
     public synchronized void subscribe(String topic, String subExpression) throws MQClientException {
         try {
@@ -728,6 +733,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * Specify offset commit
+     *
      * @param messageQueues
      * @param persist
      */
@@ -756,6 +762,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * Get the queue assigned in subscribe mode
+     *
      * @return
      */
     public synchronized Set<MessageQueue> assignment() {
@@ -1227,7 +1234,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void registerTopicMessageQueueChangeListener(String topic,
-                                                                     TopicMessageQueueChangeListener listener) throws MQClientException {
+        TopicMessageQueueChangeListener listener) throws MQClientException {
         if (topic == null || listener == null) {
             throw new MQClientException("Topic or listener is null", null);
         }

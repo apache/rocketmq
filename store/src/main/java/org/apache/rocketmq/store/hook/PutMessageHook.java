@@ -22,6 +22,15 @@ import org.apache.rocketmq.store.PutMessageResult;
 public interface PutMessageHook {
 
     /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
+    /**
      * Name of the hook.
      *
      * @return name of the hook
@@ -29,7 +38,8 @@ public interface PutMessageHook {
     String hookName();
 
     /**
-     *  Execute before put message. For example, Message verification or special message transform
+     * Execute before put message. For example, Message verification or special message transform
+     *
      * @param msg
      * @return
      */

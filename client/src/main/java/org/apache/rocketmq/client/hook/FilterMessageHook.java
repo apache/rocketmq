@@ -17,6 +17,16 @@
 package org.apache.rocketmq.client.hook;
 
 public interface FilterMessageHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     String hookName();
 
     void filterMessage(final FilterMessageContext context);

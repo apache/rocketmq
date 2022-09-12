@@ -18,5 +18,15 @@
 package org.apache.rocketmq.store.ha.io;
 
 public interface HAWriteHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     void afterWrite(int writeSize);
 }

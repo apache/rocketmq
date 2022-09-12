@@ -21,6 +21,16 @@ import java.util.Properties;
 import org.apache.rocketmq.broker.BrokerController;
 
 public interface BrokerBootHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     /**
      * Name of the hook.
      *
@@ -32,7 +42,7 @@ public interface BrokerBootHook {
      * Code to execute before broker start.
      *
      * @param brokerController broker to start
-     * @param properties broker properties
+     * @param properties       broker properties
      * @throws Exception when execute hook
      */
     void executeBeforeStart(BrokerController brokerController, Properties properties) throws Exception;
@@ -41,7 +51,7 @@ public interface BrokerBootHook {
      * Code to execute after broker start.
      *
      * @param brokerController broker to start
-     * @param properties broker properties
+     * @param properties       broker properties
      * @throws Exception when execute hook
      */
     void executeAfterStart(BrokerController brokerController, Properties properties) throws Exception;

@@ -23,6 +23,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -72,14 +73,14 @@ public abstract class NettyRemotingAbstract {
      * This map caches all on-going requests.
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
-            new ConcurrentHashMap<>(256);
+        new ConcurrentHashMap<>(256);
 
     /**
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
      */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
-            new HashMap<>(64);
+        new HashMap<>(64);
 
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
@@ -203,7 +204,7 @@ public abstract class NettyRemotingAbstract {
 
         if (pair.getObject1().rejectRequest()) {
             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
-                    "[REJECTREQUEST]system busy, start flow control for a while");
+                "[REJECTREQUEST]system busy, start flow control for a while");
             response.setOpaque(opaque);
             ctx.writeAndFlush(response);
             return;
@@ -216,21 +217,22 @@ public abstract class NettyRemotingAbstract {
         } catch (RejectedExecutionException e) {
             if ((System.currentTimeMillis() % 10000) == 0) {
                 log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
-                        + ", too many requests and system thread pool busy, RejectedExecutionException "
-                        + pair.getObject2().toString()
-                        + " request code: " + cmd.getCode());
+                    + ", too many requests and system thread pool busy, RejectedExecutionException "
+                    + pair.getObject2().toString()
+                    + " request code: " + cmd.getCode());
             }
 
             if (!cmd.isOnewayRPC()) {
                 final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
-                        "[OVERLOAD]system busy, start flow control for a while");
+                    "[OVERLOAD]system busy, start flow control for a while");
                 response.setOpaque(opaque);
                 ctx.writeAndFlush(response);
             }
         }
     }
 
-    private Runnable buildProcessRequestHandler(ChannelHandlerContext ctx, RemotingCommand cmd, Pair<NettyRequestProcessor, ExecutorService> pair, int opaque) {
+    private Runnable buildProcessRequestHandler(ChannelHandlerContext ctx, RemotingCommand cmd,
+        Pair<NettyRequestProcessor, ExecutorService> pair, int opaque) {
         return () -> {
             Exception exception = null;
             RemotingCommand response;
@@ -278,7 +280,7 @@ public abstract class NettyRemotingAbstract {
 
                 if (!cmd.isOnewayRPC()) {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                            RemotingHelper.exceptionSimpleDesc(e));
+                        RemotingHelper.exceptionSimpleDesc(e));
                     response.setOpaque(opaque);
                     ctx.writeAndFlush(response);
                 }
@@ -360,6 +362,7 @@ public abstract class NettyRemotingAbstract {
     public void registerRPCHook(RPCHook rpcHook) {
         if (rpcHook != null && !rpcHooks.contains(rpcHook)) {
             rpcHooks.add(rpcHook);
+            rpcHooks.sort(Comparator.comparing(RPCHook::order));
         }
     }
 

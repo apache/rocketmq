@@ -17,6 +17,16 @@
 package org.apache.rocketmq.broker;
 
 public interface ShutdownHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     /**
      * Code to execute before broker shutdown.
      *

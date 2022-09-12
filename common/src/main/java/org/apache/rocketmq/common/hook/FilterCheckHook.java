@@ -20,6 +20,16 @@ package org.apache.rocketmq.common.hook;
 import java.nio.ByteBuffer;
 
 public interface FilterCheckHook {
+
+    /**
+     * Hook execution order, smaller values are executed first
+     *
+     * @return hook execution order
+     */
+    default int order() {
+        return Integer.MIN_VALUE;
+    }
+
     String hookName();
 
     boolean isFilterMatched(final boolean isUnitMode, final ByteBuffer byteBuffer);
