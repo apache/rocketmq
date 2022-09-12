@@ -1496,6 +1496,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1516,10 +1517,7 @@ public class CommitLog implements Swappable {
                 CommitLog.log.warn("GroupCommitService Exception, ", e);
             }
 
-            synchronized (this) {
-                this.swapRequests();
-            }
-
+            this.swapRequests();
             this.doCommit();
 
             CommitLog.log.info(this.getServiceName() + " service end");
