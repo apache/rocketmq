@@ -14,7 +14,7 @@
 - earliestMsgStoreTime 
 - endTransaction
 
-所有锁MQ相关操作，包括lock, unlock, lockBatch, unlockAll
+所有锁MQ相关操作，包括lock，unlock，lockBatch，unlockAll
 
 具体影响为：
 - 客户端无法获取位于该副本组的mq的锁，故当本地锁过期后，将无法消费该组的顺序消息 
@@ -31,7 +31,7 @@
 
 提出一个新的方案，Slave代理Master模式，作为Master-Slave部署模式的升级。在原先Master-Slave部署模式下，通过备代理主、轻量级心跳、副本组信息获取、broker预上线机制、二级消息逃逸等方式，当同组Master发生故障时，Slave将承担更加重要的作用，包括：
 
-- 当Master下线后，该组中brokerId最小的Slave会承担备读 以及 一些 客户端和管控会访问 但却只能在Master节点上完成的任务。包括且不限于searchOffset、maxOffset、minOffset、earliestMsgStoreTime、endTransaction以及所有锁MQ相关操作lock, unlock, lockBatch, unlockAll。
+- 当Master下线后，该组中brokerId最小的Slave会承担备读 以及 一些 客户端和管控会访问 但却只能在Master节点上完成的任务。包括且不限于searchOffset、maxOffset、minOffset、earliestMsgStoreTime、endTransaction以及所有锁MQ相关操作lock，unlock，lockBatch，unlockAll。
 - 当Master下线后，故障Broker组上的二级消息消费将不会中断，由该组中该组中brokerId最小的Slave承担起该任务，定时消息、Pop消息、事务消息等仍然可以正常运行。
 - 当Master下线后，在Slave代理Master一段时间主后，然后当Master再次上线后，通过预上线机制，Master会自动完成元数据的反向同步后再上线，不会出现元数据回退，造成消息大量重复消费或二级消息大量重放。
 
@@ -161,4 +161,4 @@ Broker
 客户端对新旧版本的nameserver和broker均无兼容性问题。
 
 
-参考文档: [原RIP](https://github.com/apache/rocketmq/wiki/RIP-32-Slave-Acting-Master-Mode)
+参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-32-Slave-Acting-Master-Mode)
