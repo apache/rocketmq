@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.container.BrokerContainer;
 import org.apache.rocketmq.container.InnerSalveBrokerController;
 import org.apache.rocketmq.broker.BrokerController;
@@ -186,6 +187,7 @@ public class ContainerIntegrationTestBase {
         try {
             TopicConfig topicConfig = new TopicConfig(topicName, rqn, wqn, 6, 0);
             defaultMQAdminExt.createAndUpdateTopicConfig(masterBroker.getBrokerAddr(), topicConfig);
+            System.out.println("Create topic " + topicName + " to " + masterBroker.getBrokerIdentity().getCanonicalName() + "@" + masterBroker.getBrokerAddr());
 
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer1);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer2);
@@ -403,6 +405,15 @@ public class ContainerIntegrationTestBase {
         producer.setInstanceName(UUID.randomUUID().toString());
         producer.setNamesrvAddr(nsAddr);
         producer.setTransactionCheckListener(transactionCheckListener);
+        return producer;
+    }
+
+    protected static TransactionMQProducer createTransactionProducer(String producerGroup,
+        TransactionListener transactionListener) {
+        TransactionMQProducer producer = new TransactionMQProducer(producerGroup);
+        producer.setInstanceName(UUID.randomUUID().toString());
+        producer.setNamesrvAddr(nsAddr);
+        producer.setTransactionListener(transactionListener);
         return producer;
     }
 
