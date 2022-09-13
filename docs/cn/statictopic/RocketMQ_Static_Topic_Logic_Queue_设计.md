@@ -55,7 +55,7 @@ LogicQueue的思路就是为了解决这一问题。
 - Second Leader Queue，某个『Logic Queue』次新映射的『Physical Queue』，也即最新一次切换之前的『Leader Queue』
 
 #### Scope 目标
-单集群固定 和 全网固定, 参考 [The_Scope_Of_Static_Topic](The_Scope_Of_Static_Topic.md)。
+单集群固定 和 全网固定，参考 [The_Scope_Of_Static_Topic](The_Scope_Of_Static_Topic.md)。
 
 
 #### LogicQueue 目标
@@ -160,7 +160,7 @@ LogicQueue 的 Source of Truth 就是 LogicQueue 到 Physical Queue 的映射关
   }
 }
 ```
-上述示例的含义是:
+上述示例的含义是：
 * broker02 拥有 LogicQueue 3
 * LogicQueue 3 由 2 个 Physical Queue 组成
 * 位点范围『0-1000』映射到 Physical Queue 『broker01-0』上面
@@ -261,7 +261,7 @@ SOT存储在Broker上，所以使用从 Broker开始。
 
 遗留问题：
 是否需要尊重 readQueueNums 和 writeQueueNums ？
-在LogicQueue这里，这个场景是没有意义的, 但依然保持尊重。
+在LogicQueue这里，这个场景是没有意义的，但依然保持尊重。
 
 #### Client 解析数据
 改动两个方法即可：
@@ -436,7 +436,7 @@ User 接口，使用范围广泛如多语言等，应该尽可能简单，把适
 如果做在服务端，则可能产生交叉访问，在极端情况下，性能会非常差，举个例子：  
 100 个 Broker，相互交叉映射过一遍，则Admin客户端首先要向 100 个 Broker 发请求，然后这 100 个 Broker 为了获取远程信息，各自向其余 Broker 发请求。
 其实际网络请求数就是 100 * 100 = 10000 个网络请求。放大效应十分明显。  
-同时, 考虑到 Admin 接口，使用范围是有限的，无需考虑多语言适配等问题，可以把适配逻辑做在 Admin 客户端。
+同时，考虑到 Admin 接口，使用范围是有限的，无需考虑多语言适配等问题，可以把适配逻辑做在 Admin 客户端。
 
 #### 远程读的性能问题
 从实战经验来看，性能损耗几乎不计。

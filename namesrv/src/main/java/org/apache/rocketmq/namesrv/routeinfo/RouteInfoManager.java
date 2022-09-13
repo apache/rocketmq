@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -201,16 +202,16 @@ public class RouteInfoManager {
     }
 
     public RegisterBrokerResult registerBroker(
-            final String clusterName,
-            final String brokerAddr,
-            final String brokerName,
-            final long brokerId,
-            final String haServerAddr,
-            final String zoneName,
-            final Long timeoutMillis,
-            final TopicConfigSerializeWrapper topicConfigWrapper,
-            final List<String> filterServerList,
-            final Channel channel) {
+        final String clusterName,
+        final String brokerAddr,
+        final String brokerName,
+        final long brokerId,
+        final String haServerAddr,
+        final String zoneName,
+        final Long timeoutMillis,
+        final TopicConfigSerializeWrapper topicConfigWrapper,
+        final List<String> filterServerList,
+        final Channel channel) {
         return registerBroker(clusterName, brokerAddr, brokerName, brokerId, haServerAddr, zoneName, timeoutMillis, false, topicConfigWrapper, filterServerList, channel);
     }
 
@@ -231,7 +232,7 @@ public class RouteInfoManager {
             this.lock.writeLock().lockInterruptibly();
 
             //init or update the cluster info
-            Set<String> brokerNames = this.clusterAddrTable.computeIfAbsent(clusterName, k -> new HashSet<>());
+            Set<String> brokerNames = ConcurrentHashMapUtils.computeIfAbsent((ConcurrentHashMap<String, Set<String>>) this.clusterAddrTable, clusterName, k -> new HashSet<>());
             brokerNames.add(brokerName);
 
             boolean registerFirst = false;
@@ -273,8 +274,8 @@ public class RouteInfoManager {
                     long newStateVersion = topicConfigWrapper.getDataVersion().getStateVersion();
                     if (oldStateVersion > newStateVersion) {
                         log.warn("Registered Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
-                                        "Old BrokerAddr:{}, Old Version:{}, New BrokerAddr:{}, New Version:{}.",
-                                clusterName, brokerName, brokerId, oldBrokerAddr, oldStateVersion, brokerAddr, newStateVersion);
+                                "Old BrokerAddr:{}, Old Version:{}, New BrokerAddr:{}, New Version:{}.",
+                            clusterName, brokerName, brokerId, oldBrokerAddr, oldStateVersion, brokerAddr, newStateVersion);
                         //Remove the rejected brokerAddr from brokerLiveTable.
                         brokerLiveTable.remove(new BrokerAddrInfo(clusterName, brokerAddr));
                         return result;
@@ -284,7 +285,7 @@ public class RouteInfoManager {
 
             if (!brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
                 log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
-                        topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
+                    topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
                 return null;
             }
 
@@ -293,17 +294,17 @@ public class RouteInfoManager {
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
             boolean isPrimeSlave = !isOldVersionBroker && !isMaster
-                    && brokerId == Collections.min(brokerAddrsMap.keySet());
+                && brokerId == Collections.min(brokerAddrsMap.keySet());
 
             if (null != topicConfigWrapper && (isMaster || isPrimeSlave)) {
 
                 ConcurrentMap<String, TopicConfig> tcTable =
-                        topicConfigWrapper.getTopicConfigTable();
+                    topicConfigWrapper.getTopicConfigTable();
                 if (tcTable != null) {
                     for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
                         if (registerFirst || this.isTopicConfigChanged(clusterName, brokerAddr,
-                                topicConfigWrapper.getDataVersion(), brokerName,
-                                entry.getValue().getTopicName())) {
+                            topicConfigWrapper.getDataVersion(), brokerName,
+                            entry.getValue().getTopicName())) {
                             final TopicConfig topicConfig = entry.getValue();
                             if (isPrimeSlave) {
                                 // Wipe write perm for prime slave
@@ -331,12 +332,12 @@ public class RouteInfoManager {
 
             BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
             BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddrInfo,
-                    new BrokerLiveInfo(
-                            System.currentTimeMillis(),
-                            timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                            topicConfigWrapper == null ? new DataVersion() : topicConfigWrapper.getDataVersion(),
-                            channel,
-                            haServerAddr));
+                new BrokerLiveInfo(
+                    System.currentTimeMillis(),
+                    timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
+                    topicConfigWrapper == null ? new DataVersion() : topicConfigWrapper.getDataVersion(),
+                    channel,
+                    haServerAddr));
             if (null == prevBrokerLiveInfo) {
                 log.info("new broker registered, {} HAService: {}", brokerAddrInfo, haServerAddr);
             }
@@ -363,7 +364,7 @@ public class RouteInfoManager {
 
             if (isMinBrokerIdChanged && namesrvConfig.isNotifyMinBrokerIdChanged()) {
                 notifyMinBrokerIdChanged(brokerAddrsMap, null,
-                        this.brokerLiveTable.get(brokerAddrInfo).getHaServerAddr());
+                    this.brokerLiveTable.get(brokerAddrInfo).getHaServerAddr());
             }
         } catch (Exception e) {
             log.error("registerBroker Exception", e);
@@ -679,9 +680,9 @@ public class RouteInfoManager {
                         continue;
                     }
                     BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(),
-                            brokerData.getBrokerName(),
-                            (HashMap<Long, String>) brokerData.getBrokerAddrs().clone(),
-                            brokerData.isEnableActingMaster(), brokerData.getZoneName());
+                        brokerData.getBrokerName(),
+                        (HashMap<Long, String>) brokerData.getBrokerAddrs().clone(),
+                        brokerData.isEnableActingMaster(), brokerData.getZoneName());
 
                     brokerDataList.add(brokerDataClone);
                     foundBrokerData = true;
@@ -1023,7 +1024,7 @@ public class RouteInfoManager {
                 String topic = topicEntry.getKey();
                 Map<String, QueueData> queueDatas = topicEntry.getValue();
                 if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
+                    && TopicSysFlag.hasUnitFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
                     topicList.getTopicList().add(topic);
                 }
             }
@@ -1044,7 +1045,7 @@ public class RouteInfoManager {
                 String topic = topicEntry.getKey();
                 Map<String, QueueData> queueDatas = topicEntry.getValue();
                 if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
+                    && TopicSysFlag.hasUnitSubFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
                     topicList.getTopicList().add(topic);
                 }
             }
@@ -1065,8 +1066,8 @@ public class RouteInfoManager {
                 String topic = topicEntry.getKey();
                 Map<String, QueueData> queueDatas = topicEntry.getValue();
                 if (queueDatas != null && queueDatas.size() > 0
-                        && !TopicSysFlag.hasUnitFlag(queueDatas.values().iterator().next().getTopicSysFlag())
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
+                    && !TopicSysFlag.hasUnitFlag(queueDatas.values().iterator().next().getTopicSysFlag())
+                    && TopicSysFlag.hasUnitSubFlag(queueDatas.values().iterator().next().getTopicSysFlag())) {
                     topicList.getTopicList().add(topic);
                 }
             }
