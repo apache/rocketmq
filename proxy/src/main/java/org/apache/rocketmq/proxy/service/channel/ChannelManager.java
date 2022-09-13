@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +38,7 @@ public class ChannelManager {
             log.warn("ClientId is unexpected null or empty");
             return createChannelInner(context);
         }
-
-        SimpleChannel channel = clientIdChannelMap.computeIfAbsent(clientId, k -> createChannelInner(context));
+        SimpleChannel channel = ConcurrentHashMapUtils.computeIfAbsent(this.clientIdChannelMap,clientId, k -> createChannelInner(context));
         channel.updateLastAccessTime();
         return channel;
     }
