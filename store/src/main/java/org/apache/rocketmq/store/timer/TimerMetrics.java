@@ -56,6 +56,7 @@ public class TimerMetrics extends ConfigManager {
 
     private final ConcurrentMap<Integer, Metric> timingDistribution =
             new ConcurrentHashMap<>(1024);
+
     public List<Integer> timerDist = new ArrayList<Integer>() {{
             add(5);
             add(60);
@@ -142,7 +143,10 @@ public class TimerMetrics extends ConfigManager {
 
     @Override
     public String encode() {
-        return null;
+        TimerMetricsSerializeWrapper metricsSerializeWrapper = new TimerMetricsSerializeWrapper();
+        metricsSerializeWrapper.setDataVersion(this.dataVersion);
+        metricsSerializeWrapper.setTimingCount(this.timingCount);
+        return metricsSerializeWrapper.toJson();
     }
 
     @Override
@@ -154,9 +158,10 @@ public class TimerMetrics extends ConfigManager {
     public void decode(String jsonString) {
         if (jsonString != null) {
             TimerMetricsSerializeWrapper timerMetricsSerializeWrapper =
-                    TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
+                TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
             if (timerMetricsSerializeWrapper != null) {
                 this.timingCount.putAll(timerMetricsSerializeWrapper.getTimingCount());
+                this.dataVersion.assignNewOne(timerMetricsSerializeWrapper.getDataVersion());
             }
         }
     }
