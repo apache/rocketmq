@@ -341,6 +341,11 @@ public class ReplicasManager {
                 brokerController.setIsolated(false);
             } else {
                 // if master address is empty, just apply the brokerId
+                if (registerResponse.getBrokerId() <= 0) {
+                    // wrong broker id
+                    LOGGER.error("Register to controller but receive a invalid broker id = {}", registerResponse.getBrokerId());
+                    return false;
+                }
                 this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
             }
             return true;
