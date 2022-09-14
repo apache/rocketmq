@@ -19,9 +19,7 @@ package org.apache.rocketmq.test.container;
 
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,7 +43,7 @@ import static org.awaitility.Awaitility.await;
 
 public class TransactionMessageIT extends ContainerIntegrationTestBase {
 
-    private static final String MESSAGE_STRING = RandomStringUtils.random(1);
+    private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
     private static byte[] MESSAGE_BODY;
 
     static {
@@ -55,7 +53,7 @@ public class TransactionMessageIT extends ContainerIntegrationTestBase {
         }
     }
 
-    private static final int MESSAGE_COUNT = 2;
+    private static final int MESSAGE_COUNT = 16;
 
     public TransactionMessageIT() {
     }
