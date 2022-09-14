@@ -182,6 +182,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -726,13 +727,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getTimerMetrics(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
-        if (null == this.brokerController.getMessageStore().getTimerMessageStore()) {
+        TimerMessageStore timerMessageStore = this.brokerController.getMessageStore().getTimerMessageStore();
+        if (null == timerMessageStore) {
             LOGGER.error("The timer message store is null, client: {}", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The timer message store is null");
             return response;
         }
-        response.setBody(brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().encode().getBytes());
+        response.setBody(timerMessageStore.getTimerMetrics().encode().getBytes(StandardCharsets.UTF_8));
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
