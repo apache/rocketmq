@@ -396,13 +396,13 @@ public class RouteInfoManager {
     }
 
     public boolean isBrokerTopicConfigChanged(final String clusterName, final String brokerAddr,
-                                              final DataVersion dataVersion) {
+        final DataVersion dataVersion) {
         DataVersion prev = queryBrokerTopicConfig(clusterName, brokerAddr);
         return null == prev || !prev.equals(dataVersion);
     }
 
     public boolean isTopicConfigChanged(final String clusterName, final String brokerAddr,
-                                        final DataVersion dataVersion, String brokerName, String topic) {
+        final DataVersion dataVersion, String brokerName, String topic) {
         boolean isChange = isBrokerTopicConfigChanged(clusterName, brokerAddr, dataVersion);
         if (isChange) {
             return true;
@@ -839,7 +839,7 @@ public class RouteInfoManager {
     }
 
     private boolean setupUnRegisterRequest(UnRegisterBrokerRequestHeader unRegisterRequest,
-                                           BrokerAddrInfo brokerAddrInfo) {
+        BrokerAddrInfo brokerAddrInfo) {
         unRegisterRequest.setClusterName(brokerAddrInfo.getClusterName());
         unRegisterRequest.setBrokerAddr(brokerAddrInfo.getBrokerAddr());
 
@@ -877,7 +877,7 @@ public class RouteInfoManager {
     }
 
     private void notifyMinBrokerIdChanged(Map<Long, String> brokerAddrMap, String offlineBrokerAddr,
-                                          String haBrokerAddr)
+        String haBrokerAddr)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException,
         RemotingTooMuchRequestException, RemotingConnectException {
         if (brokerAddrMap == null || brokerAddrMap.isEmpty() || this.namesrvController == null) {
@@ -1089,8 +1089,8 @@ class BrokerLiveInfo {
     private String haServerAddr;
 
     public BrokerLiveInfo(long lastUpdateTimestamp, long heartbeatTimeoutMillis, DataVersion dataVersion,
-                          Channel channel,
-                          String haServerAddr) {
+        Channel channel,
+        String haServerAddr) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
         this.dataVersion = dataVersion;
