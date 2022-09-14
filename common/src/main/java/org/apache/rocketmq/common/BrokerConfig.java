@@ -191,7 +191,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private long brokerNotActiveTimeoutMillis = 10 * 1000;
 
-    private boolean netWorkFlowController = true;
+    private boolean netWorkFlowController = false;
 
     private int popPollingSize = 1024;
     private int popPollingMapSize = 100000;
