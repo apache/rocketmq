@@ -181,6 +181,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -202,6 +203,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.deleteTopic(ctx, request);
             case RequestCode.GET_ALL_TOPIC_CONFIG:
                 return this.getAllTopicConfig(ctx, request);
+            case RequestCode.GET_TIMER_CHECK_POINT:
+                return this.getTimerCheckPoint(ctx, request);
+            case RequestCode.GET_TIMER_METRICS:
+                return this.getTimerMetrics(ctx, request);
             case RequestCode.UPDATE_BROKER_CONFIG:
                 return this.updateBrokerConfig(ctx, request);
             case RequestCode.GET_BROKER_CONFIG:
@@ -701,6 +706,35 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 
+        return response;
+    }
+
+    private RemotingCommand getTimerCheckPoint(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
+        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerCheckpoint();
+        if (null == timerCheckpoint) {
+            LOGGER.error("AdminBrokerProcessor#getTimerCheckPoint: checkpoint is null, caller={}", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The checkpoint is null");
+            return response;
+        }
+        response.setBody(TimerCheckpoint.encode(timerCheckpoint).array());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getTimerMetrics(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
+        if (null == this.brokerController.getMessageStore().getTimerMessageStore()) {
+            LOGGER.error("The timer message store is null, client: {}", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The timer message store is null");
+            return response;
+        }
+        response.setBody(brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().encode().getBytes());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
         return response;
     }
 
