@@ -83,10 +83,8 @@ public class PullMessageProcessorTest {
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
         Channel mockChannel = mock(Channel.class);
-        when(mockChannel.isWritable()).thenReturn(true);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
-        when(handlerContext.channel().isWritable()).thenReturn(true);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         clientChannelInfo = new ClientChannelInfo(mockChannel);
