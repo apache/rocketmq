@@ -120,4 +120,6 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int CONTROLLER_MASTER_STILL_EXIST = 2011;
 
     public static final int CONTROLLER_ELECT_MASTER_FAILED = 2012;
+    
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2013;
 }

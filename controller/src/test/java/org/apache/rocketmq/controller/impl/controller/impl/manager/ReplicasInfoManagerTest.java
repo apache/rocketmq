@@ -295,6 +295,7 @@ public class ReplicasInfoManagerTest {
         final ElectMasterRequestHeader assignRequest = ElectMasterRequestHeader.ofAdminTrigger("cluster1", "broker1", "127.0.0.1:9000");
         final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest,
             new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"), null));
+
         assertEquals(cResult1.getResponseCode(), ResponseCode.CONTROLLER_ELECT_MASTER_FAILED);
 
         // test admin try to elect a assignedMaster but old master still alive, and the old master is equals to assignedMaster

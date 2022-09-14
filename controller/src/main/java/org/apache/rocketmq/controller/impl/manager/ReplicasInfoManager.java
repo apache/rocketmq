@@ -87,7 +87,7 @@ public class ReplicasInfoManager {
             if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
                 log.warn("{}", err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
 
@@ -137,7 +137,7 @@ public class ReplicasInfoManager {
             if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
                 log.error(err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
 
@@ -149,7 +149,7 @@ public class ReplicasInfoManager {
             result.addEvent(event);
             return result;
         }
-        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker metadata is not existed");
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, "Broker metadata is not existed");
         return result;
     }
 
@@ -186,6 +186,7 @@ public class ReplicasInfoManager {
                 newMaster = oldMaster;
             } else {
                 newMaster = syncStateSet.contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster() ? brokerAddress : null;
+
             }
         }
 
