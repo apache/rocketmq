@@ -351,6 +351,20 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark(String.format("the message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
                     this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                 break;
+            case WHEEL_TIMER_MSG_ILLEGAL:
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark(String.format("timer message illegal, the delay time should not be bigger than the max delay %dms; or if set del msg, the delay time should be bigger than the current time",
+                    this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000));
+                break;
+            case WHEEL_TIMER_FLOW_CONTROL:
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(String.format("timer message is under flow control, max num limit is %d or the current value is greater than %d and less than %d, trigger random flow control",
+                     this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L, this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot(), this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L));
+                break;
+            case WHEEL_TIMER_NOT_ENABLE:
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
+                     this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                 response.setRemark(
