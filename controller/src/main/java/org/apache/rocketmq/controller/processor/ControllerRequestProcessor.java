@@ -30,8 +30,6 @@ import org.apache.rocketmq.common.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
@@ -56,7 +54,6 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_REP
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.common.protocol.RequestCode.GET_CONTROLLER_CONFIG;
-import static org.apache.rocketmq.common.protocol.RequestCode.TRY_ELECT_MASTER;
 import static org.apache.rocketmq.common.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
@@ -88,8 +85,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return this.handleControllerElectMaster(ctx, request);
             case CONTROLLER_REGISTER_BROKER:
                 return this.handleControllerRegisterBroker(ctx, request);
-            case TRY_ELECT_MASTER:
-                return this.handleBrokerTryElectMaster(ctx, request);
             case CONTROLLER_GET_REPLICA_INFO:
                 return this.handleControllerGetReplicaInfo(ctx, request);
             case CONTROLLER_GET_METADATA_INFO:
@@ -130,9 +125,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
             final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
 
-            if (null != responseHeader) {
-                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                    heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+            if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
+                if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
+                    heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getMasterAddress(), MixAll.MASTER_ID);
                 }
                 if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
                     this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
@@ -159,27 +154,27 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return RemotingCommand.createResponseCommand(null);
     }
 
-    private RemotingCommand handleBrokerTryElectMaster(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-        final BrokerTryElectRequestHeader brokerTryElectRequest = (BrokerTryElectRequestHeader) request.decodeCommandCustomHeader(BrokerTryElectRequestHeader.class);
-        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().brokerTryElectMaster(brokerTryElectRequest);
-        if (future != null) {
-            final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-            final BrokerTryElectResponseHeader responseHeader = (BrokerTryElectResponseHeader) response.readCustomHeader();
-
-            // if try elect a master success
-            if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
-                // notify the heartbeatManger to update the broker id of this broker
-                if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
-                    heartbeatManager.changeBrokerMetadata(brokerTryElectRequest.getClusterName(), responseHeader.getMasterAddress(), MixAll.MASTER_ID);
-                }
-                if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
-                }
-            }
-            return response;
-        }
-        return RemotingCommand.createResponseCommand(null);
-    }
+//    private RemotingCommand handleBrokerTryElectMaster(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+//        final BrokerTryElectRequestHeader brokerTryElectRequest = (BrokerTryElectRequestHeader) request.decodeCommandCustomHeader(BrokerTryElectRequestHeader.class);
+//        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().brokerTryElectMaster(brokerTryElectRequest);
+//        if (future != null) {
+//            final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+//            final BrokerTryElectResponseHeader responseHeader = (BrokerTryElectResponseHeader) response.readCustomHeader();
+//
+//            // if try elect a master success
+//            if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
+//                // notify the heartbeatManger to update the broker id of this broker
+//                if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
+//                    heartbeatManager.changeBrokerMetadata(brokerTryElectRequest.getClusterName(), responseHeader.getMasterAddress(), MixAll.MASTER_ID);
+//                }
+//                if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
+//                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
+//                }
+//            }
+//            return response;
+//        }
+//        return RemotingCommand.createResponseCommand(null);
+//    }
 
     private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
         RemotingCommand request) throws Exception {

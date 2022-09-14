@@ -29,10 +29,10 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
@@ -153,8 +153,8 @@ public class ControllerManagerTest {
 
     public RemotingCommand brokerTryElect(final String controllerAddress, final String clusterName,
         final String brokerName, final String brokerAddress, final RemotingClient client) throws Exception {
-        final BrokerTryElectRequestHeader requestHeader = new BrokerTryElectRequestHeader(clusterName, brokerName, brokerAddress);
-        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.TRY_ELECT_MASTER, requestHeader);
+        final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);
         RemotingCommand response = client.invokeSync(controllerAddress, request, 3000);
         assertNotNull(response);
         return response;
@@ -177,9 +177,9 @@ public class ControllerManagerTest {
 
         // Two all try elect itself as master, but only the first can be the master
         RemotingCommand tryElectCommand1 = brokerTryElect(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient);
-        BrokerTryElectResponseHeader brokerTryElectResponseHeader1 = (BrokerTryElectResponseHeader) tryElectCommand1.decodeCommandCustomHeader(BrokerTryElectResponseHeader.class);
+        ElectMasterResponseHeader brokerTryElectResponseHeader1 = (ElectMasterResponseHeader) tryElectCommand1.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
         RemotingCommand tryElectCommand2 = brokerTryElect(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1);
-        BrokerTryElectResponseHeader brokerTryElectResponseHeader2 = (BrokerTryElectResponseHeader) tryElectCommand2.decodeCommandCustomHeader(BrokerTryElectResponseHeader.class);
+        ElectMasterResponseHeader brokerTryElectResponseHeader2 = (ElectMasterResponseHeader) tryElectCommand2.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
 
         assertEquals(SUCCESS, tryElectCommand1.getCode());
         assertEquals("127.0.0.1:8000", brokerTryElectResponseHeader1.getMasterAddress());

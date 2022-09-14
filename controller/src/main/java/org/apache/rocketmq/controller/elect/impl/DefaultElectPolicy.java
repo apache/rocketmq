@@ -49,48 +49,47 @@ public class DefaultElectPolicy implements ElectPolicy {
     }
 
     /**
-     * try to elect a master, if old master still alive, now we do nothing,
-     * if preferBrokerAddr is not blank, that means we must elect a new master,
-     * and we should check if the preferBrokerAddr is valid, if so we should elect it as
-     * new master, if else we should elect nothing.
+     * try to elect a master, if old master still alive, we just return the old master, else
+     * we just elect the master by the resource.
+     * when the assignBrokerAddr is not empty, our policy is try to elect it or elect nothing
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
      * @param oldMaster         old master
-     * @param preferBrokerAddr  the broker prefer to be elected
+     * @param assignBrokerAddr  the broker assigned to be elected
      * @return master elected by our own policy
      */
     @Override
-    public String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr) {
+    public String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String assignBrokerAddr) {
         String newMaster = null;
         // try to elect in syncStateBrokers
         if (syncStateBrokers != null) {
-            newMaster = tryElect(clusterName, syncStateBrokers, oldMaster, preferBrokerAddr);
+            newMaster = tryElect(clusterName, syncStateBrokers, oldMaster, assignBrokerAddr);
         }
         if (StringUtils.isNotEmpty(newMaster)) {
             return newMaster;
         }
         // try to elect in all replicas
         if (allReplicaBrokers != null) {
-            newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, preferBrokerAddr);
+            newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, assignBrokerAddr);
         }
         return newMaster;
     }
 
 
-    private String tryElect(String clusterName, Set<String> brokers, String oldMaster, String preferBrokerAddr) {
+    private String tryElect(String clusterName, Set<String> brokers, String oldMaster, String assignBrokerAddr) {
         if (this.validPredicate != null) {
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
         }
         // try to elect in brokers
         if (brokers.size() >= 1) {
-            if (brokers.contains(oldMaster) && (StringUtils.isBlank(preferBrokerAddr) || preferBrokerAddr.equals(oldMaster))) {
-                // old master still valid, and our preferBrokerAddr is blank or is equals to oldMaster
+            if (brokers.contains(oldMaster) && (StringUtils.isBlank(assignBrokerAddr) || assignBrokerAddr.equals(oldMaster))) {
+                // old master still valid, and our assignBrokerAddr is blank or is equals to oldMaster
                 return oldMaster;
             }
-            // if preferBrokerAddr is not blank, if preferBrokerAddr is valid, we choose it, else we choose nothing
-            if (StringUtils.isNotBlank(preferBrokerAddr)) {
-                return brokers.contains(preferBrokerAddr) ? preferBrokerAddr : null;
+            // if assignBrokerAddr is not blank, if assignBrokerAddr is valid, we choose it, else we choose nothing
+            if (StringUtils.isNotBlank(assignBrokerAddr)) {
+                return brokers.contains(assignBrokerAddr) ? assignBrokerAddr : null;
             }
             if (this.additionalInfoGetter != null) {
                 // get more information from getter

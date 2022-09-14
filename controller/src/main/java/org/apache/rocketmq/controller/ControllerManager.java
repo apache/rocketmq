@@ -118,14 +118,14 @@ public class ControllerManager {
     private void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
         if (brokerId == MixAll.MASTER_ID) {
             if (controller.isLeaderState()) {
-                final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
+                final CompletableFuture<RemotingCommand> future = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
                 try {
                     final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
                     final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
                     if (responseHeader != null) {
                         log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
-                        if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                            heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                        if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
+                            heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getMasterAddress(), MixAll.MASTER_ID);
                         }
                         if (controllerConfig.isNotifyBrokerRoleChanged()) {
                             notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
@@ -191,7 +191,6 @@ public class ControllerManager {
         controllerRemotingServer.registerProcessor(RequestCode.UPDATE_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.GET_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CLEAN_BROKER_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
-        controllerRemotingServer.registerProcessor(RequestCode.TRY_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {

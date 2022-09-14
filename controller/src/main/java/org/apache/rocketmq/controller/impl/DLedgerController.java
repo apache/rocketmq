@@ -44,7 +44,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
@@ -163,12 +162,6 @@ public class DLedgerController implements Controller {
     public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         return this.scheduler.appendEvent("electMaster",
             () -> this.replicasInfoManager.electMaster(request, this.electPolicy), true);
-    }
-
-    @Override
-    public CompletableFuture<RemotingCommand> brokerTryElectMaster(BrokerTryElectRequestHeader request) {
-        return this.scheduler.appendEvent("brokerTryElectMaster",
-            () -> this.replicasInfoManager.brokerTryElectMaster(request), true);
     }
 
     @Override

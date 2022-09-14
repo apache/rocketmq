@@ -63,8 +63,11 @@ public class ReplicasInfoManagerTest {
 
     private ControllerConfig config;
 
+    private ElectPolicy electPolicy;
+
     @Before
     public void init() {
+        this.electPolicy = new DefaultElectPolicy((clusterName, brokerAddr) -> true, null);
         this.config = new ControllerConfig();
         this.config.setEnableElectUncleanMaster(false);
         this.config.setScanNotActiveBrokerInterval(300000000);
@@ -96,19 +99,19 @@ public class ReplicasInfoManagerTest {
         assertEquals(exceptBrokerId, replicaInfo.getBrokerId());
     }
 
-    public void tryElectMaster(String clusterName, long brokerId, String brokerName, String brokerAddress,
+    public void brokerElectMaster(String clusterName, long brokerId, String brokerName, String brokerAddress,
         boolean isFirstTryElect) {
 
         final GetReplicaInfoResponseHeader replicaInfoBefore = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
         byte[] body = this.replicasInfoManager.getSyncStateData(Arrays.asList(brokerName)).getBody();
         InSyncStateData syncStateDataBefore = RemotingSerializable.decode(body, InSyncStateData.class);
         // Try elect itself as a master
-        final BrokerTryElectRequestHeader requestHeader = new BrokerTryElectRequestHeader(clusterName, brokerName, brokerAddress);
-        final ControllerResult<BrokerTryElectResponseHeader> result = this.replicasInfoManager.brokerTryElectMaster(requestHeader);
+        ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
+        final ControllerResult<ElectMasterResponseHeader> result = this.replicasInfoManager.electMaster(requestHeader, this.electPolicy);
         apply(result.getEvents());
 
         final GetReplicaInfoResponseHeader replicaInfoAfter = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
-        final BrokerTryElectResponseHeader response = result.getResponse();
+        final ElectMasterResponseHeader response = result.getResponse();
 
         if (isFirstTryElect) {
             // it should be elected
@@ -138,7 +141,7 @@ public class ReplicasInfoManagerTest {
                 assertEquals(brokerId, replicaInfoAfter.getBrokerId());
             } else {
                 // failed because elect nothing
-                assertEquals(ResponseCode.CONTROLLER_TRY_ELECT_FAILED,result.getResponseCode());
+                assertEquals(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, result.getResponseCode());
             }
         }
     }
@@ -169,9 +172,9 @@ public class ReplicasInfoManagerTest {
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "");
-        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
-        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
-        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
+        brokerElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        brokerElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        brokerElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
         newSyncStateSet.add("127.0.0.1:9001");
@@ -211,37 +214,36 @@ public class ReplicasInfoManagerTest {
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "");
-        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
-        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
-        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
+        brokerElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        brokerElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        brokerElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
     }
 
     @Test
     public void testRegisterWithMasterExistResp() {
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, "");
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", 2L, "");
-        tryElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
-        tryElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
+        brokerElectMaster("cluster1", 1L, "broker1", "127.0.0.1:9000", true);
+        brokerElectMaster("cluster1", 2L, "broker1", "127.0.0.1:9001", false);
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9002", 3L, "127.0.0.1:9000");
-        tryElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
+        brokerElectMaster("cluster1", 3L, "broker1", "127.0.0.1:9002", false);
     }
-
 
     @Test
     public void testElectMasterOldMasterStillAlive() {
         mockMetaData();
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         ElectPolicy electPolicy = new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo);
         mockHeartbeatDataMasterStillAlive();
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
             electPolicy);
-        assertEquals(ResponseCode.CONTROLLER_INVALID_REQUEST, cResult.getResponseCode());
+        assertEquals(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, cResult.getResponseCode());
     }
 
     @Test
     public void testElectMasterPreferHigherEpoch() {
         mockMetaData();
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         ElectPolicy electPolicy = new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo);
         mockHeartbeatDataHigherEpoch();
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
@@ -250,14 +252,14 @@ public class ReplicasInfoManagerTest {
         final ElectMasterResponseHeader response = cResult.getResponse();
         System.out.println(response);
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertEquals("127.0.0.1:9001", response.getNewMasterAddress());
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertEquals("127.0.0.1:9001", response.getMasterAddress());
     }
 
     @Test
     public void testElectMasterPreferHigherOffsetWhenEpochEquals() {
         mockMetaData();
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         ElectPolicy electPolicy = new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo);
         mockHeartbeatDataHigherOffset();
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
@@ -266,45 +268,50 @@ public class ReplicasInfoManagerTest {
         final ElectMasterResponseHeader response = cResult.getResponse();
         System.out.println(response);
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertEquals("127.0.0.1:9002", response.getNewMasterAddress());
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertEquals("127.0.0.1:9002", response.getMasterAddress());
     }
 
     @Test
     public void testElectMaster() {
         mockMetaData();
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
             new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"), null));
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertNotEquals(response.getMasterAddress(), "127.0.0.1:9000");
+
+        apply(cResult.getEvents());
 
         final Set<String> brokerSet = new HashSet<>();
         brokerSet.add("127.0.0.1:9000");
         brokerSet.add("127.0.0.1:9001");
         brokerSet.add("127.0.0.1:9002");
-        final ElectMasterRequestHeader assignRequest = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+        assertTrue(alterNewInSyncSet("broker1", response.getMasterAddress(), response.getMasterEpoch(), brokerSet, response.getSyncStateSetEpoch()));
+
+        // test admin try to elect a assignedMaster, but it isn't alive
+        final ElectMasterRequestHeader assignRequest = ElectMasterRequestHeader.ofAdminTrigger("cluster1", "broker1", "127.0.0.1:9000");
         final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest,
-            new DefaultElectPolicy((clusterName, brokerAddress) -> brokerAddress.contains("127.0.0.1:9000"), null));
-        assertEquals(cResult1.getResponseCode(), ResponseCode.CONTROLLER_INVALID_REQUEST);
-
-        final ElectMasterRequestHeader assignRequest1 = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
-        final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1,
-            new DefaultElectPolicy((clusterName, brokerAddress) -> brokerAddress.equals("127.0.0.1:9000"), null));
-        assertEquals(cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE);
-
-        final ElectMasterRequestHeader assignRequest2 = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
-        final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2,
             new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"), null));
-        assertEquals(cResult3.getResponseCode(), ResponseCode.SUCCESS);
-        final ElectMasterResponseHeader response3 = cResult3.getResponse();
-        assertEquals(response3.getNewMasterAddress(), "127.0.0.1:9001");
-        assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertEquals(cResult1.getResponseCode(), ResponseCode.CONTROLLER_ELECT_MASTER_FAILED);
 
+        // test admin try to elect a assignedMaster but old master still alive, and the old master is equals to assignedMaster
+        final ElectMasterRequestHeader assignRequest1 = ElectMasterRequestHeader.ofAdminTrigger("cluster1", "broker1", response.getMasterAddress());
+        final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1,
+            new DefaultElectPolicy((clusterName, brokerAddress) -> true, null));
+        assertEquals(cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_STILL_EXIST);
+
+        // admin successful elect a assignedMaster.
+        final ElectMasterRequestHeader assignRequest2 = ElectMasterRequestHeader.ofAdminTrigger("cluster1", "broker1", "127.0.0.1:9000");
+        final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2,
+            new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals(response.getMasterAddress()), null));
+        assertEquals(cResult3.getResponseCode(), ResponseCode.SUCCESS);
+
+        final ElectMasterResponseHeader response3 = cResult3.getResponse();
+        assertEquals(response3.getMasterAddress(), "127.0.0.1:9000");
+        assertEquals(response3.getMasterEpoch(), 3);
     }
 
     @Test
@@ -316,7 +323,7 @@ public class ReplicasInfoManagerTest {
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
-        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(electRequest,
             new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"), null));
         final List<EventMessage> events = cResult.getEvents();

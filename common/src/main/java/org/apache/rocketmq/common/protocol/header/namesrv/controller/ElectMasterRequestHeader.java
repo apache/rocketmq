@@ -28,20 +28,46 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;
 
+    /**
+     * brokerAddress
+     * for brokerTrigger electMaster: this brokerAddress will be elected as a master when it is the first time to elect
+     * in this broker-set
+     * for adminTrigger electMaster: this brokerAddress is also named assignedBrokerAddress, which means we must prefer to elect
+     * it as a new master when this broker is valid.
+     */
     @CFNotNull
     private String brokerAddress;
+
+    @CFNotNull
+    private ElectMasterTriggerType electMasterTriggerType;
 
     public ElectMasterRequestHeader() {
     }
 
-    public ElectMasterRequestHeader(String brokerName) {
+    public ElectMasterRequestHeader(ElectMasterTriggerType electMasterTriggerType, String brokerName) {
+        this.electMasterTriggerType = electMasterTriggerType;
         this.brokerName = brokerName;
     }
 
-    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public ElectMasterRequestHeader(ElectMasterTriggerType electMasterTriggerType, String clusterName,
+        String brokerName, String brokerAddress) {
+        this.electMasterTriggerType = electMasterTriggerType;
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+    }
+
+    public static ElectMasterRequestHeader ofBrokerTrigger(String clusterName, String brokerName,
+        String brokerAddress) {
+        return new ElectMasterRequestHeader(ElectMasterTriggerType.BROKER_TRIGGER, clusterName, brokerName, brokerAddress);
+    }
+
+    public static ElectMasterRequestHeader ofControllerTrigger(String brokerName) {
+        return new ElectMasterRequestHeader(ElectMasterTriggerType.CONTROLLER_TRIGGER, brokerName);
+    }
+
+    public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, String brokerAddress) {
+        return new ElectMasterRequestHeader(ElectMasterTriggerType.ADMIN_TRIGGER, clusterName, brokerName, brokerAddress);
     }
 
     public String getBrokerName() {
@@ -68,16 +94,43 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.clusterName = clusterName;
     }
 
+    public ElectMasterTriggerType getElectMasterTriggerType() {
+        return electMasterTriggerType;
+    }
+
+    public void setElectMasterTriggerType(ElectMasterTriggerType electMasterTriggerType) {
+        this.electMasterTriggerType = electMasterTriggerType;
+    }
+
     @Override
     public String toString() {
         return "ElectMasterRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
-            "brokerName='" + brokerName + '\'' +
-            "brokerAddress='" + brokerAddress + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", electMasterTriggerType=" + electMasterTriggerType +
             '}';
     }
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    /**
+     * The elect master request's type
+     */
+    public enum ElectMasterTriggerType {
+        /**
+         * Trigger by broker
+         */
+        BROKER_TRIGGER,
+        /**
+         * Trigger by controller
+         */
+        CONTROLLER_TRIGGER,
+        /**
+         * Trigger by admin
+         */
+        ADMIN_TRIGGER
     }
 }

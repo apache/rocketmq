@@ -152,7 +152,7 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_WAIT_MASTER_IS_ELECTED) {
-            if (StringUtils.isNotEmpty(this.masterAddress) || brokerTryElect()) {
+            if (StringUtils.isNotEmpty(this.masterAddress) || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
             } else {
@@ -300,10 +300,10 @@ public class ReplicasManager {
         }
     }
 
-    private boolean brokerTryElect() {
+    private boolean brokerElect() {
         // Broker try to elect itself as a master in broker set.
         try {
-            BrokerTryElectResponseHeader tryElectResponse = this.brokerOuterAPI.brokerTryElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
+            BrokerTryElectResponseHeader tryElectResponse = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
                 this.brokerConfig.getBrokerName(), this.localAddress);
             final String masterAddress = tryElectResponse.getMasterAddress();
             if (StringUtils.isEmpty(masterAddress)) {
@@ -378,7 +378,7 @@ public class ReplicasManager {
                             }
                         } else {
                             // In this case, the master in controller is null, try elect in controller, this will trigger the electMasterEvent in controller.
-                            brokerTryElect();
+                            brokerElect();
                         }
                     } else if (newMasterEpoch == this.masterEpoch) {
                         // Check if sync state set changed

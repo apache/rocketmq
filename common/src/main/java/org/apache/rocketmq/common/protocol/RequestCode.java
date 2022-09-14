@@ -275,10 +275,5 @@ public class RequestCode {
      */
     public static final int CLEAN_BROKER_DATA = 1011;
 
-    /**
-     * broker try to elect itself as a master
-     */
-    public static final int TRY_ELECT_MASTER = 1012;
-
 
 }

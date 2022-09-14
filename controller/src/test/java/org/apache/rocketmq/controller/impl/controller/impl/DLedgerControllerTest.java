@@ -32,8 +32,6 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -123,12 +121,12 @@ public class DLedgerControllerTest {
 
     public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress,
         boolean exceptSuccess) {
-        final BrokerTryElectRequestHeader brokerTryElectRequestHeader = new BrokerTryElectRequestHeader(clusterName, brokerName, brokerAddress);
+        final ElectMasterRequestHeader electMasterRequestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
         RemotingCommand command = await().atMost(Duration.ofSeconds(20)).until(() -> {
-            return leader.brokerTryElectMaster(brokerTryElectRequestHeader).get(2, TimeUnit.SECONDS);
+            return leader.electMaster(electMasterRequestHeader).get(2, TimeUnit.SECONDS);
         }, Objects::nonNull);
 
-        BrokerTryElectResponseHeader header = (BrokerTryElectResponseHeader) command.readCustomHeader();
+        ElectMasterResponseHeader header = (ElectMasterResponseHeader) command.readCustomHeader();
         System.out.println("------------- Broker try elect master done, the result is :" + header);
         assertEquals(exceptSuccess, ResponseCode.SUCCESS == command.getCode());
     }
@@ -228,13 +226,13 @@ public class DLedgerControllerTest {
     @Test
     public void testElectMaster() throws Exception {
         final DLedgerController leader = mockMetaData(false);
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertNotEquals(response.getMasterAddress(), "127.0.0.1:9000");
     }
 
     @Test
@@ -247,7 +245,7 @@ public class DLedgerControllerTest {
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
-        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
@@ -260,16 +258,15 @@ public class DLedgerControllerTest {
         assertEquals(replicaInfo.getMasterEpoch(), 2);
 
         // Now, we start broker1 - 127.0.0.1:9001 to try elect, but it was not in syncStateSet, so it will not be elected as master.
-        final BrokerTryElectRequestHeader request1 =
-            new BrokerTryElectRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
-        final BrokerTryElectResponseHeader r1 = (BrokerTryElectResponseHeader) leader.brokerTryElectMaster(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
+        final ElectMasterRequestHeader request1 =
+            ElectMasterRequestHeader.ofBrokerTrigger("cluster1", "broker1", "127.0.0.1:9001");
+        final ElectMasterResponseHeader r1 = (ElectMasterResponseHeader) leader.electMaster(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getMasterAddress(), "");
-        assertEquals(r1.getMasterEpoch(), 2);
 
         // Now, we start broker1 - 127.0.0.1:9000 to try elect, it will be elected as master
-        final BrokerTryElectRequestHeader request2 =
-            new BrokerTryElectRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
-        final BrokerTryElectResponseHeader r2 = (BrokerTryElectResponseHeader) leader.brokerTryElectMaster(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
+        final ElectMasterRequestHeader request2 =
+            ElectMasterRequestHeader.ofBrokerTrigger("cluster1", "broker1", "127.0.0.1:9000");
+        final ElectMasterResponseHeader r2 = (ElectMasterResponseHeader) leader.electMaster(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");
         assertEquals(r2.getMasterEpoch(), 3);
     }
@@ -285,7 +282,7 @@ public class DLedgerControllerTest {
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, event if the syncStateSet in statemachine is {"127.0.0.1:9000"}
         // the option {enableElectUncleanMaster = true}, so the controller sill can elect a new master
-        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final CompletableFuture<RemotingCommand> future = leader.electMaster(electRequest);
         future.get(10, TimeUnit.SECONDS);

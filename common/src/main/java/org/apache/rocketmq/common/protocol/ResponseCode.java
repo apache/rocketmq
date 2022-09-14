@@ -119,5 +119,5 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int CONTROLLER_MASTER_STILL_EXIST = 2011;
 
-    public static final int CONTROLLER_TRY_ELECT_FAILED = 2012;
+    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2012;
 }

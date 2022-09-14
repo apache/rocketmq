@@ -38,7 +38,7 @@ public class RoleChangeNotifyEntry {
     }
 
     public static RoleChangeNotifyEntry convert(ElectMasterResponseHeader header) {
-        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getNewMasterAddress(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
+        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
     }
 
     public static RoleChangeNotifyEntry convert(BrokerTryElectResponseHeader header) {
