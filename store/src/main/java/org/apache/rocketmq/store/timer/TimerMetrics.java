@@ -143,10 +143,7 @@ public class TimerMetrics extends ConfigManager {
 
     @Override
     public String encode() {
-        TimerMetricsSerializeWrapper metricsSerializeWrapper = new TimerMetricsSerializeWrapper();
-        metricsSerializeWrapper.setDataVersion(this.dataVersion);
-        metricsSerializeWrapper.setTimingCount(this.timingCount);
-        return metricsSerializeWrapper.toJson();
+        return encode(false);
     }
 
     @Override
@@ -168,7 +165,10 @@ public class TimerMetrics extends ConfigManager {
 
     @Override
     public String encode(boolean prettyFormat) {
-        return null;
+        TimerMetricsSerializeWrapper metricsSerializeWrapper = new TimerMetricsSerializeWrapper();
+        metricsSerializeWrapper.setDataVersion(this.dataVersion);
+        metricsSerializeWrapper.setTimingCount(this.timingCount);
+        return metricsSerializeWrapper.toJson(prettyFormat);
     }
 
     public DataVersion getDataVersion() {
