@@ -32,7 +32,7 @@ public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueS
     }
 
     public AllocateMessageQueueAveragely(InternalLogger log) {
-        this.log = log;
+        super(log);
     }
 
     @Override

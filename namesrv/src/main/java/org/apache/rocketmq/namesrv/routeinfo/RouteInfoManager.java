@@ -18,6 +18,7 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
@@ -527,83 +529,81 @@ public class RouteInfoManager {
 
     public void unRegisterBroker(Set<UnRegisterBrokerRequestHeader> unRegisterRequests) {
         try {
-            try {
-                Set<String> removedBroker = new HashSet<>();
-                Set<String> reducedBroker = new HashSet<>();
-                Map<String, BrokerStatusChangeInfo> needNotifyBrokerMap = new HashMap<>();
+            Set<String> removedBroker = new HashSet<>();
+            Set<String> reducedBroker = new HashSet<>();
+            Map<String, BrokerStatusChangeInfo> needNotifyBrokerMap = new HashMap<>();
 
-                this.lock.writeLock().lockInterruptibly();
-                for (final UnRegisterBrokerRequestHeader unRegisterRequest : unRegisterRequests) {
-                    final String brokerName = unRegisterRequest.getBrokerName();
-                    final String clusterName = unRegisterRequest.getClusterName();
+            this.lock.writeLock().lockInterruptibly();
+            for (final UnRegisterBrokerRequestHeader unRegisterRequest : unRegisterRequests) {
+                final String brokerName = unRegisterRequest.getBrokerName();
+                final String clusterName = unRegisterRequest.getClusterName();
 
-                    BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, unRegisterRequest.getBrokerAddr());
+                BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, unRegisterRequest.getBrokerAddr());
 
-                    BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddrInfo);
-                    log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
-                        brokerLiveInfo != null ? "OK" : "Failed",
+                BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddrInfo);
+                log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
+                    brokerLiveInfo != null ? "OK" : "Failed",
+                    brokerAddrInfo
+                );
+
+                this.filterServerTable.remove(brokerAddrInfo);
+
+                boolean removeBrokerName = false;
+                boolean isMinBrokerIdChanged = false;
+                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                if (null != brokerData) {
+                    if (!brokerData.getBrokerAddrs().isEmpty() &&
+                        unRegisterRequest.getBrokerId().equals(Collections.min(brokerData.getBrokerAddrs().keySet()))) {
+                        isMinBrokerIdChanged = true;
+                    }
+                    String addr = brokerData.getBrokerAddrs().remove(unRegisterRequest.getBrokerId());
+                    log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
+                        addr != null ? "OK" : "Failed",
                         brokerAddrInfo
                     );
-
-                    this.filterServerTable.remove(brokerAddrInfo);
-
-                    boolean removeBrokerName = false;
-                    boolean isMinBrokerIdChanged = false;
-                    BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                    if (null != brokerData) {
-                        if (!brokerData.getBrokerAddrs().isEmpty() &&
-                            unRegisterRequest.getBrokerId().equals(Collections.min(brokerData.getBrokerAddrs().keySet()))) {
-                            isMinBrokerIdChanged = true;
-                        }
-                        String addr = brokerData.getBrokerAddrs().remove(unRegisterRequest.getBrokerId());
-                        log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
-                            addr != null ? "OK" : "Failed",
-                            brokerAddrInfo
+                    if (brokerData.getBrokerAddrs().isEmpty()) {
+                        this.brokerAddrTable.remove(brokerName);
+                        log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
+                            brokerName
                         );
-                        if (brokerData.getBrokerAddrs().isEmpty()) {
-                            this.brokerAddrTable.remove(brokerName);
-                            log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
-                                brokerName
+
+                        removeBrokerName = true;
+                    } else if (isMinBrokerIdChanged) {
+                        needNotifyBrokerMap.put(brokerName, new BrokerStatusChangeInfo(
+                            brokerData.getBrokerAddrs(), addr, null));
+                    }
+                }
+
+                if (removeBrokerName) {
+                    Set<String> nameSet = this.clusterAddrTable.get(clusterName);
+                    if (nameSet != null) {
+                        boolean removed = nameSet.remove(brokerName);
+                        log.info("unregisterBroker, remove name from clusterAddrTable {}, {}",
+                            removed ? "OK" : "Failed",
+                            brokerName);
+
+                        if (nameSet.isEmpty()) {
+                            this.clusterAddrTable.remove(clusterName);
+                            log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
+                                clusterName
                             );
-
-                            removeBrokerName = true;
-                        } else if (isMinBrokerIdChanged) {
-                            needNotifyBrokerMap.put(brokerName, new BrokerStatusChangeInfo(
-                                brokerData.getBrokerAddrs(), addr, null));
                         }
                     }
-
-                    if (removeBrokerName) {
-                        Set<String> nameSet = this.clusterAddrTable.get(clusterName);
-                        if (nameSet != null) {
-                            boolean removed = nameSet.remove(brokerName);
-                            log.info("unregisterBroker, remove name from clusterAddrTable {}, {}",
-                                removed ? "OK" : "Failed",
-                                brokerName);
-
-                            if (nameSet.isEmpty()) {
-                                this.clusterAddrTable.remove(clusterName);
-                                log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
-                                    clusterName
-                                );
-                            }
-                        }
-                        removedBroker.add(brokerName);
-                    } else {
-                        reducedBroker.add(brokerName);
-                    }
+                    removedBroker.add(brokerName);
+                } else {
+                    reducedBroker.add(brokerName);
                 }
+            }
 
-                cleanTopicByUnRegisterRequests(removedBroker, reducedBroker);
+            cleanTopicByUnRegisterRequests(removedBroker, reducedBroker);
 
-                if (!needNotifyBrokerMap.isEmpty() && namesrvConfig.isNotifyMinBrokerIdChanged()) {
-                    notifyMinBrokerIdChanged(needNotifyBrokerMap);
-                }
-            } finally {
-                this.lock.writeLock().unlock();
+            if (!needNotifyBrokerMap.isEmpty() && namesrvConfig.isNotifyMinBrokerIdChanged()) {
+                notifyMinBrokerIdChanged(needNotifyBrokerMap);
             }
         } catch (Exception e) {
             log.error("unregisterBroker Exception", e);
+        } finally {
+            this.lock.writeLock().unlock();
         }
     }
 
