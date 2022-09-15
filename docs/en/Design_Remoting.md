@@ -28,7 +28,7 @@ From the above figure, the transport content can be divided into four parts:
 
  (1) Message length: total length, four bytes of storage, occupying an int type; 
  
-(2) Serialization type header length: occupying an int type. The first byte represents the serialization type, and the last three bytes represent the header length；
+(2) Serialization type header length: occupying an int type. The first byte represents the serialization type, and the last three bytes represent the header length;
 
 (3) Header data: serialized header data;
 
