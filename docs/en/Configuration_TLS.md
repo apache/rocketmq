@@ -34,7 +34,7 @@ openssl pkcs8 -topk8 -v1 PBE-SHA1-RC4-128 -in client_rsa.key -out client.key
 ```
 
 ## 2 Create tls.properties
-Create tls.properties，correctly configure the path and password of the generated certificates.
+Create tls.properties, correctly configure the path and password of the generated certificates.
 
 ```properties
 # The flag to determine whether use test mode when initialize TLS context. default is true
@@ -76,13 +76,13 @@ Edit the configuration file under the rocketmq/bin path to make tls.properties c
 The value of "tls.config.file" needs to be replaced by the file path created in step 2.
 
 ### 3.1 Edit runserver.sh
-Add following content in JAVA_OPT：
+Add following content in JAVA_OPT:
 ```shell
 JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties"
 ```
 
 ### 3.2 Edit runbroker.sh
-Add following content in JAVA_OPT：
+Add following content in JAVA_OPT:
 
 ```shell
 JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties  -Dtls.enable=true"
@@ -102,7 +102,7 @@ tls.client.certPath=/opt/certFiles/client.pem
 tls.client.trustCertPath=/opt/certFiles/ca.pem
 ```
 
-Add following parameters in JVM. The value of "tls.config.file" needs to be replaced by the file path we created：
+Add following parameters in JVM. The value of "tls.config.file" needs to be replaced by the file path we created:
 ```properties
 -Dtls.client.authServer=true -Dtls.enable=true  -Dtls.test.mode.enable=false  -Dtls.config.file=/opt/certs/tlsclient.properties
 ```
