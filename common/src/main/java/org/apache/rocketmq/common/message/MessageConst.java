@@ -96,7 +96,6 @@ public class MessageConst {
     public static final String PROPERTY_TIMER_OUT_MS = "TIMER_OUT_MS";
     public static final String PROPERTY_TIMER_DEL_UNIQKEY = "TIMER_DEL_UNIQKEY";
     public static final String PROPERTY_TIMER_DELAY_LEVEL = "TIMER_DELAY_LEVEL";
-    public static final String PROPERTY_TIMER_DELAY_MS = "TIMER_DELAY_MS";
 
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);
@@ -136,7 +135,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CLUSTER);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_TYPE);
         STRING_HASH_SET.add(PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        STRING_HASH_SET.add(PROPERTY_TIMER_DELAY_MS);
         STRING_HASH_SET.add(PROPERTY_TIMER_DELAY_SEC);
         STRING_HASH_SET.add(PROPERTY_TIMER_DELIVER_MS);
         STRING_HASH_SET.add(PROPERTY_TIMER_ENQUEUE_MS);
