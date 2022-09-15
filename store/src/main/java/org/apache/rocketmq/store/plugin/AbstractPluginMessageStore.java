@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.plugin;
+package org.apache.rocketmq.store.plugin;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
