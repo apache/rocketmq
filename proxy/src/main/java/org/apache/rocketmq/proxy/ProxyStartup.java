@@ -161,7 +161,7 @@ public class ProxyStartup {
         }
     }
 
-    private static MessagingProcessor createMessagingProcessor() {
+    protected static MessagingProcessor createMessagingProcessor() {
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
         MessagingProcessor messagingProcessor;
 
@@ -201,7 +201,7 @@ public class ProxyStartup {
         return application;
     }
 
-    private static BrokerController createBrokerController() {
+    protected static BrokerController createBrokerController() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         List<String> brokerStartupArgList = Lists.newArrayList("-c", config.getBrokerConfigPath());
         if (StringUtils.isNotBlank(config.getNamesrvAddr())) {

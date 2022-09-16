@@ -21,18 +21,27 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.assertj.core.util.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 public class ProxyStartupTest {
 
@@ -89,46 +98,73 @@ public class ProxyStartupTest {
     }
 
     @Test
-    public void testLoadNameSrvAddrByProperty() throws Exception {
+    public void testLocalModeWithNameSrvAddrByProperty() throws Exception {
         String namesrvAddr = "namesrvAddr";
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
-        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {});
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local"
+        });
         ProxyStartup.initLogAndConfiguration(commandLineArgument);
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         assertEquals(namesrvAddr, config.getNamesrvAddr());
+
+        validateBrokerCreateArgsWithNamsrvAddr(config, namesrvAddr);
+    }
+
+    private void validateBrokerCreateArgsWithNamsrvAddr(ProxyConfig config, String namesrvAddr) {
+        try (MockedStatic<BrokerStartup> brokerStartupMocked = mockStatic(BrokerStartup.class);
+             MockedStatic<DefaultMessagingProcessor> messagingProcessorMocked = mockStatic(DefaultMessagingProcessor.class)) {
+            ArgumentCaptor<Object> args = ArgumentCaptor.forClass(Object.class);
+            brokerStartupMocked.when(() -> BrokerStartup.createBrokerController((String[]) args.capture()))
+                .thenReturn(mock(BrokerController.class));
+            messagingProcessorMocked.when(() -> DefaultMessagingProcessor.createForLocalMode(any(), any()))
+                .thenReturn(mock(DefaultMessagingProcessor.class));
+
+            ProxyStartup.createMessagingProcessor();
+            String[] passArgs = (String[]) args.getValue();
+            assertEquals("-c", passArgs[0]);
+            assertEquals(config.getBrokerConfigPath(), passArgs[1]);
+            assertEquals("-n", passArgs[2]);
+            assertEquals(namesrvAddr, passArgs[3]);
+            assertEquals(4, passArgs.length);
+        }
     }
 
     @Test
-    public void testLoadNameSrvAddrByConfigFile() throws Exception {
+    public void testLocalModeWithNameSrvAddrByConfigFile() throws Exception {
         String namesrvAddr = "namesrvAddr";
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "foo");
-        Path configFilePath = Files.createTempFile("testLoadNameSrvAddrByConfigFile", ".json");
+        Path configFilePath = Files.createTempFile("testLocalModeWithNameSrvAddrByConfigFile", ".json");
         String configData = "{\n" +
-            "  \"nameSrvAddr\": \"namesrvAddr\"\n" +
+            "  \"namesrvAddr\": \"namesrvAddr\"\n" +
             "}";
         Files.write(configFilePath, configData.getBytes(StandardCharsets.UTF_8));
 
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local",
             "-pc", configFilePath.toAbsolutePath().toString()
         });
         ProxyStartup.initLogAndConfiguration(commandLineArgument);
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         assertEquals(namesrvAddr, config.getNamesrvAddr());
+
+        validateBrokerCreateArgsWithNamsrvAddr(config, namesrvAddr);
     }
 
     @Test
-    public void testLoadNameSrvAddrByCommandLine() throws Exception {
+    public void testLocalModeWithNameSrvAddrByCommandLine() throws Exception {
         String namesrvAddr = "namesrvAddr";
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "foo");
-        Path configFilePath = Files.createTempFile("testLoadNameSrvAddrByConfigFile", ".json");
+        Path configFilePath = Files.createTempFile("testLocalModeWithNameSrvAddrByCommandLine", ".json");
         String configData = "{\n" +
-            "  \"nameSrvAddr\": \"foo\"\n" +
+            "  \"namesrvAddr\": \"foo\"\n" +
             "}";
         Files.write(configFilePath, configData.getBytes(StandardCharsets.UTF_8));
 
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local",
             "-pc", configFilePath.toAbsolutePath().toString(),
             "-n", namesrvAddr
         });
@@ -136,5 +172,49 @@ public class ProxyStartupTest {
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         assertEquals(namesrvAddr, config.getNamesrvAddr());
+
+        validateBrokerCreateArgsWithNamsrvAddr(config, namesrvAddr);
+    }
+
+    @Test
+    public void testLocalModeWithAllArgs() throws Exception {
+        String namesrvAddr = "namesrvAddr";
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "foo");
+        Path configFilePath = Files.createTempFile("testLocalMode", ".json");
+        String configData = "{\n" +
+            "  \"namesrvAddr\": \"foo\"\n" +
+            "}";
+        Files.write(configFilePath, configData.getBytes(StandardCharsets.UTF_8));
+        Path brokerConfigFilePath = Files.createTempFile("testLocalModeBrokerConfig", ".json");
+
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local",
+            "-pc", configFilePath.toAbsolutePath().toString(),
+            "-n", namesrvAddr,
+            "-bc", brokerConfigFilePath.toAbsolutePath().toString()
+        });
+        ProxyStartup.initLogAndConfiguration(commandLineArgument);
+
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        assertEquals(namesrvAddr, config.getNamesrvAddr());
+        assertEquals(brokerConfigFilePath.toAbsolutePath().toString(), config.getBrokerConfigPath());
+
+        validateBrokerCreateArgsWithNamsrvAddr(config, namesrvAddr);
+    }
+
+    @Test
+    public void testClusterMode() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initLogAndConfiguration(commandLineArgument);
+
+        try (MockedStatic<DefaultMessagingProcessor> messagingProcessorMocked = mockStatic(DefaultMessagingProcessor.class)) {
+            DefaultMessagingProcessor processor = mock(DefaultMessagingProcessor.class);
+            messagingProcessorMocked.when(DefaultMessagingProcessor::createForClusterMode)
+                .thenReturn(processor);
+
+            assertSame(processor, ProxyStartup.createMessagingProcessor());
+        }
     }
 }
