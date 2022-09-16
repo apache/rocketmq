@@ -40,18 +40,18 @@ public class VerifyUtils {
     public static Collection<Object> getFilterdMessage(Collection<Object> sendMsgs,
         Collection<Object> recvMsgs) {
         Collection<Object> recvMsgsSync = Collections.synchronizedCollection(recvMsgs);
-        Collection<Object> filterdMsgs = new ArrayList<Object>();
+        Collection<Object> filteredMsgs = new ArrayList<Object>();
         int filterNum = 0;
         for (Object msg : recvMsgsSync) {
             if (sendMsgs.contains(msg)) {
-                filterdMsgs.add(msg);
+                filteredMsgs.add(msg);
             } else {
                 filterNum++;
             }
         }
 
-        logger.info(String.format("[%s] messages is filterd!", filterNum));
-        return filterdMsgs;
+        logger.info(String.format("[%s] messages is filtered!", filterNum));
+        return filteredMsgs;
     }
 
     public static int verifyUserProperty(Collection<Object> sendMsgs, Collection<Object> recvMsgs) {

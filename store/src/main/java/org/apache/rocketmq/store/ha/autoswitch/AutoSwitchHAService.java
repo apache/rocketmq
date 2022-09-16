@@ -33,12 +33,14 @@ import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -69,7 +71,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
         this.epochCache.initCacheFromFile();
         this.defaultMessageStore = defaultMessageStore;
-        this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
@@ -236,7 +238,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     public void updateConnectionLastCaughtUpTime(final String slaveAddress, final long lastCaughtUpTimeMs) {
-        long prevTime = this.connectionCaughtUpTimeTable.computeIfAbsent(slaveAddress, k -> 0L);
+        Long prevTime = ConcurrentHashMapUtils.computeIfAbsent(this.connectionCaughtUpTimeTable, slaveAddress, k -> 0L);
         this.connectionCaughtUpTimeTable.put(slaveAddress, Math.max(prevTime, lastCaughtUpTimeMs));
     }
 
@@ -262,6 +264,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
         return syncStateSet.size();
     }
@@ -351,10 +354,9 @@ public class AutoSwitchHAService extends DefaultHAService {
             return -1;
         }
 
-        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
-
         boolean doNext = true;
-        while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext) {
+        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
+        do {
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
                 break;
@@ -366,10 +368,8 @@ public class AutoSwitchHAService extends DefaultHAService {
                 int readSize = 0;
                 while (readSize < result.getSize()) {
                     DispatchRequest dispatchRequest = this.defaultMessageStore.getCommitLog().checkMessageAndReturnSize(result.getByteBuffer(), false, false);
-
-                    int size = dispatchRequest.getMsgSize();
-
                     if (dispatchRequest.isSuccess()) {
+                        int size = dispatchRequest.getMsgSize();
                         if (size > 0) {
                             reputFromOffset += size;
                             readSize += size;
@@ -385,11 +385,15 @@ public class AutoSwitchHAService extends DefaultHAService {
             } finally {
                 result.release();
             }
-        }
+        } while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
 
         LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);
         return reputFromOffset;
+    }
+
+    public int getLastEpoch() {
+        return this.epochCache.lastEpoch();
     }
 
     public List<EpochEntry> getEpochEntries() {
@@ -398,8 +402,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
 
-        public AutoSwitchAcceptSocketService(int port) {
-            super(port);
+        public AutoSwitchAcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            super(messageStoreConfig);
         }
 
         @Override
@@ -410,7 +414,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             return AutoSwitchAcceptSocketService.class.getSimpleName();
         }
 
-        @Override protected HAConnection createConnection(SocketChannel sc) throws IOException {
+        @Override
+        protected HAConnection createConnection(SocketChannel sc) throws IOException {
             return new AutoSwitchHAConnection(AutoSwitchHAService.this, sc, AutoSwitchHAService.this.epochCache);
         }
     }

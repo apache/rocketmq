@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.batch;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -39,9 +40,9 @@ public class SimpleBatchProducer {
         //If you just send messages of no more than 1MiB at a time, it is easy to use batch
         //Messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support
         List<Message> messages = new ArrayList<>();
-        messages.add(new Message(TOPIC, TAG, "OrderID001", "Hello world 0".getBytes()));
-        messages.add(new Message(TOPIC, TAG, "OrderID002", "Hello world 1".getBytes()));
-        messages.add(new Message(TOPIC, TAG, "OrderID003", "Hello world 2".getBytes()));
+        messages.add(new Message(TOPIC, TAG, "OrderID001", "Hello world 0".getBytes(StandardCharsets.UTF_8)));
+        messages.add(new Message(TOPIC, TAG, "OrderID002", "Hello world 1".getBytes(StandardCharsets.UTF_8)));
+        messages.add(new Message(TOPIC, TAG, "OrderID003", "Hello world 2".getBytes(StandardCharsets.UTF_8)));
 
         SendResult sendResult = producer.send(messages);
         System.out.printf("%s", sendResult);

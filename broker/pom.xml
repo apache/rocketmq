@@ -21,6 +21,10 @@
     <artifactId>rocketmq-broker</artifactId>
     <name>rocketmq-broker ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

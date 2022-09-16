@@ -36,6 +36,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -58,9 +59,6 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -70,6 +68,7 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -81,6 +80,7 @@ import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -88,7 +88,9 @@ import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
@@ -97,6 +99,7 @@ import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.subscription.GroupForbidden;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -121,6 +124,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         SYSTEM_GROUP_SET.add(MixAll.DEFAULT_CONSUMER_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.DEFAULT_PRODUCER_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.TOOLS_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.SCHEDULE_CONSUMER_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.FILTERSRV_CONSUMER_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.MONITOR_CONSUMER_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
@@ -167,7 +171,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 boolean registerOK = mqClientInstance.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
-                    throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup() + "] has created already, specifed another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
+                    throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup() + "] has created already, specified another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
                 }
 
                 mqClientInstance.start();
@@ -278,7 +282,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public void updateGlobalWhiteAddrConfig(String addr,
-        String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        String globalWhiteAddrs,
+        String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, aclFileFullPath, timeoutMillis);
     }
 
@@ -346,7 +351,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 final TopicStatsTable topicStatsTable = new TopicStatsTable();
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
 
-                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.success(topicStatsTable);
                 }
                 final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
@@ -361,7 +366,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                     topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
                                 }
                             } catch (Exception e) {
-                                log.error("getTopicStatsInfo error. topic=" + topic, e);
+                                log.error("getTopicStatsInfo error. topic={}", topic, e);
                             } finally {
                                 latch.countDown();
                             }
@@ -453,7 +458,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (currentRoute.getTopicQueueMappingByBroker() == null
                 || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
                 //normal topic
-                for (Map.Entry<MessageQueue, OffsetWrapper> entry: result.getOffsetTable().entrySet()) {
+                for (Map.Entry<MessageQueue, OffsetWrapper> entry : result.getOffsetTable().entrySet()) {
                     if (entry.getKey().getTopic().equals(currentTopic)) {
                         staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
                     }
@@ -465,7 +470,18 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (staticResult.getOffsetTable().isEmpty()) {
-            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE, "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+            ConsumerConnection connection;
+            try {
+                connection = this.examineConsumerConnectionInfo(consumerGroup);
+            } catch (Exception e) {
+                throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
+                    "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not online");
+            }
+
+            if (connection.getMessageModel().equals(MessageModel.BROADCASTING)) {
+                throw new MQClientException(ResponseCode.BROADCAST_CONSUMPTION,
+                    "Not found the consumer group consume stats, because return offset table is empty, the consumer is under the broadcast mode");
+            }
         }
 
         return staticResult;
@@ -494,7 +510,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         continue;
                     }
                 }
-                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
                 }
 
@@ -513,7 +529,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                     consumerTpsMap.put(addr, consumeStats.getConsumeTps());
                                 }
                             } catch (Exception e) {
-                                log.error("getTopicStatsInfo error. topic=" + topic, e);
+                                log.error("getConsumeStats error. topic={}, consumerGroup={}", topic, consumerGroup, e);
                             } finally {
                                 latch.countDown();
                             }
@@ -527,7 +543,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 }
 
                 if (result.getOffsetTable().isEmpty()) {
-                    AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                    return AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the "
+                        + "consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
                 }
                 return AdminToolResult.success(result);
             }
@@ -631,7 +648,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+    public ProducerTableInfo getAllProducerInfo(
+        final String brokerAddr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.mqClientInstance.getMQClientAPIImpl().getAllProducerInfo(brokerAddr, timeoutMillis);
     }
 
@@ -703,7 +721,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         mqClientInstance.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, timeoutMillis);
                         successList.add(addr);
                     } catch (Exception e) {
-                        log.error("deleteTopicInBrokerConcurrent error. topic=" + topic + ", host=" + addr, e);
+                        log.error("deleteTopicInBroker error. topic={}, broker={}", topic, addr, e);
                         failureList.add(addr);
                     } finally {
                         latch.countDown();
@@ -794,7 +812,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (!hasConsumed) {
-            HashMap<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
+            Map<MessageQueue, TopicOffset> topicStatus = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis).getOffsetTable();
             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                 MessageQueue queue = new MessageQueue(topic, queueData.getBrokerName(), i);
                 OffsetWrapper offsetWrapper = new OffsetWrapper();
@@ -835,7 +853,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             @Override
             public AdminToolResult doExecute() throws Exception {
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
-                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
                 }
                 final Map<String, QueueData> topicRouteMap = new HashMap<String, QueueData>();
@@ -1021,10 +1039,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 return this.mqClientInstance.getMQClientAPIImpl().querySubscriptionByConsumer(addr, group, topic, timeoutMillis);
             }
-
-            break;
         }
-
         return null;
     }
 
@@ -1055,7 +1070,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 String retryTopic = MixAll.getRetryTopic(group);
                 TopicRouteData topicRouteData = examineTopicRouteInfo(retryTopic);
 
-                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "router info not found.");
                 }
                 final TopicList result = new TopicList();
@@ -1071,7 +1086,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                     result.getTopicList().addAll(topicList.getTopicList());
                                 }
                             } catch (Exception e) {
-                                log.error("getTopicStatsInfo error. groupId=" + group, e);
+                                log.error("queryTopicsByConsumer error. group={}", group, e);
                             } finally {
                                 latch.countDown();
                             }
@@ -1104,7 +1119,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return adminToolExecute(new AdminToolHandler() {
             @Override
             public AdminToolResult doExecute() throws Exception {
-                final List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
+                final List<QueueTimeSpan> spanSet = new CopyOnWriteArrayList<>();
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
 
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
@@ -1121,7 +1136,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                     spanSet.addAll(mqClientInstance.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group, timeoutMillis));
                                 }
                             } catch (Exception e) {
-                                log.error("queryConsumeTimeSpan error. topic=" + topic, e);
+                                log.error("queryConsumeTimeSpan error. topic={}, group={}", topic, group, e);
                             } finally {
                                 latch.countDown();
                             }
@@ -1169,16 +1184,17 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public boolean cleanExpiredConsumerQueueByAddr(
         String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = mqClientInstance.getMQClientAPIImpl().cleanExpiredConsumeQueue(addr, timeoutMillis);
-        log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
+        log.warn("clean expired ConsumeQueue on target broker={}, execute result={}", addr, result);
         return result;
     }
 
     @Override
-    public boolean deleteExpiredCommitLog(String cluster) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+    public boolean deleteExpiredCommitLog(
+        String cluster) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = false;
         try {
             ClusterInfo clusterInfo = examineBrokerClusterInfo();
-            if (null == cluster || "".equals(cluster)) {
+            if (StringUtils.isEmpty(cluster)) {
                 for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
                     result = deleteExpiredCommitLogByCluster(clusterInfo, targetCluster);
                 }
@@ -1192,7 +1208,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
-    public boolean deleteExpiredCommitLogByCluster(ClusterInfo clusterInfo, String cluster) throws RemotingConnectException,
+    public boolean deleteExpiredCommitLogByCluster(ClusterInfo clusterInfo,
+        String cluster) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = false;
         String[] addrs = clusterInfo.retrieveAllAddrByCluster(cluster);
@@ -1203,9 +1220,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public boolean deleteExpiredCommitLogByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+    public boolean deleteExpiredCommitLogByAddr(
+        String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = mqClientInstance.getMQClientAPIImpl().deleteExpiredCommitLog(addr, timeoutMillis);
-        log.warn("Delete expired CommitLog on target " + addr + " broker " + result);
+        log.warn("Delete expired CommitLog on target broker={}, execute result={}", addr, result);
         return result;
     }
 
@@ -1215,7 +1233,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         boolean result = false;
         try {
             ClusterInfo clusterInfo = examineBrokerClusterInfo();
-            if (null == cluster || "".equals(cluster)) {
+            if (StringUtils.isEmpty(cluster)) {
                 for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
                     result = cleanUnusedTopicByCluster(clusterInfo, targetCluster);
                 }
@@ -1243,7 +1261,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public boolean cleanUnusedTopicByAddr(
         String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = mqClientInstance.getMQClientAPIImpl().cleanUnusedTopicByAddr(addr, timeoutMillis);
-        log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
+        log.warn("clean unused topic on target broker={}, execute result={}", addr, result);
         return result;
     }
 
@@ -1330,15 +1348,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     } catch (MQClientException e) {
                         if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                             mt.setTrackType(TrackType.NOT_ONLINE);
+                            mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.CONSUME_BROADCASTING);
+                        }
                         result.add(mt);
                         continue;
                     } catch (MQBrokerException e) {
                         if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                             mt.setTrackType(TrackType.NOT_ONLINE);
+                            mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.CONSUME_BROADCASTING);
+                        }
                         result.add(mt);
                         continue;
                     } catch (Exception e) {
@@ -1467,10 +1491,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);
 
         return result;
-    }
-
-    public static void main(String[] args) {
-        Arrays.asList(null);
     }
 
     public boolean consumed(final MessageExt msg,
@@ -1789,6 +1809,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName,
+        String brokerName, String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerAddr);
+    }
+
+    @Override
     public GroupForbidden updateAndGetGroupReadForbidden(String brokerAddr, String groupName, String topicName,
         Boolean readable) throws RemotingException, InterruptedException, MQBrokerException {
         UpdateGroupForbiddenRequestHeader requestHeader = new UpdateGroupForbiddenRequestHeader();
@@ -1808,6 +1834,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (String addr : addrs) {
             this.mqClientInstance.getMQClientAPIImpl().deleteTopicInNameServer(addr, clusterName, topic, timeoutMillis);
         }
+    }
+
+    @Override
+    public Map<String, Properties> getControllerConfig(
+        List<String> controllerServers) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQClientException,
+        UnsupportedEncodingException {
+        return this.mqClientInstance.getMQClientAPIImpl().getControllerConfig(controllerServers, timeoutMillis);
+    }
+
+    @Override
+    public void updateControllerConfig(Properties properties,
+        List<String> controllers) throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+        RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().updateControllerConfig(properties, controllers, timeoutMillis);
+    }
+
+    @Override
+    public void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
+        String brokerAddr, boolean isCleanLivingBroker)
+        throws RemotingException, InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerAddr, isCleanLivingBroker);
     }
 
     public MQClientInstance getMqClientInstance() {

@@ -19,6 +19,9 @@ package org.apache.rocketmq.store.timer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.common.io.Files;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -28,7 +31,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.io.IOException;
-import java.io.FileWriter;
 import java.io.Writer;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -54,6 +56,7 @@ public class TimerMetrics extends ConfigManager {
 
     private final ConcurrentMap<Integer, Metric> timingDistribution =
             new ConcurrentHashMap<>(1024);
+
     public List<Integer> timerDist = new ArrayList<Integer>() {{
             add(5);
             add(60);
@@ -86,18 +89,26 @@ public class TimerMetrics extends ConfigManager {
 
     public Metric getDistPair(Integer period) {
         Metric pair = timingDistribution.get(period);
-        if (null == pair) {
-            pair = new Metric();
-            timingDistribution.putIfAbsent(period, pair);
+        if (null != pair) {
+            return pair;
+        }
+        pair = new Metric();
+        final Metric previous = timingDistribution.putIfAbsent(period, pair);
+        if (null != previous) {
+            return previous;
         }
         return pair;
     }
 
     public Metric getTopicPair(String topic) {
         Metric pair = timingCount.get(topic);
-        if (null == pair) {
-            pair = new Metric();
-            timingCount.putIfAbsent(topic, pair);
+        if (null != pair) {
+            return pair;
+        }
+        pair = new Metric();
+        final Metric previous = timingCount.putIfAbsent(topic, pair);
+        if (null != previous) {
+            return previous;
         }
         return pair;
     }
@@ -109,7 +120,6 @@ public class TimerMetrics extends ConfigManager {
     public void setTimerDistList(List<Integer> timerDist) {
         this.timerDist = timerDist;
     }
-
 
     public long getTimingCount(String topic) {
         Metric pair = timingCount.get(topic);
@@ -133,7 +143,7 @@ public class TimerMetrics extends ConfigManager {
 
     @Override
     public String encode() {
-        return null;
+        return encode(false);
     }
 
     @Override
@@ -145,16 +155,20 @@ public class TimerMetrics extends ConfigManager {
     public void decode(String jsonString) {
         if (jsonString != null) {
             TimerMetricsSerializeWrapper timerMetricsSerializeWrapper =
-                    TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
+                TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
             if (timerMetricsSerializeWrapper != null) {
                 this.timingCount.putAll(timerMetricsSerializeWrapper.getTimingCount());
+                this.dataVersion.assignNewOne(timerMetricsSerializeWrapper.getDataVersion());
             }
         }
     }
 
     @Override
     public String encode(boolean prettyFormat) {
-        return null;
+        TimerMetricsSerializeWrapper metricsSerializeWrapper = new TimerMetricsSerializeWrapper();
+        metricsSerializeWrapper.setDataVersion(this.dataVersion);
+        metricsSerializeWrapper.setTimingCount(this.timingCount);
+        return metricsSerializeWrapper.toJson(prettyFormat);
     }
 
     public DataVersion getDataVersion() {
@@ -226,9 +240,11 @@ public class TimerMetrics extends ConfigManager {
                     return;
                 }
             }
-            bufferedWriter = new BufferedWriter(new FileWriter(tmpFile, false));
+            bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile, false),
+                StandardCharsets.UTF_8));
             write0(bufferedWriter);
             bufferedWriter.flush();
+            bufferedWriter.close();
             log.debug("Finished writing tmp file: {}", temp);
 
             File configFile = new File(config);

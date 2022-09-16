@@ -91,6 +91,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.root>${basedir}</project.root>
 
         <!-- Maven properties -->
         <maven.test.skip>false</maven.test.skip>
@@ -120,7 +121,7 @@
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
         <jaeger.version>1.6.0</jaeger.version>
-        <dleger.version>0.2.7</dleger.version>
+        <dleger.version>0.3.1</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
@@ -129,6 +130,7 @@
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
+        <caffeine.version>2.9.3</caffeine.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -151,8 +153,8 @@
         <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
-        <findbugs-maven-plugin.version>3.0.4</findbugs-maven-plugin.version>
         <sonar-maven-plugin.version>3.0.2</sonar-maven-plugin.version>
+        <spotbugs-plugin.version>4.2.2</spotbugs-plugin.version>
         <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
@@ -268,8 +270,8 @@
                 <version>${maven-checkstyle-plugin.version}</version>
                 <executions>
                     <execution>
-                        <id>verify</id>
-                        <phase>verify</phase>
+                        <id>validate</id>
+                        <phase>validate</phase>
                         <configuration>
                             <configLocation>style/rmq_checkstyle.xml</configLocation>
                             <encoding>UTF-8</encoding>
@@ -336,6 +338,13 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
                         <id>default-prepare-agent-integration</id>
                         <phase>pre-integration-test</phase>
                         <goals>
@@ -373,14 +382,31 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>${findbugs-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>${sonar-maven-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failOnError>true</failOnError>
+                    <fork>false</fork>
+                    <spotbugsXmlOutput>true</spotbugsXmlOutput>
+                    <excludeFilterFile>${project.root}/style/spotbugs-suppressions.xml</excludeFilterFile>
+                    <threshold>High</threshold>
+                    <effort>Max</effort>
+                </configuration>
             </plugin>
         </plugins>
 
@@ -834,6 +860,11 @@
                 <groupId>com.conversantmedia</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

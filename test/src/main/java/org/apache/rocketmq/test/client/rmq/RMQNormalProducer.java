@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
@@ -105,9 +106,9 @@ public class RMQNormalProducer extends AbstractMQProducer {
             sendResult.setMsgId(metaqResult.getMsgId());
             sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
-            msgBodys.addData(new String(message.getBody()));
+            msgBodys.addData(new String(message.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(message.getBody()), metaqResult);
+            originMsgIndex.put(new String(message.getBody(), StandardCharsets.UTF_8), metaqResult);
         } catch (Exception e) {
             if (isDebug) {
                 e.printStackTrace();
@@ -151,9 +152,9 @@ public class RMQNormalProducer extends AbstractMQProducer {
             sendResult.setMsgId(metaqResult.getMsgId());
             sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
-            msgBodys.addData(new String(msg.getBody()));
+            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(msg.getBody()), metaqResult);
+            originMsgIndex.put(new String(msg.getBody(), StandardCharsets.UTF_8), metaqResult);
         } catch (Exception e) {
             if (isDebug) {
                 e.printStackTrace();

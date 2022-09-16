@@ -172,7 +172,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
     }
 
     private boolean channelIsWritable(Channel channel, PullMessageRequestHeader requestHeader) {
-        if (this.brokerController.getBrokerConfig().isNetWorkFlowController()) {
+        if (this.brokerController.getBrokerConfig().isEnableNetWorkFlowControl()) {
             if (!channel.isWritable()) {
                 log.warn("channel {} not writable ,cid {}", channel.remoteAddress(), requestHeader.getConsumerGroup());
                 return false;

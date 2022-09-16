@@ -277,7 +277,7 @@ public class MappedFileQueue implements Swappable {
                 return false;
         }
 
-        ListIterator<MappedFile> iterator = this.mappedFiles.listIterator();
+        ListIterator<MappedFile> iterator = this.mappedFiles.listIterator(mappedFiles.size());
 
         while (iterator.hasPrevious()) {
             mappedFileLast = iterator.previous();

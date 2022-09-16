@@ -175,8 +175,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private static int initValueIndex() {
         Random r = new Random();
-
-        return Math.abs(r.nextInt() % 999) % 999;
+        return r.nextInt(999);
     }
 
     @Override
@@ -751,7 +750,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private void scanAvailableNameSrv() {
         List<String> nameServerList = this.namesrvAddrList.get();
         if (nameServerList == null) {
-            LOGGER.warn("scanAvailableNameSrv Addresses of name server is empty!");
+            LOGGER.debug("scanAvailableNameSrv Addresses of name server is empty!");
             return;
         }
 

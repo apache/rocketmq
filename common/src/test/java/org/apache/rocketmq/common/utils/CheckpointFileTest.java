@@ -32,7 +32,7 @@ import org.junit.Test;
 public class CheckpointFileTest {
 
     private static final String FILE_PATH =
-        Paths.get(System.getProperty("user.home"), "store-test", "epoch.ckpt").toString();
+        Paths.get(System.getProperty("java.io.tmpdir"), "store-test", "epoch.ckpt").toString();
 
     private List<EpochEntry> entryList;
     private CheckpointFile<EpochEntry> checkpoint;

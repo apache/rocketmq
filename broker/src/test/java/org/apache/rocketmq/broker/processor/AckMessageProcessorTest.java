@@ -23,7 +23,6 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -85,9 +84,6 @@ public class AckMessageProcessorTest {
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
-        ScheduleMessageService scheduleMessageService = new ScheduleMessageService(brokerController);
-        scheduleMessageService.parseDelayLevel();
-        when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
         Channel mockChannel = mock(Channel.class);

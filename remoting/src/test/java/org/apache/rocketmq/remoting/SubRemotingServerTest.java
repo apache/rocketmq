@@ -57,7 +57,7 @@ public class SubRemotingServerTest {
         subServer.registerProcessor(1, new NettyRequestProcessor() {
             @Override
             public RemotingCommand processRequest(final ChannelHandlerContext ctx,
-                final RemotingCommand request) throws Exception {
+                    final RemotingCommand request) throws Exception {
                 request.setRemark(String.valueOf(RemotingHelper.parseSocketAddressPort(ctx.channel().localAddress())));
                 return request;
             }
@@ -72,14 +72,16 @@ public class SubRemotingServerTest {
     }
 
     @Test
-    public void testInvokeSubRemotingServer() throws InterruptedException, RemotingTimeoutException, RemotingConnectException, RemotingSendRequestException {
+    public void testInvokeSubRemotingServer() throws InterruptedException, RemotingTimeoutException,
+            RemotingConnectException, RemotingSendRequestException {
         RequestHeader requestHeader = new RequestHeader();
         requestHeader.setCount(1);
         requestHeader.setMessageTitle("Welcome");
 
         // Parent remoting server doesn't support RequestCode 1
         RemotingCommand request = RemotingCommand.createRequestCommand(1, requestHeader);
-        RemotingCommand response = remotingClient.invokeSync("localhost:8888", request, 1000 * 3);
+        RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), request,
+                1000 * 3);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED);
 

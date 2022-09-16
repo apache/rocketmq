@@ -191,7 +191,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private long brokerNotActiveTimeoutMillis = 10 * 1000;
 
-    private boolean netWorkFlowController = true;
+    private boolean enableNetWorkFlowControl = false;
 
     private int popPollingSize = 1024;
     private int popPollingMapSize = 100000;
@@ -1156,12 +1156,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.brokerNotActiveTimeoutMillis = brokerNotActiveTimeoutMillis;
     }
 
-    public boolean isNetWorkFlowController() {
-        return netWorkFlowController;
+    public boolean isEnableNetWorkFlowControl() {
+        return enableNetWorkFlowControl;
     }
 
-    public void setNetWorkFlowController(boolean netWorkFlowController) {
-        this.netWorkFlowController = netWorkFlowController;
+    public void setEnableNetWorkFlowControl(boolean enableNetWorkFlowControl) {
+        this.enableNetWorkFlowControl = enableNetWorkFlowControl;
     }
 
     public boolean isRealTimeNotifyConsumerChange() {
