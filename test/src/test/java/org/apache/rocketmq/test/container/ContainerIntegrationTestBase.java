@@ -187,8 +187,6 @@ public class ContainerIntegrationTestBase {
         try {
             TopicConfig topicConfig = new TopicConfig(topicName, rqn, wqn, 6, 0);
             defaultMQAdminExt.createAndUpdateTopicConfig(masterBroker.getBrokerAddr(), topicConfig);
-            System.out.println("Create topic " + topicName + " to " + masterBroker.getBrokerIdentity().getCanonicalName() + "@" + masterBroker.getBrokerAddr());
-
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer1);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer2);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer3);

@@ -190,10 +190,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
 
-                        if (BrokerRole.SLAVE.equals(this.transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getBrokerRole())
-                            && this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
-                            == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId()
-                            && this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
+                        if (this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
+                            && (this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
+                            == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId())
+                            && BrokerRole.SLAVE.equals(this.transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getBrokerRole())
                         ) {
                             final MessageExtBrokerInner msgInner = this.transactionalMessageBridge.renewHalfMessageInner(msgExt);
                             final boolean isSuccess = this.transactionalMessageBridge.escapeMessage(msgInner);
@@ -203,10 +203,6 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 newOffset = i + 1;
                                 i++;
                             } else {
-                                System.out.printf("Escaping transactional message failed %s times! msgId(offsetId)=%s, UNIQ_KEY(transactionId)=%s",
-                                    escapeFailCnt + 1,
-                                    msgExt.getMsgId(),
-                                    msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                                 log.warn("Escaping transactional message failed {} times! msgId(offsetId)={}, UNIQ_KEY(transactionId)={}",
                                     escapeFailCnt + 1,
                                     msgExt.getMsgId(),
