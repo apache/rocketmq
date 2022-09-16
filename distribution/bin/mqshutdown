@@ -17,7 +17,12 @@
 
 case $1 in
     broker)
-
+    pid=`ps ax | grep -i 'org.apache.rocketmq.proxy.ProxyStartup' | grep '\-pm local' |grep java | grep -v grep | awk '{print $1}'`
+    if [ "$pid" != "" ] ; then
+            echo "The mqbroker with proxy enable is running(${pid})..."
+            kill ${pid}
+            echo "Send shutdown request to mqbroker with proxy enable OK(${pid})"
+    fi
     pid=`ps ax | grep -i 'org.apache.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqbroker running."

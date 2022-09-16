@@ -35,6 +35,7 @@ header:
     - '*/src/test/resources/META-INF/service/*'
     - '*/src/main/resources/META-INF/service/*'
     - '*/src/test/resources/rmq-proxy-home/conf/rmq-proxy.json'
+    - '*/src/test/resources/mockito-extensions/*'
     - '**/target/**'
     - '**/*.iml'
     - 'docs/**'
