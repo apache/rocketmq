@@ -49,7 +49,7 @@ maven_install(
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
-        "org.apache.commons:commons-lang3:3.4",
+        "org.apache.commons:commons-lang3:3.12.0",
         "org.hamcrest:hamcrest-core:1.3",
         "io.openmessaging.storage:dledger:0.3.1",
         "net.java.dev.jna:jna:4.2.2",
