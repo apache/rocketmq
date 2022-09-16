@@ -152,7 +152,7 @@ public class GrpcBaseIT extends BaseConf {
 
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
+        ConfigurationManager.getProxyConfig().setNamesrvAddr(nsAddr);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
         ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());

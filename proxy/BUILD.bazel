@@ -26,6 +26,7 @@ java_library(
         "//common",
         "//client",
         "//broker",
+        "//srvutil",
         "//acl",
         "@maven//:org_apache_rocketmq_rocketmq_proto",     
         "@maven//:org_apache_commons_commons_lang3",
@@ -50,6 +51,7 @@ java_library(
         "@maven//:ch_qos_logback_logback_classic",
         "@maven//:com_google_code_findbugs_jsr305",
         "@maven//:org_checkerframework_checker_qual",
+        "@maven//:commons_cli_commons_cli",
     ],
 )
 
