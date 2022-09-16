@@ -20,18 +20,27 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
+import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
 
 public class PlainPermissionManagerTest {
 
@@ -43,6 +52,10 @@ public class PlainPermissionManagerTest {
     PlainAccessResource plainAccessResource = new PlainAccessResource();
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
+
+    private static final String PATH = PlainPermissionManagerTest.class.getResource(File.separator).getFile();
+
+    private static final String DEFAULT_TOPIC = "topic-acl";
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
@@ -62,7 +75,7 @@ public class PlainPermissionManagerTest {
         ANYPlainAccessResource = clonePlainAccessResource(Permission.ANY);
         DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
-        File file = new File("src/test/resources");
+        File file = new File(PATH);
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
 
         plainPermissionManager = new PlainPermissionManager();
@@ -213,8 +226,40 @@ public class PlainPermissionManagerTest {
     }
 
     @Test
+    public void multiFilePathTest() {
+        File file = new File(PATH);
+        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
+
+        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
+
+        String samefilePath = file.getAbsolutePath()+"/conf/acl/.";
+        String samefilePath2 = "/" +file.getAbsolutePath()+"/conf/acl";
+        String samefilePath3 = file.getAbsolutePath()+"/conf/acl/../"+file.getAbsolutePath();
+        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///";
+        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./";
+
+        int size = plainPermissionManager.getDataVersionMap().size();
+
+        plainPermissionManager.load(samefilePath);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath2);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath3);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath4);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath5);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+    }
+
+    @Test
     public void testWatch() throws IOException, IllegalAccessException, InterruptedException {
-        File file = new File("src/test/resources");
+        File file = new File(PATH);
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
 
         String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "/conf/acl/plain_acl_test.yml";
@@ -266,6 +311,116 @@ public class PlainPermissionManagerTest {
 
         }
         transport.delete();
-        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.home.dir", PATH);
     }
+    
+    @Test
+    public void updateAccessConfigTest() {
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(null));
+        
+        plainAccessConfig.setAccessKey("admin_test");
+        // Invalid parameter
+        plainAccessConfig.setSecretKey("123456");
+        plainAccessConfig.setAdmin(true);
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        plainAccessConfig.setSecretKey("12345678");
+        // Invalid parameter
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA!SUB"));
+        Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
+        
+        // first update
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
+        
+        // second update
+        plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
+    }
+
+    @Test
+    public void getAllAclFilesTest() {
+        final List<String> notExistList = plainPermissionManager.getAllAclFiles("aa/bb");
+        Assertions.assertThat(notExistList).isEmpty();
+        final List<String> files = plainPermissionManager.getAllAclFiles(PATH);
+        Assertions.assertThat(files).isNotEmpty();
+    }
+
+    @Test
+    public void loadTest() {
+        plainPermissionManager.load();
+        final Map<String, DataVersion> map = plainPermissionManager.getDataVersionMap();
+        Assertions.assertThat(map).isNotEmpty();
+    }
+
+    @Test
+    public void updateAclConfigFileVersionTest() {
+        String aclFileName = "test_plain_acl";
+        Map<String, Object> updateAclConfigMap  = new HashMap<>();
+        List<Map<String, Object>> versionElement = new ArrayList<>();
+        Map<String, Object> accountsMap = new LinkedHashMap<>();
+        accountsMap.put(AclConstants.CONFIG_COUNTER, 1);
+        accountsMap.put(AclConstants.CONFIG_TIME_STAMP, System.currentTimeMillis());
+        versionElement.add(accountsMap);
+
+        updateAclConfigMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
+        final Map<String, Object> map = plainPermissionManager.updateAclConfigFileVersion(aclFileName, updateAclConfigMap);
+        final List<Map<String, Object>> version = (List<Map<String, Object>>) map.get("dataVersion");
+        Assertions.assertThat(map).isNotEmpty();
+        Assert.assertEquals(2L, version.get(0).get("counter"));
+    }
+
+    @Test
+    public void createAclAccessConfigMapTest() {
+        Map<String, Object> existedAccountMap =  new HashMap<>();
+        plainAccessConfig.setAccessKey("admin123");
+        plainAccessConfig.setSecretKey("12345678");
+        plainAccessConfig.setWhiteRemoteAddress("192.168.1.1");
+        plainAccessConfig.setAdmin(false);
+        plainAccessConfig.setDefaultGroupPerm(AclConstants.SUB_PUB);
+        plainAccessConfig.setTopicPerms(Arrays.asList(DEFAULT_TOPIC + "=" + AclConstants.PUB));
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
+
+        final Map<String, Object> map = plainPermissionManager.createAclAccessConfigMap(existedAccountMap, plainAccessConfig);
+        Assertions.assertThat(map).isNotEmpty();
+        Assert.assertEquals(AclConstants.SUB_PUB, map.get("defaultGroupPerm"));
+        final List groupPerms = (List) map.get("groupPerms");
+        Assert.assertEquals("groupA=SUB", groupPerms.get(0));
+        Assert.assertEquals("12345678", map.get("secretKey"));
+        Assert.assertEquals("admin123", map.get("accessKey"));
+        Assert.assertEquals("192.168.1.1", map.get("whiteRemoteAddress"));
+        final List topicPerms = (List) map.get("topicPerms");
+        Assert.assertEquals("topic-acl=PUB", topicPerms.get(0));
+        Assert.assertEquals(false, map.get("admin"));
+    }
+
+    @Test
+    public void deleteAccessConfigTest() throws InterruptedException {
+        // delete not exist accessConfig
+        final boolean flag1 = plainPermissionManager.deleteAccessConfig("test_delete");
+        assert flag1 == false;
+
+        plainAccessConfig.setAccessKey("test_delete");
+        plainAccessConfig.setSecretKey("12345678");
+        plainAccessConfig.setWhiteRemoteAddress("192.168.1.1");
+        plainAccessConfig.setAdmin(false);
+        plainAccessConfig.setDefaultGroupPerm(AclConstants.SUB_PUB);
+        plainAccessConfig.setTopicPerms(Arrays.asList(DEFAULT_TOPIC + "=" + AclConstants.PUB));
+        plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
+
+        //delete existed accessConfig
+        final boolean flag2 = plainPermissionManager.deleteAccessConfig("test_delete");
+        assert flag2 == true;
+
+    }
+
+    @Test
+    public void updateGlobalWhiteAddrsConfigTest() {
+        final boolean flag = plainPermissionManager.updateGlobalWhiteAddrsConfig(Lists.newArrayList("192.168.1.2"));
+        assert flag == true;
+        final AclConfig config = plainPermissionManager.getAllAclConfig();
+        Assert.assertEquals(true, config.getGlobalWhiteAddrs().contains("192.168.1.2"));
+    }
+
 }

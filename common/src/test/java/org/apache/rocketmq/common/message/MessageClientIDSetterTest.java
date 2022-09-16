@@ -22,8 +22,6 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
-
 public class MessageClientIDSetterTest {
 
     @Test
@@ -31,7 +29,7 @@ public class MessageClientIDSetterTest {
         long t = System.currentTimeMillis();
         String uniqID = MessageClientIDSetter.createUniqID();
         long t2 = MessageClientIDSetter.getNearlyTimeFromID(uniqID).getTime();
-        assertThat(t2 - t < 20);
+        assertThat(t2 - t < 20).isTrue();
     }
 
     @Test
@@ -42,7 +40,7 @@ public class MessageClientIDSetterTest {
         String idHex2 = uniqID2.substring(uniqID2.length() - 4);
         int s1 = Integer.parseInt(idHex, 16);
         int s2 = Integer.parseInt(idHex2, 16);
-        assertThat(s1 == s2 - 1);
+        assertThat(s1 == s2 - 1).isTrue();
     }
 
 

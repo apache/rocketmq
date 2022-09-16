@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
@@ -38,10 +39,6 @@ import java.util.Set;
 import static org.mockito.Mockito.mock;
 
 public class GetConsumerConfigSubCommandTest {
-
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
 
     private ServerResponseMocker brokerMocker;
 
@@ -63,21 +60,22 @@ public class GetConsumerConfigSubCommandTest {
     public void testExecute() throws SubCommandException {
         GetConsumerConfigSubCommand cmd = new GetConsumerConfigSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g group_test"};
+        String[] subargs = new String[] {"-g group_test", String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options),
+                new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 
     private ServerResponseMocker startNameServer() {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
         ClusterInfo clusterInfo = new ClusterInfo();
 
         HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("mockBrokerName");
         HashMap<Long, String> brokerAddress = new HashMap<>();
-        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
+        brokerAddress.put(1L, "127.0.0.1:" + brokerMocker.listenPort());
         brokerData.setBrokerAddrs(brokerAddress);
         brokerData.setCluster("mockCluster");
         brokerAddressTable.put("mockBrokerName", brokerData);
@@ -90,7 +88,7 @@ public class GetConsumerConfigSubCommandTest {
         clusterInfo.setClusterAddrTable(clusterAddressTable);
 
         // start name server
-        return ServerResponseMocker.startServer(NAME_SERVER_PORT, clusterInfo.encode());
+        return ServerResponseMocker.startServer(0, clusterInfo.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -100,6 +98,6 @@ public class GetConsumerConfigSubCommandTest {
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, consumerConnection.encode());
+        return ServerResponseMocker.startServer(0, consumerConnection.encode());
     }
 }

@@ -68,6 +68,10 @@ public class ConsumerGroupInfo {
         return subscriptionTable;
     }
 
+    public ClientChannelInfo findChannel(final Channel channel) {
+        return this.channelInfoTable.get(channel);
+    }
+
     public ConcurrentMap<Channel, ClientChannelInfo> getChannelInfoTable() {
         return channelInfoTable;
     }
@@ -94,25 +98,35 @@ public class ConsumerGroupInfo {
         return result;
     }
 
-    public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
+    public boolean unregisterChannel(final ClientChannelInfo clientChannelInfo) {
         ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel());
         if (old != null) {
             log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
+            return true;
         }
+        return false;
     }
 
-    public boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public ClientChannelInfo doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         final ClientChannelInfo info = this.channelInfoTable.remove(channel);
         if (info != null) {
             log.warn(
                 "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
                 info.toString(), groupName);
-            return true;
         }
 
-        return false;
+        return info;
     }
 
+    /**
+     * Update {@link #channelInfoTable} in {@link ConsumerGroupInfo}
+     *
+     * @param infoNew Channel info of new client.
+     * @param consumeType consume type of new client.
+     * @param messageModel message consuming model (CLUSTERING/BROADCASTING) of new client.
+     * @param consumeFromWhere indicate the position when the client consume message firstly.
+     * @return the result that if new connector is connected or not.
+     */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
@@ -132,9 +146,9 @@ public class ConsumerGroupInfo {
             infoOld = infoNew;
         } else {
             if (!infoOld.getClientId().equals(infoNew.getClientId())) {
-                log.error("[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
-                    this.groupName,
-                    infoOld.toString(),
+                log.error(
+                    "ConsumerGroupInfo: consumer channel exists in broker, but clientId is not the same one, "
+                        + "group={}, old clientChannelInfo={}, new clientChannelInfo={}", groupName, infoOld.toString(),
                     infoNew.toString());
                 this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             }
@@ -146,6 +160,12 @@ public class ConsumerGroupInfo {
         return updated;
     }
 
+    /**
+     * Update subscription.
+     *
+     * @param subList set of {@link SubscriptionData}
+     * @return the boolean indicates the subscription has changed or not.
+     */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
 

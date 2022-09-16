@@ -16,14 +16,16 @@
  */
 package org.apache.rocketmq.common.admin;
 
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumeStats extends RemotingSerializable {
-    private HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
+    private Map<MessageQueue, OffsetWrapper> offsetTable = new ConcurrentHashMap<MessageQueue, OffsetWrapper>();
     private double consumeTps = 0;
 
     public long computeTotalDiff() {
@@ -39,11 +41,11 @@ public class ConsumeStats extends RemotingSerializable {
         return diffTotal;
     }
 
-    public HashMap<MessageQueue, OffsetWrapper> getOffsetTable() {
+    public Map<MessageQueue, OffsetWrapper> getOffsetTable() {
         return offsetTable;
     }
 
-    public void setOffsetTable(HashMap<MessageQueue, OffsetWrapper> offsetTable) {
+    public void setOffsetTable(Map<MessageQueue, OffsetWrapper> offsetTable) {
         this.offsetTable = offsetTable;
     }
 

@@ -75,7 +75,7 @@ public class FastCodesHeaderTest {
     private void check(RemotingCommand command, List<Field> fields,
             Class<? extends CommandCustomHeader> classHeader) throws Exception {
         CommandCustomHeader o1 = command.decodeCommandCustomHeader(classHeader, false);
-        CommandCustomHeader o2 = classHeader.newInstance();
+        CommandCustomHeader o2 = classHeader.getDeclaredConstructor().newInstance();
         ((FastCodesHeader)o2).decode(command.getExtFields());
         for (Field f : fields) {
             Object value1 = f.get(o1);

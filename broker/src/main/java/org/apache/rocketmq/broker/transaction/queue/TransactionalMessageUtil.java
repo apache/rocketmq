@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 
 public class TransactionalMessageUtil {
     public static final String REMOVETAG = "d";
-    public static Charset charset = StandardCharsets.UTF_8;
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
 
     public static String buildOpTopic() {
         return TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC;

@@ -53,7 +53,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "query a message trace";
+        return "Query a message trace";
     }
 
     @Override
@@ -75,6 +75,9 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
             String traceTopic = TopicValidator.RMQ_SYS_TRACE_TOPIC;
             if (commandLine.hasOption('t')) {
                 traceTopic = commandLine.getOptionValue('t').trim();
+            }
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
             }
             this.queryTraceByMsgId(defaultMQAdminExt, traceTopic, msgId);
         } catch (Exception e) {
