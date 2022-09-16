@@ -77,3 +77,4 @@ public final class StoreUtil {
         return new FileQueueSnapshot();
     }
 }
+
