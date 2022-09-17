@@ -50,7 +50,7 @@ public class Permission {
             return false;
         }
         if ((neededPerm & ANY) > 0) {
-            return ((ownedPerm & PUB) > 0) || ((ownedPerm & SUB) > 0);
+            return (ownedPerm & PUB) > 0 || (ownedPerm & SUB) > 0;
         }
         return (neededPerm & ownedPerm) > 0;
     }

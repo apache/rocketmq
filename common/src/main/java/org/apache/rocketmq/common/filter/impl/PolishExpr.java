@@ -97,8 +97,8 @@ public class PolishExpr {
         for (int i = 0; i < size; i++) {
             int chValue = (int) expression.charAt(i);
 
-            if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
-                || (49 <= chValue && chValue <= 57) || 95 == chValue) {
+            if (97 <= chValue && chValue <= 122 || 65 <= chValue && chValue <= 90
+                || 49 <= chValue && chValue <= 57 || 95 == chValue) {
 
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
                     || Type.PARENTHESIS == preType) {

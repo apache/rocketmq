@@ -438,7 +438,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             final Object objLock = messageQueueLock.fetchLockObject(this.messageQueue);
             synchronized (objLock) {
                 if (MessageModel.BROADCASTING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())
-                    || (this.processQueue.isLocked() && !this.processQueue.isLockExpired())) {
+                    || this.processQueue.isLocked() && !this.processQueue.isLockExpired()) {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume; ) {
                         if (this.processQueue.isDropped()) {
