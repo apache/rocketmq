@@ -103,7 +103,6 @@ public class ProxyStartupTest {
         }
 
         Assert.assertTrue(dir.createNewFile());
-        System.out.printf("Copy %s to %s%n", path, dir.getAbsolutePath());
         byte[] buffer = new byte[4096];
         BufferedInputStream bis = new BufferedInputStream(src);
         int len = 0;
