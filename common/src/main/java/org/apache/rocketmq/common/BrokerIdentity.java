@@ -29,12 +29,24 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class BrokerIdentity {
     private static final String DEFAULT_CLUSTER_NAME = "DefaultCluster";
+
     protected static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
+    private static String localHostName;
+
+    static {
+        try {
+            localHostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOGGER.error("Failed to obtain the host name", e);
+        }
+    }
+
+    // load it after the localHostName is initialized
     public static final BrokerIdentity BROKER_CONTAINER_IDENTITY = new BrokerIdentity(true);
 
     @ImportantField
-    private String brokerName = localHostName();
+    private String brokerName = defaultBrokerName();
     @ImportantField
     private String brokerClusterName = DEFAULT_CLUSTER_NAME;
     @ImportantField
@@ -98,14 +110,8 @@ public class BrokerIdentity {
         isInBrokerContainer = inBrokerContainer;
     }
 
-    protected static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            LOGGER.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
+    private String defaultBrokerName() {
+        return localHostName == null ? "DEFAULT_BROKER" : localHostName;
     }
 
     public String getCanonicalName() {
