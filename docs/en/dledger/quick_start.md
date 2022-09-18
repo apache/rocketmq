@@ -3,7 +3,7 @@
 ### preface
 This document is mainly introduced for how to build and deploy auto failover RocketMQ cluster based on DLedger.
 
-For detailed new cluster deployment and old cluster upgrade document, please refer to [Deployment Guide](deploy_guide.md)。
+For detailed new cluster deployment and old cluster upgrade document, please refer to [Deployment Guide](deploy_guide.md).
 
 ### 1. Build from source code
 Build phase contains two parts, first, build DLedger, then build RocketMQ.
@@ -45,7 +45,7 @@ If everything goes well, the following content will appear:
 
 ![ClusterList](https://img.alicdn.com/5476e8b07b923/TB11Z.ZyCzqK1RjSZFLXXcn2XXa)
 
-（BID is 0 indicate Master，the others are Follower）
+（BID is 0 indicate Master, the others are Follower）
 
 After startup successful, producer can produce message, and then test failover scenario.
 
@@ -55,7 +55,7 @@ Stop cluster fastly, execute the following command:
 $ sh bin/dledger/fast-try.sh stop
 ```
 
-Quick deployment, default configuration is in directory conf/dledger，default storage path is /tmp/rmqstore.
+Quick deployment, default configuration is in directory conf/dledger, default storage path is /tmp/rmqstore.
 
 
 ### 3. Failover
