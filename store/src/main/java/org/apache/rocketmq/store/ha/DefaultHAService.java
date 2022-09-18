@@ -99,8 +99,8 @@ public class DefaultHAService implements HAService {
         boolean result = this.connectionCount.get() > 0;
         result =
             result
-                && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
-                .getMessageStoreConfig().getHaMaxGapNotInSync());
+                && masterPutWhere - this.push2SlaveMaxOffset.get() < this.defaultMessageStore
+                .getMessageStoreConfig().getHaMaxGapNotInSync();
         return result;
     }
 
