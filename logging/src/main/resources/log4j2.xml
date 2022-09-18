@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" monitorInterval="30" strict="true" schema="Log4J-V2.2.xsd">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+             <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS}:%4p %t (%F:%L) - %m%n" />
+        </Console>
+
+        <RollingFile name="RollingFile" fileName="../logs/logger-x.log"  filePattern="../logs/$${date:yyyy-MM}/xjj-%d{yyyy-MM-dd}-%i.log.gz">
+             <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS}:%4p %t (%F:%L) - %m%n" />
+            <Policies>
+                <OnStartupTriggeringPolicy />
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="80 MB" />
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="debug">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

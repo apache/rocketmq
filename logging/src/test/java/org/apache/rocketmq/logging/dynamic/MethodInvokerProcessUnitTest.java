@@ -1,10 +1,11 @@
 package org.apache.rocketmq.logging.dynamic;
 
-import com.alibaba.fastjson.JSONArray;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.StaticLoggerBinder;
+
+import com.alibaba.fastjson.JSONArray;
 
 public class MethodInvokerProcessUnitTest {
     Logger logger = LoggerFactory.getLogger(MethodInvokerProcessUnitTest.class);

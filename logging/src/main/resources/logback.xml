@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Insert the current time formatted as "yyyyMMdd'T'HHmmss" under
+         the key "bySecond" into the logger context. This value will be
+         available to all subsequent configuration elements. -->
+    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>testFile-${bySecond}.log</file>
+        <append>true</append>
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="DAYFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logFile.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logFile.%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.rocketmq.logging.dynamic.MethodInvokerProcessUnitTest" level="debug" />
+    
+    <root level="debug">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="DAYFILE"/>
+        <!-- <appender-ref ref="FILE"/> -->
+    </root>
+</configuration>

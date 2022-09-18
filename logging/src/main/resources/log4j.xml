@@ -1,0 +1,55 @@
+<?xml version="1.0"  encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration>
+
+    <!--若干个appender的定义-->
+    <!--org.apache.log4j.ConsoleAppender 输出到控制台-->
+    <appender name="myConsole" class="org.apache.log4j.ConsoleAppender">
+        <!--输出格式-->
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%-d{yyyy-MM-dd HH:mm:ss,SSS} [%c]-[%p] %m%n"/>
+        </layout>
+    </appender>
+
+    <!--org.apache.log4j.DailyRollingFileAppender 每天产生一个日志文件-->
+    <appender name="myFile" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="output.log"/><!--文件位置-->
+        <param name="Append" value="true"/><!--是否选择追加-->
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%-d{yyyy-MM-dd HH:mm:ss,SSS} [%c]-[%p] %m%n"/>
+        </layout>
+    </appender>
+
+    <!--org.apache.log4j.RollingFileAppender 滚动日志文件输出 文件大小到达一定尺寸时重新产生新的文件-->
+    <!--<appender name="myFile" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="/www/client/output.log" />
+        <param name="Append" value="true" />
+        <param name="MaxFileSize" value="500KB"/>
+        <param name="MaxBackupIndex" value="10" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%p (%c:%L)- %m%n" />
+        </layout>
+    </appender>-->
+
+    <category name="org.apache.rocketmq.logging">
+        <priority value="debug"/>
+        <appender-ref ref="myFile"/>
+    </category>
+
+
+    <!-- 根logger的设置-->
+    <root>
+        <!--优先级设置，假设设置为“info”，则无法输出debug级别的日志-->
+        <priority value="debug"/>
+        <!--<priority value="info"/>-->
+        <!--<priority value="warn"/>-->
+        <!--<priority value="error"/>-->
+        <!--<priority value="fatal"/>-->
+
+        <!--添加刚才设置的appender-->
+        <appender-ref ref="myConsole"/>
+        <appender-ref ref="myFile"/>
+    </root>
+</log4j:configuration>
