@@ -73,7 +73,7 @@ public abstract class AbstractProcessUnitImpl implements ProcessUnit {
             }
         } else {
             logFrameworkType = LogFrameworkType.UNKNOWN;
-            log.error("[LoggerLevel]Log框架无法识别:type={}", type);
+            log.error("[LoggerLevel] Log framework not recognized: type={}", type);
             return;
         }
         log.info("[LoggerLevel]loggerMap={}", loggerMap);
