@@ -287,7 +287,7 @@ public class DefaultMessageStore implements MessageStore {
                         StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
                 result = this.indexService.load(lastExitOK);
-                result &= this.recover(lastExitOK, brokerConfig.isRecoverConcurrently());
+                this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
 
@@ -1629,12 +1629,13 @@ public class DefaultMessageStore implements MessageStore {
         return file.exists();
     }
 
-    private boolean recover(final boolean lastExitOK, final boolean recoverConcurrently) {
+    private void recover(final boolean lastExitOK) {
+        boolean recoverConcurrently = this.brokerConfig.isRecoverConcurrently();
         LOGGER.info("message store recover mode: {}", recoverConcurrently ? "concurrent" : "normal");
 
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
-        boolean result = this.recoverConsumeQueue(recoverConcurrently);
+        this.recoverConsumeQueue();
         long maxPhyOffsetOfConsumeQueue = this.getMaxOffsetInConsumeQueue();
         long recoverConsumeQueueEnd = System.currentTimeMillis();
 
@@ -1654,8 +1655,6 @@ public class DefaultMessageStore implements MessageStore {
                 "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
             recoverConsumeOffsetEnd - recoverConsumeQueueStart, recoverConsumeQueueEnd - recoverConsumeQueueStart,
             recoverCommitLogEnd - recoverConsumeQueueEnd, recoverConsumeOffsetEnd - recoverCommitLogEnd);
-
-        return result;
     }
 
     @Override
@@ -1677,12 +1676,11 @@ public class DefaultMessageStore implements MessageStore {
         return transientStorePool;
     }
 
-    private boolean recoverConsumeQueue(final boolean recoverConcurrently) {
-        if (!recoverConcurrently) {
+    private void recoverConsumeQueue() {
+        if (!this.brokerConfig.isRecoverConcurrently()) {
             this.consumeQueueStore.recover();
-            return true;
         } else {
-            return this.consumeQueueStore.recoverConcurrently();
+            this.consumeQueueStore.recoverConcurrently();
         }
     }
 
