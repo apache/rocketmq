@@ -46,6 +46,5 @@
     <root level="debug">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="DAYFILE"/>
-        <!-- <appender-ref ref="FILE"/> -->
     </root>
 </configuration>
