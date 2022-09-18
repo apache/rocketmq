@@ -17,10 +17,13 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public abstract class RemotingSerializable {
-    private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    private final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     public static byte[] encode(final Object obj) {
         final String json = toJson(obj, false);
@@ -49,6 +52,17 @@ public abstract class RemotingSerializable {
             return json.getBytes(CHARSET_UTF8);
         }
         return null;
+    }
+
+    /**
+     * Allow call-site to apply specific features according to their requirements.
+     *
+     * @param features Features to apply
+     * @return serialized data.
+     */
+    public byte[] encode(SerializerFeature...features) {
+        final String json = JSON.toJSONString(this, features);
+        return json.getBytes(CHARSET_UTF8);
     }
 
     public String toJson() {

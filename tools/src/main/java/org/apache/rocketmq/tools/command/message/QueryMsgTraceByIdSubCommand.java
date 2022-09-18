@@ -58,6 +58,11 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
+        return "queryMsgTraceById";
+    }
+
+    @Override
+    public String commandAlias() {
         return "QueryMsgTraceById";
     }
 

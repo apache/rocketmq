@@ -55,12 +55,18 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
  */
 public class DLedgerCommitLog extends CommitLog {
+
+    static {
+        System.setProperty("dLedger.multiPath.Splitter", MessageStoreConfig.MULTI_PATH_SPLITTER);
+    }
+
     private final DLedgerServer dLedgerServer;
     private final DLedgerConfig dLedgerConfig;
     private final DLedgerMmapFileStore dLedgerFileStore;
@@ -88,11 +94,14 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
         dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
         dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
+        dLedgerConfig.setDataStorePath(defaultMessageStore.getMessageStoreConfig().getStorePathDLedgerCommitLog());
+        dLedgerConfig.setReadOnlyDataStoreDirs(defaultMessageStore.getMessageStoreConfig().getReadOnlyCommitLogStorePaths());
         dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
+        dLedgerConfig.setDiskSpaceRatioToCheckExpired(defaultMessageStore.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100f);
 
         id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
@@ -426,17 +435,31 @@ public class DLedgerCommitLog extends CommitLog {
         // Back to Results
         AppendMessageResult appendResult;
         AppendFuture<AppendEntryResponse> dledgerFuture;
-        EncodeResult encodeResult;
+        EncodeResult encodeResult = null;
 
-        encodeResult = this.messageSerializer.serialize(msg);
-        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+        boolean isMultiDispatch = multiDispatch.isMultiDispatchMsg(msg);
+        if (!isMultiDispatch) {
+            encodeResult = this.messageSerializer.serialize(msg);
+            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+            }
         }
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         long elapsedTimeInLock;
         long queueOffset;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
+            if (isMultiDispatch) {
+                boolean multiDispatchWrapResult = multiDispatch.wrapMultiDispatch(msg);
+                if (!multiDispatchWrapResult) {
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+                } else {
+                    encodeResult = this.messageSerializer.serialize(msg);
+                    if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+                    }
+                }
+            }
             queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
             encodeResult.setQueueOffsetKey(queueOffset, false);
             AppendEntryRequest request = new AppendEntryRequest();
@@ -463,6 +486,7 @@ public class DLedgerCommitLog extends CommitLog {
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     // The next update ConsumeQueue information
                     DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
+                    multiDispatch.updateMultiQueueOffset(msg);
                     break;
                 default:
                     break;
@@ -699,11 +723,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     private long getQueueOffsetByKey(String key, int tranType) {
-        Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
-        if (null == queueOffset) {
-            queueOffset = 0L;
-            DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
-        }
+        long queueOffset = DLedgerCommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
 
         // Transaction messages that require special handling
         switch (tranType) {
@@ -760,11 +780,11 @@ public class DLedgerCommitLog extends CommitLog {
 
     class MessageSerializer {
 
-        // The maximum length of the message
-        private final int maxMessageSize;
+        // The maximum length of the message body
+        private final int maxMessageBodySize;
 
         MessageSerializer(final int size) {
-            this.maxMessageSize = size;
+            this.maxMessageBodySize = size;
         }
 
         public EncodeResult serialize(final MessageExtBrokerInner msgInner) {
@@ -807,9 +827,9 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
             // Exceeds the maximum message
-            if (msgLen > this.maxMessageSize) {
-                DLedgerCommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageSize: " + this.maxMessageSize);
+            if (bodyLength > this.maxMessageBodySize) {
+                DLedgerCommitLog.log.warn("message body size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
+                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
                 return new EncodeResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, null, key);
             }
             // Initialization of storage space
@@ -866,6 +886,14 @@ public class DLedgerCommitLog extends CommitLog {
 
             int totalMsgLen = 0;
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
+
+            int totalLength = messagesByteBuff.limit();
+            if (totalLength > this.maxMessageBodySize) {
+                CommitLog.log.warn("message body size exceeded, msg body size: " + totalLength
+                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
+                throw new RuntimeException("message size exceeded");
+            }
+
             List<byte[]> batchBody = new LinkedList<>();
 
             int sysFlag = messageExtBatch.getSysFlag();
@@ -900,19 +928,7 @@ public class DLedgerCommitLog extends CommitLog {
                 final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
                 ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
-                // Exceeds the maximum message
-                if (msgLen > this.maxMessageSize) {
-                    CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " +
-                            bodyLen
-                            + ", maxMessageSize: " + this.maxMessageSize);
-                    throw new RuntimeException("message size exceeded");
-                }
-
                 totalMsgLen += msgLen;
-                // Determines whether there is sufficient free space
-                if (totalMsgLen > maxMessageSize) {
-                    throw new RuntimeException("message size exceeded");
-                }
 
                 // Initialization of storage space
                 this.resetByteBuffer(msgStoreItemMemory, msgLen);
