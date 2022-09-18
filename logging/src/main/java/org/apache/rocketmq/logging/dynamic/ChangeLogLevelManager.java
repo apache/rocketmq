@@ -4,20 +4,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 服务配置
+ * Service configuration
  */
 public final class ChangeLogLevelManager {
     
     /**
-     * 日志调整服务集合
+     * Collection of log tuning services
      */
     private static final Map<String, ChangeLogLevelProcessUnit> cllpuMap = new ConcurrentHashMap<String, ChangeLogLevelProcessUnit>();
     
     /**
-     * 根据serverId获取服务实例
+     * Get service instance based on serverId
      *
-     * @param serverId -- 服务serverId
-     * @return -- 日志调整服务对象
+     * @param serverId -- service serverId
+     * @return -- log adjustment service object
      */
     public static ChangeLogLevelProcessUnit getChageLogLevelProcess(String serverId) {
         ChangeLogLevelProcessUnit process = cllpuMap.get(serverId);

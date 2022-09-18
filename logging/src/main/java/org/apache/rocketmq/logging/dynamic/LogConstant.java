@@ -1,7 +1,7 @@
 package org.apache.rocketmq.logging.dynamic;
 
 /**
- * 日志常数
+ * log constant
  */
 public class LogConstant {
     public static final String LOG4J_LOGGER_FACTORY = "org.slf4j.impl.Log4jLoggerFactory";
@@ -11,10 +11,10 @@ public class LogConstant {
     public static final String ROOT_KEY = "root";
     public static final String LOGGER_NAME = "loggerName";
     public static final String LOGGER_LEVEL = "loggerLevel";
-    public static final String LOGGER_TYPE_UNKNOWN = "Logger的类型未知,无法处理!";
-    public static final String LOGGER_NOT_EXSIT = "需要修改日志级别的Logger不存在!";
-    public static final String PARAMETER_TYPE_ERROR = "参数类型错误,无法处理!";
-    public static final String LOGGER_LIST_IS_NULL = "loggerList为空,无法处理!";
+    public static final String LOGGER_TYPE_UNKNOWN = "The type of Logger is unknown and cannot be processed!";
+    public static final String LOGGER_NOT_EXSIT = "The Logger that needs to modify the log level does not exist!";
+    public static final String PARAMETER_TYPE_ERROR = "The parameter is of the wrong type and cannot be processed!";
+    public static final String LOGGER_LIST_IS_NULL = "loggerList is empty and cannot be processed!";
     
     public static final String LOG_FRAMEWORK = "logFramework";
     public static final String LOGGER_LIST = "loggerList";

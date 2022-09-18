@@ -23,8 +23,8 @@ public class ChangeLogLevelProcessUnitTest {
         logger.debug("now is debug");
         process.setLogLevel("INFO");//改成INFO
         
-        logger.debug("验证debug打印");
-        logger.info("如果上面没有打印，表示升级到INFO了");
+        logger.debug("Verify debug print");
+        logger.info("If there is no print above, it means that it has been upgraded to INFO");
         
         process.setLogLevel("DEBUG");
         logger.debug("end is debug");

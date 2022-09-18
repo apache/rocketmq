@@ -19,18 +19,18 @@ public class MethodInvokerProcessUnitTest {
         logger.debug("frame:{}", process.logFrameworkType);
         
         JSONArray data = new JSONArray();
-        LoggerBean bean = new LoggerBean("com.sekift.logger.MethodInvokerProcessUnitTest", "INFO");
+        LoggerBean bean = new LoggerBean("org.apache.rocketmq.logging.dynamic.MethodInvokerProcessUnitTest", "INFO");
         data.add(bean);
         
         logger.debug("now is debug");
         
         process.setLogLevel(data);
         
-        logger.debug("验证debug打印");
-        logger.info("如果上面没有打印，表示升级到INFO了");
+        logger.debug("Verify debug print");
+        logger.info("If there is no print above, it means that it has been upgraded to INFO");
         
         data.clear();
-        bean = new LoggerBean("com.sekift.logger.MethodInvokerProcessUnitTest", "DEBUG");
+        bean = new LoggerBean("org.apache.rocketmq.logging.dynamic.MethodInvokerProcessUnitTest", "DEBUG");
         data.add(bean);
         
         process.setLogLevel(data);

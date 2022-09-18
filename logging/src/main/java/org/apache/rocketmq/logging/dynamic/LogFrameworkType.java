@@ -1,23 +1,23 @@
 package org.apache.rocketmq.logging.dynamic;
 
 /**
- * 日志框架类型枚举
+ * log frame type enumeration
  */
 public enum LogFrameworkType {
     /**
-     * log4j框架
+     * log4j framework
      */
     LOG4J
     /**
-     * log4j2框架
+     * log4j2 framework
      */
     , LOG4J2
     /**
-     * logback框架
+     * logback framework
      */
     , LOGBACK
     /**
-     * 未知日志框架
+     * Unknown log frame
      */
     , UNKNOWN
 }

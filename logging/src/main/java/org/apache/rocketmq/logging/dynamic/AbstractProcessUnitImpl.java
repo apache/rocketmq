@@ -24,10 +24,10 @@ import static org.apache.rocketmq.logging.dynamic.LogConstant.LOG_FRAMEWORK;
 import static org.apache.rocketmq.logging.dynamic.LogConstant.ROOT_KEY;
 
 /**
- * 日志调整抽象类
- * 支持log4j、log4j2、logback
+ * Log adjustment abstract class
+ * Support log4j, log4j2, logback
  */
-public abstract class AbstractProcessUnitImpl implements IProcessUnit {
+public abstract class AbstractProcessUnitImpl implements ProcessUnit {
     public final LogFrameworkType logFrameworkType;
     protected final ConcurrentHashMap<String, Object> loggerMap = new ConcurrentHashMap<>();
     protected String defaultLevel = LogLevelConstant.INFO;
@@ -64,7 +64,7 @@ public abstract class AbstractProcessUnitImpl implements IProcessUnit {
             logFrameworkType = LogFrameworkType.LOG4J2;
             org.apache.logging.log4j.core.LoggerContext loggerContext = (org.apache.logging.log4j.core.LoggerContext) org.apache.logging.log4j.LogManager.getContext(false);
             Map<String, LoggerConfig> map = loggerContext.getConfiguration().getLoggers();
-            for (LoggerConfig loggerConfig : map.values()) {
+            for (org.apache.logging.log4j.core.config.LoggerConfig loggerConfig : map.values()) {
                 String key = loggerConfig.getName();
                 if (StringUtils.isBlank(key)) {
                     key = ROOT_KEY;

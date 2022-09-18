@@ -12,21 +12,21 @@ import static org.apache.rocketmq.logging.dynamic.LogConstant.LOGGER_TYPE_UNKNOW
 import static org.apache.rocketmq.logging.dynamic.LogConstant.PARAMETER_TYPE_ERROR;
 
 /**
- * 日志级别动态调整
+ * Dynamic adjustment of log level
  */
 public class ChangeLogLevelProcessUnit extends AbstractProcessUnitImpl {
     private final Logger log = LoggerFactory.getLogger(ChangeLogLevelProcessUnit.class);
     
     @Override
     public String setLogLevel(String logLevel) {
-        // 如果为NULL就是默认等级
+        // If NULL is the default level
         if (null == logLevel) {
             logLevel = defaultLevel;
         }
         
-        log.info("[LoggerLevel]设置所有Log级别");
+        log.info("[LoggerLevel] Set all Log levels");
         if (null == loggerMap || loggerMap.isEmpty()) {
-            log.warn("[LoggerLevel]当前工程中不存在任何Logger,无法调整Logger级别");
+            log.warn("[LoggerLevel] There is no Logger in the current project, and the Logger level cannot be adjusted");
             return "";
         }
         Set<Map.Entry<String, Object>> entries = loggerMap.entrySet();

@@ -6,24 +6,22 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MethodInvokerManager {
     
     /**
-     * 方法调用服务集合
+     * Method call service collection
      */
     private static final Map<String, MethodInvokerProcessUnit> methodMap = new ConcurrentHashMap<String, MethodInvokerProcessUnit>();
     
     /**
-     * 根据serverId获取服务实例
+     * Get service instance based on serverId
      *
-     * @param serverId -- 服务serverId
-     * @return -- 方法调用服务对象
+     * @param serverId -- server id
+     * @return -- method call service object
      */
     public static MethodInvokerProcessUnit getMethodInvokerProcess(String serverId) {
         MethodInvokerProcessUnit process = methodMap.get(serverId);
         if (null == process) {
             synchronized (methodMap) {
-                if (null == process) {
-                    process = new MethodInvokerProcessUnit();
-                    methodMap.put(serverId, process);
-                }
+                process = new MethodInvokerProcessUnit();
+                methodMap.put(serverId, process);
             }
         }
         return process;

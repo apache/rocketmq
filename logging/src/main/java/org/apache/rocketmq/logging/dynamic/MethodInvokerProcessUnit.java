@@ -15,7 +15,7 @@ import static org.apache.rocketmq.logging.dynamic.LogConstant.PARAMETER_TYPE_ERR
 
 
 /**
- * 方法调用处理单元
+ * method call processing unit
  */
 public class MethodInvokerProcessUnit extends AbstractProcessUnitImpl {
     private final Logger log = LoggerFactory.getLogger(MethodInvokerProcessUnit.class);

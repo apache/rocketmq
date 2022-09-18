@@ -4,19 +4,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 服务工厂
+ * service factory
  */
 public class ProcessUnitFactory {
     
     private static final Map<String, ProcessUnitFactory> pufMap = new ConcurrentHashMap<String, ProcessUnitFactory>();
     
     /**
-     * 服务serverId
+     * service serverId
      */
     private String serverId = null;
     
     /**
-     * 构造服务工厂
+     * Construct service factory
      *
      * @param serverId -- 服务serverId
      */
@@ -40,14 +40,14 @@ public class ProcessUnitFactory {
     }
     
     /**
-     * 日志级别动态调整
+     * Dynamic adjustment of log level
      */
     public AbstractProcessUnitImpl getChangeLogLevelProcess() {
         return ChangeLogLevelManager.getChageLogLevelProcess(serverId);
     }
     
     /**
-     * 方法调用处理单元
+     * method call processing unit
      */
     public AbstractProcessUnitImpl getMethodInvokerProcess() {
         return MethodInvokerManager.getMethodInvokerProcess(serverId);

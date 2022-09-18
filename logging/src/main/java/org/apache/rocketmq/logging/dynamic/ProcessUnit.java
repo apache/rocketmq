@@ -3,18 +3,18 @@ package org.apache.rocketmq.logging.dynamic;
 import com.alibaba.fastjson.JSONArray;
 
 /**
- * 日志处理接口
+ * log processing interface
  */
-public interface IProcessUnit {
+public interface ProcessUnit {
     /**
-     * 默认等级
+     * default level
      *
      * @param defaultLevel
      */
     void setDefaultLevel(String defaultLevel);
     
     /**
-     * 日志等级
+     * log level
      *
      * @param logLevel
      * @return
@@ -22,7 +22,7 @@ public interface IProcessUnit {
     String setLogLevel(String logLevel);
     
     /**
-     * 类日志Bean
+     * class log bean
      *
      * @param data
      * @return
