@@ -27,7 +27,15 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMessageQueueStrategy {
 
-    private final InternalLogger log = ClientLogger.getLog();
+    protected InternalLogger log;
+
+    AbstractAllocateMessageQueueStrategy() {
+        this.log = ClientLogger.getLog();
+    }
+
+    public AbstractAllocateMessageQueueStrategy(InternalLogger log) {
+        this.log = log;
+    }
 
     public boolean check(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {

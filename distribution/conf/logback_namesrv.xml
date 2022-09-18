@@ -16,7 +16,7 @@
   limitations under the License.
   -->
 
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/namesrv_default.log</file>
@@ -62,7 +62,7 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %t - %m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
@@ -85,6 +85,11 @@
     <logger name="RocketmqNamesrvConsole" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="RocketmqController" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqNamesrvAppender"/>
     </logger>
 
     <root>

@@ -1,0 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field commitLogOffset : private java.lang.Long null
+Field commitOrRollback : private java.lang.Integer null
+Field fromTransactionCheck : private java.lang.Boolean false
+Field msgId : private java.lang.String null
+Field producerGroup : private java.lang.String null
+Field tranStateTableOffset : private java.lang.Long null
+Field transactionId : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getCommitLogOffset() : public throws (java.lang.Long)
+Method getCommitOrRollback() : public throws (java.lang.Integer)
+Method getFromTransactionCheck() : public throws (java.lang.Boolean)
+Method getMsgId() : public throws (java.lang.String)
+Method getProducerGroup() : public throws (java.lang.String)
+Method getTranStateTableOffset() : public throws (java.lang.Long)
+Method getTransactionId() : public throws (java.lang.String)
+Method setCommitLogOffset(java.lang.Long) : public throws (void)
+Method setCommitOrRollback(java.lang.Integer) : public throws (void)
+Method setFromTransactionCheck(java.lang.Boolean) : public throws (void)
+Method setMsgId(java.lang.String) : public throws (void)
+Method setProducerGroup(java.lang.String) : public throws (void)
+Method setTranStateTableOffset(java.lang.Long) : public throws (void)
+Method setTransactionId(java.lang.String) : public throws (void)
+Method toString() : public throws (java.lang.String)

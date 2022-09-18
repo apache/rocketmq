@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -99,12 +100,12 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.traceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
         }
         this.traceExecutor = new ThreadPoolExecutor(//
-                10, //
-                20, //
-                1000 * 60, //
-                TimeUnit.MILLISECONDS, //
-                this.appenderQueue, //
-                new ThreadFactoryImpl("MQTraceSendThread_"));
+            10, //
+            20, //
+            1000 * 60, //
+            TimeUnit.MILLISECONDS, //
+            this.appenderQueue, //
+            new ThreadFactoryImpl("MQTraceSendThread_"));
         traceProducer = getAndCreateTraceProducer(rpcHook);
     }
 
@@ -165,7 +166,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setVipChannelEnabled(false);
             // The max size of message is 128K
-            traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
+            traceProducerInstance.setMaxMessageSize(maxMsgSize);
         }
         return traceProducerInstance;
     }
@@ -188,6 +189,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         // The maximum waiting time for refresh,avoid being written all the time, resulting in failure to return.
         long end = System.currentTimeMillis() + 500;
         while (System.currentTimeMillis() <= end) {
+            synchronized (taskQueueByTopic) {
+                for (TraceDataSegment taskInfo : taskQueueByTopic.values()) {
+                    taskInfo.sendAllData();
+                }
+            }
             synchronized (traceContextQueue) {
                 if (traceContextQueue.size() == 0 && appenderQueue.size() == 0) {
                     break;
@@ -252,7 +258,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                     while (System.currentTimeMillis() < endTime) {
                         try {
                             TraceContext traceContext = traceContextQueue.poll(
-                                    endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
+                                endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
                             );
 
                             if (traceContext != null && !traceContext.getTraceBeans().isEmpty()) {
@@ -324,7 +330,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             initFirstBeanAddTime();
             this.traceTransferBeanList.add(traceTransferBean);
             this.currentMsgSize += traceTransferBean.getTransData().length();
-            if (currentMsgSize >= traceProducer.getMaxMessageSize()) {
+            if (currentMsgSize >= traceProducer.getMaxMessageSize() - 10 * 1000) {
                 List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
                 AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
                 traceExecutor.submit(asyncDataSendTask);
@@ -389,7 +395,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          * @param traceTopic the topic which message trace data will send to
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data, String traceTopic) {
-            final Message message = new Message(traceTopic, data.getBytes());
+            final Message message = new Message(traceTopic, data.getBytes(StandardCharsets.UTF_8));
             // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
             try {

@@ -55,6 +55,9 @@ public class Configuration {
             return;
         }
         for (Object configObject : configObjects) {
+            if (configObject == null) {
+                continue;
+            }
             registerConfig(configObject);
         }
     }
@@ -234,6 +237,24 @@ public class Configuration {
         return null;
     }
 
+    public String getClientConfigsFormatString(List<String> clientKeys) {
+        try {
+            readWriteLock.readLock().lockInterruptibly();
+
+            try {
+
+                return getClientConfigsInternal(clientKeys);
+
+            } finally {
+                readWriteLock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("getAllConfigsFormatString lock error");
+        }
+
+        return null;
+    }
+
     public String getDataVersionJson() {
         return this.dataVersion.toJson();
     }
@@ -270,8 +291,28 @@ public class Configuration {
         }
 
         {
-            stringBuilder.append(MixAll.properties2String(this.allConfigs));
+            stringBuilder.append(MixAll.properties2String(this.allConfigs, true));
         }
+
+        return stringBuilder.toString();
+    }
+
+    private String getClientConfigsInternal(List<String> clientConigKeys) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Properties clientProperties = new Properties();
+
+        // reload from config object ?
+        for (Object configObject : this.configObjectList) {
+            Properties properties = MixAll.object2Properties(configObject);
+
+            for (String nameNow : clientConigKeys) {
+                if (properties.containsKey(nameNow)) {
+                    clientProperties.put(nameNow, properties.get(nameNow));
+                }
+            }
+
+        }
+        stringBuilder.append(MixAll.properties2String(clientProperties));
 
         return stringBuilder.toString();
     }

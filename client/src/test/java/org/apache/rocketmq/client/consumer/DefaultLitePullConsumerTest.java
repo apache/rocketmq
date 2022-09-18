@@ -17,6 +17,17 @@
 
 package org.apache.rocketmq.client.consumer;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -45,6 +56,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -53,18 +65,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -95,12 +98,15 @@ public class DefaultLitePullConsumerTest {
     private String brokerName = "BrokerA";
     private boolean flag = false;
 
+    @BeforeClass
+    public static void setEnv() {
+        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+    }
+
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        for (Map.Entry<String, MQClientInstance> entry : factoryTable.entrySet()) {
-            entry.getValue().shutdown();
-        }
+        factoryTable.forEach((s, instance) -> instance.shutdown());
         factoryTable.clear();
 
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
@@ -109,6 +115,10 @@ public class DefaultLitePullConsumerTest {
         field = RebalanceService.class.getDeclaredField("waitInterval");
         field.setAccessible(true);
         field.set(rebalanceService, 100);
+
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged");
+        field.setAccessible(true);
+        field.set(null, true);
     }
 
     @Test
@@ -124,6 +134,71 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.shutdown();
         }
     }
+
+    @Test
+    public void testSubscribeWithListener_PollMessageSuccess() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumerWithListener();
+        try {
+            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            messageQueueSet.add(createMessageQueue());
+            litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+            litePullConsumer.setPollTimeoutMillis(20 * 1000);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result.get(0).getTopic()).isEqualTo(topic);
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+
+            Set<MessageQueue> assignment= litePullConsumer.assignment();
+            assertThat(assignment.stream().findFirst().get()).isEqualTo(messageQueueSet.stream().findFirst().get());
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+  
+    @Test
+    public void testAssign_PollMessageWithTagSuccess() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumerWithTag();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result.get(0).getTopic()).isEqualTo(topic);
+            assertThat(result.get(0).getTags()).isEqualTo("tagA");
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testConsumerCommitSyncWithMQOffset() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+        litePullConsumer.setOffsetStore(store);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+
+        //replace with real offsetStore.
+        Field offsetStore = litePullConsumerImpl.getClass().getDeclaredField("offsetStore");
+        offsetStore.setAccessible(true);
+        offsetStore.set(litePullConsumerImpl, store);
+
+        MessageQueue messageQueue = createMessageQueue();
+        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        set.add(messageQueue);
+
+        //mock assign and reset offset
+        litePullConsumer.assign(set);
+        litePullConsumer.seek(messageQueue, 0);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0));
+        //commit offset 1
+        Map<MessageQueue, Long> commitOffset = new HashMap<>();
+        commitOffset.put(messageQueue, 1L);
+        litePullConsumer.commitSync(commitOffset, true);
+
+        assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(1);
+    }
+
 
     @Test
     public void testSubscribe_PollMessageSuccess() throws Exception {
@@ -193,6 +268,7 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         long offset = litePullConsumer.committed(messageQueue);
         litePullConsumer.seek(messageQueue, offset);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
@@ -211,6 +287,7 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToBegin(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -228,6 +305,7 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToEnd(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -245,6 +323,7 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         try {
             litePullConsumer.seek(messageQueue, -1);
             failBecauseExceptionWasNotThrown(MQClientException.class);
@@ -567,6 +646,7 @@ public class DefaultLitePullConsumerTest {
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0);
     }
 
+
     static class AsyncConsumer {
         public void executeAsync(final DefaultLitePullConsumer consumer) {
             new Thread(new Runnable() {
@@ -628,7 +708,7 @@ public class DefaultLitePullConsumerTest {
                     messageClientExt.setOffsetMsgId("234");
                     messageClientExt.setBornHost(new InetSocketAddress(8080));
                     messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(messageClientExt));
                     return pullResult;
                 }
             });
@@ -637,6 +717,65 @@ public class DefaultLitePullConsumerTest {
 
         doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
 
+        doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
+    }
+
+    private void initDefaultLitePullConsumerWithTag(DefaultLitePullConsumer litePullConsumer) throws Exception {
+
+        Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
+        field.setAccessible(true);
+        litePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        field.setAccessible(true);
+        field.set(litePullConsumerImpl, mQClientFactory);
+
+        PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
+        field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
+        field.setAccessible(true);
+        field.set(pullAPIWrapper, mQClientFactory);
+
+        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field.setAccessible(true);
+        field.set(mQClientFactory, mQClientAPIImpl);
+
+        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
+        field.setAccessible(true);
+        field.set(mQClientFactory, mQAdminImpl);
+
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
+        field.setAccessible(true);
+        rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
+        field = RebalanceImpl.class.getDeclaredField("mQClientFactory");
+        field.setAccessible(true);
+        field.set(rebalanceImpl, mQClientFactory);
+
+        offsetStore = spy(litePullConsumerImpl.getOffsetStore());
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
+        field.setAccessible(true);
+        field.set(litePullConsumerImpl, offsetStore);
+
+        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+                anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
+                .thenAnswer(new Answer<PullResult>() {
+                    @Override
+                    public PullResult answer(InvocationOnMock mock) throws Throwable {
+                        PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                        MessageClientExt messageClientExt = new MessageClientExt();
+                        messageClientExt.setTopic(topic);
+                        messageClientExt.setTags("tagA");
+                        messageClientExt.setQueueId(0);
+                        messageClientExt.setMsgId("123");
+                        messageClientExt.setBody(new byte[] {'a'});
+                        messageClientExt.setOffsetMsgId("234");
+                        messageClientExt.setBornHost(new InetSocketAddress(8080));
+                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(messageClientExt));
+                        return pullResult;
+                    }
+                });
+
+        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
 
@@ -650,12 +789,40 @@ public class DefaultLitePullConsumerTest {
         return litePullConsumer;
     }
 
+    private DefaultLitePullConsumer createSubscribeLitePullConsumerWithListener() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        litePullConsumer.subscribe(topic, "*", new MessageQueueListener() {
+            @Override
+            public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                assertThat(mqAll.stream().findFirst().get().getTopic()).isEqualTo(mqDivided.stream().findFirst().get().getTopic());
+                assertThat(mqAll.stream().findFirst().get().getBrokerName()).isEqualTo(mqDivided.stream().findFirst().get().getBrokerName());
+                assertThat(mqAll.stream().findFirst().get().getQueueId()).isEqualTo(mqDivided.stream().findFirst().get().getQueueId());
+            }
+        });
+        suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+        return litePullConsumer;
+    }
+
     private DefaultLitePullConsumer createStartLitePullConsumer() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
         suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
         litePullConsumer.start();
         initDefaultLitePullConsumer(litePullConsumer);
+        return litePullConsumer;
+    }
+
+          
+    private DefaultLitePullConsumer createStartLitePullConsumerWithTag() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
+        litePullConsumer.setSubExpressionForAssign(topic, "tagA");
+        litePullConsumer.start();
+        initDefaultLitePullConsumerWithTag(litePullConsumer);
         return litePullConsumer;
     }
 

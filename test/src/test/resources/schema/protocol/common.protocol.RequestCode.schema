@@ -1,0 +1,114 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field ADD_WRITE_PERM_OF_BROKER : public int 327
+Field ADJUST_CONSUMER_THREAD_POOL : public int 213
+Field CHECK_CLIENT_CONFIG : public int 46
+Field CHECK_TRANSACTION_STATE : public int 39
+Field CLEAN_EXPIRED_CONSUMEQUEUE : public int 306
+Field CLEAN_UNUSED_TOPIC : public int 316
+Field CLONE_GROUP_OFFSET : public int 314
+Field CONSUMER_SEND_MSG_BACK : public int 36
+Field CONSUME_MESSAGE_DIRECTLY : public int 309
+Field DELETE_ACL_CONFIG : public int 51
+Field DELETE_EXPIRED_COMMITLOG : public int 329
+Field DELETE_KV_CONFIG : public int 102
+Field DELETE_SUBSCRIPTIONGROUP : public int 207
+Field DELETE_TOPIC_IN_BROKER : public int 215
+Field DELETE_TOPIC_IN_NAMESRV : public int 216
+Field END_TRANSACTION : public int 37
+Field GET_ALL_CONSUMER_OFFSET : public int 43
+Field GET_ALL_DELAY_OFFSET : public int 45
+Field GET_ALL_PRODUCER_INFO : public int 328
+Field GET_ALL_SUBSCRIPTIONGROUP_CONFIG : public int 201
+Field GET_ALL_TOPIC_CONFIG : public int 21
+Field GET_ALL_TOPIC_LIST_FROM_NAMESERVER : public int 206
+Field GET_BROKER_CLUSTER_ACL_CONFIG : public int 54
+Field GET_BROKER_CLUSTER_ACL_INFO : public int 52
+Field GET_BROKER_CLUSTER_INFO : public int 106
+Field GET_BROKER_CONFIG : public int 26
+Field GET_BROKER_CONSUME_STATS : public int 317
+Field GET_BROKER_RUNTIME_INFO : public int 28
+Field GET_CONSUMER_CONNECTION_LIST : public int 203
+Field GET_CONSUMER_LIST_BY_GROUP : public int 38
+Field GET_CONSUMER_RUNNING_INFO : public int 307
+Field GET_CONSUMER_STATUS_FROM_CLIENT : public int 221
+Field GET_CONSUME_STATS : public int 208
+Field GET_EARLIEST_MSG_STORETIME : public int 32
+Field GET_HAS_UNIT_SUB_TOPIC_LIST : public int 312
+Field GET_HAS_UNIT_SUB_UNUNIT_TOPIC_LIST : public int 313
+Field GET_KVLIST_BY_NAMESPACE : public int 219
+Field GET_KV_CONFIG : public int 101
+Field GET_MAX_OFFSET : public int 30
+Field GET_MIN_OFFSET : public int 31
+Field GET_NAMESRV_CONFIG : public int 319
+Field GET_PRODUCER_CONNECTION_LIST : public int 204
+Field GET_ROUTEINFO_BY_TOPIC : public int 105
+Field GET_SYSTEM_TOPIC_LIST_FROM_BROKER : public int 305
+Field GET_SYSTEM_TOPIC_LIST_FROM_NS : public int 304
+Field GET_TOPICS_BY_CLUSTER : public int 224
+Field GET_TOPIC_CONFIG_LIST : public int 22
+Field GET_TOPIC_NAME_LIST : public int 23
+Field GET_TOPIC_STATS_INFO : public int 202
+Field GET_UNIT_TOPIC_LIST : public int 311
+Field HEART_BEAT : public int 34
+Field INVOKE_BROKER_TO_GET_CONSUMER_STATUS : public int 223
+Field INVOKE_BROKER_TO_RESET_OFFSET : public int 222
+Field LOCK_BATCH_MQ : public int 41
+Field NOTIFY_CONSUMER_IDS_CHANGED : public int 40
+Field PULL_MESSAGE : public int 11
+Field PUSH_REPLY_MESSAGE_TO_CLIENT : public int 326
+Field PUT_KV_CONFIG : public int 100
+Field QUERY_BROKER_OFFSET : public int 13
+Field QUERY_CONSUMER_OFFSET : public int 14
+Field QUERY_CONSUME_QUEUE : public int 321
+Field QUERY_CONSUME_TIME_SPAN : public int 303
+Field QUERY_CORRECTION_OFFSET : public int 308
+Field QUERY_DATA_VERSION : public int 322
+Field QUERY_MESSAGE : public int 12
+Field QUERY_TOPIC_CONSUME_BY_WHO : public int 300
+Field REGISTER_BROKER : public int 103
+Field REGISTER_FILTER_SERVER : public int 301
+Field REGISTER_MESSAGE_FILTER_CLASS : public int 302
+Field RESET_CONSUMER_CLIENT_OFFSET : public int 220
+Field RESET_CONSUMER_OFFSET_IN_BROKER : public int 212
+Field RESET_CONSUMER_OFFSET_IN_CONSUMER : public int 211
+Field RESUME_CHECK_HALF_MESSAGE : public int 323
+Field RESUME_CONSUMER : public int 210
+Field SEARCH_OFFSET_BY_TIMESTAMP : public int 29
+Field SEND_BATCH_MESSAGE : public int 320
+Field SEND_MESSAGE : public int 10
+Field SEND_MESSAGE_V2 : public int 310
+Field SEND_REPLY_MESSAGE : public int 324
+Field SEND_REPLY_MESSAGE_V2 : public int 325
+Field SUSPEND_CONSUMER : public int 209
+Field TRIGGER_DELETE_FILES : public int 27
+Field UNLOCK_BATCH_MQ : public int 42
+Field UNREGISTER_BROKER : public int 104
+Field UNREGISTER_CLIENT : public int 35
+Field UPDATE_AND_CREATE_ACL_CONFIG : public int 50
+Field UPDATE_AND_CREATE_SUBSCRIPTIONGROUP : public int 200
+Field UPDATE_AND_CREATE_TOPIC : public int 17
+Field UPDATE_BROKER_CONFIG : public int 25
+Field UPDATE_CONSUMER_OFFSET : public int 15
+Field UPDATE_GLOBAL_WHITE_ADDRS_CONFIG : public int 53
+Field UPDATE_NAMESRV_CONFIG : public int 318
+Field VIEW_BROKER_STATS_DATA : public int 315
+Field VIEW_MESSAGE_BY_ID : public int 33
+Field WHO_CONSUME_THE_MESSAGE : public int 214
+Field WIPE_WRITE_PERM_OF_BROKER : public int 205

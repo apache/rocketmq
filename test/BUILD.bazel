@@ -1,0 +1,134 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "test",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//broker",
+        "//client",
+        "//common",
+        "//remoting",
+        "//logging",   
+        "//srvutil",
+        "//tools", 
+        "//namesrv",
+        "//controller",
+        "//container",
+        "//proxy",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:log4j_log4j",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:ch_qos_logback_logback_core",
+        "@maven//:com_google_truth_truth",
+        "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:org_awaitility_awaitility",
+        "@maven//:org_reflections_reflections",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:commons_cli_commons_cli",
+        "@maven//:com_google_guava_guava",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":test",
+        "//broker",
+        "//client",
+        "//common",
+        "//remoting",
+        "//logging",
+        "//tools",        
+        "//:test_deps",
+        "//store",
+        "//namesrv",
+        "//controller",
+        "//container",
+        "//proxy",
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:io_netty_netty_all", 
+        "@maven//:com_google_truth_truth",   
+        "@maven//:log4j_log4j",   
+        "@maven//:io_grpc_grpc_testing",  
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api", 
+        "@maven//:org_apache_rocketmq_rocketmq_proto", 
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_google_guava_guava",
+    ],
+    resources = [
+        "src/test/resources/rmq-proxy-home/conf/broker.conf",
+        "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
+        "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
+        "src/test/resources/log4j.xml",
+        "src/test/resources/logback-test.xml",
+    ] + glob(["src/test/resources/schema/**/*.schema"]),
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*IT.java"]),
+    deps = [
+        ":tests",
+    ],
+    default_test_size = "medium",
+    exclude_tests = [
+        "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
+        "src/test/java/org/apache/rocketmq/test/statictopic/StaticTopicIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/topic/MulConsumerMulTopicIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/tag/MulTagSubIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/tag/TagMessageWith1ConsumerIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/tag/TagMessageWithMulConsumerIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/topic/OneConsumerMulTopicIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/order/OrderMsgDynamicRebalanceIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/order/OrderMsgIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/order/OrderMsgWithTagIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/cluster/DynamicAddAndCrashIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/cluster/DynamicAddConsumerIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/cluster/DynamicCrashConsumerIT",
+        "src/test/java/org/apache/rocketmq/test/client/consumer/tag/TagMessageWithSameGroupConsumerIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/async/AsyncSendWithMessageQueueIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/async/AsyncSendWithMessageQueueSelectorIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/async/AsyncSendWithOnlySendCallBackIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/exception/msg/MessageUserPropIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithMQIT",
+        "src/test/java/org/apache/rocketmq/test/tls/TLS_Mix_IT",
+        "src/test/java/org/apache/rocketmq/test/tls/TLS_Mix2_IT",
+        "src/test/java/org/apache/rocketmq/test/tls/TLS_IT",
+        "src/test/java/org/apache/rocketmq/test/offset/OffsetNotFoundIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByIdIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithSelectorIT",
+        "src/test/java/org/apache/rocketmq/test/smoke/NormalMessageSendAndRecvIT",
+        "src/test/java/org/apache/rocketmq/test/base/dledger/DLedgerProduceAndConsumeIT",
+    ],
+)
