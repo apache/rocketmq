@@ -1,7 +1,7 @@
 # Dledger cluster deployment
 ---
 ## preface
-This document introduces how to deploy auto failover RocketMQ-on-DLedger Group。
+This document introduces how to deploy auto failover RocketMQ-on-DLedger Group.
 
 RocketMQ-on-DLedger Group is a broker group with **same name**, needs at least 3 nodes, elect a Leader by Raft algorithm automatically, the others as Follower, replicating data between Leader and Follower for system high available.  
 RocketMQ-on-DLedger Group can failover automatically, and maintains consistent.  
@@ -12,7 +12,7 @@ RocketMQ-on-DLedger Group can scale up horizontal, that is, can deploy any Rocke
 #### 1.1 Write the configuration
 each RocketMQ-on-DLedger Group needs at least 3 machines.(assuming 3 in this document)  
 write 3 configuration files, advising refer to the directory of conf/dledger 's example configuration file.  
-key configuration items：  
+key configuration items:  
 
 | name | meaning | example |
 | --- | --- | --- |

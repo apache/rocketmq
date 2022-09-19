@@ -294,7 +294,7 @@ public class MQAdminStartup {
 
     private static SubCommand findSubCommand(final String name) {
         for (SubCommand cmd : SUB_COMMANDS) {
-            if (cmd.commandName().equalsIgnoreCase(name) || (cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name))) {
+            if (cmd.commandName().equalsIgnoreCase(name) || cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name)) {
                 return cmd;
             }
         }

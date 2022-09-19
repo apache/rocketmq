@@ -140,7 +140,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         long realConfirmOffset = Optional.ofNullable(confirmOffset).orElse(-1L);
 
         prev.setLastUpdateTimestamp(System.currentTimeMillis());
-        if (realEpoch > prev.getEpoch() || (realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset())) {
+        if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
             prev.setEpoch(realEpoch);
             prev.setMaxOffset(realMaxOffset);
             prev.setConfirmOffset(realConfirmOffset);

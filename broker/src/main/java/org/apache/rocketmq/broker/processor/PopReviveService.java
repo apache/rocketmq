@@ -173,7 +173,7 @@ public class PopReviveService extends ServiceThread {
 
     private boolean reachTail(PullResult pullResult, long offset) {
         return pullResult.getPullStatus() == PullStatus.NO_NEW_MSG
-            || (pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset());
+            || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset();
     }
 
     private MessageExt getBizMessage(String topic, long offset, int queueId, String brokerName) {

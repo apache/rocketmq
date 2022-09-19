@@ -141,7 +141,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))
+            if (!commandLine.hasOption("b") && !commandLine.hasOption('c')
                     || !commandLine.hasOption("qn")) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;

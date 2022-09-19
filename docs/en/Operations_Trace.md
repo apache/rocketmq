@@ -46,10 +46,10 @@ For scenarios with large amount of trace message data , one of the Broker nodes 
 RocketMQ's message trace feature supports two ways to store trace data:
 
 ### 3.1 System-level TraceTopic
-By default, message track data is stored in the system-level TraceTopic(names：**RMQ_SYS_TRACE_TOPIC**)。This Topic is automatically created when the Broker node is started(As described above, the switch variable **traceTopicEnable** needs to be set to **true** in the Broker  configuration file）。
+By default, message track data is stored in the system-level TraceTopic(names: **RMQ_SYS_TRACE_TOPIC**).This Topic is automatically created when the Broker node is started(As described above, the switch variable **traceTopicEnable** needs to be set to **true** in the Broker  configuration file）.
 
 ### 3.2 Custom TraceTopic 
-If the user is not prepared to store the message track data in the system-level default TraceTopic, you can also define and create a user-level Topic to save the track (that is, to create a regular Topic to save the message track data)。The following section introduces how the Client interface supports the user-defined TraceTopic.
+If the user is not prepared to store the message track data in the system-level default TraceTopic, you can also define and create a user-level Topic to save the track (that is, to create a regular Topic to save the message track data).The following section introduces how the Client interface supports the user-defined TraceTopic.
 
 ## 4 Client Practices that Support Message Trace
 In order to reduce as much as possible the transformation work of RocketMQ message trace feature used in the user service system, the author added a switch parameter (**enableMsgTrace**) to the original interface in the design to realize whether the message trace is opened or not.
@@ -95,7 +95,7 @@ In order to reduce as much as possible the transformation work of RocketMQ messa
 The initialization of `DefaultMQProducer` and `DefaultMQPushConsumer` instances can be changed to support the custom storage message trace Topic as follows when sending and subscribing messages above.
 
 ```
-        ##Where Topic_test11111 needs to be pre-created by the user to save the message trace；
+        ##Where Topic_test11111 needs to be pre-created by the user to save the message trace;
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true,"Topic_test11111");
         ......
 
