@@ -17,10 +17,16 @@
 
 package org.apache.rocketmq.proxy;
 
-import java.net.URL;
+import com.google.common.base.Preconditions;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -29,12 +35,14 @@ import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
-import org.assertj.core.util.Strings;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.junit.Assert.assertEquals;
@@ -45,18 +53,77 @@ import static org.mockito.Mockito.mockStatic;
 
 public class ProxyStartupTest {
 
-    public static String mockProxyHome = "/mock/rmq/proxy/home";
+    private File proxyHome;
 
     @Before
     public void before() throws Throwable {
-        URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
-        if (mockProxyHomeURL != null) {
-            mockProxyHome = mockProxyHomeURL.toURI().getPath();
+        proxyHome = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString().replace('-', '_'));
+        if (!proxyHome.exists()) {
+            proxyHome.mkdirs();
+        }
+        String folder = "rmq-proxy-home";
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(getClass().getClassLoader());
+        Resource[] resources = resolver.getResources(String.format("classpath:%s/**/*", folder));
+        for (Resource resource : resources) {
+            if (!resource.isReadable()) {
+                continue;
+            }
+            String description = resource.getDescription();
+            int start = description.indexOf('[');
+            int end = description.lastIndexOf(']');
+            String path = description.substring(start + 1, end);
+            try (InputStream inputStream = resource.getInputStream()) {
+                copyTo(path, inputStream, proxyHome, folder);
+            }
+        }
+        System.setProperty(RMQ_PROXY_HOME, proxyHome.getAbsolutePath());
+    }
+
+    private void copyTo(String path, InputStream src, File dstDir, String flag) throws IOException {
+        Preconditions.checkNotNull(flag);
+        String[] folders = path.split(File.separator);
+        boolean found = false;
+        File dir = dstDir;
+        for (int i = 0; i < folders.length; i++) {
+            if (!found && flag.equals(folders[i])) {
+                found = true;
+                continue;
+            }
+
+            if (found) {
+                if (i == folders.length - 1) {
+                    dir = new File(dir, folders[i]);
+                } else {
+                    dir = new File(dir, folders[i]);
+                    if (!dir.exists()) {
+                        Assert.assertTrue(dir.mkdir());
+                    }
+                }
+            }
         }
 
-        if (!Strings.isNullOrEmpty(mockProxyHome)) {
-            System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+        Assert.assertTrue(dir.createNewFile());
+        byte[] buffer = new byte[4096];
+        BufferedInputStream bis = new BufferedInputStream(src);
+        int len = 0;
+        try (BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(dir.toPath()))) {
+            while ((len = bis.read(buffer)) > 0) {
+                bos.write(buffer, 0, len);
+            }
         }
+    }
+
+    private void recursiveDelete(File file) {
+        if (file.isFile()) {
+            file.delete();
+            return;
+        }
+
+        File[] files = file.listFiles();
+        for (File f : files) {
+            recursiveDelete(f);
+        }
+        file.delete();
     }
 
     @After
@@ -65,6 +132,7 @@ public class ProxyStartupTest {
         System.clearProperty(MixAll.NAMESRV_ADDR_PROPERTY);
         System.clearProperty(Configuration.CONFIG_PATH_PROPERTY);
         System.clearProperty(ClientLogger.CLIENT_LOG_USESLF4J);
+        recursiveDelete(proxyHome);
     }
 
     @Test
