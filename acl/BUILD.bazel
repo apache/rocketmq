@@ -50,12 +50,12 @@ java_library(
         "//common",
         "//remoting",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_google_guava_guava",
         "@maven//:commons_codec_commons_codec",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_springframework_spring_core",
         "@maven//:org_yaml_snakeyaml",
-	"@maven//:com_google_guava_guava",
     ],
 )
 
@@ -63,8 +63,6 @@ GenTestRules(
     name = "GeneratedTestRules",
     # The following tests are not hermetic. Fix them later.
     exclude_tests = [
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainPermissionManagerTest",
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [

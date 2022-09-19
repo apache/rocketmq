@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import com.google.common.base.Joiner;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -41,7 +42,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class PlainPermissionManagerTest {
 
     PlainPermissionManager plainPermissionManager;
@@ -53,9 +53,9 @@ public class PlainPermissionManagerTest {
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
 
-    private static final String PATH = PlainPermissionManagerTest.class.getResource(File.separator).getFile();
-
     private static final String DEFAULT_TOPIC = "topic-acl";
+
+    private File confHome;
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
@@ -75,11 +75,10 @@ public class PlainPermissionManagerTest {
         ANYPlainAccessResource = clonePlainAccessResource(Permission.ANY);
         DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
-        File file = new File(PATH);
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
-
+        String folder = "conf";
+        confHome = AclTestHelper.copyResources(folder, true);
+        System.setProperty("rocketmq.home.dir", confHome.getAbsolutePath());
         plainPermissionManager = new PlainPermissionManager();
-
     }
 
     public PlainAccessResource clonePlainAccessResource(byte perm) {
@@ -203,7 +202,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
     }
 
-
     @SuppressWarnings("unchecked")
     @Test
     public void cleanAuthenticationInfoTest() throws IllegalAccessException {
@@ -214,7 +212,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.clearPermissionInfo();
         plainAccessResourceMap = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "aclPlainAccessResourceMap", true);
         Assert.assertTrue(plainAccessResourceMap.isEmpty());
-        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
     }
 
     @Test
@@ -222,47 +219,11 @@ public class PlainPermissionManagerTest {
 
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());
-        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
-    }
-
-    @Test
-    public void multiFilePathTest() {
-        File file = new File(PATH);
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
-
-        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
-
-        String samefilePath = file.getAbsolutePath()+"/conf/acl/.";
-        String samefilePath2 = "/" +file.getAbsolutePath()+"/conf/acl";
-        String samefilePath3 = file.getAbsolutePath()+"/conf/acl/../"+file.getAbsolutePath();
-        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///";
-        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./";
-
-        int size = plainPermissionManager.getDataVersionMap().size();
-
-        plainPermissionManager.load(samefilePath);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
-        plainPermissionManager.load(samefilePath2);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
-        plainPermissionManager.load(samefilePath3);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
-        plainPermissionManager.load(samefilePath4);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
-        plainPermissionManager.load(samefilePath5);
-        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
-
     }
 
     @Test
     public void testWatch() throws IOException, IllegalAccessException, InterruptedException {
-        File file = new File(PATH);
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
-
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "/conf/acl/plain_acl_test.yml";
+        String fileName =  Joiner.on(File.separator).join(new String[]{System.getProperty("rocketmq.home.dir"), "conf", "acl", "plain_acl_test.yml"});
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
@@ -311,28 +272,27 @@ public class PlainPermissionManagerTest {
 
         }
         transport.delete();
-        System.setProperty("rocketmq.home.dir", PATH);
     }
-    
+
     @Test
     public void updateAccessConfigTest() {
         Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(null));
-        
+
         plainAccessConfig.setAccessKey("admin_test");
         // Invalid parameter
         plainAccessConfig.setSecretKey("123456");
         plainAccessConfig.setAdmin(true);
         Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
-        
+
         plainAccessConfig.setSecretKey("12345678");
         // Invalid parameter
         plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA!SUB"));
         Assert.assertThrows(AclException.class, () -> plainPermissionManager.updateAccessConfig(plainAccessConfig));
-        
+
         // first update
         plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=SUB"));
         plainPermissionManager.updateAccessConfig(plainAccessConfig);
-        
+
         // second update
         plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=SUB"));
         plainPermissionManager.updateAccessConfig(plainAccessConfig);
@@ -342,7 +302,7 @@ public class PlainPermissionManagerTest {
     public void getAllAclFilesTest() {
         final List<String> notExistList = plainPermissionManager.getAllAclFiles("aa/bb");
         Assertions.assertThat(notExistList).isEmpty();
-        final List<String> files = plainPermissionManager.getAllAclFiles(PATH);
+        final List<String> files = plainPermissionManager.getAllAclFiles(confHome.getAbsolutePath());
         Assertions.assertThat(files).isNotEmpty();
     }
 
@@ -356,7 +316,7 @@ public class PlainPermissionManagerTest {
     @Test
     public void updateAclConfigFileVersionTest() {
         String aclFileName = "test_plain_acl";
-        Map<String, Object> updateAclConfigMap  = new HashMap<>();
+        Map<String, Object> updateAclConfigMap = new HashMap<>();
         List<Map<String, Object>> versionElement = new ArrayList<>();
         Map<String, Object> accountsMap = new LinkedHashMap<>();
         accountsMap.put(AclConstants.CONFIG_COUNTER, 1);
@@ -372,7 +332,7 @@ public class PlainPermissionManagerTest {
 
     @Test
     public void createAclAccessConfigMapTest() {
-        Map<String, Object> existedAccountMap =  new HashMap<>();
+        Map<String, Object> existedAccountMap = new HashMap<>();
         plainAccessConfig.setAccessKey("admin123");
         plainAccessConfig.setSecretKey("12345678");
         plainAccessConfig.setWhiteRemoteAddress("192.168.1.1");
