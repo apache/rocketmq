@@ -52,7 +52,7 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
             @Override
             public int write(ByteBuffer src) throws IOException {
                 out.writeBytes(src);
-                return out.capacity();
+                return src.limit() - src.position();
             }
 
             @Override
