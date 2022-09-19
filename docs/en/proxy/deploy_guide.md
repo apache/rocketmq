@@ -22,7 +22,7 @@ nohup sh mqproxy &
 
 The command will only launch the `Proxy` component itself. It assumes that `Namesrv` nodes are already running at the address specified `nameSrvAddr`, and broker nodes, registering themselves with `nameSrvAddr`, are running too.
 
-## `Local` mode
+## `Local` Mode
 
 * Set configuration field `nameSrvAddr`.
 * Set configuration field `proxyMode` to `local` (case insensitive).
