@@ -64,6 +64,9 @@ GenTestRules(
     # The following tests are not hermetic. Fix them later.
     exclude_tests = [
     ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
+    ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
         ":tests",
