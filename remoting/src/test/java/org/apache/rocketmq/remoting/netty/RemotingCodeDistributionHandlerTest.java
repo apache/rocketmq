@@ -30,14 +30,14 @@ public class RemotingCodeDistributionHandlerTest {
     private final RemotingCodeDistributionHandler distributionHandler = new RemotingCodeDistributionHandler();
 
     @Test
-    public void remotingCodeTest() throws Exception {
+    public void remotingCodeCountTest() throws Exception {
         Class<RemotingCodeDistributionHandler> clazz = RemotingCodeDistributionHandler.class;
         Method methodIn = clazz.getDeclaredMethod("countInbound", int.class);
         Method methodOut = clazz.getDeclaredMethod("countOutbound", int.class);
         methodIn.setAccessible(true);
         methodOut.setAccessible(true);
 
-        int count = 100 * 1000;
+        int count = 1000 * 1000;
         AtomicBoolean result = new AtomicBoolean(true);
         ExecutorService executorService = Executors.newFixedThreadPool(4, new ThreadFactory() {
             private final AtomicInteger threadIndex = new AtomicInteger(0);
@@ -60,7 +60,7 @@ public class RemotingCodeDistributionHandlerTest {
         }
 
         Assert.assertTrue(result.get());
-        Assert.assertEquals(distributionHandler.getInBoundSnapshotString(), "{1:" + count + "}");
-        Assert.assertEquals(distributionHandler.getOutBoundSnapshotString(), "{1:" + count + "}");
+        Assert.assertEquals("{1:" + count + "}", distributionHandler.getInBoundSnapshotString());
+        Assert.assertEquals("{1:" + count + "}", distributionHandler.getOutBoundSnapshotString());
     }
 }

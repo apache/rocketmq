@@ -24,14 +24,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 @ChannelHandler.Sharable
 public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
 
-    private final ConcurrentMap<Integer, AtomicLong> inboundDistribution;
-    private final ConcurrentMap<Integer, AtomicLong> outboundDistribution;
+    private final ConcurrentMap<Integer, LongAdder> inboundDistribution;
+    private final ConcurrentMap<Integer, LongAdder> outboundDistribution;
 
     public RemotingCodeDistributionHandler() {
         inboundDistribution = new ConcurrentHashMap<>();
@@ -39,13 +39,13 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     }
 
     private void countInbound(int requestCode) {
-        AtomicLong item = inboundDistribution.computeIfAbsent(requestCode, k -> new AtomicLong(0L));
-        item.incrementAndGet();
+        LongAdder item = inboundDistribution.computeIfAbsent(requestCode, k -> new LongAdder());
+        item.increment();
     }
 
     private void countOutbound(int responseCode) {
-        AtomicLong item = outboundDistribution.computeIfAbsent(responseCode, k -> new AtomicLong(0L));
-        item.incrementAndGet();
+        LongAdder item = outboundDistribution.computeIfAbsent(responseCode, k -> new LongAdder());
+        item.increment();
     }
 
     @Override
@@ -66,10 +66,10 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
         ctx.write(msg, promise);
     }
 
-    private Map<Integer, Long> getDistributionSnapshot(Map<Integer, AtomicLong> countMap) {
-        Map<Integer, Long> map = new HashMap<Integer, Long>(countMap.size());
-        for (Map.Entry<Integer, AtomicLong> entry : countMap.entrySet()) {
-            map.put(entry.getKey(), entry.getValue().getAndSet(0L));
+    private Map<Integer, Long> getDistributionSnapshot(Map<Integer, LongAdder> countMap) {
+        Map<Integer, Long> map = new HashMap<>(countMap.size());
+        for (Map.Entry<Integer, LongAdder> entry : countMap.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().sumThenReset());
         }
         return map;
     }
