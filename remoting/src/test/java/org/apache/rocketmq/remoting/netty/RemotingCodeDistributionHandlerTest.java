@@ -17,6 +17,8 @@
 package org.apache.rocketmq.remoting.netty;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -24,6 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.awaitility.Awaitility.await;
 
 public class RemotingCodeDistributionHandlerTest {
 
@@ -37,9 +41,11 @@ public class RemotingCodeDistributionHandlerTest {
         methodIn.setAccessible(true);
         methodOut.setAccessible(true);
 
+        int threadCount = 4;
         int count = 1000 * 1000;
+        CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicBoolean result = new AtomicBoolean(true);
-        ExecutorService executorService = Executors.newFixedThreadPool(4, new ThreadFactory() {
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
             private final AtomicInteger threadIndex = new AtomicInteger(0);
 
             @Override
@@ -48,19 +54,27 @@ public class RemotingCodeDistributionHandlerTest {
             }
         });
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    methodIn.invoke(distributionHandler, 1);
-                    methodOut.invoke(distributionHandler, 1);
+                    for (int j = 0; j < count; j++) {
+                        methodIn.invoke(distributionHandler, 1);
+                        methodOut.invoke(distributionHandler, 2);
+                    }
                 } catch (Exception e) {
                     result.set(false);
+                } finally {
+                    latch.countDown();
                 }
             });
         }
 
+        latch.await();
         Assert.assertTrue(result.get());
-        Assert.assertEquals("{1:" + count + "}", distributionHandler.getInBoundSnapshotString());
-        Assert.assertEquals("{1:" + count + "}", distributionHandler.getOutBoundSnapshotString());
+        await().pollInterval(Duration.ofMillis(100)).atMost(Duration.ofSeconds(10)).until(() -> {
+            boolean f1 = ("{1:" + count * threadCount + "}").equals(distributionHandler.getInBoundSnapshotString());
+            boolean f2 = ("{2:" + count * threadCount + "}").equals(distributionHandler.getOutBoundSnapshotString());
+            return f1 && f2;
+        });
     }
 }
