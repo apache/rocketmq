@@ -155,6 +155,9 @@ public class HookUtils {
             if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) {
                 MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
             }
+            if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS)) {
+                MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_MS);
+            }
             return false;
             //return this.defaultMessageStore.getMessageStoreConfig().isTimerInterceptDelayLevel();
         }
