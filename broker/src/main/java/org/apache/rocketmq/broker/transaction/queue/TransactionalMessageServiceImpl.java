@@ -191,8 +191,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
 
                         if (this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
-                            && (this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
-                            == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId())
+                            && this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
+                            == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId()
                             && BrokerRole.SLAVE.equals(this.transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getBrokerRole())
                         ) {
                             final MessageExtBrokerInner msgInner = this.transactionalMessageBridge.renewHalfMessageInner(msgExt);
