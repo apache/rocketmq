@@ -292,7 +292,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             try {
                 NettyRemotingServer.this.printRemotingCodeDistribution();
             } catch (Throwable e) {
-                log.error("netty server print remoting code distribution exception", e);
+                TRAFFIC_LOGGER.error("NettyRemotingServer print remoting code distribution exception", e);
             }
         }, 1, 1, TimeUnit.SECONDS);
     }
