@@ -30,8 +30,8 @@ import static org.apache.rocketmq.logging.dynamic.LogConstant.ROOT_KEY;
 public abstract class AbstractProcessUnitImpl implements ProcessUnit {
     public final LogFrameworkType logFrameworkType;
     protected final ConcurrentHashMap<String, Object> loggerMap = new ConcurrentHashMap<>();
-    protected String defaultLevel = LogLevelConstant.INFO;
     private final Logger log = LoggerFactory.getLogger(AbstractProcessUnitImpl.class);
+    protected String defaultLevel = LogLevelConstant.INFO;
     
     public AbstractProcessUnitImpl() {
         log.info("[LoggerLevel]start");
