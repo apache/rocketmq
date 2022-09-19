@@ -62,7 +62,6 @@ GenTestRules(
     name = "GeneratedTestRules",
     # The following tests are not hermetic. Fix them later.
     exclude_tests = [
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessControlFlowTest",
         "src/test/java/org/apache/rocketmq/acl/plain/PlainPermissionManagerTest",
         "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
     ],
