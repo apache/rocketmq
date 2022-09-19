@@ -111,7 +111,7 @@ public class BrokerIdentity {
     }
 
     private String defaultBrokerName() {
-        return localHostName == null ? "DEFAULT_BROKER" : localHostName;
+        return StringUtils.isEmpty(localHostName) ? "DEFAULT_BROKER" : localHostName;
     }
 
     public String getCanonicalName() {
