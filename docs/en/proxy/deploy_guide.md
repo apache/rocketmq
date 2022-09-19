@@ -33,4 +33,4 @@ Run the command below.
 nohup sh mqproxy &
 ```
 
-The previous command will launch the `Proxy`, with `Broker` in the same process. It asssumes `Namesrv` nodes are running at the address specified by `nameSrvAddr`.
+The previous command will launch the `Proxy`, with `Broker` in the same process. It assumes `Namesrv` nodes are running at the address specified by `nameSrvAddr`.
