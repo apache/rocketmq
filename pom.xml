@@ -275,7 +275,7 @@
                         <phase>validate</phase>
                         <configuration>
                             <configLocation>style/rmq_checkstyle.xml</configLocation>
-                            <encoding>UTF-8</encoding>
+                            <inputEncoding>UTF-8</inputEncoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <includeTestSourceDirectory>false</includeTestSourceDirectory>
