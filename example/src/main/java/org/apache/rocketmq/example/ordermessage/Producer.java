@@ -52,7 +52,6 @@ public class Producer {
 
                 System.out.printf("%s%n", sendResult);
             }
-
             producer.shutdown();
         } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException | UnsupportedEncodingException e) {
             e.printStackTrace();
