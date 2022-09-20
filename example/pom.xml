@@ -19,7 +19,7 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>4.9.4-SNAPSHOT</version>
+        <version>4.9.4</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -55,12 +55,10 @@
         <dependency>
             <groupId>io.jaegertracing</groupId>
             <artifactId>jaeger-core</artifactId>
-            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>io.jaegertracing</groupId>
             <artifactId>jaeger-client</artifactId>
-            <version>1.6.0</version>
         </dependency>
     </dependencies>
 </project>

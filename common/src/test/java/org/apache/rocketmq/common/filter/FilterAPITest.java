@@ -57,7 +57,7 @@ public class FilterAPITest {
             assertThat(ExpressionType.isTagType(subscriptionData.getExpressionType())).isTrue();
 
             assertThat(subscriptionData.getTagsSet()).isNotNull();
-            assertThat(subscriptionData.getTagsSet()).containsExactly("A", "B");
+            assertThat(subscriptionData.getTagsSet()).containsExactlyInAnyOrder("A", "B");
         } catch (Exception e) {
             e.printStackTrace();
             assertThat(Boolean.FALSE).isTrue();

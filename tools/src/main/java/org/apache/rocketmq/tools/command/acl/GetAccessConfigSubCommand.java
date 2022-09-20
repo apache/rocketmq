@@ -38,6 +38,10 @@ import java.util.Set;
 
 public class GetAccessConfigSubCommand implements SubCommand {
     @Override public String commandName() {
+        return "getAclConfig";
+    }
+
+    @Override public String commandAlias() {
         return "getAccessConfigSubCommand";
     }
 

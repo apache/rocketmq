@@ -34,8 +34,8 @@ public class HAConnection {
     private final HAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddr;
-    private WriteSocketService writeSocketService;
-    private ReadSocketService readSocketService;
+    private final WriteSocketService writeSocketService;
+    private final ReadSocketService readSocketService;
 
     private volatile long slaveRequestOffset = -1;
     private volatile long slaveAckOffset = -1;
@@ -81,6 +81,22 @@ public class HAConnection {
 
     public SocketChannel getSocketChannel() {
         return socketChannel;
+    }
+
+    private void stopChannelAndSelector(SocketChannel channel, Selector selector, String serviceName) {
+        SelectionKey sk = channel.keyFor(selector);
+        if (sk != null) {
+            sk.cancel();
+        }
+
+        try {
+            selector.close();
+            channel.close();
+        } catch (IOException e) {
+            log.error("", e);
+        }
+
+        log.info(serviceName + " service end");
     }
 
     class ReadSocketService extends ServiceThread {
@@ -130,19 +146,7 @@ public class HAConnection {
 
             HAConnection.this.haService.getConnectionCount().decrementAndGet();
 
-            SelectionKey sk = this.socketChannel.keyFor(this.selector);
-            if (sk != null) {
-                sk.cancel();
-            }
-
-            try {
-                this.selector.close();
-                this.socketChannel.close();
-            } catch (IOException e) {
-                HAConnection.log.error("", e);
-            }
-
-            HAConnection.log.info(this.getServiceName() + " service end");
+            HAConnection.this.stopChannelAndSelector(this.socketChannel, this.selector, this.getServiceName());
         }
 
         @Override
@@ -323,19 +327,7 @@ public class HAConnection {
 
             haService.removeConnection(HAConnection.this);
 
-            SelectionKey sk = this.socketChannel.keyFor(this.selector);
-            if (sk != null) {
-                sk.cancel();
-            }
-
-            try {
-                this.selector.close();
-                this.socketChannel.close();
-            } catch (IOException e) {
-                HAConnection.log.error("", e);
-            }
-
-            HAConnection.log.info(this.getServiceName() + " service end");
+            HAConnection.this.stopChannelAndSelector(this.socketChannel, this.selector, this.getServiceName());
         }
 
         private boolean transferData() throws Exception {

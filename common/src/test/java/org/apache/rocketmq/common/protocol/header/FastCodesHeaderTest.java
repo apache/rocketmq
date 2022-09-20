@@ -14,24 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.processor;
+package org.apache.rocketmq.common.protocol.header;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class AbstractSendMessageProcessorTest {
+public class FastCodesHeaderTest {
+
     @Test
-    public void testDecodeSendMessageHeaderV2() throws Exception {
-        Field[] declaredFields = SendMessageRequestHeaderV2.class.getDeclaredFields();
+    public void testFastDecode() throws Exception {
+        testFastDecode(SendMessageRequestHeaderV2.class);
+        testFastDecode(SendMessageResponseHeader.class);
+        testFastDecode(PullMessageRequestHeader.class);
+        testFastDecode(PullMessageResponseHeader.class);
+    }
+
+    private void testFastDecode(Class<? extends CommandCustomHeader> classHeader) throws Exception {
+        Field[] declaredFields = classHeader.getDeclaredFields();
         List<Field> declaredFieldsList = new ArrayList<>();
         for (Field f : declaredFields) {
             if (f.getName().startsWith("$")) {
@@ -43,7 +50,7 @@ public class AbstractSendMessageProcessorTest {
         RemotingCommand command = RemotingCommand.createRequestCommand(0, null);
         HashMap<String, String> m = buildExtFields(declaredFieldsList);
         command.setExtFields(m);
-        check(command, declaredFieldsList);
+        check(command, declaredFieldsList, classHeader);
     }
 
     private HashMap<String, String> buildExtFields(List<Field> fields) {
@@ -65,9 +72,11 @@ public class AbstractSendMessageProcessorTest {
         return extFields;
     }
 
-    private void check(RemotingCommand command, List<Field> fields) throws Exception {
-        SendMessageRequestHeaderV2 o1 = (SendMessageRequestHeaderV2) command.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-        SendMessageRequestHeaderV2 o2 = AbstractSendMessageProcessor.decodeSendMessageHeaderV2(command);
+    private void check(RemotingCommand command, List<Field> fields,
+            Class<? extends CommandCustomHeader> classHeader) throws Exception {
+        CommandCustomHeader o1 = command.decodeCommandCustomHeader(classHeader, false);
+        CommandCustomHeader o2 = classHeader.getDeclaredConstructor().newInstance();
+        ((FastCodesHeader)o2).decode(command.getExtFields());
         for (Field f : fields) {
             Object value1 = f.get(o1);
             Object value2 = f.get(o2);

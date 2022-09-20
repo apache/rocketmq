@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.9.4-SNAPSHOT</version>
+        <version>4.9.4</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -50,14 +50,10 @@
         <dependency>
             <groupId>io.opentracing</groupId>
             <artifactId>opentracing-api</artifactId>
-            <version>0.33.0</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.opentracing</groupId>
             <artifactId>opentracing-mock</artifactId>
-            <version>0.33.0</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

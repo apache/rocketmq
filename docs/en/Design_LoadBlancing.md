@@ -1,5 +1,5 @@
 ## Load Balancing
-Load balancing in RocketMQ is accomplished on Client side. Specifically, it can be divided into load balancing at Producer side when sending messages and load balancing at Constumer side when subscribing messages.
+Load balancing in RocketMQ is accomplished on Client side. Specifically, it can be divided into load balancing at Producer side when sending messages and load balancing at Consumer side when subscribing messages.
 
 ### Producer Load Balancing
 When the Producer sends a message, it will first find the specified TopicPublishInfo according to Topic. After getting the routing information of TopicPublishInfo, the RocketMQ client will select a queue (MessageQueue) from the messageQueue List in TopicPublishInfo  to send the message by default.Specific fault-tolerant strategies are defined in the MQFaultStrategy class.

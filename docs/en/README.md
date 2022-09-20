@@ -1,7 +1,7 @@
 ﻿Apache RocketMQ Developer Guide
 --------
 
-##### This guide helps develpers understand and use Apache RocketMQ quickly.
+##### This guide helps developers to understand and use Apache RocketMQ quickly.
 
 ### 1. Concepts & Features
 

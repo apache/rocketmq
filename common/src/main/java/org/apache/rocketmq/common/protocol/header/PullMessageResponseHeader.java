@@ -20,11 +20,16 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import java.util.HashMap;
+
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
-public class PullMessageResponseHeader implements CommandCustomHeader {
+import io.netty.buffer.ByteBuf;
+
+public class PullMessageResponseHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private Long suggestWhichBrokerId;
     @CFNotNull
@@ -36,6 +41,37 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "suggestWhichBrokerId", suggestWhichBrokerId);
+        writeIfNotNull(out, "nextBeginOffset", nextBeginOffset);
+        writeIfNotNull(out, "minOffset", minOffset);
+        writeIfNotNull(out, "maxOffset", maxOffset);
+    }
+
+    @Override
+    public void decode(HashMap<String, String> fields) throws RemotingCommandException {
+        String str = getAndCheckNotNull(fields, "suggestWhichBrokerId");
+        if (str != null) {
+            this.suggestWhichBrokerId = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "nextBeginOffset");
+        if (str != null) {
+            this.nextBeginOffset = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "minOffset");
+        if (str != null) {
+            this.minOffset = Long.parseLong(str);
+        }
+
+        str = getAndCheckNotNull(fields, "maxOffset");
+        if (str != null) {
+            this.maxOffset = Long.parseLong(str);
+        }
     }
 
     public Long getNextBeginOffset() {

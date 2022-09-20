@@ -67,7 +67,9 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -109,9 +111,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
-    private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
     private ExecutorService asyncSenderExecutor;
+
+    // compression related
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+    private final Compressor compressor = CompressorFactory.getCompressor(compressType);
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
@@ -230,10 +236,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private void checkConfig() throws MQClientException {
         Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
 
-        if (null == this.defaultMQProducer.getProducerGroup()) {
-            throw new MQClientException("producerGroup is null", null);
-        }
-
         if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
             throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP + ", please specify another one.",
                 null);
@@ -267,12 +269,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     @Override
     public Set<String> getPublishTopicList() {
-        Set<String> topicList = new HashSet<String>();
-        for (String key : this.topicPublishInfoTable.keySet()) {
-            topicList.add(key);
-        }
-
-        return topicList;
+        return new HashSet<String>(this.topicPublishInfoTable.keySet());
     }
 
     @Override
@@ -399,7 +396,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (info != null && topic != null) {
             TopicPublishInfo prev = this.topicPublishInfoTable.put(topic, info);
             if (prev != null) {
-                log.info("updateTopicPublishInfo prev is not null, " + prev.toString());
+                log.info("updateTopicPublishInfo prev is not null, " + prev);
             }
         }
     }
@@ -483,14 +480,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * @deprecated
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
-     * provided in next version
-     *
      * @param msg
      * @param sendCallback
      * @param timeout      the <code>sendCallback</code> will be invoked at most time
      * @throws RejectedExecutionException
+     * @deprecated It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
      */
     @Deprecated
     public void send(final Message msg, final SendCallback sendCallback, final long timeout)
@@ -530,7 +525,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void validateNameServerSetting() throws MQClientException {
-        List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
+        List<String> nsList = this.getMqClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
             throw new MQClientException(
                 "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
@@ -630,9 +625,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
-
-                        log.warn("sendKernelImpl exception", e);
-                        log.warn(msg.toString());
                         throw e;
                     }
                 } else {
@@ -727,6 +719,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 boolean msgBodyCompressed = false;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
+                    sysFlag |= compressType.getCompressionFlag();
                     msgBodyCompressed = true;
                 }
 
@@ -889,20 +882,25 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    public MQClientInstance getMqClientFactory() {
+        return mQClientFactory;
+    }
+
+    @Deprecated
     public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
     }
 
     private boolean tryToCompressMessage(final Message msg) {
         if (msg instanceof MessageBatch) {
-            //batch dose not support compressing right now
+            //batch does not support compressing right now
             return false;
         }
         byte[] body = msg.getBody();
         if (body != null) {
             if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = UtilAll.compress(body, zipCompressLevel);
+                    byte[] data = compressor.compress(body, compressLevel);
                     if (data != null) {
                         msg.setBody(data);
                         return true;
@@ -1034,10 +1032,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * @deprecated
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
-     * provided in next version
-     *
      * @param msg
      * @param mq
      * @param sendCallback
@@ -1045,6 +1039,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * @throws MQClientException
      * @throws RemotingException
      * @throws InterruptedException
+     * @deprecated It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
      */
     @Deprecated
     public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout)
@@ -1367,7 +1363,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
     }
 
-    public Message request(Message msg,
+    public Message request(final Message msg,
         long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
@@ -1382,6 +1378,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
+                    requestResponseFuture.putResponseMessage(msg);
                 }
 
                 @Override
@@ -1412,6 +1409,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onSuccess(SendResult sendResult) {
                 requestResponseFuture.setSendRequestOk(true);
+                requestResponseFuture.executeRequestCallback();
             }
 
             @Override
@@ -1564,16 +1562,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private void prepareSendRequest(final Message msg, long timeout) {
         String correlationId = CorrelationIdUtil.createCorrelationId();
-        String requestClientId = this.getmQClientFactory().getClientId();
+        String requestClientId = this.getMqClientFactory().getClientId();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, requestClientId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TTL, String.valueOf(timeout));
 
-        boolean hasRouteData = this.getmQClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
+        boolean hasRouteData = this.getMqClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
         if (!hasRouteData) {
             long beginTimestamp = System.currentTimeMillis();
             this.tryToFindTopicPublishInfo(msg.getTopic());
-            this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
+            this.getMqClientFactory().sendHeartbeatToAllBrokerWithLock();
             long cost = System.currentTimeMillis() - beginTimestamp;
             if (cost > 500) {
                 log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
@@ -1585,12 +1583,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return topicPublishInfoTable;
     }
 
-    public int getZipCompressLevel() {
-        return zipCompressLevel;
+    public int getCompressLevel() {
+        return compressLevel;
     }
 
-    public void setZipCompressLevel(int zipCompressLevel) {
-        this.zipCompressLevel = zipCompressLevel;
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
     }
 
     public ServiceState getServiceState() {

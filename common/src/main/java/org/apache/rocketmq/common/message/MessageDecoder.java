@@ -23,17 +23,20 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
 //    public final static int MSG_ID_LENGTH = 8 + 8;
 
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
     public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
@@ -82,20 +85,17 @@ public class MessageDecoder {
     }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
-        SocketAddress address;
-        long offset;
-        int ipLength = msgId.length() == 32 ? 4 * 2 : 16 * 2;
+        byte[] bytes = UtilAll.string2bytes(msgId);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
-        byte[] ip = UtilAll.string2bytes(msgId.substring(0, ipLength));
-        byte[] port = UtilAll.string2bytes(msgId.substring(ipLength, ipLength + 8));
-        ByteBuffer bb = ByteBuffer.wrap(port);
-        int portInt = bb.getInt(0);
-        address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
+        // address(ip+port)
+        byte[] ip = new byte[msgId.length() == 32 ? 4 : 16];
+        byteBuffer.get(ip);
+        int port = byteBuffer.getInt();
+        SocketAddress address = new InetSocketAddress(InetAddress.getByAddress(ip), port);
 
         // offset
-        byte[] data = UtilAll.string2bytes(msgId.substring(ipLength + 8, ipLength + 8 + 16));
-        bb = ByteBuffer.wrap(data);
-        offset = bb.getLong(0);
+        long offset = byteBuffer.getLong();
 
         return new MessageId(address, offset);
     }
@@ -165,7 +165,8 @@ public class MessageDecoder {
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-            newBody = UtilAll.compress(body, 5);
+            Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+            newBody = compressor.compress(body, 5);
         }
         int bodyLength = newBody.length;
         int storeSize = messageExt.getStoreSize();
@@ -349,7 +350,8 @@ public class MessageDecoder {
 
                     // uncompress body
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-                        body = UtilAll.uncompress(body);
+                        Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+                        body = compressor.decompress(body);
                     }
 
                     msgExt.setBody(body);
@@ -426,22 +428,20 @@ public class MessageDecoder {
             len += 2; // separator
         }
         StringBuilder sb = new StringBuilder(len);
-        if (properties != null) {
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                final String name = entry.getKey();
-                final String value = entry.getValue();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
 
-                if (value == null) {
-                    continue;
-                }
-                sb.append(name);
-                sb.append(NAME_VALUE_SEPARATOR);
-                sb.append(value);
-                sb.append(PROPERTY_SEPARATOR);
+            if (value == null) {
+                continue;
             }
-            if (sb.length() > 0) {
-                sb.deleteCharAt(sb.length() - 1);
-            }
+            sb.append(name);
+            sb.append(NAME_VALUE_SEPARATOR);
+            sb.append(value);
+            sb.append(PROPERTY_SEPARATOR);
+        }
+        if (sb.length() > 0) {
+            sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
     }

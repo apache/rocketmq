@@ -73,6 +73,33 @@ public class LmqConsumerOffsetManagerTest {
         assertThat(offset1).isEqualTo(-1L);
     }
 
+    @Test
+    public void testOffsetManage1() {
+        LmqConsumerOffsetManager lmqConsumerOffsetManager = new LmqConsumerOffsetManager(brokerController);
+
+        String lmqTopicName = "%LMQ%1111";
+
+        String lmqGroupName = "%LMQ%GID_test";
+
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", lmqGroupName, lmqTopicName, 0, 10L);
+
+        lmqTopicName = "%LMQ%1222";
+
+        lmqGroupName = "%LMQ%GID_test222";
+
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", lmqGroupName, lmqTopicName, 0, 10L);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1","GID_test1", "MqttTest",0, 10L);
+
+        String json = lmqConsumerOffsetManager.encode(true);
+
+        LmqConsumerOffsetManager lmqConsumerOffsetManager1 = new LmqConsumerOffsetManager(brokerController);
+
+        lmqConsumerOffsetManager1.decode(json);
+
+        assertThat(lmqConsumerOffsetManager1.getOffsetTable().size()).isEqualTo(1);
+        assertThat(lmqConsumerOffsetManager1.getLmqOffsetTable().size()).isEqualTo(2);
+    }
+
     @After
     public void destroy() {
         UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));

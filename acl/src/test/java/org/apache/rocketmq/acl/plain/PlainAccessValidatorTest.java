@@ -16,17 +16,6 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -55,12 +44,24 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 public class PlainAccessValidatorTest {
 
     private PlainAccessValidator plainAccessValidator;
     private AclClientRPCHook aclClient;
     private SessionCredentials sessionCredentials;
-
 
     @Before
     public void init() {
@@ -110,7 +111,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -132,7 +133,28 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
+            plainAccessValidator.validate(accessResource);
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+
+            Assert.fail("Should not throw IOException");
+        }
+    }
+
+    @Test
+    public void validateSendMessageToRetryTopicTest() {
+        SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
+        messageRequestHeader.setTopic(MixAll.getRetryTopic("groupB"));
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
+        aclClient.doBeforeRequest("", remotingCommand);
+
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        try {
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -144,7 +166,7 @@ public class PlainAccessValidatorTest {
     @Test
     public void validateSendMessageV2Test() {
         SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
-        messageRequestHeader.setTopic("topicC");
+        messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(messageRequestHeader));
         aclClient.doBeforeRequest("", remotingCommand);
 
@@ -153,7 +175,28 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
+            plainAccessValidator.validate(accessResource);
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+
+            Assert.fail("Should not throw IOException");
+        }
+    }
+
+    @Test
+    public void validateSendMessageV2ToRetryTopicTest() {
+        SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
+        messageRequestHeader.setTopic(MixAll.getRetryTopic("groupC"));
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(messageRequestHeader));
+        aclClient.doBeforeRequest("", remotingCommand);
+
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        try {
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6:9876");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -182,7 +225,7 @@ public class PlainAccessValidatorTest {
     public void validatePullMessageTest() {
         PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
         pullMessageRequestHeader.setTopic("topicC");
-        pullMessageRequestHeader.setConsumerGroup("consumerGroupA");
+        pullMessageRequestHeader.setConsumerGroup("groupC");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, pullMessageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
@@ -190,7 +233,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -203,7 +246,7 @@ public class PlainAccessValidatorTest {
     public void validateConsumeMessageBackTest() {
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
         consumerSendMsgBackRequestHeader.setOriginTopic("topicC");
-        consumerSendMsgBackRequestHeader.setGroup("consumerGroupA");
+        consumerSendMsgBackRequestHeader.setGroup("groupC");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, consumerSendMsgBackRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
@@ -211,7 +254,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -231,7 +274,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -268,9 +311,9 @@ public class PlainAccessValidatorTest {
         Set<ConsumerData> consumerDataSet = new HashSet<>();
         Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
         ProducerData producerData = new ProducerData();
-        producerData.setGroupName("producerGroupA");
+        producerData.setGroupName("groupB");
         ConsumerData consumerData = new ConsumerData();
-        consumerData.setGroupName("consumerGroupA");
+        consumerData.setGroupName("groupC");
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic("topicC");
         producerDataSet.add(producerData);
@@ -287,7 +330,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -299,7 +342,7 @@ public class PlainAccessValidatorTest {
     @Test
     public void validateUnRegisterClientTest() {
         UnregisterClientRequestHeader unregisterClientRequestHeader = new UnregisterClientRequestHeader();
-        unregisterClientRequestHeader.setConsumerGroup("consumerGroupA");
+        unregisterClientRequestHeader.setConsumerGroup("groupB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, unregisterClientRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
@@ -307,7 +350,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -319,7 +362,7 @@ public class PlainAccessValidatorTest {
     @Test
     public void validateGetConsumerListByGroupTest() {
         GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader = new GetConsumerListByGroupRequestHeader();
-        getConsumerListByGroupRequestHeader.setConsumerGroup("consumerGroupA");
+        getConsumerListByGroupRequestHeader.setConsumerGroup("groupB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, getConsumerListByGroupRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
@@ -327,7 +370,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -339,7 +382,7 @@ public class PlainAccessValidatorTest {
     @Test
     public void validateUpdateConsumerOffSetTest() {
         UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader = new UpdateConsumerOffsetRequestHeader();
-        updateConsumerOffsetRequestHeader.setConsumerGroup("consumerGroupA");
+        updateConsumerOffsetRequestHeader.setConsumerGroup("groupB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, updateConsumerOffsetRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
@@ -347,7 +390,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         try {
-            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -427,7 +470,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void addAccessAclYamlConfigTest() throws InterruptedException {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -499,14 +543,15 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), true);
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "192.168.1.*");
 
-        String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
+        String aclFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/acl/plain_acl.yml".replace("/", File.separator);
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAllAclConfigVersion();
         DataVersion dataVersion = dataVersionMap.get(aclFileName);
         Assert.assertEquals(0, dataVersion.getCounter().get());
     }
 
     @Test
-    public void updateAccessAclYamlConfigTest() throws InterruptedException{
+    public void updateAccessAclYamlConfigTest() throws InterruptedException {
         String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
@@ -572,7 +617,8 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(((List) verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(), 2);
         Assert.assertEquals(((List) verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(), 2);
 
-        String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String aclFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(aclFileName, Map.class);
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(2, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
@@ -582,7 +628,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void deleteAccessAclYamlConfigTest() throws InterruptedException {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -629,16 +676,18 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void updateGlobalWhiteRemoteAddressesTest() throws InterruptedException {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         List<String> globalWhiteAddrsList = new ArrayList<>();
         globalWhiteAddrsList.add("192.168.1.*");
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        Assert.assertEquals(plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList), true);
+        Assert.assertEquals(plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList, null), true);
 
-        String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String aclFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(aclFileName, Map.class);
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
@@ -647,7 +696,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void addYamlConfigTest() throws IOException, InterruptedException {
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
+        String fileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/acl/plain_acl_test.yml".replace("/", File.separator);
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
@@ -687,7 +737,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void updateAccessAnotherAclYamlConfigTest() throws IOException, InterruptedException {
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
+        String fileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/acl/plain_acl_test.yml".replace("/", File.separator);
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
@@ -743,7 +794,8 @@ public class PlainAccessValidatorTest {
 
     @Test(expected = AclException.class)
     public void createAndUpdateAccessAclNullSkExceptionTest() {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/acl/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -759,7 +811,8 @@ public class PlainAccessValidatorTest {
     @Test
     public void addAccessDefaultAclYamlConfigTest() throws InterruptedException {
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -796,7 +849,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void deleteAccessAnotherAclYamlConfigTest() throws IOException, InterruptedException {
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
+        String fileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/acl/plain_acl_test.yml".replace("/", File.separator);
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
@@ -849,7 +903,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void updateAccessConfigEmptyPermListTest() {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -877,7 +932,8 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void updateAccessConfigEmptyWhiteRemoteAddressTest() {
-        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -902,4 +958,116 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.deleteAccessConfig(accessKey);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
+
+    @Test
+    public void deleteAccessAclToEmptyTest() {
+        final String bakAclFileProp = System.getProperty("rocketmq.acl.plain.file");
+        System.setProperty("rocketmq.acl.plain.file", "conf/empty.yml".replace("/", File.separator));
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("deleteAccessAclToEmpty");
+        plainAccessConfig.setSecretKey("12345678");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+        boolean success = plainAccessValidator.deleteAccessConfig("deleteAccessAclToEmpty");
+        if (null != bakAclFileProp) {
+            System.setProperty("rocketmq.acl.plain.file", bakAclFileProp);
+        } else {
+            System.clearProperty("rocketmq.acl.plain.file");
+        }
+        Assert.assertTrue(success);
+    }
+
+    @Test
+    public void testValidateAfterUpdateAccessConfig() throws NoSuchFieldException, IllegalAccessException {
+        String targetFileName = System.getProperty("rocketmq.home.dir")
+            + File.separator + "conf/update.yml".replace("/", File.separator);
+        System.setProperty("rocketmq.acl.plain.file", "conf/update.yml".replace("/", File.separator));
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        String accessKey = "updateAccessConfig";
+        String secretKey = "123456789111";
+        plainAccessConfig.setAccessKey(accessKey);
+        plainAccessConfig.setSecretKey(secretKey);
+        plainAccessConfig.setAdmin(true);
+        // update
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+        // call load
+        Class clazz = PlainAccessValidator.class;
+        Field f = clazz.getDeclaredField("aclPlugEngine");
+        f.setAccessible(true);
+        PlainPermissionManager aclPlugEngine = (PlainPermissionManager) f.get(plainAccessValidator);
+        aclPlugEngine.load(targetFileName);
+
+        // call validate
+        PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
+        pullMessageRequestHeader.setTopic("topicC");
+        pullMessageRequestHeader.setConsumerGroup("consumerGroupA");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, pullMessageRequestHeader);
+
+        AclClientRPCHook aclClient = new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+        aclClient.doBeforeRequest("", remotingCommand);
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        try {
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "1.1.1.1:9876");
+            plainAccessValidator.validate(accessResource);
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+            Assert.fail("Should not throw IOException");
+        } finally {
+            System.setProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml".replace("/", File.separator));
+        }
+    }
+
+    @Test
+    public void testUpdateSpecifiedAclFileGlobalWhiteAddrsConfig() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources/update_global_white_addr");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+
+        String targetFileName = "src/test/resources/update_global_white_addr/conf/plain_acl.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        String targetFileName1 = "src/test/resources/update_global_white_addr/conf/acl/plain_acl.yml";
+        Map<String, Object> backUpAclConfigMap1 = AclUtils.getYamlDataObject(targetFileName1, Map.class);
+
+        String targetFileName2 = "src/test/resources/update_global_white_addr/conf/acl/empty.yml";
+        Map<String, Object> backUpAclConfigMap2 = AclUtils.getYamlDataObject(targetFileName2, Map.class);
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        List<String> globalWhiteAddrsList1 = new ArrayList<String>();
+        globalWhiteAddrsList1.add("10.10.154.1");
+        List<String> globalWhiteAddrsList2 = new ArrayList<String>();
+        globalWhiteAddrsList2.add("10.10.154.2");
+        List<String> globalWhiteAddrsList3 = new ArrayList<String>();
+        globalWhiteAddrsList3.add("10.10.154.3");
+
+        //Test parameter p is null
+        plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList1, null);
+        String defaultAclFile = targetFileName;
+        Map<String, Object> defaultAclFileMap = AclUtils.getYamlDataObject(defaultAclFile, Map.class);
+        List<String> defaultAclFileGlobalWhiteAddrList = (List<String>)defaultAclFileMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        Assert.assertTrue(defaultAclFileGlobalWhiteAddrList.contains("10.10.154.1"));
+        //Test parameter p is not null
+        plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList2, targetFileName1);
+        Map<String, Object> aclFileMap1 =  AclUtils.getYamlDataObject(targetFileName1, Map.class);
+        List<String> aclFileGlobalWhiteAddrList1 = (List<String>)aclFileMap1.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        Assert.assertTrue(aclFileGlobalWhiteAddrList1.contains("10.10.154.2"));
+        //Test parameter p is not null, but the file does not have globalWhiteRemoteAddresses
+        plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList3, targetFileName2);
+        Map<String, Object> aclFileMap2 =  AclUtils.getYamlDataObject(targetFileName2, Map.class);
+        List<String> aclFileGlobalWhiteAddrList2 = (List<String>)aclFileMap2.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        Assert.assertTrue(aclFileGlobalWhiteAddrList2.contains("10.10.154.3"));
+
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName1, backUpAclConfigMap1);
+        AclUtils.writeDataObject(targetFileName2, backUpAclConfigMap2);
+
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+    }
+
+
 }

@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.CommitLog.PutMessageContext;
 import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -80,11 +81,22 @@ public class MappedFile extends ReferenceResource {
 
     public static void ensureDirOK(final String dirName) {
         if (dirName != null) {
-            File f = new File(dirName);
-            if (!f.exists()) {
-                boolean result = f.mkdirs();
-                log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+            if (dirName.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+                String[] dirs = dirName.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+                for (String dir : dirs) {
+                    createDirIfNotExist(dir);
+                }
+            } else {
+                createDirIfNotExist(dirName);
             }
+        }
+    }
+
+    private static void  createDirIfNotExist(String dirName) {
+        File f = new File(dirName);
+        if (!f.exists()) {
+            boolean result = f.mkdirs();
+            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
     }
 
@@ -95,15 +107,13 @@ public class MappedFile extends ReferenceResource {
     }
 
     private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
-        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            public Object run() {
-                try {
-                    Method method = method(target, methodName, args);
-                    method.setAccessible(true);
-                    return method.invoke(target);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
+        return AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            try {
+                Method method = method(target, methodName, args);
+                method.setAccessible(true);
+                return method.invoke(target);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             }
         });
     }
@@ -250,7 +260,7 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * Content of data from offset to offset + length will be wrote to file.
+     * Content of data from offset to offset + length will be written to file.
      *
      * @param offset The offset of the subarray to be used.
      * @param length The length of the subarray to be used.
@@ -359,7 +369,7 @@ public class MappedFile extends ReferenceResource {
     }
 
     protected boolean isAbleToCommit(final int commitLeastPages) {
-        int flush = this.committedPosition.get();
+        int commit = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
         if (this.isFull()) {
@@ -367,10 +377,10 @@ public class MappedFile extends ReferenceResource {
         }
 
         if (commitLeastPages > 0) {
-            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
+            return ((write / OS_PAGE_SIZE) - (commit / OS_PAGE_SIZE)) >= commitLeastPages;
         }
 
-        return write > flush;
+        return write > commit;
     }
 
     public int getFlushedPosition() {

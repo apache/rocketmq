@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -28,6 +29,7 @@ import java.util.Map;
 import static org.apache.rocketmq.common.message.MessageDecoder.NAME_VALUE_SEPARATOR;
 import static org.apache.rocketmq.common.message.MessageDecoder.PROPERTY_SEPARATOR;
 import static org.apache.rocketmq.common.message.MessageDecoder.createMessageId;
+import static org.apache.rocketmq.common.message.MessageDecoder.decodeMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MessageDecoderTest {
@@ -373,4 +375,28 @@ public class MessageDecoderTest {
         assertThat(m.get("1")).isEqualTo("1");
     }
 
+    @Test
+    public void testMessageId() throws Exception{
+        // ipv4 messageId test
+        MessageExt msgExt = new MessageExt();
+        msgExt.setStoreHost(new InetSocketAddress("127.0.0.1", 9103));
+        msgExt.setCommitLogOffset(123456);
+        verifyMessageId(msgExt);
+
+        // ipv6 messageId test
+        msgExt.setStoreHostAddressV6Flag();
+        msgExt.setStoreHost(new InetSocketAddress(InetAddress.getByName("::1"), 0));
+        verifyMessageId(msgExt);
+    }
+
+    private void verifyMessageId(MessageExt msgExt) throws UnknownHostException {
+        int storehostIPLength = (msgExt.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 : 16;
+        int msgIDLength = storehostIPLength + 4 + 8;
+        ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
+        String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+
+        MessageId messageId = decodeMessageId(msgId);
+        assertThat(messageId.getAddress()).isEqualTo(msgExt.getStoreHost());
+        assertThat(messageId.getOffset()).isEqualTo(msgExt.getCommitLogOffset());
+    }
 }
