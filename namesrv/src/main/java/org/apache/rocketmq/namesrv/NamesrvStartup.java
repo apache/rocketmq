@@ -57,26 +57,29 @@ public class NamesrvStartup {
         controllerManagerMain();
     }
 
-    public static void main0(String[] args) {
+    public static NamesrvController main0(String[] args) {
         try {
             parseCommandlineAndConfigFile(args);
-            createAndStartNamesrvController();
+            NamesrvController controller = createAndStartNamesrvController();
+            return controller;
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
 
+        return null;
     }
 
-    public static void controllerManagerMain() {
+    public static ControllerManager controllerManagerMain() {
         try {
             if (namesrvConfig.isEnableControllerInNamesrv()) {
-                createAndStartControllerManager();
+                return createAndStartControllerManager();
             }
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
+        return null;
     }
 
     public static void parseCommandlineAndConfigFile(String[] args) throws Exception {
@@ -141,12 +144,14 @@ public class NamesrvStartup {
 
     }
 
-    public static void createAndStartNamesrvController() throws Exception {
+    public static NamesrvController createAndStartNamesrvController() throws Exception {
+
         NamesrvController controller = createNamesrvController();
         start(controller);
         String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
         log.info(tip);
         System.out.printf("%s%n", tip);
+        return controller;
     }
 
     public static NamesrvController createNamesrvController() {
@@ -179,12 +184,13 @@ public class NamesrvStartup {
         return controller;
     }
 
-    public static void createAndStartControllerManager() throws Exception {
+    public static ControllerManager createAndStartControllerManager() throws Exception {
         ControllerManager controllerManager = createControllerManager();
         start(controllerManager);
         String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
         log.info(tip);
         System.out.printf("%s%n", tip);
+        return controllerManager;
     }
 
     public static ControllerManager createControllerManager() throws Exception {
