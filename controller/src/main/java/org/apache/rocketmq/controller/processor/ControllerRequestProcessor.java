@@ -154,28 +154,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return RemotingCommand.createResponseCommand(null);
     }
 
-//    private RemotingCommand handleBrokerTryElectMaster(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-//        final BrokerTryElectRequestHeader brokerTryElectRequest = (BrokerTryElectRequestHeader) request.decodeCommandCustomHeader(BrokerTryElectRequestHeader.class);
-//        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().brokerTryElectMaster(brokerTryElectRequest);
-//        if (future != null) {
-//            final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-//            final BrokerTryElectResponseHeader responseHeader = (BrokerTryElectResponseHeader) response.readCustomHeader();
-//
-//            // if try elect a master success
-//            if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
-//                // notify the heartbeatManger to update the broker id of this broker
-//                if (StringUtils.isNotEmpty(responseHeader.getMasterAddress())) {
-//                    heartbeatManager.changeBrokerMetadata(brokerTryElectRequest.getClusterName(), responseHeader.getMasterAddress(), MixAll.MASTER_ID);
-//                }
-//                if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-//                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
-//                }
-//            }
-//            return response;
-//        }
-//        return RemotingCommand.createResponseCommand(null);
-//    }
-
     private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
         RemotingCommand request) throws Exception {
         final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);

@@ -145,16 +145,20 @@ public class ControllerManager {
     public void notifyBrokerRoleChanged(final RoleChangeNotifyEntry entry) {
         final BrokerMemberGroup memberGroup = entry.getBrokerMemberGroup();
         if (memberGroup != null) {
-            // First, inform the master
             final String master = entry.getMasterAddress();
-            if (StringUtils.isNoneEmpty(master) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), master)) {
+            if (StringUtils.isEmpty(master)) {
+                log.warn("Notify broker role change failed, because member group is not null but the new master address is empty, entry:{}", entry);
+                return;
+            }
+            // First, inform the master
+            if (this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), master)) {
                 doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, entry);
             }
 
             // Then, inform all slaves
             final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
             for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
-                if (!broker.getValue().equals(master) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), broker.getValue())) {
+                if (!master.equals(broker.getValue()) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), broker.getValue())) {
                     doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), entry);
                 }
             }
