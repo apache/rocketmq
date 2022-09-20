@@ -30,7 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 public class Producer {
-    public static void main(String[] args) throws UnsupportedEncodingException {
+    public static void main(String[] args) {
         try {
             DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
             producer.start();
@@ -54,7 +54,7 @@ public class Producer {
             }
 
             producer.shutdown();
-        } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+        } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
     }
