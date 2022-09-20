@@ -36,8 +36,7 @@ import org.apache.rocketmq.tools.admin.MQAdminExt;
 
 public class CommandUtil {
 
-    private static final String ERROR_MESSAGE = "Make sure the specified clusterName exists or the name server " +
-        "connected to is correct.";
+    private static final String ERROR_MESSAGE = "Make sure the specified clusterName exists or the name server connected to is correct.";
 
     public static final String NO_MASTER_PLACEHOLDER = "NO_MASTER";
 
