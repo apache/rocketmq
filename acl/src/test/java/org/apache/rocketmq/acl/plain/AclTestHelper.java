@@ -33,7 +33,8 @@ public final class AclTestHelper {
     private AclTestHelper() {
     }
 
-    private static void copyTo(String path, InputStream src, File dstDir, String flag) throws IOException {
+    private static void copyTo(String path, InputStream src, File dstDir, String flag, boolean into)
+        throws IOException {
         Preconditions.checkNotNull(flag);
         String[] folders = path.split(File.separator);
         boolean found = false;
@@ -41,6 +42,12 @@ public final class AclTestHelper {
         for (int i = 0; i < folders.length; i++) {
             if (!found && flag.equals(folders[i])) {
                 found = true;
+                if (into) {
+                    dir = new File(dir, flag);
+                    if (!dir.exists()) {
+                        Assert.assertTrue(dir.mkdirs());
+                    }
+                }
                 continue;
             }
 
@@ -69,21 +76,26 @@ public final class AclTestHelper {
 
     public static void recursiveDelete(File file) {
         if (file.isFile()) {
-            file.delete();
+            Assert.assertTrue(file.delete());
             return;
         }
-
         File[] files = file.listFiles();
-        for (File f : files) {
-            recursiveDelete(f);
+        if (null != files) {
+            for (File f : files) {
+                recursiveDelete(f);
+            }
         }
-        file.delete();
+        Assert.assertTrue(file.delete());
     }
 
     public static File copyResources(String folder) throws IOException {
+        return copyResources(folder, false);
+    }
+
+    public static File copyResources(String folder, boolean into) throws IOException {
         File home = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString().replace('-', '_'));
         if (!home.exists()) {
-            home.mkdirs();
+            Assert.assertTrue(home.mkdirs());
         }
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(AclTestHelper.class.getClassLoader());
         Resource[] resources = resolver.getResources(String.format("classpath:%s/**/*", folder));
@@ -96,7 +108,7 @@ public final class AclTestHelper {
             int end = description.lastIndexOf(']');
             String path = description.substring(start + 1, end);
             try (InputStream inputStream = resource.getInputStream()) {
-                copyTo(path, inputStream, home, folder);
+                copyTo(path, inputStream, home, folder, into);
             }
         }
         return home;
