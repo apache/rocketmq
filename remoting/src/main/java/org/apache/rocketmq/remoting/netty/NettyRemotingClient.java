@@ -310,7 +310,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         String cidr = proxyEntry.getKey();
         ProxyConfig proxyConfig = proxyEntry.getValue();
 
-        LOGGER.info("addr: {}, cidr: {}, proxy: {}",
+        LOGGER.info("Netty fetch bootstrap, addr: {}, cidr: {}, proxy: {}",
             addr, cidr, proxyConfig != null ? proxyConfig.getAddr() : "");
 
         Bootstrap bootstrapWithProxy = bootstrapMap.get(cidr);
