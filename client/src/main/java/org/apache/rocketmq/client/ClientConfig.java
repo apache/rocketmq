@@ -35,6 +35,7 @@ import org.apache.rocketmq.remoting.protocol.RequestType;
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
+    public static final String SOCKS_PROXY_CONFIG = "com.rocketmq.socks.proxy.config";
     public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
@@ -65,6 +66,8 @@ public class ClientConfig {
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
+
+    private String sockProxyJson = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;
 
@@ -173,6 +176,7 @@ public class ClientConfig {
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
         this.useTLS = cc.useTLS;
+        this.sockProxyJson = cc.sockProxyJson;
         this.namespace = cc.namespace;
         this.language = cc.language;
         this.mqClientApiTimeout = cc.mqClientApiTimeout;
@@ -195,6 +199,7 @@ public class ClientConfig {
         cc.unitName = unitName;
         cc.vipChannelEnabled = vipChannelEnabled;
         cc.useTLS = useTLS;
+        cc.sockProxyJson = sockProxyJson;
         cc.namespace = namespace;
         cc.language = language;
         cc.mqClientApiTimeout = mqClientApiTimeout;
@@ -293,6 +298,14 @@ public class ClientConfig {
         this.useTLS = useTLS;
     }
 
+    public String getSockProxyJson() {
+        return sockProxyJson;
+    }
+
+    public void setSockProxyJson(String proxyJson) {
+        this.sockProxyJson = proxyJson;
+    }
+
     public LanguageCode getLanguage() {
         return language;
     }
@@ -366,11 +379,17 @@ public class ClientConfig {
 
     @Override
     public String toString() {
-        return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
-            + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
-            + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
+        return "ClientConfig [namesrvAddr=" + namesrvAddr
+            + ", clientIP=" + clientIP + ", instanceName=" + instanceName
+            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
+            + ", pollNameServerInterval=" + pollNameServerInterval
+            + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
+            + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
+            + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException
+            + ", unitMode=" + unitMode + ", unitName=" + unitName
+            + ", vipChannelEnabled=" + vipChannelEnabled + ", useTLS=" + useTLS
+            + ", sockProxyJson=" + sockProxyJson + ", language=" + language.name()
+            + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
             + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
             + ", enableStreamRequestType=" + enableStreamRequestType + "]";
     }

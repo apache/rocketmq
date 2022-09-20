@@ -39,6 +39,7 @@ public class NettyClientConfig {
     private boolean clientCloseSocketIfTimeout = NettySystemConfig.clientCloseSocketIfTimeout;
 
     private boolean useTLS;
+    private String sockProxyJson = "{}";
 
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
     private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
@@ -172,5 +173,13 @@ public class NettyClientConfig {
 
     public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
         this.disableNettyWorkerGroup = disableNettyWorkerGroup;
+    }
+
+    public String getSockProxyJson() {
+        return sockProxyJson;
+    }
+
+    public void setSockProxyJson(String sockProxyJson) {
+        this.sockProxyJson = sockProxyJson;
     }
 }
