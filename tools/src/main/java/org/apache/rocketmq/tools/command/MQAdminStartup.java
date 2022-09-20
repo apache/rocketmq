@@ -105,7 +105,7 @@ import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
-    protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
+    protected static List<SubCommand> subCommandList = new ArrayList<>();
 
     private static String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
