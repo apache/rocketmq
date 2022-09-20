@@ -36,11 +36,13 @@ import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@Ignore
 public class TransactionMessageIT extends ContainerIntegrationTestBase {
 
     private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
