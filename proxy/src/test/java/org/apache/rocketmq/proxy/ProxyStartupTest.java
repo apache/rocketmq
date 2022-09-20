@@ -18,6 +18,8 @@
 package org.apache.rocketmq.proxy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -27,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.Iterator;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -81,20 +84,20 @@ public class ProxyStartupTest {
 
     private void copyTo(String path, InputStream src, File dstDir, String flag) throws IOException {
         Preconditions.checkNotNull(flag);
-        String[] folders = path.split(File.separator);
+        Iterator<String> iterator = Splitter.on(File.separatorChar).split(path).iterator();
         boolean found = false;
         File dir = dstDir;
-        for (int i = 0; i < folders.length; i++) {
-            if (!found && flag.equals(folders[i])) {
+        while (iterator.hasNext()) {
+            String current = iterator.next();
+            if (!found && flag.equals(current)) {
                 found = true;
                 continue;
             }
-
             if (found) {
-                if (i == folders.length - 1) {
-                    dir = new File(dir, folders[i]);
+                if (!iterator.hasNext()) {
+                    dir = new File(dir, current);
                 } else {
-                    dir = new File(dir, folders[i]);
+                    dir = new File(dir, current);
                     if (!dir.exists()) {
                         Assert.assertTrue(dir.mkdir());
                     }
