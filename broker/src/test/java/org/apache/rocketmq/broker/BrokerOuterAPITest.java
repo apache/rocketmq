@@ -194,14 +194,14 @@ public class BrokerOuterAPITest {
         final ArgumentCaptor<String> namesrvCaptor = ArgumentCaptor.forClass(String.class);
         when(nettyRemotingClient.invokeSync(namesrvCaptor.capture(), any(RemotingCommand.class),
             timeoutMillisCaptor.capture())).thenAnswer((Answer<RemotingCommand>) invocation -> {
-            final String namesrv = namesrvCaptor.getValue();
-            if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
+                final String namesrv = namesrvCaptor.getValue();
+                if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
+                    return response;
+                }
+                long delayTimeMillis = 1000;
+                TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
                 return response;
-            }
-            long delayTimeMillis = 1000;
-            TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
-            return response;
-        });
+            });
         List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, new BrokerIdentity());
 
         assertEquals(2, registerBrokerResultList.size());

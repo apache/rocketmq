@@ -139,7 +139,7 @@ public class ReplicasManagerTest {
     }
 
     @Test
-    public void changeBrokerRoleTest(){
+    public void changeBrokerRoleTest() {
         // not equal to localAddress
         Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, SLAVE_BROKER_ID))
             .doesNotThrowAnyException();
