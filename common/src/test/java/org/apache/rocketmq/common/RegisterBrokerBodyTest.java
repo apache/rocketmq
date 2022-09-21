@@ -42,8 +42,6 @@ public class RegisterBrokerBodyTest {
 
         byte[] compareEncode = registerBrokerBody.encode(true);
         byte[] encode2 = registerBrokerBody.encode(false);
-        System.out.println(compareEncode.length);
-        System.out.println(encode2.length);
         RegisterBrokerBody decodeRegisterBrokerBody = RegisterBrokerBody.decode(compareEncode, true);
 
         assertEquals(registerBrokerBody.getTopicConfigSerializeWrapper().getTopicConfigTable().size(), decodeRegisterBrokerBody.getTopicConfigSerializeWrapper().getTopicConfigTable().size());

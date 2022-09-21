@@ -32,10 +32,10 @@ public class GroupListTest {
 
     @Test
     public void testSetGet() throws Exception {
-        HashSet<String> fisrtUniqueSet=createUniqueNewSet();
-        HashSet<String> secondUniqueSet=createUniqueNewSet();
+        HashSet<String> fisrtUniqueSet = createUniqueNewSet();
+        HashSet<String> secondUniqueSet = createUniqueNewSet();
         assertThat(fisrtUniqueSet).isNotEqualTo(secondUniqueSet);
-        GroupList gl=new GroupList();
+        GroupList gl = new GroupList();
         gl.setGroupList(fisrtUniqueSet);
         assertThat(gl.getGroupList()).isEqualTo(fisrtUniqueSet);
         assertThat(gl.getGroupList()).isNotEqualTo(secondUniqueSet);
@@ -45,7 +45,7 @@ public class GroupListTest {
     }
 
     private HashSet<String> createUniqueNewSet() {
-        HashSet<String> groups=new HashSet<String>();
+        HashSet<String> groups = new HashSet<String>();
         groups.add(UUID.randomUUID().toString());
         return groups;
     }

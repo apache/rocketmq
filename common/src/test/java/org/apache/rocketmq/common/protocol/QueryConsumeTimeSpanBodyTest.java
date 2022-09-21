@@ -51,19 +51,19 @@ public class QueryConsumeTimeSpanBodyTest {
         QueryConsumeTimeSpanBody qctsb = new QueryConsumeTimeSpanBody();
         List<QueueTimeSpan> queueTimeSpans = new ArrayList<QueueTimeSpan>();
         QueueTimeSpan queueTimeSpan = new QueueTimeSpan();
-        queueTimeSpan.setMinTimeStamp(1550825710000l);
-        queueTimeSpan.setMaxTimeStamp(1550825790000l);
-        queueTimeSpan.setConsumeTimeStamp(1550825760000l);
-        queueTimeSpan.setDelayTime(5000l);
+        queueTimeSpan.setMinTimeStamp(1550825710000L);
+        queueTimeSpan.setMaxTimeStamp(1550825790000L);
+        queueTimeSpan.setConsumeTimeStamp(1550825760000L);
+        queueTimeSpan.setDelayTime(5000L);
         MessageQueue messageQueue = new MessageQueue("topicName", "brokerName", 1);
         queueTimeSpan.setMessageQueue(messageQueue);
         queueTimeSpans.add(queueTimeSpan);
         qctsb.setConsumeTimeSpanSet(queueTimeSpans);
         String json = RemotingSerializable.toJson(qctsb, true);
         QueryConsumeTimeSpanBody fromJson = RemotingSerializable.fromJson(json, QueryConsumeTimeSpanBody.class);
-        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMaxTimeStamp()).isEqualTo(1550825790000l);
-        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMinTimeStamp()).isEqualTo(1550825710000l);
-        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getDelayTime()).isEqualTo(5000l);
+        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMaxTimeStamp()).isEqualTo(1550825790000L);
+        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMinTimeStamp()).isEqualTo(1550825710000L);
+        assertThat(fromJson.getConsumeTimeSpanSet().get(0).getDelayTime()).isEqualTo(5000L);
         assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMessageQueue()).isEqualTo(messageQueue);
     }
 
@@ -105,7 +105,7 @@ public class QueryConsumeTimeSpanBodyTest {
         queueTimeSpan.setMinTimeStamp(System.currentTimeMillis());
         queueTimeSpan.setMaxTimeStamp(UtilAll.computeNextHourTimeMillis());
         queueTimeSpan.setConsumeTimeStamp(UtilAll.computeNextMinutesTimeMillis());
-        queueTimeSpan.setDelayTime(5000l);
+        queueTimeSpan.setDelayTime(5000L);
         MessageQueue messageQueue = new MessageQueue(UUID.randomUUID().toString(), UUID.randomUUID().toString(), new Random().nextInt());
         queueTimeSpan.setMessageQueue(messageQueue);
         queueTimeSpans.add(queueTimeSpan);
