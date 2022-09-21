@@ -458,7 +458,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             AutoSwitchHAClient.this.waitForRunning(1);
                             LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
                                 masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
-                            return true;
+                            return false;
                         }
 
                         if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
