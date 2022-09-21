@@ -213,7 +213,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertEquals(80, messageStore.getOffsetInQueueByTime(topic, 0, timeMid));
 
         // can set periodic interval for executing  DefaultMessageStore.this.cleanFilesPeriodically() method, we can execute following code.
-        // default periodic interval is 60s, This code snippet will take 60 seconds。
+        // default periodic interval is 60s, This code snippet will take 60 seconds.
         /*final long a = timeMid;
         await().atMost(Duration.ofMinutes(2)).until(()->{
             long time = messageStore.getOffsetInQueueByTime(topic, 0, a);

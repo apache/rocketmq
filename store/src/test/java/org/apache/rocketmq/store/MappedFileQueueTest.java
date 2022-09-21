@@ -315,7 +315,7 @@ public class MappedFileQueueTest {
                     }
                     assertThat(mappedFile != null).isTrue();
                     retryTime = 0;
-                    int pos = ((i * fixedMsg.getBytes().length) % mappedFileSize);
+                    int pos = (i * fixedMsg.getBytes().length) % mappedFileSize;
                     while ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition() && retryTime < 10000) {
                         retryTime++;
                         if ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition()) {
@@ -373,7 +373,7 @@ public class MappedFileQueueTest {
                     }
                 } catch (Exception e) {
                     hasException.set(true);
-                }finally {
+                } finally {
                     downLatch.countDown();
                 }
             });

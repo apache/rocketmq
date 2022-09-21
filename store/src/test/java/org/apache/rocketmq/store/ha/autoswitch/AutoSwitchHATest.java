@@ -57,10 +57,10 @@ public class AutoSwitchHATest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final int defaultMappedFileSize = 1024 * 1024;
     private int queueTotal = 100;
-    private AtomicInteger QueueId = new AtomicInteger(0);
-    private SocketAddress BornHost;
-    private SocketAddress StoreHost;
-    private byte[] MessageBody;
+    private AtomicInteger queueId = new AtomicInteger(0);
+    private SocketAddress bornHost;
+    private SocketAddress storeHost;
+    private byte[] messageBody;
 
     private DefaultMessageStore messageStore1;
     private DefaultMessageStore messageStore2;
@@ -78,9 +78,9 @@ public class AutoSwitchHATest {
 
     public void init(int mappedFileSize) throws Exception {
         queueTotal = 1;
-        MessageBody = storeMessage.getBytes();
-        StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
-        BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+        messageBody = storeMessage.getBytes();
+        storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+        bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
         storeConfig1.setHaSendHeartbeatInterval(1000);
@@ -133,9 +133,9 @@ public class AutoSwitchHATest {
 
     public void init(int mappedFileSize, boolean allAckInSyncStateSet) throws Exception {
         queueTotal = 1;
-        MessageBody = storeMessage.getBytes();
-        StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
-        BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+        messageBody = storeMessage.getBytes();
+        storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+        bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
         storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + "broker1");
@@ -274,8 +274,7 @@ public class AutoSwitchHATest {
         init(defaultMappedFileSize, true);
         AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();
         ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).registerSyncStateSetChangedListener((newSyncStateSet) -> {
-            System.out.println("Get newSyncStateSet:" + newSyncStateSet);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).registerSyncStateSetChangedListener(newSyncStateSet -> {
             syncStateSet.set(newSyncStateSet);
         });
 
@@ -481,13 +480,13 @@ public class AutoSwitchHATest {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("FooBar");
         msg.setTags("TAG1");
-        msg.setBody(MessageBody);
+        msg.setBody(messageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % queueTotal);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
