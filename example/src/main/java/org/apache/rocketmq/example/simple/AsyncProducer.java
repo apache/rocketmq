@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.example.simple;
 
-import java.io.UnsupportedEncodingException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -28,7 +27,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class AsyncProducer {
     public static void main(
-        String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
+        String[] args) throws MQClientException, InterruptedException {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
         producer.start();

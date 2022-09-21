@@ -36,7 +36,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -62,7 +61,7 @@ public class TransactionProducer {
     //broker max check times should less than this value
     static final int MAX_CHECK_RESULT_IN_MSG = 20;
 
-    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+    public static void main(String[] args) throws MQClientException {
         System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, SerializeType.ROCKETMQ.name());
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("TransactionProducer", args, buildCommandlineOptions(options), new PosixParser());
