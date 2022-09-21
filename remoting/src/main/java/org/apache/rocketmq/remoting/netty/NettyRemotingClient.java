@@ -79,7 +79,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.proxy.ProxyConfig;
+import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
 
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
@@ -88,10 +88,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
-    private final Map<String /*cidr*/, ProxyConfig/*proxy*/> proxyMap = new HashMap<>();
-    private final ConcurrentHashMap<String /*cidr*/, Bootstrap> bootstrapMap = new ConcurrentHashMap<>();
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
+    private final Map<String /* cidr */, SocksProxyConfig /* proxy */> proxyMap = new HashMap<>();
+    private final ConcurrentHashMap<String /* cidr */, Bootstrap> bootstrapMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
 
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
@@ -189,8 +189,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private void loadSocksProxyJson() {
-        Map<String, ProxyConfig> sockProxyMap = JSON.parseObject(
-            nettyClientConfig.getSockProxyJson(), new TypeReference<Map<String, ProxyConfig>>() {
+        Map<String, SocksProxyConfig> sockProxyMap = JSON.parseObject(
+            nettyClientConfig.getSockProxyJson(), new TypeReference<Map<String, SocksProxyConfig>>() {
             });
         if (sockProxyMap != null) {
             proxyMap.putAll(sockProxyMap);
@@ -290,9 +290,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     }
 
-    private Map.Entry<String, ProxyConfig> getProxy(String addr) {
+    private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
         String[] addrArr = addr.split(":");
-        for (Map.Entry<String, ProxyConfig> entry : proxyMap.entrySet()) {
+        for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
             if (RemotingHelper.ipInCIDR(addrArr[0], cidr)) {
                 return entry;
@@ -302,20 +302,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private Bootstrap fetchBootstrap(String addr) {
-        Map.Entry<String, ProxyConfig> proxyEntry = getProxy(addr);
+        Map.Entry<String, SocksProxyConfig> proxyEntry = getProxy(addr);
         if (proxyEntry == null) {
             return bootstrap;
         }
 
         String cidr = proxyEntry.getKey();
-        ProxyConfig proxyConfig = proxyEntry.getValue();
+        SocksProxyConfig socksProxyConfig = proxyEntry.getValue();
 
         LOGGER.info("Netty fetch bootstrap, addr: {}, cidr: {}, proxy: {}",
-            addr, cidr, proxyConfig != null ? proxyConfig.getAddr() : "");
+            addr, cidr, socksProxyConfig != null ? socksProxyConfig.getAddr() : "");
 
         Bootstrap bootstrapWithProxy = bootstrapMap.get(cidr);
         if (bootstrapWithProxy == null) {
-            bootstrapWithProxy = createBootstrap(proxyConfig);
+            bootstrapWithProxy = createBootstrap(socksProxyConfig);
             Bootstrap old = bootstrapMap.putIfAbsent(cidr, bootstrapWithProxy);
             if (old != null) {
                 bootstrapWithProxy = old;
@@ -324,7 +324,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return bootstrapWithProxy;
     }
 
-    private Bootstrap createBootstrap(final ProxyConfig proxy) {
+    private Bootstrap createBootstrap(final SocksProxyConfig proxy) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)

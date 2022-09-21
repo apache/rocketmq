@@ -16,19 +16,19 @@
  */
 package org.apache.rocketmq.remoting.proxy;
 
-public class ProxyConfig {
+public class SocksProxyConfig {
     private String addr;
     private String username;
     private String password;
 
-    public ProxyConfig() {
+    public SocksProxyConfig() {
     }
 
-    public ProxyConfig(String addr) {
+    public SocksProxyConfig(String addr) {
         this.addr = addr;
     }
 
-    public ProxyConfig(String addr, String username, String password) {
+    public SocksProxyConfig(String addr, String username, String password) {
         this.addr = addr;
         this.username = username;
         this.password = password;
@@ -60,6 +60,6 @@ public class ProxyConfig {
 
     @Override
     public String toString() {
-        return String.format("proxy addr: %s, username: %s, password: %s", addr, username, password);
+        return String.format("SocksProxy address: %s, username: %s, password: %s", addr, username, password);
     }
 }
