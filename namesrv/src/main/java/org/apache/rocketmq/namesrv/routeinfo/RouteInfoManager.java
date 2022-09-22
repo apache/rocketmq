@@ -707,10 +707,6 @@ public class RouteInfoManager {
 
         if (foundBrokerData && foundQueueData) {
 
-            if (topicRouteData == null) {
-                return null;
-            }
-
             topicRouteData.setTopicQueueMappingByBroker(this.topicQueueMappingInfoTable.get(topic));
 
             if (!namesrvConfig.isSupportActingMaster()) {
@@ -994,10 +990,7 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
                 for (String brokerName : brokerNameSet) {
-                    Iterator<Entry<String, Map<String, QueueData>>> topicTableIt =
-                        this.topicQueueTable.entrySet().iterator();
-                    while (topicTableIt.hasNext()) {
-                        Entry<String, Map<String, QueueData>> topicEntry = topicTableIt.next();
+                    for (Entry<String, Map<String, QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                         String topic = topicEntry.getKey();
                         Map<String, QueueData> queueDataMap = topicEntry.getValue();
                         final QueueData qd = queueDataMap.get(brokerName);
