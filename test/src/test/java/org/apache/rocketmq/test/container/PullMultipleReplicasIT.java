@@ -56,8 +56,8 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer producer;
     private static MQClientInstance mqClientInstance;
 
-    private final String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
+    private final byte[] messageBody = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
 
     public PullMultipleReplicasIT() throws UnsupportedEncodingException {
     }
@@ -87,7 +87,7 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
     public void testPullMessageFromSlave() throws InterruptedException, RemotingException, MQClientException, MQBrokerException, UnsupportedEncodingException {
         awaitUntilSlaveOK();
 
-        Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+        Message msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
         SendResult sendResult = producer.send(msg);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
 
@@ -139,7 +139,7 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
         createTopicTo(master1With3Replicas, clusterTopic);
         createTopicTo(master3With3Replicas, clusterTopic);
 
-        Message msg = new Message(clusterTopic, MESSAGE_BODY);
+        Message msg = new Message(clusterTopic, messageBody);
         producer.setSendMsgTimeout(10 * 1000);
 
         final MessageQueue[] selectedQueue = new MessageQueue[1];

@@ -47,14 +47,8 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
 
     private static final String CONSUME_GROUP = ScheduledMessageIT.class.getSimpleName() + "_Consumer";
     private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private static byte[] MESSAGE_BODY;
+    private final byte[] messageBody = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
 
-    static {
-        try {
-            MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
-        } catch (UnsupportedEncodingException ignored) {
-        }
-    }
 
     private static final String TOPIC_PREFIX = ScheduledMessageIT.class.getSimpleName() + "_TOPIC";
     private static Random random = new Random();
@@ -103,7 +97,7 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
         pushConsumer.start();
 
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             msg.setDelayTimeLevel(2);
             producer.send(msg);
         }

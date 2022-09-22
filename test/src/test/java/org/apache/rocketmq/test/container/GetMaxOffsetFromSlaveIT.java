@@ -44,7 +44,7 @@ import static org.awaitility.Awaitility.await;
 public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private final byte[] messageBody = "Hello RocketMQ ".getBytes(RemotingHelper.DEFAULT_CHARSET);
 
     public GetMaxOffsetFromSlaveIT() throws UnsupportedEncodingException {
     }
@@ -68,7 +68,7 @@ public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
         mqProducer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
 
         for (int i = 0; i < 100; i++) {
-            Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+            Message msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
             SendResult sendResult = mqProducer.send(msg, 10000);
             assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         }

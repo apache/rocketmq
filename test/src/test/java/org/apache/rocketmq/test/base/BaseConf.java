@@ -57,56 +57,56 @@ import org.slf4j.LoggerFactory;
 import static org.awaitility.Awaitility.await;
 
 public class BaseConf {
-    public final static String nsAddr;
-    protected final static String broker1Name;
-    protected final static String broker2Name;
+    public final static String NAMESRV_ADDR;
+    protected final static String BROKER1_NAME;
+    protected final static String BROKER2_NAME;
     //the logic queue test need at least three brokers
-    protected final static String broker3Name;
-    protected final static String clusterName;
-    protected final static int brokerNum;
-    protected final static int waitTime = 5;
-    protected final static int consumeTime = 2 * 60 * 1000;
+    protected final static String BROKER3_NAME;
+    protected final static String CLUSTER_NAME;
+    protected final static int BROKER_NUM;
+    protected final static int WAIT_TIME = 5;
+    protected final static int CONSUME_TIME = 2 * 60 * 1000;
     protected final static int QUEUE_NUMBERS = 8;
-    protected final static NamesrvController namesrvController;
-    protected final static BrokerController brokerController1;
-    protected final static BrokerController brokerController2;
-    protected final static BrokerController brokerController3;
-    protected final static List<BrokerController> brokerControllerList;
-    protected final static Map<String, BrokerController> brokerControllerMap;
-    protected final static List<Object> mqClients = new ArrayList<Object>();
-    protected final static boolean debug = false;
+    protected final static NamesrvController NAMESRV_CONTROLLER;
+    protected final static BrokerController BROKER_CONTROLLER1;
+    protected final static BrokerController BROKER_CONTROLLER2;
+    protected final static BrokerController BROKER_CONTROLLER3;
+    protected final static List<BrokerController> BROKER_CONTROLLER_LIST;
+    protected final static Map<String, BrokerController> BROKER_CONTROLLER_MAP;
+    protected final static List<Object> MQ_CLIENTS = new ArrayList<Object>();
+    protected final static boolean DEBUG = false;
     private final static Logger log = LoggerFactory.getLogger(BaseConf.class);
 
     static {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-        namesrvController = IntegrationTestBase.createAndStartNamesrv();
-        nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
-        log.debug("Name server started, listening: {}", nsAddr);
+        NAMESRV_CONTROLLER = IntegrationTestBase.createAndStartNamesrv();
+        NAMESRV_ADDR = "127.0.0.1:" + NAMESRV_CONTROLLER.getNettyServerConfig().getListenPort();
+        log.debug("Name server started, listening: {}", NAMESRV_ADDR);
 
-        brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
-        log.debug("Broker {} started, listening: {}", brokerController1.getBrokerConfig().getBrokerName(),
-            brokerController1.getBrokerConfig().getListenPort());
+        BROKER_CONTROLLER1 = IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR);
+        log.debug("Broker {} started, listening: {}", BROKER_CONTROLLER1.getBrokerConfig().getBrokerName(),
+            BROKER_CONTROLLER1.getBrokerConfig().getListenPort());
 
-        brokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr);
-        log.debug("Broker {} started, listening: {}", brokerController2.getBrokerConfig().getBrokerName(),
-            brokerController2.getBrokerConfig().getListenPort());
+        BROKER_CONTROLLER2 = IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR);
+        log.debug("Broker {} started, listening: {}", BROKER_CONTROLLER2.getBrokerConfig().getBrokerName(),
+            BROKER_CONTROLLER2.getBrokerConfig().getListenPort());
 
-        brokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr);
-        log.debug("Broker {} started, listening: {}", brokerController2.getBrokerConfig().getBrokerName(),
-            brokerController2.getBrokerConfig().getListenPort());
+        BROKER_CONTROLLER3 = IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR);
+        log.debug("Broker {} started, listening: {}", BROKER_CONTROLLER3.getBrokerConfig().getBrokerName(),
+            BROKER_CONTROLLER3.getBrokerConfig().getListenPort());
 
-        clusterName = brokerController1.getBrokerConfig().getBrokerClusterName();
-        broker1Name = brokerController1.getBrokerConfig().getBrokerName();
-        broker2Name = brokerController2.getBrokerConfig().getBrokerName();
-        broker3Name = brokerController3.getBrokerConfig().getBrokerName();
-        brokerNum = 3;
-        brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
-        brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
+        CLUSTER_NAME = BROKER_CONTROLLER1.getBrokerConfig().getBrokerClusterName();
+        BROKER1_NAME = BROKER_CONTROLLER1.getBrokerConfig().getBrokerName();
+        BROKER2_NAME = BROKER_CONTROLLER2.getBrokerConfig().getBrokerName();
+        BROKER3_NAME = BROKER_CONTROLLER3.getBrokerConfig().getBrokerName();
+        BROKER_NUM = 3;
+        BROKER_CONTROLLER_LIST = ImmutableList.of(BROKER_CONTROLLER1, BROKER_CONTROLLER2, BROKER_CONTROLLER3);
+        BROKER_CONTROLLER_MAP = BROKER_CONTROLLER_LIST.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
 
     public BaseConf() {
         // Add waitBrokerRegistered to BaseConf constructor to make it default for all subclasses.
-        waitBrokerRegistered(nsAddr, clusterName, brokerNum);
+        waitBrokerRegistered(NAMESRV_ADDR, CLUSTER_NAME, BROKER_NUM);
     }
 
     // This method can't be placed in the static block of BaseConf, which seems to lead to a strange dead lock.
@@ -124,7 +124,7 @@ public class BaseConf {
                 }
                 return brokerDatas.size() == expectedBrokerNum;
             });
-            for (BrokerController brokerController: brokerControllerList) {
+            for (BrokerController brokerController: BROKER_CONTROLLER_LIST) {
                 brokerController.getBrokerOuterAPI().refreshMetadata();
             }
         } catch (Exception e) {
@@ -138,7 +138,7 @@ public class BaseConf {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start <= timeMs) {
             boolean allOk = true;
-            for (BrokerController brokerController: brokerControllerList) {
+            for (BrokerController brokerController: BROKER_CONTROLLER_LIST) {
                 if (brokerController.getMessageStore().dispatchBehindBytes() != 0) {
                     allOk = false;
                     break;
@@ -174,22 +174,22 @@ public class BaseConf {
     }
 
     public static String initTopicWithName(String topicName) {
-        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, CQType.SimpleCQ);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, CLUSTER_NAME, CQType.SimpleCQ);
         return topicName;
     }
 
     public static String initTopicWithName(String topicName, TopicMessageType topicMessageType) {
-        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, topicMessageType);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, CLUSTER_NAME, topicMessageType);
         return topicName;
     }
 
     public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic) {
-        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, CQType.SimpleCQ);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, CQType.SimpleCQ);
         return topicName;
     }
 
     public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic, TopicMessageType topicMessageType) {
-        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, topicMessageType);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, topicMessageType);
         return topicName;
     }
 
@@ -199,7 +199,7 @@ public class BaseConf {
     }
 
     public static String initConsumerGroup(String group) {
-        MQAdminTestUtils.createSub(nsAddr, clusterName, group);
+        MQAdminTestUtils.createSub(NAMESRV_ADDR, CLUSTER_NAME, group);
         return group;
     }
 
@@ -207,7 +207,7 @@ public class BaseConf {
         final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
         mqAdminExt.setNamesrvAddr(nsAddr);
         mqAdminExt.setPollNameServerInterval(100);
-        mqClients.add(mqAdminExt);
+        MQ_CLIENTS.add(mqAdminExt);
         return mqAdminExt;
     }
 
@@ -218,19 +218,19 @@ public class BaseConf {
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS) {
         RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS);
-        if (debug) {
+        if (DEBUG) {
             producer.setDebug();
         }
-        mqClients.add(producer);
+        MQ_CLIENTS.add(producer);
         return producer;
     }
 
     public static RMQTransactionalProducer getTransactionalProducer(String nsAddr, String topic, TransactionListener transactionListener) {
         RMQTransactionalProducer producer = new RMQTransactionalProducer(nsAddr, topic, false, transactionListener);
-        if (debug) {
+        if (DEBUG) {
             producer.setDebug();
         }
-        mqClients.add(producer);
+        MQ_CLIENTS.add(producer);
         return producer;
     }
 
@@ -238,19 +238,19 @@ public class BaseConf {
                                                 String instanceName) {
         RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, producerGoup,
                 instanceName);
-        if (debug) {
+        if (DEBUG) {
             producer.setDebug();
         }
-        mqClients.add(producer);
+        MQ_CLIENTS.add(producer);
         return producer;
     }
 
     public static RMQAsyncSendProducer getAsyncProducer(String nsAddr, String topic) {
         RMQAsyncSendProducer producer = new RMQAsyncSendProducer(nsAddr, topic);
-        if (debug) {
+        if (DEBUG) {
             producer.setDebug();
         }
-        mqClients.add(producer);
+        MQ_CLIENTS.add(producer);
         return producer;
     }
 
@@ -274,26 +274,26 @@ public class BaseConf {
                                                 String subExpression, AbstractListener listener, boolean useTLS) {
         RMQNormalConsumer consumer = ConsumerFactory.getRMQNormalConsumer(nsAddr, consumerGroup,
                 topic, subExpression, listener, useTLS);
-        if (debug) {
+        if (DEBUG) {
             consumer.setDebug();
         }
-        mqClients.add(consumer);
+        MQ_CLIENTS.add(consumer);
         log.info(String.format("consumer[%s] start,topic[%s],subExpression[%s]", consumerGroup,
                 topic, subExpression));
         return consumer;
     }
 
     public static void shutdown() {
-        ImmutableList<Object> mqClients = ImmutableList.copyOf(BaseConf.mqClients);
-        BaseConf.mqClients.clear();
+        ImmutableList<Object> mqClients = ImmutableList.copyOf(BaseConf.MQ_CLIENTS);
+        BaseConf.MQ_CLIENTS.clear();
         shutdown(mqClients);
     }
 
     public static Set<String> getBrokers() {
         Set<String> brokers = new HashSet<>();
-        brokers.add(broker1Name);
-        brokers.add(broker2Name);
-        brokers.add(broker3Name);
+        brokers.add(BROKER1_NAME);
+        brokers.add(BROKER2_NAME);
+        brokers.add(BROKER3_NAME);
         return brokers;
     }
 

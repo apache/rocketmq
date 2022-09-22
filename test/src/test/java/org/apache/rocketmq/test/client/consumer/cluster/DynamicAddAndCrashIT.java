@@ -41,7 +41,7 @@ public class DynamicAddAndCrashIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -52,23 +52,23 @@ public class DynamicAddAndCrashIT extends BaseConf {
     @Test
     public void testAddOneConsumerAndCrashAfterWhile() {
         int msgSize = 150;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
         consumer2.shutdown();
 
-        asyncDefaultMQProducer.waitSendAll(waitTime * 6);
+        asyncDefaultMQProducer.waitSendAll(WAIT_TIME * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+        MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
@@ -76,27 +76,27 @@ public class DynamicAddAndCrashIT extends BaseConf {
     @Test
     public void testAddTwoConsumerAndCrashAfterWhile() {
         int msgSize = 150;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer3 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         consumer2.shutdown();
         consumer3.shutdown();
 
-        asyncDefaultMQProducer.waitSendAll(waitTime * 6);
+        asyncDefaultMQProducer.waitSendAll(WAIT_TIME * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+        MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener(), consumer3.getListener());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener(), consumer3.getListener());
         assertThat(recvAll).isEqualTo(true);
     }

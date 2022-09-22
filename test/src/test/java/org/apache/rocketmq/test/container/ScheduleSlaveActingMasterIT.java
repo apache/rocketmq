@@ -45,17 +45,12 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
 
     private static final String CONSUME_GROUP = ScheduleSlaveActingMasterIT.class.getSimpleName() + "_Consumer";
     private final static int MESSAGE_COUNT = 32;
-    private final static Random random = new Random();
+    private static Random random = new Random();
     private static DefaultMQProducer producer;
     private final static String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private static byte[] MESSAGE_BODY;
+    private final byte[] messageBody = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
 
-    static {
-        try {
-            MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+    public ScheduleSlaveActingMasterIT() throws UnsupportedEncodingException {
     }
 
     void createTopic(String topic) {
@@ -99,7 +94,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             msg.setDelayTimeLevel(4);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
@@ -158,7 +153,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             msg.setDelayTimeSec(30);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
@@ -207,7 +202,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             msg.setDelayTimeLevel(4);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
@@ -289,7 +284,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             msg.setDelayTimeSec(30);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {

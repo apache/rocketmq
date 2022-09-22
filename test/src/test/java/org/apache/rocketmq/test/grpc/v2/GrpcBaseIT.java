@@ -133,9 +133,9 @@ public class GrpcBaseIT extends BaseConf {
     protected static final int DEFAULT_QUEUE_NUMS = 8;
 
     public void setUp() throws Exception {
-        brokerController1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        BROKER_CONTROLLER1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        BROKER_CONTROLLER2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        BROKER_CONTROLLER3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
 
         header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
         header.put(InterceptorConstants.LANGUAGE, "JAVA");
@@ -152,10 +152,10 @@ public class GrpcBaseIT extends BaseConf {
 
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        ConfigurationManager.getProxyConfig().setNamesrvAddr(nsAddr);
+        ConfigurationManager.getProxyConfig().setNamesrvAddr(NAMESRV_ADDR);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
-        ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
+        ConfigurationManager.getProxyConfig().setRocketMQClusterName(BROKER_CONTROLLER1.getBrokerConfig().getBrokerClusterName());
         ConfigurationManager.getProxyConfig().setMinInvisibleTimeMillsForRecv(3);
     }
 
@@ -228,7 +228,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testTransactionCheckThenCommit() {
-        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.TRANSACTION);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.TRANSACTION);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
         AtomicReference<TelemetryCommand> telemetryCommandRef = new AtomicReference<>(null);
@@ -321,7 +321,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.DELAY);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
         String group = MQRandomUtils.getRandomConsumerGroup();
         long delayTime = TimeUnit.SECONDS.toMillis(5);
 
@@ -369,7 +369,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
         int bodySize = 4 * 1024;
@@ -391,7 +391,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testSimpleConsumerSendAndRecv() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
         // init consumer offset
@@ -446,15 +446,15 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testSimpleConsumerToDLQ() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
         int maxDeliveryAttempts = 2;
 
-        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        SubscriptionGroupConfig groupConfig = BROKER_CONTROLLER1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
         groupConfig.setRetryMaxTimes(maxDeliveryAttempts - 1);
-        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
-        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
-        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
@@ -474,7 +474,7 @@ public class GrpcBaseIT extends BaseConf {
 
         DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(group);
         defaultMQPullConsumer.start();
-        org.apache.rocketmq.common.message.MessageQueue dlqMQ = new org.apache.rocketmq.common.message.MessageQueue(MixAll.getDLQTopic(group), broker1Name, 0);
+        org.apache.rocketmq.common.message.MessageQueue dlqMQ = new org.apache.rocketmq.common.message.MessageQueue(MixAll.getDLQTopic(group), BROKER1_NAME, 0);
         await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
             try {
                 List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group, 1));
@@ -495,14 +495,14 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testConsumeOrderly() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.FIFO);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.FIFO);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
-        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        SubscriptionGroupConfig groupConfig = BROKER_CONTROLLER1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
         groupConfig.setConsumeMessageOrderly(true);
-        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
-        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
-        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        BROKER_CONTROLLER3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
 
         this.sendClientSettings(stub, buildPushConsumerClientSettings(group)).get();
         receiveMessage(blockingStub, topic, group, 1);

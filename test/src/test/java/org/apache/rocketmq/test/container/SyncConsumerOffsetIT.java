@@ -58,7 +58,7 @@ public class SyncConsumerOffsetIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
     private static DefaultMQPushConsumer mqConsumerThreeReplica;
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ").getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private final byte[] messageBody = "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET);
 
     public SyncConsumerOffsetIT() throws UnsupportedEncodingException {
     }
@@ -95,7 +95,7 @@ public class SyncConsumerOffsetIT extends ContainerIntegrationTestBase {
 
         int msgCount = 100;
         for (int i = 0; i < msgCount; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = mqProducer.send(msg);
             assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         }

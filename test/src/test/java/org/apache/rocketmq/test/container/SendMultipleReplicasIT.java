@@ -42,7 +42,7 @@ import static org.awaitility.Awaitility.await;
 public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private final byte[] messageBody = "Hello RocketMQ ".getBytes(RemotingHelper.DEFAULT_CHARSET);
 
     public SendMultipleReplicasIT() throws UnsupportedEncodingException {
     }
@@ -66,7 +66,7 @@ public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
         awaitUntilSlaveOK();
 
         // Send message to broker group with three replicas
-        Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+        Message msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
         SendResult sendResult = mqProducer.send(msg);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
     }
@@ -77,7 +77,7 @@ public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
             .until(() -> ((DefaultMessageStore) master1With3Replicas.getMessageStore()).getHaService().getConnectionCount().get() == 2
                 && master1With3Replicas.getMessageStore().getAliveReplicaNumInGroup() == 3);
         // Broker with 3 replicas configured as 3-2-1 auto replicas mode
-        Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+        Message msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
         SendResult sendResult = mqProducer.send(msg);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
 
@@ -100,7 +100,7 @@ public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
 
         assertThat(targetMq).isNotNull();
         // Although this broker group only has one slave broker, send will be success in auto mode.
-        msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+        msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
         sendResult = mqProducer.send(msg, targetMq);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
 
@@ -140,7 +140,7 @@ public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
 
         assertThat(targetMq).isNotNull();
 
-        Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
+        Message msg = new Message(THREE_REPLICAS_TOPIC, messageBody);
         boolean exceptionCaught = false;
         try {
             mqProducer.send(msg, targetMq);

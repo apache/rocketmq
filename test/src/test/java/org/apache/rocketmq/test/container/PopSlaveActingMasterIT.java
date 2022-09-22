@@ -29,7 +29,6 @@ import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
@@ -44,7 +43,6 @@ import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -59,17 +57,17 @@ import static org.awaitility.Awaitility.await;
 public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     private static final String CONSUME_GROUP = PopSlaveActingMasterIT.class.getSimpleName() + "_Consumer";
     private final static int MESSAGE_COUNT = 16;
-    private final static Random random = new Random();
+    private static Random random = new Random();
     private static DefaultMQProducer producer;
     private final static String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private static byte[] MESSAGE_BODY;
+    private static byte[] messageBody;
 
     public PopSlaveActingMasterIT() {
     }
 
     static {
         try {
-            MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
+            messageBody = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -79,7 +77,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         createTopicTo(master1With3Replicas, topic, 1, 1);
         createTopicTo(master2With3Replicas, topic, 1, 1);
         createTopicTo(master3With3Replicas, topic, 1, 1);
-        System.out.println("Topic [" + topic + "] created");
     }
 
     @BeforeClass
@@ -109,20 +106,17 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
-                System.out.println("send message id: " + sendResult.getMsgId());
                 sendSuccess++;
             }
         }
 
-        System.out.printf("send success %d%n", sendSuccess);
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
 
         isolateBroker(master1With3Replicas);
-        System.out.printf("isolate master1%n");
 
         DefaultMQPushConsumer consumer = createPushConsumer(CONSUME_GROUP);
         consumer.subscribe(topic, "*");
@@ -130,7 +124,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         List<String> consumedMessages = new CopyOnWriteArrayList<>();
         consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             msgs.forEach(msg -> {
-                System.out.println("receive msg id: " + msg.getMsgId());
                 consumedMessages.add(msg.getMsgId());
             });
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -139,7 +132,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         consumer.start();
 
         await().atMost(Duration.ofMinutes(1)).until(() -> consumedMessages.size() >= MESSAGE_COUNT);
-        System.out.printf("%s pop receive msg count: %d%n", LocalDateTime.now(), consumedMessages.size());
 
         consumer.shutdown();
 
@@ -181,7 +173,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
                 sendToIsolateMsgSet.add(new String(msg.getBody()));
@@ -189,12 +181,10 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
             }
         }
 
-        System.out.printf("send success %d%n", sendSuccess);
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
 
         isolateBroker(master1With3Replicas);
-        System.out.printf("isolate master1%n");
 
         DefaultMQPushConsumer consumer = createPushConsumer(CONSUME_GROUP);
         consumer.subscribe(topic, "*");
@@ -203,7 +193,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         List<String> consumedMessages = new CopyOnWriteArrayList<>();
         consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             msgs.forEach(msg -> {
-                System.out.println("receive msg id: " + msg.getMsgId());
 
                 msg.setReconsumeTimes(0);
 
@@ -223,32 +212,26 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             for (MessageExt msg : msgs) {
-                System.out.printf("receive retry msg: %s%n", msg.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 retryMsgList.add(new String(msg.getBody()));
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         pushConsumer.start();
 
-        System.out.printf(LocalDateTime.now() + ": wait for ack revive%n");
 
         AtomicInteger failCnt = new AtomicInteger(0);
         await().atMost(Duration.ofMinutes(3)).pollInterval(Duration.ofSeconds(10)).until(() -> {
             if (retryMsgList.size() < MESSAGE_COUNT) {
-                System.out.println("check FAILED" + failCnt.incrementAndGet() + ": retryMsgList.size=" + retryMsgList.size() + " less than " + MESSAGE_COUNT);
                 return false;
             }
 
             for (String msgBodyString : retryMsgList) {
                 if (!sendToIsolateMsgSet.contains(msgBodyString)) {
-                    System.out.println("check FAILED: sendToIsolateMsgSet doesn't contain " + msgBodyString);
                     return false;
                 }
             }
             return true;
         });
-
-        System.out.printf(LocalDateTime.now() + ": receive retry msg size=%d%n", retryMsgList.size());
 
         cancelIsolatedBroker(master1With3Replicas);
         awaitUntilSlaveOK();
@@ -270,27 +253,23 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
-                System.out.println("Send message id: " + sendResult.getMsgId());
                 sendSuccess++;
             }
         }
 
-        System.out.printf("%s send success %d%n", LocalDateTime.now(), sendSuccess);
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
 
         isolateBroker(master1With3Replicas);
-        System.out.printf("%s isolate master1%n", LocalDateTime.now());
 
         isolateBroker(master2With3Replicas);
         brokerContainer2.removeBroker(new BrokerIdentity(
                 master2With3Replicas.getBrokerConfig().getBrokerClusterName(),
                 master2With3Replicas.getBrokerConfig().getBrokerName(),
                 master2With3Replicas.getBrokerConfig().getBrokerId()));
-        System.out.printf("%s Remove master2%n", LocalDateTime.now());
 
 
         DefaultMQPushConsumer consumer = createPushConsumer(CONSUME_GROUP);
@@ -299,7 +278,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         List<String> consumedMessages = new CopyOnWriteArrayList<>();
         consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             msgs.forEach(msg -> {
-                System.out.println("receive msg id: " + msg.getMsgId());
                 consumedMessages.add(msg.getMsgId());
             });
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -309,42 +287,35 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
 
         await().atMost(Duration.ofMinutes(2)).until(() -> consumedMessages.size() >= MESSAGE_COUNT);
         consumer.shutdown();
-        System.out.printf("%s %d messages consumed%n", LocalDateTime.now(), consumedMessages.size());
 
         List<String> retryMsgList = new CopyOnWriteArrayList<>();
         DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUME_GROUP);
         pushConsumer.subscribe(retryTopic, "*");
         pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             for (MessageExt msg : msgs) {
-                System.out.printf("receive retry msg: %s %n", msg.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 retryMsgList.add(new String(msg.getBody()));
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         pushConsumer.start();
 
-        System.out.printf("%s wait for ack revive%n", LocalDateTime.now());
         Thread.sleep(10000);
 
         assertThat(retryMsgList.size()).isEqualTo(0);
 
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("%s Cancel isolate master1%n", LocalDateTime.now());
 
         //Add back master
         master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
-        System.out.printf("%s Add back master2%n", LocalDateTime.now());
 
         awaitUntilSlaveOK();
 
-        System.out.printf("%s wait for ack revive%n", LocalDateTime.now());
         Thread.sleep(10000);
 
         assertThat(retryMsgList.size()).isEqualTo(0);
 
-        System.out.printf("%s shutting down pushConsumer%n", LocalDateTime.now());
         pushConsumer.shutdown();
     }
 
@@ -363,7 +334,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
                 sendToIsolateMsgSet.add(new String(msg.getBody()));
@@ -371,19 +342,16 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
             }
         }
 
-        System.out.printf("send success %d%n", sendSuccess);
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
 
         isolateBroker(master1With3Replicas);
-        System.out.printf("isolate master1%n");
 
         isolateBroker(master2With3Replicas);
         brokerContainer2.removeBroker(new BrokerIdentity(
                 master2With3Replicas.getBrokerConfig().getBrokerClusterName(),
                 master2With3Replicas.getBrokerConfig().getBrokerName(),
                 master2With3Replicas.getBrokerConfig().getBrokerId()));
-        System.out.printf("Remove master2%n");
 
 
         DefaultMQPushConsumer consumer = createPushConsumer(CONSUME_GROUP);
@@ -392,7 +360,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         List<String> consumedMessages = new CopyOnWriteArrayList<>();
         consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             msgs.forEach(msg -> {
-                System.out.println("receive msg id: " + msg.getMsgId());
                 consumedMessages.add(msg.getMsgId());
             });
             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
@@ -409,40 +376,33 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.subscribe(retryTopic, "*");
         pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             for (MessageExt msg : msgs) {
-                System.out.printf("receive retry msg: %s%n", msg.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 retryMsgList.add(new String(msg.getBody()));
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         pushConsumer.start();
 
-        System.out.printf("wait for ack revive%n");
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             if (retryMsgList.size() < MESSAGE_COUNT) {
-                System.out.println("check FAILED: retryMsgList.size=" + retryMsgList.size() + " less than " + MESSAGE_COUNT);
                 return false;
             }
 
             for (String msgBodyString : retryMsgList) {
                 if (!sendToIsolateMsgSet.contains(msgBodyString)) {
-                    System.out.println("check FAILED: sendToIsolateMsgSet doesn't contain: " + msgBodyString);
                     return false;
                 }
             }
             return true;
         });
 
-        System.out.printf("receive retry msg as expected%n");
 
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("Cancel isolate master1%n");
 
         //Add back master
         master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
-        System.out.printf("Add back master2%n");
 
         awaitUntilSlaveOK();
         pushConsumer.shutdown();
@@ -462,7 +422,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         MessageQueue messageQueue = new MessageQueue(topic, master1With3Replicas.getBrokerConfig().getBrokerName(), 0);
         int sendSuccess = 0;
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message msg = new Message(topic, MESSAGE_BODY);
+            Message msg = new Message(topic, messageBody);
             SendResult sendResult = producer.send(msg, messageQueue);
             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
                 sendToIsolateMsgSet.add(new String(msg.getBody()));
@@ -470,12 +430,10 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
             }
         }
 
-        System.out.printf("send success %d%n", sendSuccess);
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
 
         isolateBroker(master1With3Replicas);
-        System.out.printf("isolate master1%n");
 
         isolateBroker(master2With3Replicas);
         brokerContainer2.removeBroker(new BrokerIdentity(
@@ -498,7 +456,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         List<String> consumedMessages = new CopyOnWriteArrayList<>();
         consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             msgs.forEach(msg -> {
-                System.out.println("receive msg id: " + msg.getMsgId());
                 consumedMessages.add(msg.getMsgId());
             });
             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
@@ -507,7 +464,6 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         consumer.start();
 
         await().atMost(Duration.ofMinutes(1)).until(() -> consumedMessages.size() >= MESSAGE_COUNT);
-        System.out.printf("%s pop receive msg count: %d%n", LocalDateTime.now(), consumedMessages.size());
         consumer.shutdown();
 
 
@@ -516,14 +472,12 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.subscribe(retryTopic, "*");
         pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
             for (MessageExt msg : msgs) {
-                System.out.printf("receive retry msg: %s%n", msg.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 retryMsgList.add(new String(msg.getBody()));
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         pushConsumer.start();
 
-        System.out.printf("wait for ack revive%n");
         Thread.sleep(10000);
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
@@ -561,7 +515,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     }
 
     private void switchPop(String topic) throws Exception {
-        for (BrokerContainer brokerContainer : brokerContainerList) {
+        for (BrokerContainer brokerContainer : BROKER_CONTAINER_LIST) {
             for (InnerBrokerController master : brokerContainer.getMasterBrokers()) {
                 String brokerAddr = master.getBrokerAddr();
                 defaultMQAdminExt.setMessageRequestMode(brokerAddr, topic, CONSUME_GROUP, MessageRequestMode.POP, 8, 60_000);

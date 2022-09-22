@@ -38,7 +38,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        messagingProcessor = DefaultMessagingProcessor.createForLocalMode(brokerController1);
+        messagingProcessor = DefaultMessagingProcessor.createForLocalMode(BROKER_CONTROLLER1);
         messagingProcessor.start();
         grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
         grpcMessagingApplication.start();
@@ -57,7 +57,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
         String topic = initTopic();
 
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
-        assertQueryRoute(response, brokerControllerList.size() * DEFAULT_QUEUE_NUMS);
+        assertQueryRoute(response, BROKER_CONTROLLER_LIST.size() * DEFAULT_QUEUE_NUMS);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
 
         QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
 
-        assertQueryAssignment(response, brokerNum);
+        assertQueryAssignment(response, BROKER_NUM);
     }
 
     @Test

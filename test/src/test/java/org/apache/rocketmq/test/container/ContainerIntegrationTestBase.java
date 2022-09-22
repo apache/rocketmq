@@ -87,8 +87,8 @@ public class ContainerIntegrationTestBase {
 
     protected static final String THREE_REPLICAS_TOPIC = "SEND_MESSAGE_TEST_TOPIC_THREE_REPLICAS";
 
-    protected static final List<BrokerContainer> brokerContainerList = new ArrayList<>();
-    protected static final List<NamesrvController> namesrvControllers = new ArrayList<>();
+    protected static final List<BrokerContainer> BROKER_CONTAINER_LIST = new ArrayList<>();
+    protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
 
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
     protected static final int COMMIT_LOG_SIZE = 128 * 1024;
@@ -231,14 +231,14 @@ public class ContainerIntegrationTestBase {
                 System.out.printf("clean up%n");
                 defaultMQAdminExt.shutdown();
 
-                for (final BrokerContainer brokerContainer : brokerContainerList) {
+                for (final BrokerContainer brokerContainer : BROKER_CONTAINER_LIST) {
                     brokerContainer.shutdown();
                     for (BrokerController brokerController : brokerContainer.getBrokerControllers()) {
                         brokerController.getMessageStore().destroy();
                     }
                 }
 
-                for (final NamesrvController namesrvController : namesrvControllers) {
+                for (final NamesrvController namesrvController : NAMESRV_CONTROLLERS) {
                     namesrvController.shutdown();
                 }
 
@@ -304,7 +304,7 @@ public class ContainerIntegrationTestBase {
             }
         }, null);
 
-        namesrvControllers.add(namesrvController);
+        NAMESRV_CONTROLLERS.add(namesrvController);
         return namesrvController;
 
     }
@@ -326,7 +326,7 @@ public class ContainerIntegrationTestBase {
             e.printStackTrace();
             System.exit(1);
         }
-        brokerContainerList.add(brokerContainer);
+        BROKER_CONTAINER_LIST.add(brokerContainer);
         return brokerContainer;
     }
 

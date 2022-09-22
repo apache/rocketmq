@@ -41,7 +41,7 @@ public class BaseBroadcast extends BaseConf {
 
         consumer.setDebug();
 
-        mqClients.add(consumer);
+        MQ_CLIENTS.add(consumer);
         logger.info(String.format("consumer[%s] start,topic[%s],subExpression[%s]", consumerGroup,
             topic, subExpression));
         return consumer;

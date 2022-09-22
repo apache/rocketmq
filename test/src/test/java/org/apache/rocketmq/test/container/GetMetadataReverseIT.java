@@ -49,7 +49,7 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
 
     private static final int MESSAGE_COUNT = 32;
 
-    private final static Random random = new Random();
+    private static Random random = new Random();
 
     public GetMetadataReverseIT() throws UnsupportedEncodingException {
 
@@ -200,10 +200,10 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             pushConsumer.getDefaultMQPushConsumerImpl().persistConsumerOffset();
-            Map<Integer, Long> OffsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
-            if (OffsetTable != null) {
+            Map<Integer, Long> offsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
+            if (offsetTable != null) {
                 long totalOffset = 0;
-                for (final Long offset : OffsetTable.values()) {
+                for (final Long offset : offsetTable.values()) {
                     totalOffset += offset;
                 }
                 return totalOffset >= MESSAGE_COUNT;
@@ -216,13 +216,11 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("Add back master%n");
 
         awaitUntilSlaveOK();
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             Map<Integer, Long> offsetTable = master1With3Replicas.getScheduleMessageService().getOffsetTable();
-            System.out.println("" + offsetTable.get(delayLevel));
             return offsetTable.get(delayLevel) >= MESSAGE_COUNT;
         });
 
@@ -277,10 +275,10 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             pushConsumer.getDefaultMQPushConsumerImpl().persistConsumerOffset();
-            Map<Integer, Long> OffsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
-            if (OffsetTable != null) {
+            Map<Integer, Long> offsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
+            if (offsetTable != null) {
                 long totalOffset = 0;
-                for (final Long offset : OffsetTable.values()) {
+                for (final Long offset : offsetTable.values()) {
                     totalOffset += offset;
                 }
                 return totalOffset >= MESSAGE_COUNT;
