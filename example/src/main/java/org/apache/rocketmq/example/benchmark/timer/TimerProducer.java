@@ -29,11 +29,11 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -250,7 +250,7 @@ public class TimerProducer {
         msg.setTopic(topic);
 
         String body = StringUtils.repeat('a', messageSize);
-        msg.setBody(body.getBytes(RemotingHelper.DEFAULT_CHARSET));
+        msg.setBody(body.getBytes(StandardCharsets.UTF_8));
 
         return msg;
     }

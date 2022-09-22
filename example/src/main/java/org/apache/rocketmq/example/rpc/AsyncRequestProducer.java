@@ -23,7 +23,8 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+
+import java.nio.charset.StandardCharsets;
 
 public class AsyncRequestProducer {
     private static final InternalLogger log = ClientLogger.getLog();
@@ -39,7 +40,7 @@ public class AsyncRequestProducer {
         try {
             Message msg = new Message(topic,
                 "",
-                "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                "Hello world".getBytes(StandardCharsets.UTF_8));
 
             long begin = System.currentTimeMillis();
             producer.request(msg, new RequestCallback() {

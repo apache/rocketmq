@@ -21,9 +21,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -58,12 +57,12 @@ public class TransactionProducer {
             try {
                 Message msg =
                     new Message(TOPIC, tags[i % tags.length], "KEY" + i,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                        ("Hello RocketMQ " + i).getBytes(StandardCharsets.UTF_8));
                 SendResult sendResult = producer.sendMessageInTransaction(msg, null);
                 System.out.printf("%s%n", sendResult);
 
                 Thread.sleep(10);
-            } catch (MQClientException | UnsupportedEncodingException e) {
+            } catch (MQClientException e) {
                 e.printStackTrace();
             }
         }

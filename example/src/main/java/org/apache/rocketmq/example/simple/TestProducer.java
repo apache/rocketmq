@@ -22,7 +22,8 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+
+import java.nio.charset.StandardCharsets;
 
 public class TestProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
@@ -35,7 +36,7 @@ public class TestProducer {
                     Message msg = new Message("TopicTest1",
                         "TagA",
                         "key113",
-                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                        "Hello world".getBytes(StandardCharsets.UTF_8));
                     SendResult sendResult = producer.send(msg);
                     System.out.printf("%s%n", sendResult);
 

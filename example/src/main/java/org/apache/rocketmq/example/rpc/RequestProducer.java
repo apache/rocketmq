@@ -20,7 +20,8 @@ package org.apache.rocketmq.example.rpc;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+
+import java.nio.charset.StandardCharsets;
 
 public class RequestProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
@@ -38,7 +39,7 @@ public class RequestProducer {
         try {
             Message msg = new Message(topic,
                 "",
-                "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                "Hello world".getBytes(StandardCharsets.UTF_8));
 
             long begin = System.currentTimeMillis();
             Message retMsg = producer.request(msg, ttl);
