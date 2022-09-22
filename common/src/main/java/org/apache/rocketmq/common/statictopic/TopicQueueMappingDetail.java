@@ -97,8 +97,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     public static boolean checkIfAsPhysical(TopicQueueMappingDetail mappingDetail, Integer globalId) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(mappingDetail, globalId);
         return mappingItems == null
-                || (mappingItems.size() == 1
-                &&  mappingItems.get(0).getLogicOffset() == 0);
+                || mappingItems.size() == 1
+                &&  mappingItems.get(0).getLogicOffset() == 0;
     }
 
     public ConcurrentMap<Integer, List<LogicQueueMappingItem>> getHostedQueues() {

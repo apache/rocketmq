@@ -137,8 +137,8 @@ public class PopBufferMergeService extends ServiceThread {
                 // 1. just offset & stored, not processed by scan
                 // 2. ck is buffer(acked)
                 // 3. ck is buffer(not all acked), all ak are stored and ck is stored
-                if ((pointWrapper.isJustOffset() && pointWrapper.isCkStored()) || isCkDone(pointWrapper)
-                    || (isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored())) {
+                if (pointWrapper.isJustOffset() && pointWrapper.isCkStored() || isCkDone(pointWrapper)
+                    || isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored()) {
                     if (commitOffset(pointWrapper)) {
                         queue.poll();
                     } else {
@@ -218,8 +218,8 @@ public class PopBufferMergeService extends ServiceThread {
             PopCheckPointWrapper pointWrapper = entry.getValue();
 
             // just process offset(already stored at pull thread), or buffer ck(not stored and ack finish)
-            if ((pointWrapper.isJustOffset() && pointWrapper.isCkStored()) || isCkDone(pointWrapper)
-                || (isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored())) {
+            if (pointWrapper.isJustOffset() && pointWrapper.isCkStored() || isCkDone(pointWrapper)
+                || isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored()) {
                 if (brokerController.getBrokerConfig().isEnablePopLog()) {
                     POP_LOGGER.info("[PopBuffer]ck done, {}", pointWrapper);
                 }
@@ -231,7 +231,7 @@ public class PopBufferMergeService extends ServiceThread {
             PopCheckPoint point = pointWrapper.getCk();
             long now = System.currentTimeMillis();
 
-            boolean removeCk = this.serving ? false : true;
+            boolean removeCk = !this.serving;
             // ck will be timeout
             if (point.getReviveTime() - now < brokerController.getBrokerConfig().getPopCkStayBufferTimeOut()) {
                 removeCk = true;

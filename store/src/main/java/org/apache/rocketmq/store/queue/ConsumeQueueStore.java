@@ -17,6 +17,16 @@
 package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -172,22 +182,85 @@ public class ConsumeQueueStore {
         }
     }
 
+    private ExecutorService buildExecutorService(BlockingQueue<Runnable> blockingQueue, String threadNamePrefix) {
+        return new ThreadPoolExecutor(
+            this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
+            this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            blockingQueue,
+            new ThreadFactoryImpl(threadNamePrefix));
+    }
+
     public void recover(ConsumeQueueInterface consumeQueue) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         fileQueueLifeCycle.recover();
     }
 
-    public long recover() {
-        long maxPhysicOffset = -1;
+    public void recover() {
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
                 this.recover(logic);
+            }
+        }
+    }
+
+    public boolean recoverConcurrently() {
+        int count = 0;
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            count += maps.values().size();
+        }
+        final CountDownLatch countDownLatch = new CountDownLatch(count);
+        BlockingQueue<Runnable> recoverQueue = new LinkedBlockingQueue<>();
+        final ExecutorService executor = buildExecutorService(recoverQueue, "RecoverConsumeQueueThread_");
+        List<FutureTask<Boolean>> result = new ArrayList<>(count);
+        try {
+            for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+                for (final ConsumeQueueInterface logic : maps.values()) {
+                    FutureTask<Boolean> futureTask = new FutureTask<>(() -> {
+                        boolean ret = true;
+                        try {
+                            ((FileQueueLifeCycle) logic).recover();
+                        } catch (Throwable e) {
+                            ret = false;
+                            log.error("Exception occurs while recover consume queue concurrently, " +
+                                "topic={}, queueId={}", logic.getTopic(), logic.getQueueId(), e);
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                        return ret;
+                    });
+
+                    result.add(futureTask);
+                    executor.submit(futureTask);
+                }
+            }
+            countDownLatch.await();
+            for (FutureTask<Boolean> task : result) {
+                if (task != null && task.isDone()) {
+                    if (!task.get()) {
+                        return false;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception occurs while recover consume queue concurrently", e);
+            return false;
+        } finally {
+            executor.shutdown();
+        }
+        return true;
+    }
+
+    public long getMaxOffsetInConsumeQueue() {
+        long maxPhysicOffset = -1L;
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
                 if (logic.getMaxPhysicOffset() > maxPhysicOffset) {
                     maxPhysicOffset = logic.getMaxPhysicOffset();
                 }
             }
         }
-
         return maxPhysicOffset;
     }
 

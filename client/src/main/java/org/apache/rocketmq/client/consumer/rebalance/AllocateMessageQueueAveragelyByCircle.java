@@ -32,7 +32,7 @@ public class AllocateMessageQueueAveragelyByCircle extends AbstractAllocateMessa
     }
 
     public AllocateMessageQueueAveragelyByCircle(InternalLogger log) {
-        this.log = log;
+        super(log);
     }
 
     @Override

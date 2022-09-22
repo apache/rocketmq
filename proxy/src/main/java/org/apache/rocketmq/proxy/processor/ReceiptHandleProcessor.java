@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.subscription.RetryPolicy;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -239,7 +240,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         if (key == null) {
             return;
         }
-        receiptHandleGroupMap.computeIfAbsent(key,
+        ConcurrentHashMapUtils.computeIfAbsent(this.receiptHandleGroupMap, key,
             k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
     }
 

@@ -153,7 +153,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             } else {
                 System.out.printf("%n%n");
                 for (MessageTrack mt : mtdList) {
-                    System.out.printf("%s", mt);
+                    System.out.printf("%s%n", mt);
                 }
             }
         } catch (Exception e) {

@@ -29,7 +29,7 @@ java_library(
         "//filter",
         "//srvutil",
         "//acl",
-        "//store:io_openmessaging_storage_dledger",   
+        "@maven//:io_openmessaging_storage_dledger",   
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",

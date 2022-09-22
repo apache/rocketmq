@@ -47,6 +47,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
@@ -189,19 +190,17 @@ public class BrokerOuterAPITest {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
 
         when(nettyRemotingClient.getAvailableNameSrvList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
-        when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenAnswer(new Answer<RemotingCommand>() {
-            @Override
-            public RemotingCommand answer(InvocationOnMock invocation) throws Throwable {
-                if (invocation.getArgument(0) == nameserver1) {
-                    return response;
-                } else if (invocation.getArgument(0) == nameserver2) {
-                    return response;
-                } else if (invocation.getArgument(0) == nameserver3) {
-                    TimeUnit.MILLISECONDS.sleep(timeOut + 20);
-                    return response;
-                }
+        final ArgumentCaptor<Long> timeoutMillisCaptor = ArgumentCaptor.forClass(Long.class);
+        final ArgumentCaptor<String> namesrvCaptor = ArgumentCaptor.forClass(String.class);
+        when(nettyRemotingClient.invokeSync(namesrvCaptor.capture(), any(RemotingCommand.class),
+            timeoutMillisCaptor.capture())).thenAnswer((Answer<RemotingCommand>) invocation -> {
+            final String namesrv = namesrvCaptor.getValue();
+            if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
                 return response;
             }
+            long delayTimeMillis = 1000;
+            TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
+            return response;
         });
         List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, new BrokerIdentity());
 
