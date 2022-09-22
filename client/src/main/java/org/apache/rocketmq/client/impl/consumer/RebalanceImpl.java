@@ -208,16 +208,16 @@ public abstract class RebalanceImpl {
                     Set<MessageQueue> lockOKMQSet =
                         this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
 
-                    for(MessageQueue mq : mqs){
+                    for (MessageQueue mq : mqs) {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
-                        if(processQueue != null){
-                            if(lockOKMQSet.contains(mq)){
-                                if(!processQueue.isLocked()){
+                        if (processQueue != null) {
+                            if (lockOKMQSet.contains(mq)) {
+                                if (!processQueue.isLocked()) {
                                     log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
                                 }
                                 processQueue.setLocked(true);
                                 processQueue.setLastLockTimestamp(System.currentTimeMillis());
-                            }else{
+                            } else {
                                 processQueue.setLocked(false);
                                 log.warn("the message queue locked Failed, Group: {} {}", this.consumerGroup, mq);
                             }
