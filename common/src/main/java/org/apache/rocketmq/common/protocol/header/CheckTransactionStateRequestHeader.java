@@ -20,11 +20,11 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
+public class CheckTransactionStateRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private Long tranStateTableOffset;
     @CFNotNull
@@ -32,6 +32,7 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
     private String msgId;
     private String transactionId;
     private String offsetMsgId;
+    private int queueId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -75,5 +76,13 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
 
     public void setOffsetMsgId(String offsetMsgId) {
         this.offsetMsgId = offsetMsgId;
+    }
+
+    public int getQueueId() {
+        return queueId;
+    }
+
+    public void setQueueId(int queueId) {
+        this.queueId = queueId;
     }
 }

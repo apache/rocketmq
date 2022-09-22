@@ -17,20 +17,18 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
-
-import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-import io.netty.buffer.ByteBuf;
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
-public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCodesHeader {
+public class SendMessageRequestHeaderV2 extends RpcRequestHeader implements FastCodesHeader {
     @CFNotNull
     private String a; // producerGroup;
     @CFNotNull
@@ -59,6 +57,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
     @CFNullable
     private boolean m; //batch
 
+    private String n; // brokerName
+
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -74,6 +74,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
+        v1.setBname(v2.n);
         return v1;
     }
 
@@ -92,6 +93,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
+        v2.n = v1.getBname();
         return v2;
     }
 
@@ -114,6 +116,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         writeIfNotNull(out, "k", k);
         writeIfNotNull(out, "l", l);
         writeIfNotNull(out, "m", m);
+        writeIfNotNull(out, "n", n);
     }
 
     @Override
@@ -182,6 +185,11 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         str = fields.get("m");
         if (str != null) {
             m = Boolean.parseBoolean(str);
+        }
+
+        str = fields.get("n");
+        if (str != null) {
+            n = str;
         }
     }
 

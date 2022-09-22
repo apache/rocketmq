@@ -173,6 +173,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         replyMessageRequestHeader.setProperties(requestHeader.getProperties());
         replyMessageRequestHeader.setReconsumeTimes(requestHeader.getReconsumeTimes());
         replyMessageRequestHeader.setUnitMode(requestHeader.isUnitMode());
+        replyMessageRequestHeader.setBname(requestHeader.getBname());
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, replyMessageRequestHeader);
         request.setBody(msg.getBody());
