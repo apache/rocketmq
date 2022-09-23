@@ -21,6 +21,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MQVersion.Version;
@@ -637,7 +639,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
-        if (content != null && content.length() > 0) {
+        if (StringUtils.isNotBlank(content)) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
@@ -658,7 +660,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final GetRemoteClientConfigBody body = GetRemoteClientConfigBody.decode(request.getBody(), GetRemoteClientConfigBody.class);
 
         String content = this.namesrvController.getConfiguration().getClientConfigsFormatString(body.getKeys());
-        if (content != null && content.length() > 0) {
+        if (StringUtils.isNotBlank(content)) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {

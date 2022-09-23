@@ -86,6 +86,7 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
+        "org.springframework:spring-core:5.3.23",
     ],
     fetch_sources = True,
     repositories = [

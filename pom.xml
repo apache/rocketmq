@@ -113,7 +113,7 @@
         <guava.version>31.0.1-jre</guava.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <log4j.version>1.2.17</log4j.version>
-        <snakeyaml.version>1.30</snakeyaml.version>
+        <snakeyaml.version>1.31</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
         <logging-log4j.version>2.17.1</logging-log4j.version>
         <commons-validator.version>1.7</commons-validator.version>
@@ -131,6 +131,7 @@
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
+        <spring.version>5.3.23</spring.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -274,7 +275,7 @@
                         <phase>validate</phase>
                         <configuration>
                             <configLocation>style/rmq_checkstyle.xml</configLocation>
-                            <encoding>UTF-8</encoding>
+                            <inputEncoding>UTF-8</inputEncoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <includeTestSourceDirectory>false</includeTestSourceDirectory>
@@ -865,6 +866,13 @@
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
