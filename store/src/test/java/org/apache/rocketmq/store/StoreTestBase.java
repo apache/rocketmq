@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.junit.After;
 
 import java.io.File;
@@ -27,15 +28,19 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StoreTestBase {
 
     private int QUEUE_TOTAL = 100;
     private AtomicInteger QueueId = new AtomicInteger(0);
-    private SocketAddress BornHost = new InetSocketAddress("127.0.0.1", 8123);
-    private SocketAddress StoreHost = BornHost;
+    protected SocketAddress BornHost = new InetSocketAddress("127.0.0.1", 8123);
+    protected SocketAddress StoreHost = BornHost;
     private byte[] MessageBody = new byte[1024];
 
     protected Set<String> baseDirs = new HashSet<>();
@@ -145,7 +150,7 @@ public class StoreTestBase {
     }
 
     public static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
+        String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             System.exit(1);
@@ -155,7 +160,7 @@ public class StoreTestBase {
 
     public static boolean makeSureFileExists(String fileName) throws Exception {
         File file = new File(fileName);
-        MappedFile.ensureDirOK(file.getParent());
+        UtilAll.ensureDirOK(file.getParent());
         return file.createNewFile();
     }
 

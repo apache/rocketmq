@@ -28,6 +28,7 @@ public class SendResult {
     private String offsetMsgId;
     private String regionId;
     private boolean traceOn = true;
+    private byte[] rawRespBody;
 
     public SendResult() {
     }
@@ -129,5 +130,13 @@ public class SendResult {
     public String toString() {
         return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
             + ", queueOffset=" + queueOffset + "]";
+    }
+
+    public void setRawRespBody(byte[] body) {
+        this.rawRespBody = body;
+    }
+
+    public byte[] getRawRespBody() {
+        return rawRespBody;
     }
 }

@@ -21,11 +21,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -134,9 +134,8 @@ public class MonitorService {
     }
 
     private String instanceName() {
-        String name =
-            System.currentTimeMillis() + new Random().nextInt() + this.monitorConfig.getNamesrvAddr();
-
+        final int randomInteger = RandomUtils.nextInt(0, Integer.MAX_VALUE);
+        String name = System.currentTimeMillis() + randomInteger + this.monitorConfig.getNamesrvAddr();
         return "MonitorService_" + name.hashCode();
     }
 

@@ -32,17 +32,16 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 
 /**
  * EndTransaction processor: process commit and rollback message
  */
-public class EndTransactionProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
+public class EndTransactionProcessor implements NettyRequestProcessor {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final BrokerController brokerController;
 
@@ -231,7 +230,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     response.setRemark(null);
                     break;
                 // Failed
-                case CREATE_MAPEDFILE_FAILED:
+                case CREATE_MAPPED_FILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("Create mapped file failed.");
                     break;
@@ -245,13 +244,35 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("Service not available now.");
                     break;
-                case OS_PAGECACHE_BUSY:
+                case OS_PAGE_CACHE_BUSY:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("OS page cache busy, please try another machine");
                     break;
+                case WHEEL_TIMER_MSG_ILLEGAL:
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                    response.setRemark(String.format("timer message illegal, the delay time should not be bigger than the max delay %dms; or if set del msg, the delay time should be bigger than the current time",
+                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000));
+                    break;
+                case WHEEL_TIMER_FLOW_CONTROL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("timer message is under flow control, max num limit is %d or the current value is greater than %d and less than %d, trigger random flow control",
+                        this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L, this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot(), this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L));
+                    break;
+                case WHEEL_TIMER_NOT_ENABLE:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
+                        this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");
+                    break;
+                case IN_SYNC_REPLICAS_NOT_ENOUGH:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("in-sync replicas not enough");
+                    break;
+                case PUT_TO_REMOTE_BROKER_FAIL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("put to remote broker fail");
                     break;
                 default:
                     response.setCode(ResponseCode.SYSTEM_ERROR);

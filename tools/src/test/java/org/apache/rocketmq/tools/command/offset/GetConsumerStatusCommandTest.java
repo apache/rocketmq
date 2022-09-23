@@ -26,22 +26,24 @@ import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class GetConsumerStatusCommandTest {
-
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
 
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
 
+    @BeforeClass
+    public static void setUpEnv() {
+        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+    }
+
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
     }
 
     @After
@@ -54,7 +56,8 @@ public class GetConsumerStatusCommandTest {
     public void testExecute() throws SubCommandException {
         GetConsumerStatusCommand cmd = new GetConsumerStatusCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-i clientid"};
+        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-i clientid",
+            String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
@@ -63,6 +66,6 @@ public class GetConsumerStatusCommandTest {
     private ServerResponseMocker startOneBroker() {
         GetConsumerStatusBody getConsumerStatusBody = new GetConsumerStatusBody();
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, getConsumerStatusBody.encode());
+        return ServerResponseMocker.startServer(0, getConsumerStatusBody.encode());
     }
 }

@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.test.lmq.benchmark;
 
+import com.google.common.math.IntMath;
+import com.google.common.math.LongMath;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -127,9 +130,9 @@ public class BenchLmqStore {
         if (enableSub && lmqNum > 0 && StringUtils.isNotBlank(brokerName)) {
             for (int i = 0; i < lmqNum; i++) {
                 long idx = rid.incrementAndGet();
-                String queue = LMQ_PREFIX + queuePrefix + idx % lmqNum;
+                String queue = LMQ_PREFIX + queuePrefix + LongMath.mod(idx, lmqNum);
                 MessageQueue mq = new MessageQueue(queue, brokerName, 0);
-                int queueHash = Math.abs(queue.hashCode()) % consumerThreadNum;
+                int queueHash = IntMath.mod(queue.hashCode(), consumerThreadNum);
                 pullEvent.putIfAbsent(queueHash, new ConcurrentHashMap<>());
                 pullEvent.get(queueHash).put(mq, idx);
             }
@@ -142,7 +145,7 @@ public class BenchLmqStore {
         for (int j = 0; j < size; j += 10) {
             sb.append("hello baby");
         }
-        byte[] body = sb.toString().getBytes();
+        byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
         String pubKey = "pub";
         ExecutorService sendPool = Executors.newFixedThreadPool(sendThreadNum);
         for (int i = 0; i < sendThreadNum; i++) {
@@ -172,7 +175,7 @@ public class BenchLmqStore {
                         if (enableSub) {
                             MessageQueue mq = new MessageQueue(queue, sendResult.getMessageQueue().getBrokerName(),
                                     lmqNum > 0 ? 0 : sendResult.getMessageQueue().getQueueId());
-                            int queueHash = Math.abs(queue.hashCode()) % consumerThreadNum;
+                            int queueHash = IntMath.mod(queue.hashCode(), consumerThreadNum);
                             pullEvent.putIfAbsent(queueHash, new ConcurrentHashMap<>());
                             pullEvent.get(queueHash).put(mq, idx);
                         }

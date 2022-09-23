@@ -60,6 +60,11 @@ public class GetConsumerConfigSubCommand implements SubCommand {
         DefaultMQAdminExt adminExt = new DefaultMQAdminExt(rpcHook);
         adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String groupName = commandLine.getOptionValue('g').trim();
+
+        if (commandLine.hasOption('n')) {
+            adminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+        }
+
         try {
             adminExt.start();
             List<ConsumerConfigInfo> consumerConfigInfoList = new ArrayList<>();
@@ -134,7 +139,7 @@ class ConsumerConfigInfo {
         return brokerName;
     }
 
-    public void setBrokerName(String brokerNameList) {
+    public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
     }
 

@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.9.4</version>
+    <version>5.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -38,7 +38,7 @@
         <url>git@github.com:apache/rocketmq.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
-        <tag>rocketmq-all-4.9.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <mailingLists>
@@ -91,6 +91,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.root>${basedir}</project.root>
 
         <!-- Maven properties -->
         <maven.test.skip>false</maven.test.skip>
@@ -101,31 +102,39 @@
 
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.10</logback.version>
-        <commons-cli.version>1.2</commons-cli.version>
+        <commons-cli.version>1.4</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.69_noneautotype</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
-        <commons-lang3.version>3.4</commons-lang3.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-io.version>2.7</commons-io.version>
         <guava.version>31.0.1-jre</guava.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <log4j.version>1.2.17</log4j.version>
         <snakeyaml.version>1.30</snakeyaml.version>
-        <commons-codec.version>1.9</commons-codec.version>
+        <commons-codec.version>1.13</commons-codec.version>
         <logging-log4j.version>2.17.1</logging-log4j.version>
         <commons-validator.version>1.7</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
         <jaeger.version>1.6.0</jaeger.version>
-        <dleger.version>0.2.6</dleger.version>
+        <dleger.version>0.3.1</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
+        <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
+        <rocketmq-proto.version>2.0.0</rocketmq-proto.version>
+        <grpc.version>1.45.0</grpc.version>
+        <protobuf.version>3.20.1</protobuf.version>
+        <disruptor.version>1.2.10</disruptor.version>
+        <org.relection.version>0.9.11</org.relection.version>
+        <caffeine.version>2.9.3</caffeine.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
-        <assertj-core.version>2.6.0</assertj-core.version>
+        <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
@@ -138,14 +147,14 @@
         <maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-help-plugin.version>2.2</maven-help-plugin.version>
-        <maven-checkstyle-plugin.version>3.1.2</maven-checkstyle-plugin.version>
+        <maven-checkstyle-plugin.version>3.2.0</maven-checkstyle-plugin.version>
         <apache-rat-plugin.version>0.12</apache-rat-plugin.version>
         <maven-resources-plugin.version>3.0.2</maven-resources-plugin.version>
         <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
-        <findbugs-maven-plugin.version>3.0.4</findbugs-maven-plugin.version>
         <sonar-maven-plugin.version>3.0.2</sonar-maven-plugin.version>
+        <spotbugs-plugin.version>4.2.2</spotbugs-plugin.version>
         <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
@@ -154,7 +163,6 @@
         <!-- Exclude all generated code -->
         <sonar.jacoco.itReportPath>${project.basedir}/../test/target/jacoco-it.exec</sonar.jacoco.itReportPath>
         <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
-
     </properties>
 
     <modules>
@@ -173,6 +181,9 @@
         <module>logging</module>
         <module>acl</module>
         <module>example</module>
+        <module>container</module>
+        <module>controller</module>
+        <module>proxy</module>
     </modules>
 
     <build>
@@ -206,6 +217,7 @@
                 <configuration>
                     <rules>
                         <banCircularDependencies />
+                        <dependencyConvergence />
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -258,8 +270,8 @@
                 <version>${maven-checkstyle-plugin.version}</version>
                 <executions>
                     <execution>
-                        <id>verify</id>
-                        <phase>verify</phase>
+                        <id>validate</id>
+                        <phase>validate</phase>
                         <configuration>
                             <configLocation>style/rmq_checkstyle.xml</configLocation>
                             <encoding>UTF-8</encoding>
@@ -281,9 +293,11 @@
                     <excludes>
                         <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
+                        <exclude>README.md</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
                         <exclude>.github/**</exclude>
+                        <exclude>src/test/resources/**</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
@@ -292,6 +306,7 @@
                         <exclude>*/*.iml</exclude>
                         <exclude>docs/**</exclude>
                         <exclude>localbin/**</exclude>
+                        <exclude>conf/rmq-proxy.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -321,6 +336,13 @@
                         <configuration>
                             <destFile>${project.build.directory}/jacoco.exec</destFile>
                         </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
                     </execution>
                     <execution>
                         <id>default-prepare-agent-integration</id>
@@ -360,14 +382,31 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>${findbugs-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>${sonar-maven-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failOnError>true</failOnError>
+                    <fork>false</fork>
+                    <spotbugsXmlOutput>true</spotbugsXmlOutput>
+                    <excludeFilterFile>${project.root}/style/spotbugs-suppressions.xml</excludeFilterFile>
+                    <threshold>High</threshold>
+                    <effort>Max</effort>
+                </configuration>
             </plugin>
         </plugins>
 
@@ -475,12 +514,41 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-controller</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-proto</artifactId>
+                <version>${rocketmq-proto.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-protobuf</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-stub</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-broker</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-container</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -544,6 +612,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-proxy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
@@ -591,9 +664,25 @@
                 <version>${commons-lang3.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+                <artifactId>concurrentlinkedhashmap-lru</artifactId>
+                <version>${concurrentlinkedhashmap-lru.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.openmessaging</groupId>
@@ -656,11 +745,23 @@
                 <groupId>io.jaegertracing</groupId>
                 <artifactId>jaeger-core</artifactId>
                 <version>${jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.gson</groupId>
+                        <artifactId>gson</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.jaegertracing</groupId>
                 <artifactId>jaeger-client</artifactId>
                 <version>${jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.openmessaging.storage</groupId>
@@ -694,12 +795,76 @@
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
                 <version>${awaitility.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.truth</groupId>
                 <artifactId>truth</artifactId>
                 <version>${truth.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <!--only used in the test module-->
+            <dependency>
+                <groupId>org.reflections</groupId>
+                <artifactId>reflections</artifactId>
+                <version>${org.relection.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${grpc.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-services</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-testing</artifactId>
+                <version>${grpc.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.conversantmedia</groupId>
+                <artifactId>disruptor</artifactId>
+                <version>${disruptor.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -709,16 +874,19 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj-core.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito-core.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>

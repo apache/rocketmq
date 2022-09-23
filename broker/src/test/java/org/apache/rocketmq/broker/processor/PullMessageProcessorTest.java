@@ -18,16 +18,12 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -53,6 +49,12 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -65,7 +67,8 @@ import static org.mockito.Mockito.when;
 public class PullMessageProcessorTest {
     private PullMessageProcessor pullMessageProcessor;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
+        new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock
@@ -77,10 +80,12 @@ public class PullMessageProcessorTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         clientChannelInfo = new ClientChannelInfo(mockChannel);
         ConsumerData consumerData = createConsumerData(group, topic);
@@ -190,6 +195,15 @@ public class PullMessageProcessorTest {
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
+    }
+
+    @Test
+    public void test_LitePullRequestForbidden() throws Exception {
+        brokerController.getBrokerConfig().setLitePullMessageEnable(false);
+        RemotingCommand remotingCommand = createPullMsgCommand(RequestCode.LITE_PULL_MESSAGE);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, remotingCommand);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {

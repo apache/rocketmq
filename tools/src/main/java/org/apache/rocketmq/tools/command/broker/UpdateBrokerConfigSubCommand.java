@@ -50,6 +50,10 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("a", "updateAllBroker", true, "update all brokers include slave");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("k", "key", true, "config key");
         opt.setRequired(true);
         options.addOption(opt);
@@ -87,9 +91,15 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
 
                 defaultMQAdminExt.start();
 
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String brokerAddr : masterSet) {
+                Set<String> brokerAddrSet;
+
+                if (commandLine.hasOption('a')) {
+                    brokerAddrSet = CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                } else {
+                    brokerAddrSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                }
+
+                for (String brokerAddr : brokerAddrSet) {
                     try {
                         defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
                         System.out.printf("update broker config success, %s\n", brokerAddr);

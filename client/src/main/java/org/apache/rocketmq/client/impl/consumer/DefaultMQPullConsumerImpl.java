@@ -100,7 +100,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.isRunning();
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag, null);
     }
 
     private void isRunning() throws MQClientException {
@@ -449,6 +449,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, false, timeout);
     }
 
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize, PullCallback pullCallback,
+        long timeout)
+        throws MQClientException, RemotingException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, maxSize, pullCallback, false, timeout);
+    }
+
     public void pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
         PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
@@ -468,6 +475,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         final SubscriptionData subscriptionData,
         final long offset,
         final int maxNums,
+        final int maxSizeInBytes,
         final PullCallback pullCallback,
         final boolean block,
         final long timeout) throws MQClientException, RemotingException, InterruptedException {
@@ -484,6 +492,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (maxNums <= 0) {
             throw new MQClientException("maxNums <= 0", null);
         }
+
+        if (maxSizeInBytes <= 0) {
+            throw new MQClientException("maxSizeInBytes <= 0", null);
+        }
+
 
         if (null == pullCallback) {
             throw new MQClientException("pullCallback is null", null);
@@ -504,6 +517,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 isTagType ? 0L : subscriptionData.getSubVersion(),
                 offset,
                 maxNums,
+                maxSizeInBytes,
                 sysFlag,
                 0,
                 this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(),
@@ -526,6 +540,26 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         } catch (MQBrokerException e) {
             throw new MQClientException("pullAsync unknow exception", e);
         }
+    }
+
+    private void pullAsyncImpl(
+            final MessageQueue mq,
+            final SubscriptionData subscriptionData,
+            final long offset,
+            final int maxNums,
+            final PullCallback pullCallback,
+            final boolean block,
+            final long timeout) throws MQClientException, RemotingException, InterruptedException {
+        pullAsyncImpl(
+                mq,
+                subscriptionData,
+                offset,
+                maxNums,
+                Integer.MAX_VALUE,
+                pullCallback,
+                block,
+                timeout
+        );
     }
 
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)
@@ -573,10 +607,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.offsetStore.updateConsumeOffsetToBroker(mq, offset, isOneway);
     }
 
+    @Deprecated
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, String consumerGroup)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
+            String destBrokerName = brokerName;
+            if (destBrokerName != null && destBrokerName.startsWith(MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX)) {
+                destBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(this.defaultMQPullConsumer.queueWithNamespace(new MessageQueue(msg.getTopic(), msg.getBrokerName(), msg.getQueueId())));
+            }
+            String brokerAddr = (null != destBrokerName) ? this.mQClientFactory.findBrokerAddressInPublish(destBrokerName)
                 : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
 
             if (UtilAll.isBlank(consumerGroup)) {

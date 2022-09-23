@@ -64,16 +64,6 @@ public class OneWaySendWithMQIT extends BaseConf {
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        producer.clearMsg();
-        consumer.clearMsg();
 
-        mq = new MessageQueue(topic, broker2Name, queueId);
-        producer.asyncSend(msgSize, mq);
-        producer.waitForResponse(5 * 1000);
-
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListener().getAllMsgBody()))
-            .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

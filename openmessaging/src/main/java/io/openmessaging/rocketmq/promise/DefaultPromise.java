@@ -157,7 +157,7 @@ public class DefaultPromise<V> implements Promise<V> {
     }
 
     private boolean isSuccess() {
-        return isDone() && (exception == null);
+        return isDone() && exception == null;
     }
 
     private void timeoutSoCancel() {

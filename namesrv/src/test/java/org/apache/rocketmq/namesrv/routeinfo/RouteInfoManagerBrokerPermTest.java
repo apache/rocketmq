@@ -17,6 +17,7 @@
 package org.apache.rocketmq.namesrv.routeinfo;
 
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.junit.After;
@@ -39,14 +40,14 @@ public class RouteInfoManagerBrokerPermTest extends RouteInfoManagerTestBase {
 
     @Before
     public void setup() {
-        routeInfoManager = new RouteInfoManager();
+        routeInfoManager = new RouteInfoManager(new NamesrvConfig(), null);
         cluster = registerCluster(routeInfoManager,
-                clusterName,
-                brokerPrefix,
-                3,
-                3,
-                topicPrefix,
-                10);
+            clusterName,
+            brokerPrefix,
+            3,
+            3,
+            topicPrefix,
+            10);
     }
 
     @After
@@ -60,9 +61,8 @@ public class RouteInfoManagerBrokerPermTest extends RouteInfoManagerTestBase {
 
     @Test
     public void testAddWritePermOfBrokerByLock() throws Exception {
-        String brokerName = getBrokerName(brokerPrefix,0);
-        String topicName = getTopicName(topicPrefix,0);
-
+        String brokerName = getBrokerName(brokerPrefix, 0);
+        String topicName = getTopicName(topicPrefix, 0);
 
         QueueData qd = new QueueData();
         qd.setPerm(PermName.PERM_READ);
@@ -86,8 +86,8 @@ public class RouteInfoManagerBrokerPermTest extends RouteInfoManagerTestBase {
 
     @Test
     public void testWipeWritePermOfBrokerByLock() throws Exception {
-        String brokerName = getBrokerName(brokerPrefix,0);
-        String topicName = getTopicName(topicPrefix,0);
+        String brokerName = getBrokerName(brokerPrefix, 0);
+        String topicName = getTopicName(topicPrefix, 0);
 
         QueueData qd = new QueueData();
         qd.setPerm(PermName.PERM_READ);

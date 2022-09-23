@@ -16,10 +16,16 @@
  */
 package org.apache.rocketmq.common;
 
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.utils.IOTinyUtils;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -39,13 +45,11 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import java.util.function.Predicate;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -77,7 +81,11 @@ public class MixAll {
     public static final String LOCALHOST = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
+    public static final long FIRST_SLAVE_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
+    public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
+    public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
+
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String REPLY_TOPIC_POSTFIX = "REPLY_TOPIC";
@@ -90,7 +98,18 @@ public class MixAll {
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
     public static final String REQ_T = "ReqT";
+    public static final String ROCKETMQ_ZONE_ENV = "ROCKETMQ_ZONE";
+    public static final String ROCKETMQ_ZONE_PROPERTY = "rocketmq.zone";
+    public static final String ROCKETMQ_ZONE_MODE_ENV = "ROCKETMQ_ZONE_MODE";
+    public static final String ROCKETMQ_ZONE_MODE_PROPERTY = "rocketmq.zone.mode";
+    public static final String ZONE_NAME = "__ZONE_NAME"; 
+    public static final String ZONE_MODE = "__ZONE_MODE";
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
+    public static final String METADATA_SCOPE_GLOBAL = "__global__";
+    public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -167,18 +186,7 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        FileWriter fileWriter = null;
-
-        try {
-            fileWriter = new FileWriter(file);
-            fileWriter.write(str);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
-        }
+        IOTinyUtils.writeStringToFile(file, str, "UTF-8");
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -203,7 +211,7 @@ public class MixAll {
             }
 
             if (result) {
-                return new String(data);
+                return new String(data, "UTF-8");
             }
         }
         return null;
@@ -271,8 +279,13 @@ public class MixAll {
     }
 
     public static String properties2String(final Properties properties) {
+        return properties2String(properties, false);
+    }
+
+    public static String properties2String(final Properties properties, final boolean isSort) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+        Set<Map.Entry<Object, Object>> entrySet = isSort ? new TreeMap<>(properties).entrySet() : properties.entrySet();
+        for (Map.Entry<Object, Object> entry : entrySet) {
             if (entry.getValue() != null) {
                 sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
             }
@@ -363,6 +376,10 @@ public class MixAll {
         return p1.equals(p2);
     }
 
+    public static boolean isPropertyValid(Properties props, String key, Predicate<String> validator) {
+        return validator.test(props.getProperty(key));
+    }
+
     public static List<String> getLocalInetAddress() {
         List<String> inetAddressList = new ArrayList<String>();
         try {
@@ -451,6 +468,13 @@ public class MixAll {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
+    public static int compareInteger(int x, int y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
+
+    public static int compareLong(long x, long y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }

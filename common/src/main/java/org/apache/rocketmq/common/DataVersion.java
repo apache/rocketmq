@@ -20,17 +20,32 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class DataVersion extends RemotingSerializable {
+    private long stateVersion = 0L;
     private long timestamp = System.currentTimeMillis();
     private AtomicLong counter = new AtomicLong(0);
 
     public void assignNewOne(final DataVersion dataVersion) {
         this.timestamp = dataVersion.timestamp;
+        this.stateVersion = dataVersion.stateVersion;
         this.counter.set(dataVersion.counter.get());
     }
 
     public void nextVersion() {
+        this.nextVersion(0L);
+    }
+
+    public void nextVersion(long stateVersion) {
         this.timestamp = System.currentTimeMillis();
+        this.stateVersion = stateVersion;
         this.counter.incrementAndGet();
+    }
+
+    public long getStateVersion() {
+        return stateVersion;
+    }
+
+    public void setStateVersion(long stateVersion) {
+        this.stateVersion = stateVersion;
     }
 
     public long getTimestamp() {
@@ -56,22 +71,25 @@ public class DataVersion extends RemotingSerializable {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        final DataVersion that = (DataVersion) o;
+        DataVersion version = (DataVersion) o;
 
-        if (timestamp != that.timestamp) {
+        if (getStateVersion() != version.getStateVersion())
             return false;
+        if (getTimestamp() != version.getTimestamp())
+            return false;
+
+        if (counter != null && version.counter != null) {
+            return counter.longValue() == version.counter.longValue();
         }
 
-        if (counter != null && that.counter != null) {
-            return counter.longValue() == that.counter.longValue();
-        }
+        return null == counter && null == version.counter;
 
-        return (null == counter) && (null == that.counter);
     }
 
     @Override
     public int hashCode() {
-        int result = (int) (timestamp ^ (timestamp >>> 32));
+        int result = (int) (getStateVersion() ^ (getStateVersion() >>> 32));
+        result = 31 * result + (int) (getTimestamp() ^ (getTimestamp() >>> 32));
         if (null != counter) {
             long l = counter.get();
             result = 31 * result + (int) (l ^ (l >>> 32));
@@ -86,5 +104,22 @@ public class DataVersion extends RemotingSerializable {
         sb.append(", counter=").append(counter);
         sb.append(']');
         return sb.toString();
+    }
+
+    public int compare(DataVersion dataVersion) {
+        if (this.getStateVersion() > dataVersion.getStateVersion()) {
+            return 1;
+        } else if (this.getStateVersion() < dataVersion.getStateVersion()) {
+            return -1;
+        } else if (this.getCounter().get() > dataVersion.getCounter().get()) {
+            return 1;
+        } else if (this.getCounter().get() < dataVersion.getCounter().get()) {
+            return -1;
+        } else if (this.getTimestamp() > dataVersion.getTimestamp()) {
+            return 1;
+        } else if (this.getTimestamp() < dataVersion.getTimestamp()) {
+            return -1;
+        }
+        return 0;
     }
 }
