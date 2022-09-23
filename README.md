@@ -48,20 +48,20 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip) to download the 4.9.3 RocketMQ binary release,
+For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip) to download the 4.9.4 RocketMQ binary release,
 unpack it to your local disk, such as `D:\rocketmq`.
 For macOS and Linux users, execute following commands:
 ```shell
 # Download release from the Apache mirror
-$ wget https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip
+$ wget https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip
 
 # Unpack the release
-$ unzip rocketmq-all-4.9.3-bin-release.zip
+$ unzip rocketmq-all-4.9.4-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-4.9.3/bin
+$ cd rocketmq-4.9.4/bin
 ```
 
 **1) Start NameServer**
@@ -168,7 +168,7 @@ name-service         1/1     107m
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The Apache RocketMQ connector of Apache Flink that supports source and sink connector in data stream and Table.
 * [RocketMQ APIs](https://github.com/apache/rocketmq-apis): RocketMQ protobuf protocol.
 * [RocketMQ Clients](https://github.com/apache/rocketmq-clients): gRPC/protobuf-based RocketMQ clients.
-* RocketMQ Native Protocol-Based Clients
+* RocketMQ Remoting-based Clients
 	 - [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 	 - [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 	 - [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)

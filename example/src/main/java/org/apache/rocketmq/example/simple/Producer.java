@@ -20,7 +20,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-
 import java.nio.charset.StandardCharsets;
 
 public class Producer {
@@ -38,7 +37,7 @@ public class Producer {
         //producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         producer.start();
-        for (int i = 0; i < 128; i++)
+        for (int i = 0; i < 128; i++) {
             try {
                 Message msg = new Message(TOPIC, TAG, "OrderID188", "Hello world".getBytes(StandardCharsets.UTF_8));
                 SendResult sendResult = producer.send(msg);
@@ -46,6 +45,7 @@ public class Producer {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
 
         producer.shutdown();
     }
