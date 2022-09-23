@@ -27,7 +27,7 @@ github:
     # Enable squash button
     squash: true
     # Disable merge button
-    merge: false
+    merge: true
     # Enable rebase button
     rebase: true
   protected_branches:
