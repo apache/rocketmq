@@ -72,7 +72,7 @@ public class TopicPublishInfo {
         } else {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int index = this.sendWhichQueue.incrementAndGet();
-                int pos = Math.abs(index) % this.messageQueueList.size();
+                int pos = index % this.messageQueueList.size();
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
@@ -86,7 +86,7 @@ public class TopicPublishInfo {
 
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.incrementAndGet();
-        int pos = Math.abs(index) % this.messageQueueList.size();
+        int pos = index % this.messageQueueList.size();
         if (pos < 0)
             pos = 0;
         return this.messageQueueList.get(pos);
