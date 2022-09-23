@@ -67,7 +67,7 @@ public class ClientConfig {
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
-    private String sockProxyJson = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
+    private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;
 
@@ -176,7 +176,7 @@ public class ClientConfig {
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
         this.useTLS = cc.useTLS;
-        this.sockProxyJson = cc.sockProxyJson;
+        this.socksProxyConfig = cc.socksProxyConfig;
         this.namespace = cc.namespace;
         this.language = cc.language;
         this.mqClientApiTimeout = cc.mqClientApiTimeout;
@@ -199,7 +199,7 @@ public class ClientConfig {
         cc.unitName = unitName;
         cc.vipChannelEnabled = vipChannelEnabled;
         cc.useTLS = useTLS;
-        cc.sockProxyJson = sockProxyJson;
+        cc.socksProxyConfig = socksProxyConfig;
         cc.namespace = namespace;
         cc.language = language;
         cc.mqClientApiTimeout = mqClientApiTimeout;
@@ -298,12 +298,12 @@ public class ClientConfig {
         this.useTLS = useTLS;
     }
 
-    public String getSockProxyJson() {
-        return sockProxyJson;
+    public String getSocksProxyConfig() {
+        return socksProxyConfig;
     }
 
-    public void setSockProxyJson(String proxyJson) {
-        this.sockProxyJson = proxyJson;
+    public void setSocksProxyConfig(String socksProxyConfig) {
+        this.socksProxyConfig = socksProxyConfig;
     }
 
     public LanguageCode getLanguage() {
@@ -388,7 +388,7 @@ public class ClientConfig {
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException
             + ", unitMode=" + unitMode + ", unitName=" + unitName
             + ", vipChannelEnabled=" + vipChannelEnabled + ", useTLS=" + useTLS
-            + ", sockProxyJson=" + sockProxyJson + ", language=" + language.name()
+            + ", socksProxyConfig=" + socksProxyConfig + ", language=" + language.name()
             + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
             + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
             + ", enableStreamRequestType=" + enableStreamRequestType + "]";

@@ -190,7 +190,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private void loadSocksProxyJson() {
         Map<String, SocksProxyConfig> sockProxyMap = JSON.parseObject(
-            nettyClientConfig.getSockProxyJson(), new TypeReference<Map<String, SocksProxyConfig>>() {
+            nettyClientConfig.getSocksProxyConfig(), new TypeReference<Map<String, SocksProxyConfig>>() {
             });
         if (sockProxyMap != null) {
             proxyMap.putAll(sockProxyMap);

@@ -168,7 +168,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 this.defaultMQAdminExt.changeInstanceNameToPID();
 
                 String proxyConfig = System.getenv(SOCKS_PROXY_JSON);
-                this.defaultMQAdminExt.setSockProxyJson(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
+                this.defaultMQAdminExt.setSocksProxyConfig(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
 
                 this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQAdminExt, rpcHook);
 
