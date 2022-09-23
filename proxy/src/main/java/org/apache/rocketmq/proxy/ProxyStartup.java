@@ -20,11 +20,17 @@ package org.apache.rocketmq.proxy;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+import com.google.common.collect.Lists;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
@@ -36,6 +42,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
@@ -43,6 +50,8 @@ import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.srvutil.ServerUtil;
 import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
@@ -58,9 +67,9 @@ public class ProxyStartup {
 
     public static void main(String[] args) {
         try {
-            ConfigurationManager.initEnv();
-            initLogger();
-            ConfigurationManager.intConfig();
+            // parse argument from command line
+            CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
+            initLogAndConfiguration(commandLineArgument);
 
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
@@ -100,7 +109,59 @@ public class ProxyStartup {
         log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
-    private static MessagingProcessor createMessagingProcessor() {
+    protected static void initLogAndConfiguration(CommandLineArgument commandLineArgument) throws Exception {
+        if (StringUtils.isNotBlank(commandLineArgument.getProxyConfigPath())) {
+            System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
+        }
+        ConfigurationManager.initEnv();
+        initLogger();
+        ConfigurationManager.intConfig();
+        setConfigFromCommandLineArgument(commandLineArgument);
+    }
+
+    protected static CommandLineArgument parseCommandLineArgument(String[] args) {
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqproxy", args,
+            buildCommandlineOptions(), new DefaultParser());
+        if (commandLine == null) {
+            throw new RuntimeException("parse command line argument failed");
+        }
+
+        CommandLineArgument commandLineArgument = new CommandLineArgument();
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), commandLineArgument);
+        return commandLineArgument;
+    }
+
+    private static Options buildCommandlineOptions() {
+        Options options =  ServerUtil.buildCommandlineOptions(new Options());
+
+        Option opt = new Option("bc", "brokerConfigPath", true, "Broker config file path for local mode");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("pc", "proxyConfigPath", true, "Proxy config file path");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("pm", "proxyMode", true, "Proxy run in local or cluster mode");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        return options;
+    }
+
+    private static void setConfigFromCommandLineArgument(CommandLineArgument commandLineArgument) {
+        if (StringUtils.isNotBlank(commandLineArgument.getNamesrvAddr())) {
+            ConfigurationManager.getProxyConfig().setNamesrvAddr(commandLineArgument.getNamesrvAddr());
+        }
+        if (StringUtils.isNotBlank(commandLineArgument.getBrokerConfigPath())) {
+            ConfigurationManager.getProxyConfig().setBrokerConfigPath(commandLineArgument.getBrokerConfigPath());
+        }
+        if (StringUtils.isNotBlank(commandLineArgument.getProxyMode())) {
+            ConfigurationManager.getProxyConfig().setProxyMode(commandLineArgument.getProxyMode());
+        }
+    }
+
+    protected static MessagingProcessor createMessagingProcessor() {
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
         MessagingProcessor messagingProcessor;
 
@@ -112,6 +173,12 @@ public class ProxyStartup {
                 @Override
                 public void start() throws Exception {
                     brokerController.start();
+                    String tip = "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", "
+                        + brokerController.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+                    if (null != brokerController.getBrokerConfig().getNamesrvAddr()) {
+                        tip += " and name server is " + brokerController.getBrokerConfig().getNamesrvAddr();
+                    }
+                    log.info(tip);
                 }
 
                 @Override
@@ -134,8 +201,14 @@ public class ProxyStartup {
         return application;
     }
 
-    private static BrokerController createBrokerController() {
-        String[] brokerStartupArgs = new String[] {"-c", ConfigurationManager.getProxyConfig().getBrokerConfigPath()};
+    protected static BrokerController createBrokerController() {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        List<String> brokerStartupArgList = Lists.newArrayList("-c", config.getBrokerConfigPath());
+        if (StringUtils.isNotBlank(config.getNamesrvAddr())) {
+            brokerStartupArgList.add("-n");
+            brokerStartupArgList.add(config.getNamesrvAddr());
+        }
+        String[] brokerStartupArgs = brokerStartupArgList.toArray(new String[0]);
         return BrokerStartup.createBrokerController(brokerStartupArgs);
     }
 

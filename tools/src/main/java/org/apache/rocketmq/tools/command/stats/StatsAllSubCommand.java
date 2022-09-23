@@ -91,8 +91,8 @@ public class StatsAllSubCommand implements SubCommand {
                 } catch (Exception e) {
                 }
 
-                if (!activeTopic || (inMsgCntToday > 0) ||
-                    (outMsgCntToday > 0)) {
+                if (!activeTopic || inMsgCntToday > 0 ||
+                    outMsgCntToday > 0) {
 
                     System.out.printf("%-64s  %-64s %12d %11.2f %11.2f %14d %14d%n",
                         UtilAll.frontStringAtLeast(topic, 64),
@@ -106,7 +106,7 @@ public class StatsAllSubCommand implements SubCommand {
                 }
             }
         } else {
-            if (!activeTopic || (inMsgCntToday > 0)) {
+            if (!activeTopic || inMsgCntToday > 0) {
 
                 System.out.printf("%-64s  %-64s %12d %11.2f %11s %14d %14s%n",
                     UtilAll.frontStringAtLeast(topic, 64),

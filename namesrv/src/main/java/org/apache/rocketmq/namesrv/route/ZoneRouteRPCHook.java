@@ -48,7 +48,7 @@ public class ZoneRouteRPCHook implements RPCHook {
         if (response == null || response.getBody() == null || ResponseCode.SUCCESS != response.getCode()) {
             return;
         }
-        boolean zoneMode = Boolean.valueOf(request.getExtFields().get(MixAll.ZONE_MODE));
+        boolean zoneMode = Boolean.parseBoolean(request.getExtFields().get(MixAll.ZONE_MODE));
         if (!zoneMode) {
             return;
         }
@@ -90,7 +90,6 @@ public class ZoneRouteRPCHook implements RPCHook {
                     continue;
                 }
                 brokerData.getBrokerAddrs().values()
-                    .stream()
                     .forEach(brokerAddr -> topicRouteData.getFilterServerTable().remove(brokerAddr));
             }
         }

@@ -54,11 +54,11 @@ public class MQClientAPIFactory implements StartAndShutdown {
     protected void init() {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false");
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        if (StringUtils.isEmpty(proxyConfig.getNameSrvDomain())) {
-            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, proxyConfig.getNameSrvAddr());
+        if (StringUtils.isEmpty(proxyConfig.getNamesrvDomain())) {
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, proxyConfig.getNamesrvAddr());
         } else {
-            System.setProperty("rocketmq.namesrv.domain", proxyConfig.getNameSrvDomain());
-            System.setProperty("rocketmq.namesrv.domain.subgroup", proxyConfig.getNameSrvDomainSubgroup());
+            System.setProperty("rocketmq.namesrv.domain", proxyConfig.getNamesrvDomain());
+            System.setProperty("rocketmq.namesrv.domain.subgroup", proxyConfig.getNamesrvDomainSubgroup());
         }
     }
 
