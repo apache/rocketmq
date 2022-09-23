@@ -30,7 +30,7 @@ import java.util.List;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class Producer {
-    public static void main(String[] args) throws MQClientException,InterruptedException {
+    public static void main(String[] args) throws Exception{
         final InternalLogger log = ClientLogger.getLog();
         try {
             DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
@@ -57,6 +57,7 @@ public class Producer {
         } catch (Exception e) {
             e.printStackTrace();
             log.error("[ORDER_MESSAGE_PRODUCER] Send Exception", e);
+            throw new Exception(e);
         }
     }
 }
