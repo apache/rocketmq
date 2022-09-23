@@ -16,6 +16,7 @@
  */
 
 package org.apache.rocketmq.proxy;
+
 import com.google.common.base.Preconditions;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -123,6 +124,7 @@ public class ProxyStartupTest {
             recursiveDelete(f);
         }
         file.delete();
+    }
 
     @After
     public void after() {
