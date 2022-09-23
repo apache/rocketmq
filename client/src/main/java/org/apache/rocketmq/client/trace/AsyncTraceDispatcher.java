@@ -427,9 +427,6 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                             }
                             int index = sendWhichQueue.incrementAndGet();
                             int pos = index % filterMqs.size();
-                            if (pos < 0) {
-                                pos = 0;
-                            }
                             return filterMqs.get(pos);
                         }
                     }, traceBrokerSet, callback);
