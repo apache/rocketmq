@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import com.sun.management.OperatingSystemMXBean;
 import io.netty.channel.Channel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -28,7 +27,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,10 +40,6 @@ public class TopicRouteNotifier {
 
     private final RemotingServer remotingServer;
 
-    private static volatile boolean SYSTEM_BUSY_FLAG = false;
-
-    private static volatile Long LAST_CACHE_TIME = null;
-
     public TopicRouteNotifier(RemotingServer remotingServer, RouteInfoManager routeInfoManager) {
         this.routeInfoManager = routeInfoManager;
         this.remotingServer = remotingServer;
@@ -55,10 +49,6 @@ public class TopicRouteNotifier {
      * if topic route info has changed in the period, then notify client
      */
     public void notifyClients() {
-        System.out.println("isSystemBusy() is : " + isSystemBusy());
-        if (isSystemBusy()) {
-            return;
-        }
         Map<String, Set<Channel>> topicAndChannelMap = routeInfoManager.getAndResetChangedTopicMap();
         if (MapUtils.isEmpty(topicAndChannelMap)) {
             return;
@@ -83,39 +73,20 @@ public class TopicRouteNotifier {
         }
     }
 
+    /**
+     * append command which notify client the topic content changed
+     * command only contains header, just notify client to Actively pull data
+     *
+     * @param topic topic name
+     * @return  command obj
+     */
     private RemotingCommand transToCommand(String topic) {
         UpdateTopicRouteRequestHeader header = new UpdateTopicRouteRequestHeader();
         header.setTopic(topic);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CLIENT_TOPIC_ROUTE_CHANGED, header);
+                RemotingCommand.createRequestCommand(RequestCode.NOTIFY_TOPIC_ROUTE_CHANGED, header);
         request.setRemark(null);
         return request;
-    }
-
-    private boolean isSystemBusy() {
-        if (LAST_CACHE_TIME != null && System.currentTimeMillis() - LAST_CACHE_TIME < 5 * 60 * 1000) {
-            return SYSTEM_BUSY_FLAG;
-        }
-        OperatingSystemMXBean systemMXBean;
-        java.lang.management.OperatingSystemMXBean system = ManagementFactory.getOperatingSystemMXBean();
-        if (system instanceof OperatingSystemMXBean) {
-            systemMXBean = (OperatingSystemMXBean) system;
-        } else {
-            LAST_CACHE_TIME = System.currentTimeMillis();
-            SYSTEM_BUSY_FLAG = false;
-            return SYSTEM_BUSY_FLAG;
-        }
-
-        double totalMemorySize = ((Long) (systemMXBean.getTotalPhysicalMemorySize())).doubleValue();
-        double freeMemorySize = ((Long) (systemMXBean.getFreePhysicalMemorySize())).doubleValue();
-        double freeSwapSize = ((Long) (systemMXBean.getFreeSwapSpaceSize())).doubleValue();
-        boolean isMemoryBusy = (freeMemorySize + freeSwapSize) / totalMemorySize < 0.05D;
-        int processors = systemMXBean.getAvailableProcessors();
-        double loadAverage = systemMXBean.getSystemLoadAverage();
-        boolean isLoadBusy = loadAverage / processors < 0.05D;
-        SYSTEM_BUSY_FLAG = isMemoryBusy || isLoadBusy;
-        LAST_CACHE_TIME = System.currentTimeMillis();
-        return SYSTEM_BUSY_FLAG;
     }
 
 }

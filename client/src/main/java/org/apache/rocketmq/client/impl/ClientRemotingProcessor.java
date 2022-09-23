@@ -88,7 +88,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
                 return this.receiveReplyMessage(ctx, request);
 
-            case RequestCode.NOTIFY_CLIENT_TOPIC_ROUTE_CHANGED:
+            case RequestCode.NOTIFY_TOPIC_ROUTE_CHANGED:
                 return this.notifyClientTopicRouteChanged(request);
             default:
                 break;

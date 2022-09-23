@@ -39,9 +39,13 @@ public class RMQNormalProducer extends AbstractMQProducer {
     }
 
     public RMQNormalProducer(String nsAddr, String topic, boolean useTLS) {
+        this(nsAddr, topic, useTLS, 100);
+    }
+
+    public RMQNormalProducer(String nsAddr, String topic, boolean useTLS, int pollNameServerInterval) {
         super(topic);
         this.nsAddr = nsAddr;
-        create(useTLS);
+        create(useTLS, pollNameServerInterval);
         start();
     }
 
@@ -70,11 +74,15 @@ public class RMQNormalProducer extends AbstractMQProducer {
     }
 
     protected void create(boolean useTLS) {
+        create(useTLS, 100);
+    }
+
+    protected void create(boolean useTLS, int pollNameServerInterval) {
         producer = new DefaultMQProducer();
         producer.setProducerGroup(getProducerGroupName());
         producer.setInstanceName(getProducerInstanceName());
         producer.setUseTLS(useTLS);
-        producer.setPollNameServerInterval(100);
+        producer.setPollNameServerInterval(pollNameServerInterval);
 
         if (nsAddr != null) {
             producer.setNamesrvAddr(nsAddr);

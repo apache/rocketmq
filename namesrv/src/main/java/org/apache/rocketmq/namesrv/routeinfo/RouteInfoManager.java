@@ -54,7 +54,6 @@ import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -62,8 +61,6 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -72,29 +69,16 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Predicate;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
-    /** store the changed topic info. key is topic, value is brokerName set */
+    /** store the changed topic name*/
     private final Set<String> changedTopicSet;
+    /** store the topic vs client. key is topic, value is brokerName set */
     private final Map<String, Set<Channel>> topicAndClientChannelMap;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
     private final Map<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
@@ -330,6 +314,8 @@ public class RouteInfoManager {
                 ConcurrentMap<String, TopicConfig> tcTable =
                     topicConfigWrapper.getTopicConfigTable();
                 if (tcTable != null) {
+                    // is single topic route data changed
+                    boolean singleTopicRouteChanged = tcTable.size() == 1;
                     for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
                         if (registerFirst || this.isTopicConfigChanged(clusterName, brokerAddr,
                             topicConfigWrapper.getDataVersion(), brokerName,
@@ -339,7 +325,7 @@ public class RouteInfoManager {
                                 // Wipe write perm for prime slave
                                 topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
                             }
-                            this.createAndUpdateQueueData(brokerName, topicConfig);
+                            this.createAndUpdateQueueData(brokerName, topicConfig, singleTopicRouteChanged);
                         }
                     }
                 }
@@ -460,7 +446,8 @@ public class RouteInfoManager {
         }
     }
 
-    private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
+    private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig,
+                                          boolean singleTopicRouteChanged) {
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
@@ -483,7 +470,10 @@ public class RouteInfoManager {
                 log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), existedQD,
                     queueData);
                 queueDataMap.put(brokerName, queueData);
-                changedTopicSet.add(topic);
+                // if broker restart, many topic will register, for avoid hot, then ignore
+                if (singleTopicRouteChanged) {
+                    changedTopicSet.add(topic);
+                }
             }
         }
     }

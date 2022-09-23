@@ -47,9 +47,11 @@ import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.UpdateTopicRouteRequestHeader;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
@@ -317,6 +319,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
+            case RequestCode.NOTIFY_TOPIC_ROUTE_CHANGED:
+                return this.notifyBrokerTopicRouteChanged(request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2620,5 +2624,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return true;
         }
         return false;
+    }
+
+    /**
+     * notify broker the topic route info changed, then broker pull topic route data ACTIVELY
+     *
+     * @param request   the request
+     * @return  return null, because the rpc type is one way
+     */
+    private RemotingCommand notifyBrokerTopicRouteChanged(RemotingCommand request) throws RemotingCommandException {
+        UpdateTopicRouteRequestHeader requestHeader = (UpdateTopicRouteRequestHeader) request
+                .decodeCommandCustomHeader(UpdateTopicRouteRequestHeader.class);
+        String topic = requestHeader.getTopic();
+        TopicRouteInfoManager topicRouteInfoManager = brokerController.getTopicRouteInfoManager();
+        topicRouteInfoManager.updateTopicRouteInfoFromNameServer(topic, true, false);
+        return null;
     }
 }

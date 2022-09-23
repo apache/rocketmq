@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.producer;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -37,6 +38,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -88,7 +92,9 @@ import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -309,7 +315,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             Map.Entry<String, TopicPublishInfo> entry = iterator.next();
             String topic = entry.getKey();
             TopicPublishInfo publishInfo = entry.getValue();
-            if (isTopicExpired(publishInfo)) {
+            if (isTopicExpired(topic, publishInfo)) {
                 iterator.remove();
             } else {
                 topicList.add(topic);
@@ -318,9 +324,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return topicList;
     }
 
-    private boolean isTopicExpired(TopicPublishInfo publishInfo) {
+    private boolean isTopicExpired(String topic, TopicPublishInfo publishInfo) {
+        if (TopicValidator.isSystemTopic(topic)) {
+            return false;
+        }
         long expiredTime = System.currentTimeMillis() - publishInfo.getLastUpdateTime();
-        return expiredTime > mQClientFactory.getClientConfig().getTopicRouteExpireTime();
+        return expiredTime > ClientConfig.getTopicRouteExpireTime();
     }
 
     @Override

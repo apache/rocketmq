@@ -223,8 +223,16 @@ public class BaseConf {
         return getProducer(nsAddr, topic, false);
     }
 
+    public static RMQNormalProducer getProducer(String nsAddr, String topic, int pollNameServerInterval) {
+        return getProducer(nsAddr, topic, false, pollNameServerInterval);
+    }
+
     public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS) {
-        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS);
+        return getProducer(nsAddr, topic, useTLS, 100);
+    }
+
+    public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS, int pollNameServerInterval) {
+        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS, pollNameServerInterval);
         if (debug) {
             producer.setDebug();
         }

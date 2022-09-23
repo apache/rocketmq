@@ -18,21 +18,25 @@ package org.apache.rocketmq.test.client.producer.topicroute;
 
 
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.namesrv.routeinfo.TopicRouteNotifier;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -42,41 +46,53 @@ public class TopicRouteUpdateTest extends BaseConf {
     private RMQNormalProducer producer = null;
     private String topic = null;
 
-    @Before
-    public void setUp() {
-        topic = initTopic();
-        logger.info(String.format("topic is %s", topic));
-        producer = getProducer(nsAddr, topic);
-    }
-
     @After
     public void tearDown() {
         shutdown();
     }
 
-    @Test
-    public void testQueryMsg() throws Exception {
-        producer.send(20);
-
-        modifyQueueNumAndCheck(18);
-        modifyQueueNumAndCheck(19);
-        modifyQueueNumAndCheck(20);
-        modifyQueueNumAndCheck(21);
+    private void resetProducerAndTopic() {
+        if (topic == null) {
+            topic = initTopic();
+            logger.info(String.format("topic is %s", topic));
+        }
+        if (producer == null) {
+            producer = getProducer(nsAddr, topic, 30000);
+        }
     }
 
-    private void modifyQueueNumAndCheck(int newQueueNum) throws Exception {
-        Field busyFlagField = TopicRouteNotifier.class.getDeclaredField("SYSTEM_BUSY_FLAG");
-        busyFlagField.setAccessible(true);
-        busyFlagField.set(null, false);
-        Field cacheTimeField = TopicRouteNotifier.class.getDeclaredField("LAST_CACHE_TIME");
-        cacheTimeField.setAccessible(true);
-        cacheTimeField.set(null, System.currentTimeMillis());
+    @Test
+    public void modifyTopicQueueNumAndCheck() throws Exception {
+        resetProducerAndTopic();
+        producer.send(20);
+        for (int queueNum = 100; queueNum < 105; queueNum++) {
+            modifyQueueNumAndCheck(queueNum);
+        }
+        shutDownProducerAndCheck();
+    }
 
+    private void shutDownProducerAndCheck() throws Exception {
+        resetProducerAndTopic();
+        producer.send(20);
+        Thread.sleep(2000);
+        brokerController1.shutdown();
+        RouteInfoManager routeInfoManager = namesrvController.getRouteInfoManager();
+        Set<String> changedTopicSet = (Set<String>) reflectGetAtr(routeInfoManager, "changedTopicSet");
+        Assert.assertEquals(0, changedTopicSet.size());
+    }
+
+    /**
+     * 1. update topic queue num
+     * 2. then sleep 2s
+     * 3. check client topic queue num changed
+     *
+     * @param newQueueNum   the update queue num
+     */
+    private void modifyQueueNumAndCheck(int newQueueNum) throws Exception {
         // update topic route info
         MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
-
         // wait notify client
-        Thread.sleep(2000);
+        Thread.sleep(3000);
 
         TopicPublishInfo topicPublishInfo = queryTopicPublishInfo();
         assertThat(topicPublishInfo).isNotNull();
@@ -95,9 +111,6 @@ public class TopicRouteUpdateTest extends BaseConf {
     }
 
     private Object reflectGetAtr(Object obj, String fieldName) throws Exception {
-        Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return field.get(obj);
+        return FieldUtils.readDeclaredField(obj, fieldName, true);
     }
-
 }
