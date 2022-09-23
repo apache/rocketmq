@@ -1448,7 +1448,7 @@ public class CommitLog implements Swappable {
         private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<GroupCommitRequest>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
 
-        public synchronized void putRequest(final GroupCommitRequest request) {
+        public void putRequest(final GroupCommitRequest request) {
             lock.lock();
             try {
                 this.requestsWrite.add(request);
