@@ -764,7 +764,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
-                            if (cqUnit.getQueueOffset() - offset > maxFilterMessageCount) {
+                            if ((cqUnit.getQueueOffset() - offset) * ConsumeQueue.CQ_STORE_UNIT_SIZE > maxFilterMessageCount) {
                                 break;
                             }
 
