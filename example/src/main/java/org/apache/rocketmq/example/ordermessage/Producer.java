@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.ordermessage;
 
 
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -25,9 +27,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class Producer {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws MQClientException,InterruptedException {
+        final InternalLogger log = ClientLogger.getLog();
         try {
             DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
             producer.start();
@@ -52,6 +56,7 @@ public class Producer {
             producer.shutdown();
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("[ORDER_MESSAGE_PRODUCER] Send Exception", e);
         }
     }
 }
