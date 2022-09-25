@@ -17,8 +17,7 @@
 package org.apache.rocketmq.example.ordermessage;
 
 
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
+
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -27,7 +26,6 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;

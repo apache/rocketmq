@@ -17,11 +17,14 @@
 package org.apache.rocketmq.example.quickstart;
 
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 
 import java.nio.charset.StandardCharsets;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 /**
  * This class demonstrates how to send messages to brokers using provided {@link DefaultMQProducer}.
@@ -38,7 +41,7 @@ public class Producer {
     public static final String TAG = "TagA";
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
-
+        final InternalLogger log = ClientLogger.getLog();
         /*
          * Instantiate with a producer group name.
          */
@@ -70,7 +73,7 @@ public class Producer {
                  */
                 Message msg = new Message(TOPIC /* Topic */,
                     TAG /* Tag */,
-                    ("Hello RocketMQ " + i).getBytes(StandardCharsets.UTF_8) /* Message body */
+                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 
                 /*
@@ -114,7 +117,9 @@ public class Producer {
                 System.out.printf("%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
+                log.error("[MESSAGE_PRODUCER] Send Exception", e);
                 Thread.sleep(1000);
+                throw new MQClientException(e.getMessage(),null);
             }
         }
 
