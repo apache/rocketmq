@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.ordermessage;
 
 
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -28,9 +30,10 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class Producer {
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws MQClientException{
         final InternalLogger log = ClientLogger.getLog();
         try {
             DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
@@ -41,7 +44,7 @@ public class Producer {
                 int orderId = i % 10;
                 Message msg =
                     new Message("TopicTestjjj", tags[i % tags.length], "KEY" + i,
-                        ("Hello RocketMQ " + i).getBytes(StandardCharsets.UTF_8));
+                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override
                     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
@@ -57,7 +60,7 @@ public class Producer {
         } catch (Exception e) {
             e.printStackTrace();
             log.error("[ORDER_MESSAGE_PRODUCER] Send Exception", e);
-            throw new Exception(e);
+            throw new MQClientException(e.getMessage(), null);
         }
     }
 }
