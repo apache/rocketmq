@@ -56,7 +56,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     protected static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
 
-    protected static final AtomicIntegerFieldUpdater<DefaultMappedFile> WROTE_POSITION_UPDATER;
+    protected static final AtomicIntegerFieldUpdater<DefaultMappedFile> WRITE_POSITION_UPDATER;
     protected static final AtomicIntegerFieldUpdater<DefaultMappedFile> COMMITTED_POSITION_UPDATER;
     protected static final AtomicIntegerFieldUpdater<DefaultMappedFile> FLUSHED_POSITION_UPDATER;
 
@@ -83,7 +83,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected long mappedByteBufferAccessCountSinceLastSwap = 0L;
 
     static {
-        WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
+        WRITE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
         COMMITTED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "committedPosition");
         FLUSHED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "flushedPosition");
     }
@@ -206,7 +206,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         assert messageExt != null;
         assert cb != null;
 
-        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        int currentPos = WRITE_POSITION_UPDATER.get(this);
 
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = appendMessageBuffer().slice();
@@ -223,7 +223,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
+            WRITE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
@@ -248,7 +248,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public boolean appendMessage(ByteBuffer data) {
-        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        int currentPos = WRITE_POSITION_UPDATER.get(this);
         int remaining = data.remaining();
 
         if ((currentPos + remaining) <= this.fileSize) {
@@ -260,7 +260,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, remaining);
+            WRITE_POSITION_UPDATER.addAndGet(this, remaining);
             return true;
         }
         return false;
@@ -274,7 +274,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public boolean appendMessage(final byte[] data, final int offset, final int length) {
-        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        int currentPos = WRITE_POSITION_UPDATER.get(this);
 
         if ((currentPos + length) <= this.fileSize) {
             try {
@@ -284,7 +284,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, length);
+            WRITE_POSITION_UPDATER.addAndGet(this, length);
             return true;
         }
 
@@ -328,7 +328,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
-            return WROTE_POSITION_UPDATER.get(this);
+            return WRITE_POSITION_UPDATER.get(this);
         }
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
@@ -349,7 +349,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     protected void commit0() {
-        int writePos = WROTE_POSITION_UPDATER.get(this);
+        int writePos = WRITE_POSITION_UPDATER.get(this);
         int lastCommittedPosition = COMMITTED_POSITION_UPDATER.get(this);
 
         if (writePos - lastCommittedPosition > 0) {
@@ -383,7 +383,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     protected boolean isAbleToCommit(final int commitLeastPages) {
         int commit = COMMITTED_POSITION_UPDATER.get(this);
-        int write = WROTE_POSITION_UPDATER.get(this);
+        int write = WRITE_POSITION_UPDATER.get(this);
 
         if (this.isFull()) {
             return true;
@@ -408,7 +408,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public boolean isFull() {
-        return this.fileSize == WROTE_POSITION_UPDATER.get(this);
+        return this.fileSize == WRITE_POSITION_UPDATER.get(this);
     }
 
     @Override
@@ -508,12 +508,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public int getWrotePosition() {
-        return WROTE_POSITION_UPDATER.get(this);
+        return WRITE_POSITION_UPDATER.get(this);
     }
 
     @Override
     public void setWrotePosition(int pos) {
-        WROTE_POSITION_UPDATER.set(this, pos);
+        WRITE_POSITION_UPDATER.set(this, pos);
     }
 
     /**
@@ -521,7 +521,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int getReadPosition() {
-        return this.writeBuffer == null ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
+        return this.writeBuffer == null ? WRITE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 
     @Override
