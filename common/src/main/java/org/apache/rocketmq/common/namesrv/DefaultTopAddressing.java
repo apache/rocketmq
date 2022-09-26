@@ -51,7 +51,6 @@ public class DefaultTopAddressing implements TopAddressing {
         this.topAddressingList = loadCustomTopAddressing();
     }
 
-
     public DefaultTopAddressing(final String unitName, final Map<String, String> para, final String wsAddr) {
         this.wsAddr = wsAddr;
         this.unitName = unitName;

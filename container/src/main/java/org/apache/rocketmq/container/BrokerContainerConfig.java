@@ -29,6 +29,9 @@ public class BrokerContainerConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
     @ImportantField
+    private boolean fetchNameSrvAddrByDnsLookup = false;
+
+    @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
 
     @ImportantField
