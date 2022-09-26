@@ -38,6 +38,7 @@ import io.netty.handler.proxy.Socks5ProxyHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import java.io.IOException;
@@ -291,10 +292,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
-        String[] addrArr = addr.split(":");
+        String[] hostAndPort = this.getHostAndPort(addr);
         for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
-            if (RemotingHelper.ipInCIDR(addrArr[0], cidr)) {
+            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
                 return entry;
             }
         }
@@ -348,7 +349,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                     // Netty Socks5 Proxy
                     if (proxy != null) {
-                        String[] arr = proxy.getAddr().split(":");
+                        String[] arr = getHostAndPort(proxy.getAddr());
                         pipeline.addFirst(new Socks5ProxyHandler(
                             new InetSocketAddress(arr[0], Integer.parseInt(arr[1])),
                             proxy.getUsername(), proxy.getPassword()));
@@ -364,7 +365,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
+        // Support Netty Socks5 Proxy
+        if (proxy != null) {
+            bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
+        }
         return bootstrap;
+    }
+
+    private String[] getHostAndPort(String address) {
+        return address.split(":");
     }
 
     @Override
@@ -698,7 +707,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
-                    ChannelFuture channelFuture = fetchBootstrap(addr).connect(RemotingHelper.string2SocketAddress(addr));
+                    String[] hostAndPort = getHostAndPort(addr);
+                    ChannelFuture channelFuture = fetchBootstrap(addr).connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
                     LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
                     this.channelTables.put(addr, cw);
