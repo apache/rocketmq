@@ -132,7 +132,7 @@ public class BrokerContainer implements IBrokerContainer {
     }
 
     private void updateNamesrvAddr() {
-        if (this.brokerContainerConfig.isFetchNamesrvAddrByAddressServer()) {
+        if (this.brokerContainerConfig.isFetchNameSrvAddrByDnsLookup()) {
             this.brokerOuterAPI.updateNameServerAddressListByDnsLookup(this.brokerContainerConfig.getNamesrvAddr());
         } else {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerContainerConfig.getNamesrvAddr());

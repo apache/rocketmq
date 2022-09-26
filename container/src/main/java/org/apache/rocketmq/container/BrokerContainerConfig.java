@@ -55,6 +55,14 @@ public class BrokerContainerConfig {
         this.namesrvAddr = namesrvAddr;
     }
 
+    public boolean isFetchNameSrvAddrByDnsLookup() {
+        return fetchNameSrvAddrByDnsLookup;
+    }
+
+    public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
+        this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
+    }
+
     public boolean isFetchNamesrvAddrByAddressServer() {
         return fetchNamesrvAddrByAddressServer;
     }
