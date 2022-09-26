@@ -17,13 +17,13 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class EndTransactionRequestHeader implements CommandCustomHeader {
+public class EndTransactionRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private String producerGroup;
     @CFNotNull
@@ -42,6 +42,8 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     private String msgId;
 
     private String transactionId;
+
+    private int queueId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -126,6 +128,16 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
             ", fromTransactionCheck=" + fromTransactionCheck +
             ", msgId='" + msgId + '\'' +
             ", transactionId='" + transactionId + '\'' +
+            ", queueId=" + queueId +
+            ", bname='" + bname + '\'' +
             '}';
+    }
+
+    public int getQueueId() {
+        return queueId;
+    }
+
+    public void setQueueId(int queueId) {
+        this.queueId = queueId;
     }
 }
