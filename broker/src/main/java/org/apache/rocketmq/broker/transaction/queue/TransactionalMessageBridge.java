@@ -349,8 +349,7 @@ public class TransactionalMessageBridge {
 
     public boolean escapeMessage(MessageExtBrokerInner messageInner) {
         PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessage(messageInner);
-        if (putMessageResult != null
-            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+        if (putMessageResult != null && putMessageResult.isOk()) {
             return true;
         } else {
             LOGGER.error("Escaping message failed, topic: {}, queueId: {}, msgId: {}",
