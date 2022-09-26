@@ -175,6 +175,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
     }
 
+    @Override
     public long getTotalSize() {
         long totalSize = this.mappedFileQueue.getTotalFileSize();
         if (isExtReadEnable()) {

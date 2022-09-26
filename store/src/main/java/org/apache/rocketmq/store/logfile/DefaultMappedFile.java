@@ -535,10 +535,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-        int flush = 0;
-        long time = System.currentTimeMillis();
-        for (int i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
-            byteBuffer.put(i, (byte) 0);
+        long flush = 0;
+        // long time = System.currentTimeMillis();
+        for (long i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
+            byteBuffer.put((int) i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
@@ -548,15 +548,15 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
 
             // prevent gc
-            if (j % 1000 == 0) {
-                log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
-                time = System.currentTimeMillis();
-                try {
-                    Thread.sleep(0);
-                } catch (InterruptedException e) {
-                    log.error("Interrupted", e);
-                }
-            }
+            // if (j % 1000 == 0) {
+            //     log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
+            //     time = System.currentTimeMillis();
+            //     try {
+            //         Thread.sleep(0);
+            //     } catch (InterruptedException e) {
+            //         log.error("Interrupted", e);
+            //     }
+            // }
         }
 
         // force flush when prepare load finished

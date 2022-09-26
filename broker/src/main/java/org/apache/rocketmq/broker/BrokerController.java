@@ -69,8 +69,8 @@ import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
-import org.apache.rocketmq.broker.plugin.MessageStoreFactory;
-import org.apache.rocketmq.broker.plugin.MessageStorePluginContext;
+import org.apache.rocketmq.store.plugin.MessageStoreFactory;
+import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
@@ -729,7 +729,7 @@ public class BrokerController {
                 }
                 this.brokerStats = new BrokerStats(defaultMessageStore);
                 //load plugin
-                MessageStorePluginContext context = new MessageStorePluginContext(this, messageStoreConfig, brokerStatsManager, messageArrivingListener);
+                MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
                 this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
                 if (this.brokerConfig.isEnableControllerMode()) {

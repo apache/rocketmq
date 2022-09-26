@@ -272,23 +272,23 @@ public class DefaultMessageStore implements MessageStore {
 
         try {
             boolean lastExitOK = !this.isTempFileExist();
-            LOGGER.info("last shutdown {}, root dir: {}", lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
+            LOGGER.info("last shutdown {}, store path root dir: {}",
+                lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
 
             // load Commit Log
-            result = result && this.commitLog.load();
+            result = this.commitLog.load();
 
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
 
             if (result) {
                 this.storeCheckpoint =
-                    new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+                    new StoreCheckpoint(
+                        StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
-                this.indexService.load(lastExitOK);
-
+                result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
-
-                LOGGER.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
+                LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
 
             long maxOffset = this.getMaxPhyOffset();
@@ -645,7 +645,7 @@ public class DefaultMessageStore implements MessageStore {
         // truncate consume queue
         this.truncateDirtyLogicFiles(offsetToTruncate);
 
-        recoverTopicQueueTable();
+        this.recoverTopicQueueTable();
 
         this.reputMessageService = new ReputMessageService();
         this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
@@ -1630,21 +1630,31 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) {
-        long recoverCqStart = System.currentTimeMillis();
-        long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
-        long recoverCqEnd = System.currentTimeMillis();
+        boolean recoverConcurrently = this.brokerConfig.isRecoverConcurrently();
+        LOGGER.info("message store recover mode: {}", recoverConcurrently ? "concurrent" : "normal");
 
+        // recover consume queue
+        long recoverConsumeQueueStart = System.currentTimeMillis();
+        this.recoverConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.getMaxOffsetInConsumeQueue();
+        long recoverConsumeQueueEnd = System.currentTimeMillis();
+
+        // recover commitlog
         if (lastExitOK) {
             this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
-        long recoverClogEnd = System.currentTimeMillis();
-        this.recoverTopicQueueTable();
-        long recoverOffsetEnd = System.currentTimeMillis();
 
-        LOGGER.info("Recover end total:{} recoverCq:{} recoverClog:{} recoverOffset:{}",
-            recoverOffsetEnd - recoverCqStart, recoverCqEnd - recoverCqStart, recoverClogEnd - recoverCqEnd, recoverOffsetEnd - recoverClogEnd);
+        // recover consume offset table
+        long recoverCommitLogEnd = System.currentTimeMillis();
+        this.recoverTopicQueueTable();
+        long recoverConsumeOffsetEnd = System.currentTimeMillis();
+
+        LOGGER.info("message store recover total cost: {} ms, " +
+                "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
+            recoverConsumeOffsetEnd - recoverConsumeQueueStart, recoverConsumeQueueEnd - recoverConsumeQueueStart,
+            recoverCommitLogEnd - recoverConsumeQueueEnd, recoverConsumeOffsetEnd - recoverCommitLogEnd);
     }
 
     @Override
@@ -1666,8 +1676,16 @@ public class DefaultMessageStore implements MessageStore {
         return transientStorePool;
     }
 
-    private long recoverConsumeQueue() {
-        return this.consumeQueueStore.recover();
+    private void recoverConsumeQueue() {
+        if (!this.brokerConfig.isRecoverConcurrently()) {
+            this.consumeQueueStore.recover();
+        } else {
+            this.consumeQueueStore.recoverConcurrently();
+        }
+    }
+
+    private long getMaxOffsetInConsumeQueue() {
+        return this.consumeQueueStore.getMaxOffsetInConsumeQueue();
     }
 
     public void recoverTopicQueueTable() {
