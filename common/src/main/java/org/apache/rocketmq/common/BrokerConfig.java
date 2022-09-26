@@ -94,8 +94,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     @ImportantField
     private boolean rejectTransactionMessage = false;
+
+    @ImportantField
+    private boolean fetchNameSrvAddrByDnsLookup = false;
+
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
+
     private int sendThreadPoolQueueCapacity = 10000;
     private int putThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
@@ -1342,5 +1347,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setRecoverThreadPoolNums(int recoverThreadPoolNums) {
         this.recoverThreadPoolNums = recoverThreadPoolNums;
+    }
+
+    public boolean isFetchNameSrvAddrByDnsLookup() {
+        return fetchNameSrvAddrByDnsLookup;
+    }
+
+    public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
+        this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
     }
 }
