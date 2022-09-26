@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -292,7 +293,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
-        String[] hostAndPort = this.getHostAndPort(addr);
+        if (StringUtils.isBlank(addr) || !addr.contains(":")) {
+            return null;
+        }
+        String[] hostAndPort = addr.split(":");
         for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
             if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
@@ -349,9 +353,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                     // Netty Socks5 Proxy
                     if (proxy != null) {
-                        String[] arr = getHostAndPort(proxy.getAddr());
                         pipeline.addFirst(new Socks5ProxyHandler(
-                            new InetSocketAddress(arr[0], Integer.parseInt(arr[1])),
+                            RemotingUtil.string2SocketAddress(proxy.getAddr()),
                             proxy.getUsername(), proxy.getPassword()));
                     }
 
@@ -370,10 +373,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
         }
         return bootstrap;
-    }
-
-    private String[] getHostAndPort(String address) {
-        return address.split(":");
     }
 
     @Override
@@ -707,8 +706,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
-                    String[] hostAndPort = getHostAndPort(addr);
-                    ChannelFuture channelFuture = fetchBootstrap(addr).connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+                    ChannelFuture channelFuture = fetchBootstrap(addr).connect(RemotingUtil.string2SocketAddress(addr));
                     LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
                     this.channelTables.put(addr, cw);
