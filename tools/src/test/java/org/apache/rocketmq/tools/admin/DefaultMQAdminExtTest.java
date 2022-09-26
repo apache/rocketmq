@@ -286,7 +286,7 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testFetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
-        assertThat(topicList.getTopicList().size()).isEqualTo(2);
+        assertThat(topicList.getTopicList().size()).isEqualTo(1);
         assertThat(topicList.getTopicList()).contains("topic_one");
     }
 
