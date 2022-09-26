@@ -44,6 +44,9 @@ public class BrokerConfig extends BrokerIdentity {
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
 
+    @ImportantField
+    private boolean recoverConcurrently = false;
+
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
     @ImportantField
@@ -77,6 +80,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int consumerManageThreadPoolNums = 32;
     private int loadBalanceProcessorThreadPoolNums = 32;
     private int heartbeatThreadPoolNums = Math.min(32, PROCESSOR_NUMBER);
+    private int recoverThreadPoolNums = 32;
 
     /**
      * Thread numbers for EndTransactionProcessor
@@ -90,8 +94,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     @ImportantField
     private boolean rejectTransactionMessage = false;
+
+    @ImportantField
+    private boolean fetchNameSrvAddrByDnsLookup = false;
+
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
+
     private int sendThreadPoolQueueCapacity = 10000;
     private int putThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
@@ -1322,5 +1331,29 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
         this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
+    }
+
+    public boolean isRecoverConcurrently() {
+        return recoverConcurrently;
+    }
+
+    public void setRecoverConcurrently(boolean recoverConcurrently) {
+        this.recoverConcurrently = recoverConcurrently;
+    }
+
+    public int getRecoverThreadPoolNums() {
+        return recoverThreadPoolNums;
+    }
+
+    public void setRecoverThreadPoolNums(int recoverThreadPoolNums) {
+        this.recoverThreadPoolNums = recoverThreadPoolNums;
+    }
+
+    public boolean isFetchNameSrvAddrByDnsLookup() {
+        return fetchNameSrvAddrByDnsLookup;
+    }
+
+    public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
+        this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
     }
 }

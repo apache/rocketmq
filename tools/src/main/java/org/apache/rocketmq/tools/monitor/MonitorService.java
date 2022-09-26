@@ -196,14 +196,14 @@ public class MonitorService {
         ConsumeStats cs = null;
         try {
             cs = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-        } catch (Exception e) {
+        } catch (Exception ignore) {
             return;
         }
 
         ConsumerConnection cc = null;
         try {
             cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
-        } catch (Exception e) {
+        } catch (Exception ignore) {
             return;
         }
 

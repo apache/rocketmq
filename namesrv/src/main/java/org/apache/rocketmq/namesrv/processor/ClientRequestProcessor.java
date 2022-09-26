@@ -61,7 +61,7 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
 
             byte[] content;
             Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
-            if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || (null != standardJsonOnly && standardJsonOnly)) {
+            if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || null != standardJsonOnly && standardJsonOnly) {
                 content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
                     SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
                     SerializerFeature.MapSortField);

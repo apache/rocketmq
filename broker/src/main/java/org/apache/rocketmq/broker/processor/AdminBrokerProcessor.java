@@ -842,7 +842,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     }
                     SearchOffsetResponseHeader offsetResponseHeader = (SearchOffsetResponseHeader) rpcResponse.getHeader();
                     if (offsetResponseHeader.getOffset() < 0
-                        || (item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset())) {
+                        || item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset()) {
                         continue;
                     } else {
                         offset = item.computeStaticQueueOffsetStrictly(offsetResponseHeader.getOffset());

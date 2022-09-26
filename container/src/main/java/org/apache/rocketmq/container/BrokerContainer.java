@@ -112,6 +112,7 @@ public class BrokerContainer implements IBrokerContainer {
         return nettyServerConfig;
     }
 
+    @Override
     public NettyClientConfig getNettyClientConfig() {
         return nettyClientConfig;
     }
@@ -130,6 +131,14 @@ public class BrokerContainer implements IBrokerContainer {
         return this.configuration;
     }
 
+    private void updateNamesrvAddr() {
+        if (this.brokerContainerConfig.isFetchNameSrvAddrByDnsLookup()) {
+            this.brokerOuterAPI.updateNameServerAddressListByDnsLookup(this.brokerContainerConfig.getNamesrvAddr());
+        } else {
+            this.brokerOuterAPI.updateNameServerAddressList(this.brokerContainerConfig.getNamesrvAddr());
+        }
+    }
+
     public boolean initialize() {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.containerClientHouseKeepingService);
         this.fastRemotingServer = this.remotingServer.newRemotingServer(this.nettyServerConfig.getListenPort() - 2);
@@ -145,14 +154,14 @@ public class BrokerContainer implements IBrokerContainer {
         this.registerProcessor();
 
         if (this.brokerContainerConfig.getNamesrvAddr() != null) {
-            this.brokerOuterAPI.updateNameServerAddressList(this.brokerContainerConfig.getNamesrvAddr());
+            this.updateNamesrvAddr();
             LOG.info("Set user specified name server address: {}", this.brokerContainerConfig.getNamesrvAddr());
             // also auto update namesrv if specify
             this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
                 @Override
                 public void run2() {
                     try {
-                        BrokerContainer.this.brokerOuterAPI.updateNameServerAddressList(BrokerContainer.this.brokerContainerConfig.getNamesrvAddr());
+                        BrokerContainer.this.updateNamesrvAddr();
                     } catch (Throwable e) {
                         LOG.error("ScheduledTask fetchNameServerAddr exception", e);
                     }

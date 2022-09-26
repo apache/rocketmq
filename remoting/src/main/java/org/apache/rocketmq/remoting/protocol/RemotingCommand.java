@@ -28,6 +28,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -499,7 +500,7 @@ public class RemotingCommand {
         // header data
         result.put(headerData);
 
-        result.flip();
+        ((Buffer)result).flip();
 
         return result;
     }

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.ProxyMode;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProxyConfig implements ConfigFile {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
+    public final static String DEFAULT_CONFIG_FILE_NAME = "rmq-proxy.json";
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
 
     private String rocketMQClusterName = "";
@@ -44,9 +45,9 @@ public class ProxyConfig implements ConfigFile {
     private long printJstackInMillis = Duration.ofSeconds(60).toMillis();
     private long printThreadPoolStatusInMillis = Duration.ofSeconds(3).toMillis();
 
-    private String nameSrvAddr = "";
-    private String nameSrvDomain = "";
-    private String nameSrvDomainSubgroup = "";
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvDomain = "";
+    private String namesrvDomainSubgroup = "";
     /**
      * gRPC
      */
@@ -234,28 +235,28 @@ public class ProxyConfig implements ConfigFile {
         this.printThreadPoolStatusInMillis = printThreadPoolStatusInMillis;
     }
 
-    public String getNameSrvAddr() {
-        return nameSrvAddr;
+    public String getNamesrvAddr() {
+        return namesrvAddr;
     }
 
-    public void setNameSrvAddr(String nameSrvAddr) {
-        this.nameSrvAddr = nameSrvAddr;
+    public void setNamesrvAddr(String namesrvAddr) {
+        this.namesrvAddr = namesrvAddr;
     }
 
-    public String getNameSrvDomain() {
-        return nameSrvDomain;
+    public String getNamesrvDomain() {
+        return namesrvDomain;
     }
 
-    public void setNameSrvDomain(String nameSrvDomain) {
-        this.nameSrvDomain = nameSrvDomain;
+    public void setNamesrvDomain(String namesrvDomain) {
+        this.namesrvDomain = namesrvDomain;
     }
 
-    public String getNameSrvDomainSubgroup() {
-        return nameSrvDomainSubgroup;
+    public String getNamesrvDomainSubgroup() {
+        return namesrvDomainSubgroup;
     }
 
-    public void setNameSrvDomainSubgroup(String nameSrvDomainSubgroup) {
-        this.nameSrvDomainSubgroup = nameSrvDomainSubgroup;
+    public void setNamesrvDomainSubgroup(String namesrvDomainSubgroup) {
+        this.namesrvDomainSubgroup = namesrvDomainSubgroup;
     }
 
     public String getProxyMode() {
