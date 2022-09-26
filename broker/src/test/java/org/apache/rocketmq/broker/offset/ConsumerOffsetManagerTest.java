@@ -29,27 +29,27 @@ public class ConsumerOffsetManagerTest {
 
     private ConsumerOffsetManager consumerOffsetManager;
 
-    private static final String key = "FooBar@FooBarGroup";
+    private static final String KEY = "FooBar@FooBarGroup";
     @Before
-    public void init(){
+    public void init() {
         consumerOffsetManager = new ConsumerOffsetManager();
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
-        offsetTable.put(key,new ConcurrentHashMap<Integer, Long>(){{
-            put(1,2L);
-            put(2,3L);
-        }});
+        offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
+                put(1,2L);
+                put(2,3L);
+            }});
         consumerOffsetManager.setOffsetTable(offsetTable);
     }
 
     @Test
-    public void cleanOffsetByTopic_NotExist(){
+    public void cleanOffsetByTopic_NotExist() {
         consumerOffsetManager.cleanOffsetByTopic("InvalidTopic");
-        assertThat(consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
+        assertThat(consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
     }
 
     @Test
-    public void cleanOffsetByTopic_Exist(){
+    public void cleanOffsetByTopic_Exist() {
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
-        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
+        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
     }
 }
