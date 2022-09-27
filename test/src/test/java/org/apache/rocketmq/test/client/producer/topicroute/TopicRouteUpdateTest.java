@@ -38,6 +38,9 @@ import java.util.concurrent.ConcurrentMap;
 
 import static com.google.common.truth.Truth.assertThat;
 
+/**
+ * test when topic route changed
+ */
 public class TopicRouteUpdateTest extends BaseConf {
     private static final Logger logger = Logger.getLogger(TopicRouteUpdateTest.class);
     private RMQNormalProducer producer = null;
