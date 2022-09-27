@@ -42,6 +42,7 @@ import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
@@ -295,7 +296,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (StringUtils.isBlank(addr) || !addr.contains(":")) {
             return null;
         }
-        String[] hostAndPort = addr.split(":");
+        String[] hostAndPort = this.getHostAndPort(addr);
         for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
             if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
@@ -352,8 +353,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                     // Netty Socks5 Proxy
                     if (proxy != null) {
+                        String[] hostAndPort = getHostAndPort(proxy.getAddr());
                         pipeline.addFirst(new Socks5ProxyHandler(
-                            RemotingUtil.string2SocketAddress(proxy.getAddr()),
+                            new InetSocketAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])),
                             proxy.getUsername(), proxy.getPassword()));
                     }
 
@@ -372,6 +374,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
         }
         return bootstrap;
+    }
+
+    // Do not use RemotingUtil, it will directly resolve the domain
+    private String[] getHostAndPort(String address) {
+        return address.split(":");
     }
 
     @Override
@@ -705,7 +712,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
-                    ChannelFuture channelFuture = fetchBootstrap(addr).connect(RemotingUtil.string2SocketAddress(addr));
+                    String[] hostAndPort = getHostAndPort(addr);
+                    ChannelFuture channelFuture = fetchBootstrap(addr)
+                        .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
                     LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
                     this.channelTables.put(addr, cw);
