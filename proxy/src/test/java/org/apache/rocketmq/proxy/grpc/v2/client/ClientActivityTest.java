@@ -323,6 +323,19 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testEmptyProducerSettings() throws Throwable {
+        ProxyContext context = createContext();
+        TelemetryCommand command = this.sendClientTelemetry(
+            context,
+            Settings.newBuilder()
+                .setClientType(ClientType.PRODUCER)
+                .setPublishing(Publishing.getDefaultInstance())
+                .build()).get();
+        assertTrue(command.hasSettings());
+        assertTrue(command.getSettings().hasPublishing());
+    }
+
+    @Test
     public void testReportThreadStackTrace() {
         this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManagerMock);
         String jstack = "jstack";

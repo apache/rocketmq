@@ -253,14 +253,18 @@ public class ClientActivity extends AbstractMessingActivity {
             default:
                 break;
         }
-        if (grpcClientChannel == null) {
+        if (Settings.PubSubCase.PUBSUB_NOT_SET.equals(settings.getPubSubCase())) {
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription("there is no publishing or subscription data in settings")
                 .asRuntimeException());
             return;
         }
         TelemetryCommand command = processClientSettings(ctx, request);
-        grpcClientChannel.writeTelemetryCommand(command);
+        if (grpcClientChannel != null) {
+            grpcClientChannel.writeTelemetryCommand(command);
+        } else {
+            responseObserver.onNext(command);
+        }
     }
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {
