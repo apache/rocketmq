@@ -118,6 +118,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
+    private static final String SOCKS_PROXY_JSON = "socksProxyJson";
     private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
 
     static {
@@ -165,6 +166,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.defaultMQAdminExt.changeInstanceNameToPID();
+
+                String proxyConfig = System.getenv(SOCKS_PROXY_JSON);
+                this.defaultMQAdminExt.setSocksProxyConfig(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
 
                 this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQAdminExt, rpcHook);
 
