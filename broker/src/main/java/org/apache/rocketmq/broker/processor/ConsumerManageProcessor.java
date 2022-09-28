@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -155,8 +154,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         if (rewriteResult != null) {
             return rewriteResult;
         }
-        Set<String> topicSets = this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet();
-        if (topicSets.contains(requestHeader.getTopic())) {
+        if (this.brokerController.getTopicConfigManager().containsTopic(requestHeader.getTopic())) {
             this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
                 requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
             response.setCode(ResponseCode.SUCCESS);
