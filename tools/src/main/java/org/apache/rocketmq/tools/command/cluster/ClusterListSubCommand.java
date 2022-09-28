@@ -251,14 +251,15 @@ public class ClusterListSubCommand implements SubCommand {
                             }
 
                             version = kvTable.getTable().get("brokerVersionDesc");
-                            {
+
+                            if (StringUtils.isNotBlank(putTps)) {
                                 String[] tpss = putTps.split(" ");
                                 if (tpss.length > 0) {
                                     in = Double.parseDouble(tpss[0]);
                                 }
                             }
 
-                            {
+                            if (StringUtils.isNotBlank(getTransferredTps)) {
                                 String[] tpss = getTransferredTps.split(" ");
                                 if (tpss.length > 0) {
                                     out = Double.parseDouble(tpss[0]);
