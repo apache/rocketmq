@@ -208,7 +208,7 @@ public class RemotingCommandTest {
             CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
             assertThat(((ExtFieldsHeader) decodedHeader).getStringValue()).isEqualTo("bilibili");
             assertThat(((ExtFieldsHeader) decodedHeader).getIntValue()).isEqualTo(2333);
-            assertThat(((ExtFieldsHeader) decodedHeader).getLongValue()).isEqualTo(23333333l);
+            assertThat(((ExtFieldsHeader) decodedHeader).getLongValue()).isEqualTo(23333333L);
             assertThat(((ExtFieldsHeader) decodedHeader).isBooleanValue()).isEqualTo(true);
             assertThat(((ExtFieldsHeader) decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
         } catch (RemotingCommandException e) {
@@ -281,7 +281,7 @@ class SampleCommandCustomHeader implements CommandCustomHeader {
 class ExtFieldsHeader implements CommandCustomHeader {
     private String stringValue = "bilibili";
     private int intValue = 2333;
-    private long longValue = 23333333l;
+    private long longValue = 23333333L;
     private boolean booleanValue = true;
     private double doubleValue = 0.618;
 
