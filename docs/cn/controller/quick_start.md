@@ -158,9 +158,9 @@ $ sh bin/controller/fast-try-independent-deployment.sh start
 或者通过命令单独启动：
 
 ```shell
-$ nohup bin/mqnamesrv -c ./conf/controller/cluster-3n-independent/controller-n0.conf &
-$ nohup bin/mqnamesrv -c ./conf/controller/cluster-3n-independent/controller-n1.conf &
-$ nohup bin/mqnamesrv -c ./conf/controller/cluster-3n-independent/controller-n2.conf &
+$ nohup bin/mqcontroller -c ./conf/controller/cluster-3n-independent/controller-n0.conf &
+$ nohup bin/mqcontroller -c ./conf/controller/cluster-3n-independent/controller-n1.conf &
+$ nohup bin/mqcontroller -c ./conf/controller/cluster-3n-independent/controller-n2.conf &
 ```
 
 如果上面的步骤执行成功，可以通过运维命令查看Controller集群状态。
