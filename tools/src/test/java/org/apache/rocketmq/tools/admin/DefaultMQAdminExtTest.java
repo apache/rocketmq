@@ -96,13 +96,13 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQAdminExtTest {
-    private static final String broker1Addr = "127.0.0.1:10911";
-    private static final String broker1Name = "default-broker";
-    private static final String cluster = "default-cluster";
-    private static final String broker2Name = "broker-test";
-    private static final String broker2Addr = "127.0.0.2:10911";
-    private static final String topic1 = "topic_one";
-    private static final String topic2 = "topic_two";
+    private static final String BROKER1_ADDR = "127.0.0.1:10911";
+    private static final String BROKER1_NAME = "default-broker";
+    private static final String CLUSTER = "default-cluster";
+    private static final String BROKER2_NAME = "broker-test";
+    private static final String BROKER2_ADDR = "127.0.0.2:10911";
+    private static final String TOPIC1 = "topic_one";
+    private static final String TOPIC2 = "topic_two";
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
@@ -135,20 +135,20 @@ public class DefaultMQAdminExtTest {
         when(mQClientAPIImpl.getBrokerConfig(anyString(), anyLong())).thenReturn(properties);
 
         Set<String> topicSet = new HashSet<>();
-        topicSet.add(topic1);
-        topicSet.add(topic2);
+        topicSet.add(TOPIC1);
+        topicSet.add(TOPIC2);
         topicList.setTopicList(topicSet);
         when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         List<BrokerData> brokerDatas = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(MixAll.MASTER_ID, broker1Addr);
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER1_ADDR);
         BrokerData brokerData = new BrokerData();
-        brokerData.setCluster(cluster);
-        brokerData.setBrokerName(broker1Name);
+        brokerData.setCluster(CLUSTER);
+        brokerData.setBrokerName(BROKER1_NAME);
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDatas.add(brokerData);
-        brokerDatas.add(new BrokerData(cluster, broker2Name, (HashMap<Long, String>) Maps.newHashMap(MixAll.MASTER_ID, broker2Addr)));
+        brokerDatas.add(new BrokerData(CLUSTER, BROKER2_NAME, (HashMap<Long, String>) Maps.newHashMap(MixAll.MASTER_ID, BROKER2_ADDR)));
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(new ArrayList<QueueData>());
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
@@ -156,13 +156,13 @@ public class DefaultMQAdminExtTest {
 
         HashMap<String, String> result = new HashMap<>();
         result.put("id", String.valueOf(MixAll.MASTER_ID));
-        result.put("brokerName", broker1Name);
+        result.put("brokerName", BROKER1_NAME);
         kvTable.setTable(result);
         when(mQClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
 
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
-        brokerAddrTable.put(broker1Name, brokerData);
-        brokerAddrTable.put(broker2Name, new BrokerData());
+        brokerAddrTable.put(BROKER1_NAME, brokerData);
+        brokerAddrTable.put(BROKER2_NAME, new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
         when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
@@ -507,14 +507,14 @@ public class DefaultMQAdminExtTest {
     @Ignore
     public void testMaxOffset() throws Exception {
         when(mQClientAPIImpl.getMaxOffset(anyString(), any(MessageQueue.class), anyLong())).thenReturn(100L);
-        assertThat(defaultMQAdminExt.maxOffset(new MessageQueue(topic1, broker1Name, 0))).isEqualTo(100L);
+        assertThat(defaultMQAdminExt.maxOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0))).isEqualTo(100L);
     }
 
     @Test
     @Ignore
     public void testSearchOffset() throws Exception {
         when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
-        assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(topic1, broker1Name, 0), System.currentTimeMillis())).isEqualTo(101L);
+        assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0), System.currentTimeMillis())).isEqualTo(101L);
     }
 
     @Test
