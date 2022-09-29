@@ -256,7 +256,6 @@ public class ConsumeMessageConcurrentlyServiceTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
-        System.out.println(consumeThreadName.get());
         if (consumeGroup2.length() <= 100) {
             assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2 + "_");
         } else {

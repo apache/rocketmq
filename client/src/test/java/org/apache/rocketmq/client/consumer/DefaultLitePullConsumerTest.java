@@ -147,7 +147,7 @@ public class DefaultLitePullConsumerTest {
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
             assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
 
-            Set<MessageQueue> assignment= litePullConsumer.assignment();
+            Set<MessageQueue> assignment = litePullConsumer.assignment();
             assertThat(assignment.stream().findFirst().get()).isEqualTo(messageQueueSet.stream().findFirst().get());
         } finally {
             litePullConsumer.shutdown();
