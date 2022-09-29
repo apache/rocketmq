@@ -39,7 +39,7 @@ public class OneWaySendIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("user topic[%s]!", topic));
-        producer = getAsyncProducer(nsAddr, topic);
+        producer = getAsyncProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -50,13 +50,13 @@ public class OneWaySendIT extends BaseConf {
     @Test
     public void testOneWaySendWithOnlyMsgAsParam() {
         int msgSize = 20;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.sendOneWay(msgSize);
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(msgSize);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

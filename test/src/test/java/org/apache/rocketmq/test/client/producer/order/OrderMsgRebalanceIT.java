@@ -43,7 +43,7 @@ public class OrderMsgRebalanceIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -54,16 +54,16 @@ public class OrderMsgRebalanceIT extends BaseConf {
     @Test
     public void testTwoConsumersBalance() {
         int msgSize = 10;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
@@ -83,20 +83,20 @@ public class OrderMsgRebalanceIT extends BaseConf {
     @Test
     public void testFourConsumerBalance() {
         int msgSize = 20;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer3 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        RMQNormalConsumer consumer4 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer4 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener(), consumer3.getListener(),
             consumer4.getListener());
         assertThat(recvAll).isEqualTo(true);

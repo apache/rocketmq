@@ -40,7 +40,7 @@ public class MessageUserPropIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -58,12 +58,12 @@ public class MessageUserPropIT extends BaseConf {
         String msgValue = "jueyinValue";
         msg.putUserProperty(msgKey, msgValue);
 
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         Message sendMsg = (Message) producer.getFirstMsg();
         Message recvMsg = (Message) consumer.getListener().getFirstMsg();
@@ -80,12 +80,12 @@ public class MessageUserPropIT extends BaseConf {
         String msgValue = "jueyinzhi";
         msg.putUserProperty(msgKey, msgValue);
 
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         Message sendMsg = (Message) producer.getFirstMsg();
         Message recvMsg = (Message) consumer.getListener().getFirstMsg();

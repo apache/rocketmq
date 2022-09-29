@@ -87,8 +87,8 @@ public class ContainerIntegrationTestBase {
 
     protected static final String THREE_REPLICAS_TOPIC = "SEND_MESSAGE_TEST_TOPIC_THREE_REPLICAS";
 
-    protected static final List<BrokerContainer> brokerContainerList = new ArrayList<>();
-    protected static final List<NamesrvController> namesrvControllers = new ArrayList<>();
+    protected static List<BrokerContainer> brokerContainerList = new ArrayList<>();
+    protected static List<NamesrvController> namesrvControllers = new ArrayList<>();
 
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
     protected static final int COMMIT_LOG_SIZE = 128 * 1024;
