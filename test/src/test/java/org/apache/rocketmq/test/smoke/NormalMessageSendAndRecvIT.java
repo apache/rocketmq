@@ -42,7 +42,7 @@ import org.awaitility.Awaitility;
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMessageSendAndRecvIT extends BaseConf {
-    private static final Logger logger = LoggerFactory.getLogger(NormalMessageSendAndRecvIT.class);
+    private static Logger logger = LoggerFactory.getLogger(NormalMessageSendAndRecvIT.class);
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;
@@ -54,9 +54,9 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         topic = initTopic();
         group = initConsumerGroup();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
-        defaultMQAdminExt = getAdmin(nsAddr);
+        producer = getProducer(NAMESRV_ADDR, topic);
+        consumer = getConsumer(NAMESRV_ADDR, group, topic, "*", new RMQNormalListener());
+        defaultMQAdminExt = getAdmin(NAMESRV_ADDR);
         defaultMQAdminExt.start();
     }
 
@@ -88,7 +88,7 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         }
         Assert.assertEquals("Not all sent succeeded", msgSize * messageQueueList.get().size(),
             producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
