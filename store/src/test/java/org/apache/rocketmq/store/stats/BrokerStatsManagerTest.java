@@ -40,9 +40,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BrokerStatsManagerTest {
     private BrokerStatsManager brokerStatsManager;
 
-    private String TOPIC = "TOPIC_TEST";
-    private Integer QUEUE_ID = 0;
-    private String GROUP_NAME = "GROUP_TEST";
+    private static final String TOPIC = "TOPIC_TEST";
+    private static final Integer QUEUE_ID = 0;
+    private static final String GROUP_NAME = "GROUP_TEST";
 
     @Before
     public void init() {
@@ -163,7 +163,7 @@ public class BrokerStatsManagerTest {
     }
 
     @Test
-    public void testOnGroupDeleted(){
+    public void testOnGroupDeleted() {
         brokerStatsManager.incGroupGetNums(GROUP_NAME, TOPIC, 1);
         brokerStatsManager.incGroupGetSize(GROUP_NAME, TOPIC, 100);
         brokerStatsManager.incQueueGetNums(GROUP_NAME, TOPIC, QUEUE_ID, 1);
