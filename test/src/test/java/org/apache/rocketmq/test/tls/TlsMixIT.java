@@ -27,7 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TLSMixIT extends BaseConf {
+public class TlsMixIT extends BaseConf {
 
     private RMQNormalProducer producer;
     private RMQNormalConsumer consumer;
