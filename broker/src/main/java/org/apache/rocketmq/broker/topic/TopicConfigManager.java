@@ -728,4 +728,8 @@ public class TopicConfigManager extends ConfigManager {
     private String realKey(String key) {
         return key.substring(1);
     }
+
+    public boolean containsTopic(String topic) {
+        return topicConfigTable.containsKey(topic);
+    }
 }
