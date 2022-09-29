@@ -25,9 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -92,7 +90,6 @@ public class DLedgerControllerTest {
             controller.shutdown();
         }
         for (String dir : this.baseDirs) {
-            System.out.println("Delete file " + dir);
             new File(dir).delete();
         }
     }
@@ -115,7 +112,6 @@ public class DLedgerControllerTest {
         }, item -> item != null);
 
         final RegisterBrokerToControllerResponseHeader registerResult = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
-        System.out.println("------------- Register broker done, the result is :" + registerResult);
 
         if (!isFirstRegisteredBroker) {
             assertTrue(registerResult.getBrokerId() > 0);
@@ -151,7 +147,6 @@ public class DLedgerControllerTest {
             }
             for (DLedgerController controller : controllers) {
                 if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
-                    System.out.println("New leader " + leaderId);
                     return controller;
                 }
             }
