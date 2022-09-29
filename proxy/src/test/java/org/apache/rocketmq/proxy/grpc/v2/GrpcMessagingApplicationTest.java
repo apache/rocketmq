@@ -80,8 +80,8 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         
         Assert.assertNotNull(Context.current()
-        .withValue(InterceptorConstants.METADATA, metadata)
-        .attach());
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach());
 
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
@@ -109,8 +109,8 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
 
         Assert.assertNotNull(Context.current()
-        .withValue(InterceptorConstants.METADATA, metadata)
-        .attach());
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach());
 
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
             .setEndpoints(grpcEndpoints)
