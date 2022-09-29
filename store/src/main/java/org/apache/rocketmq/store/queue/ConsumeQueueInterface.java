@@ -121,6 +121,12 @@ public interface ConsumeQueueInterface {
     long getTotalSize();
 
     /**
+     * Get the unit size of this CQ which is different in different CQ impl
+     * @return cq unit size
+     */
+    int getUnitSize();
+
+    /**
      * Correct min offset by min commit log offset.
      * @param minCommitLogOffset min commit log offset
      */

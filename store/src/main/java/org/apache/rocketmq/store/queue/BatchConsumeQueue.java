@@ -927,6 +927,11 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
+    public int getUnitSize() {
+        return CQ_STORE_UNIT_SIZE;
+    }
+
+    @Override
     public void destroy() {
         this.maxMsgPhyOffsetInCommitLog = -1;
         this.minOffsetInQueue = -1;

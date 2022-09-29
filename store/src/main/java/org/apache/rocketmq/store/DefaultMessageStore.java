@@ -729,7 +729,7 @@ public class DefaultMessageStore implements MessageStore {
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
                 nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
             } else {
-                final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                final int maxFilterMessageSize = Math.max(16000, maxMsgNums * consumeQueue.getUnitSize());
                 final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
 
                 long maxPullSize = Math.max(maxTotalMsgSize, 100);
@@ -764,7 +764,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
-                            if (cqUnit.getQueueOffset() - offset > maxFilterMessageCount) {
+                            if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() > maxFilterMessageSize) {
                                 break;
                             }
 
