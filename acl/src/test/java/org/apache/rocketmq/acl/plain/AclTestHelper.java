@@ -80,15 +80,15 @@ public final class AclTestHelper {
 
     public static void recursiveDelete(File file) {
         if (file.isFile()) {
-          file.delete();
+            file.delete();
         } else {
-          File[] files = file.listFiles();
-          if (null != files) {
-            for (File f : files) {
-              recursiveDelete(f);
+            File[] files = file.listFiles();
+            if (null != files) {
+                for (File f : files) {
+                    recursiveDelete(f);
+                }
             }
-          }
-          file.delete();
+            file.delete();
         }
     }
 
