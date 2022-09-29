@@ -86,20 +86,20 @@ public class ConsumerRunningInfoTest {
     }
 
     @Test
-    public void testAnalyzeRebalance(){
+    public void testAnalyzeRebalance() {
         boolean result = ConsumerRunningInfo.analyzeRebalance(criTable);
         assertThat(result).isTrue();
     }
 
     @Test
-    public void testAnalyzeProcessQueue(){
+    public void testAnalyzeProcessQueue() {
         String result = ConsumerRunningInfo.analyzeProcessQueue("client_id", consumerRunningInfo);
         assertThat(result).isEmpty();
 
     }
 
     @Test
-    public void testAnalyzeSubscription(){
+    public void testAnalyzeSubscription() {
         boolean result = ConsumerRunningInfo.analyzeSubscription(criTable);
         assertThat(result).isTrue();
     }
