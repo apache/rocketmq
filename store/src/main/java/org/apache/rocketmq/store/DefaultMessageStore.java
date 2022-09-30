@@ -2459,10 +2459,7 @@ public class DefaultMessageStore implements MessageStore {
             if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
                 return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
             }
-            if (DefaultMessageStore.this.getBrokerConfig().isEnableControllerMode()) {
-                return this.reputFromOffset < ((AutoSwitchHAService) DefaultMessageStore.this.haService).getConfirmOffset();
-            }
-            return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
+            return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
         }
 
         private void doReput() {
@@ -2474,70 +2471,70 @@ public class DefaultMessageStore implements MessageStore {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
-                if (result != null) {
-                    try {
-                        this.reputFromOffset = result.getStartOffset();
 
-                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
-                            DispatchRequest dispatchRequest =
-                                DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
-                            int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
+                if (result == null) {
+                    break;
+                }
 
-                            if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
-                                doNext = false;
-                                break;
-                            }
+                try {
+                    this.reputFromOffset = result.getStartOffset();
 
-                            if (dispatchRequest.isSuccess()) {
-                                if (size > 0) {
-                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        DispatchRequest dispatchRequest =
+                            DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
+                        int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
-                                    if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                        && DefaultMessageStore.this.messageArrivingListener != null) {
-                                        DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                            dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                            dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                            dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                                        notifyMessageArrive4MultiQueue(dispatchRequest);
-                                    }
+                        if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                            doNext = false;
+                            break;
+                        }
 
-                                    this.reputFromOffset += size;
-                                    readSize += size;
-                                    if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
-                                        DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-                                        DefaultMessageStore.this.storeStatsService
-                                            .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
-                                        DefaultMessageStore.this.storeStatsService
-                                            .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
-                                            .add(dispatchRequest.getMsgSize());
-                                    }
-                                } else if (size == 0) {
-                                    this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
-                                    readSize = result.getSize();
+                        if (dispatchRequest.isSuccess()) {
+                            if (size > 0) {
+                                DefaultMessageStore.this.doDispatch(dispatchRequest);
+
+                                if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+                                    && DefaultMessageStore.this.messageArrivingListener != null) {
+                                    DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
+                                        dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
+                                        dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+                                    notifyMessageArrive4MultiQueue(dispatchRequest);
                                 }
-                            } else if (!dispatchRequest.isSuccess()) {
 
-                                if (size > 0) {
-                                    LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
-                                    this.reputFromOffset += size;
-                                } else {
-                                    doNext = false;
-                                    // If user open the dledger pattern or the broker is master node,
-                                    // it will not ignore the exception and fix the reputFromOffset variable
-                                    if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
-                                        DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
-                                        LOGGER.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
-                                            this.reputFromOffset);
-                                        this.reputFromOffset += result.getSize() - readSize;
-                                    }
+                                this.reputFromOffset += size;
+                                readSize += size;
+                                if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
+                                    DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                                    DefaultMessageStore.this.storeStatsService
+                                        .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
+                                    DefaultMessageStore.this.storeStatsService
+                                        .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
+                                        .add(dispatchRequest.getMsgSize());
+                                }
+                            } else if (size == 0) {
+                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
+                                readSize = result.getSize();
+                            }
+                        } else {
+                            if (size > 0) {
+                                LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
+                                this.reputFromOffset += size;
+                            } else {
+                                doNext = false;
+                                // If user open the dledger pattern or the broker is master node,
+                                // it will not ignore the exception and fix the reputFromOffset variable
+                                if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
+                                    DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                    LOGGER.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                        this.reputFromOffset);
+                                    this.reputFromOffset += result.getSize() - readSize;
                                 }
                             }
                         }
-                    } finally {
-                        result.release();
                     }
-                } else {
-                    doNext = false;
+                } finally {
+                    result.release();
                 }
             }
         }
