@@ -26,13 +26,13 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetMaxOffsetResponseHeader implements CommandCustomHeader {
     @CFNotNull
-    private Long offset;
+    private long offset;
 
     @Override
     public void checkFields() throws RemotingCommandException {
     }
 
-    public Long getOffset() {
+    public long getOffset() {
         return offset;
     }
 
