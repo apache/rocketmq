@@ -119,7 +119,7 @@ public class ServiceProvider {
                         name);
                     if (!names.contains(serviceName)) {
                         names.add(serviceName);
-                        services.add((T) initService(getContextClassLoader(), serviceName, clazz));
+                        services.add(initService(getContextClassLoader(), serviceName, clazz));
                     }
                     serviceName = reader.readLine();
                 }
