@@ -57,6 +57,8 @@ import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER
 public class ReplicasManager {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+    private static final int RETRY_INTERVAL_SECOND = 5;
+
     private final ScheduledExecutorService scheduledService;
     private final ExecutorService executorService;
     private final BrokerController brokerController;
@@ -112,7 +114,7 @@ public class ReplicasManager {
                 int retryTimes = 0;
                 do {
                     try {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(RETRY_INTERVAL_SECOND);
                     } catch (InterruptedException ignored) {
 
                     }
@@ -375,6 +377,11 @@ public class ReplicasManager {
             if (flag) {
                 this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, this.brokerConfig.getSyncControllerMetadataPeriod(), TimeUnit.MILLISECONDS);
                 return true;
+            }
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException ignore) {
+
             }
             tryTimes++;
         }

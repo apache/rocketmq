@@ -38,7 +38,7 @@ public class SetConsumeModeSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "set consume message mode. pull/pop etc.";
+        return "Set consume message mode. pull/pop etc.";
     }
 
 

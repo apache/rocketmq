@@ -41,7 +41,7 @@ public class OneWaySendWithMQIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("user topic[%s]!", topic));
-        producer = getAsyncProducer(nsAddr, topic);
+        producer = getAsyncProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -53,13 +53,13 @@ public class OneWaySendWithMQIT extends BaseConf {
     public void testAsyncSendWithMQ() {
         int msgSize = 20;
         int queueId = 0;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
 
         producer.sendOneWay(msgSize, mq);
         producer.waitForResponse(5 * 1000);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

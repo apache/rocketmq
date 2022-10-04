@@ -17,13 +17,11 @@
 package org.apache.rocketmq.controller.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -31,6 +29,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -46,6 +45,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import static org.apache.rocketmq.common.protocol.RequestCode.BROKER_HEARTBEAT;
+import static org.apache.rocketmq.common.protocol.RequestCode.CLEAN_BROKER_DATA;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
@@ -73,9 +73,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
             log.debug("Receive request, {} {} {}",
-                    request.getCode(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    request);
+                request.getCode(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                request);
         }
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
@@ -153,6 +153,13 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return this.updateControllerConfig(ctx, request);
             case GET_CONTROLLER_CONFIG:
                 return this.getControllerConfig(ctx, request);
+            case CLEAN_BROKER_DATA:
+                final CleanControllerBrokerDataRequestHeader requestHeader = (CleanControllerBrokerDataRequestHeader) request.decodeCommandCustomHeader(CleanControllerBrokerDataRequestHeader.class);
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().cleanBrokerData(requestHeader);
+                if (null != future) {
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                }
+                break;
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
@@ -220,4 +227,5 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         return response;
     }
+
 }

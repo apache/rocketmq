@@ -96,7 +96,7 @@ public class DefaultMQPushConsumerTest {
     private PullAPIWrapper pullAPIWrapper;
     private RebalanceImpl rebalanceImpl;
     private static DefaultMQPushConsumer pushConsumer;
-    private AtomicLong queueOffset = new AtomicLong(1024);;
+    private AtomicLong queueOffset = new AtomicLong(1024);
 
     @Before
     public void init() throws Exception {

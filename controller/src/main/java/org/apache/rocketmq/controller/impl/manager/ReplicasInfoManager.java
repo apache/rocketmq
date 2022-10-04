@@ -23,26 +23,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
-
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
+import org.apache.rocketmq.controller.impl.event.CleanBrokerDataEvent;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
@@ -84,7 +87,7 @@ public class ReplicasInfoManager {
             if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
                 log.warn("{}", err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
 
@@ -134,7 +137,7 @@ public class ReplicasInfoManager {
             if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
                 log.error(err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
 
@@ -146,11 +149,12 @@ public class ReplicasInfoManager {
             result.addEvent(event);
             return result;
         }
-        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker metadata is not existed");
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, "Broker metadata is not existed");
         return result;
     }
 
-    public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request, final ElectPolicy electPolicy) {
+    public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request,
+        final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();
         final String assignBrokerAddress = request.getBrokerAddress();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
@@ -167,7 +171,7 @@ public class ReplicasInfoManager {
                 // old master still valid, change nothing
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
                 log.warn("{}", err);
-                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, err);
                 return result;
             }
             // a new master is elected
@@ -194,7 +198,7 @@ public class ReplicasInfoManager {
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE, "Failed to elect a new broker master");
             return result;
         }
-        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker metadata is not existed");
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, "Broker metadata is not existed");
         return result;
     }
 
@@ -267,7 +271,7 @@ public class ReplicasInfoManager {
         }
 
         response.setMasterAddress("");
-        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "The broker has not master, and this new registered broker can't not be elected as master");
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_REGISTER_BROKER_FAILED, "The broker has not master, and this new registered broker can't not be elected as master");
         return result;
     }
 
@@ -316,6 +320,43 @@ public class ReplicasInfoManager {
         return result;
     }
 
+    public ControllerResult<Void> cleanBrokerData(final CleanControllerBrokerDataRequestHeader requestHeader,
+        final BiPredicate<String, String> brokerAlivePredicate) {
+        final ControllerResult<Void> result = new ControllerResult<>();
+
+        final String clusterName = requestHeader.getClusterName();
+        final String brokerName = requestHeader.getBrokerName();
+        final String brokerAddrs = requestHeader.getBrokerAddress();
+
+        Set<String> brokerAddressSet = null;
+        if (!requestHeader.isCleanLivingBroker()) {
+            //if SyncStateInfo.masterAddress is not empty, at least one broker with the same BrokerName is alive
+            SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+            if (StringUtils.isBlank(brokerAddrs) && null != syncStateInfo && StringUtils.isNotEmpty(syncStateInfo.getMasterAddress())) {
+                String remark = String.format("Broker %s is still alive, clean up failure", requestHeader.getBrokerName());
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark);
+                return result;
+            }
+            if (StringUtils.isNotBlank(brokerAddrs)) {
+                brokerAddressSet = Stream.of(brokerAddrs.split(";")).collect(Collectors.toSet());
+                for (String brokerAddr : brokerAddressSet) {
+                    if (brokerAlivePredicate.test(clusterName, brokerAddr)) {
+                        String remark = String.format("Broker [%s,  %s] is still alive, clean up failure", requestHeader.getBrokerName(), brokerAddr);
+                        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark);
+                        return result;
+                    }
+                }
+            }
+        }
+        if (isContainsBroker(brokerName)) {
+            final CleanBrokerDataEvent event = new CleanBrokerDataEvent(brokerName, brokerAddressSet);
+            result.addEvent(event);
+            return result;
+        }
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, String.format("Broker %s is not existed,clean broker data failure.", brokerName));
+        return result;
+    }
+
     /**
      * Apply events to memory statemachine.
      *
@@ -332,6 +373,9 @@ public class ReplicasInfoManager {
                 break;
             case ELECT_MASTER_EVENT:
                 handleElectMaster((ElectMasterEvent) event);
+                break;
+            case CLEAN_BROKER_DATA_EVENT:
+                handleCleanBrokerDataEvent((CleanBrokerDataEvent) event);
                 break;
             default:
                 break;
@@ -384,6 +428,33 @@ public class ReplicasInfoManager {
             final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName, newMaster);
             this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
+        }
+    }
+
+    private void handleCleanBrokerDataEvent(final CleanBrokerDataEvent event) {
+
+        final String brokerName = event.getBrokerName();
+        final Set<String> brokerAddressSet = event.getBrokerAddressSet();
+
+        if (null == brokerAddressSet || brokerAddressSet.isEmpty()) {
+            this.replicaInfoTable.remove(brokerName);
+            this.syncStateSetInfoTable.remove(brokerName);
+            return;
+        }
+        if (!isContainsBroker(brokerName)) {
+            return;
+        }
+        final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
+        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+        for (String brokerAddress : brokerAddressSet) {
+            brokerInfo.removeBrokerAddress(brokerAddress);
+            syncStateInfo.removeSyncState(brokerAddress);
+        }
+        if (brokerInfo.getBrokerIdTable().isEmpty()) {
+            this.replicaInfoTable.remove(brokerName);
+        }
+        if (syncStateInfo.getSyncStateSet().isEmpty()) {
+            this.syncStateSetInfoTable.remove(brokerName);
         }
     }
 

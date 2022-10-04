@@ -504,7 +504,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         }
 
         long behind = System.currentTimeMillis() - storeTime;
-        if (behind > 10000 && (System.currentTimeMillis() % 10000 == 0)) {
+        if (behind > 10000 && System.currentTimeMillis() % 10000 == 0) {
             String flag = "LEVEL" + (behind / 10000);
             log.warn("Reput behind {} topic:{} queue:{} offset:{} behind:{}", flag, topic, queueId, offset, behind);
         }
@@ -924,6 +924,11 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     @Override
     public long getTotalSize() {
         return this.mappedFileQueue.getTotalFileSize();
+    }
+
+    @Override
+    public int getUnitSize() {
+        return CQ_STORE_UNIT_SIZE;
     }
 
     @Override

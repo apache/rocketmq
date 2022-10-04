@@ -56,7 +56,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendCallBackNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         SendCallback sendCallback = null;
         producer.send(msg, sendCallback);
     }
@@ -64,7 +64,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendMQNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         MessageQueue messageQueue = null;
         producer.send(msg, messageQueue, SendCallBackFactory.getSendCallBack());
     }
@@ -72,7 +72,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendSelectorNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         MessageQueueSelector selector = null;
         producer.send(msg, selector, 100, SendCallBackFactory.getSendCallBack());
     }
@@ -80,7 +80,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSelectorThrowsException() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         producer.send(msg, new MessageQueueSelector() {
             @Override
             public MessageQueue select(List<MessageQueue> list, Message message, Object o) {
@@ -94,9 +94,9 @@ public class AsyncSendExceptionIT extends BaseConf {
     public void testQueueIdBigThanQueueNum() throws Exception {
         int queueId = 100;
         sendFail = false;
-        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
+        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
 
         producer.send(msg, mq, new SendCallback() {
             @Override
@@ -122,9 +122,9 @@ public class AsyncSendExceptionIT extends BaseConf {
     public void testQueueIdSmallZero() throws Exception {
         int queueId = -100;
         sendFail = true;
-        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
+        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
 
         producer.send(msg, mq, new SendCallback() {
             @Override

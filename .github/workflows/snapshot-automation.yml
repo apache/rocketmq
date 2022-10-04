@@ -1,0 +1,26 @@
+name: Snapshot Release Automation
+on:
+  schedule: # schedule the job to run at 12 a.m. daily
+    - cron: "0 0 * * *"
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      NEXUS_DEPLOY_USERNAME: ${{ secrets.NEXUS_USER }}
+      NEXUS_DEPLOY_PASSWORD: ${{ secrets.NEXUS_PW }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+          persist-credentials: false
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: "adopt"
+          cache: "maven"
+      - name: Deploy to ASF Snapshots Repository
+        timeout-minutes: 40
+        run: mvn clean deploy -DskipTests=true --settings .github/asf-deploy-settings.xml

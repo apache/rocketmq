@@ -71,3 +71,7 @@ build:remote --incompatible_strict_action_env=true
 
 # Set a higher timeout value, just in case.
 build:remote --remote_timeout=3600
+
+# Use a pre-configured account, such that we may have pull-request replacing pull-request-target
+build:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU
+test:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU

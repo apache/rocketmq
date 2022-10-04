@@ -81,9 +81,7 @@ public class ConsumerFilterManagerTest {
     public void testRegister_change() {
         ConsumerFilterManager filterManager = gen(10, 10);
 
-        ConsumerFilterData filterData = filterManager.get("topic9", "CID_9");
-
-        System.out.println(filterData.getCompiledExpression());
+        ConsumerFilterData filterData;
 
         String newExpr = "a > 0 and a < 10";
 
@@ -92,8 +90,6 @@ public class ConsumerFilterManagerTest {
         filterData = filterManager.get("topic9", "CID_9");
 
         assertThat(newExpr).isEqualTo(filterData.getExpression());
-
-        System.out.println(filterData.toString());
     }
 
     @Test

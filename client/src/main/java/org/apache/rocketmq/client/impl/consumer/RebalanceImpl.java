@@ -208,21 +208,16 @@ public abstract class RebalanceImpl {
                     Set<MessageQueue> lockOKMQSet =
                         this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
 
-                    for (MessageQueue mq : lockOKMQSet) {
+                    for (MessageQueue mq : mqs) {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
                         if (processQueue != null) {
-                            if (!processQueue.isLocked()) {
-                                log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
-                            }
-
-                            processQueue.setLocked(true);
-                            processQueue.setLastLockTimestamp(System.currentTimeMillis());
-                        }
-                    }
-                    for (MessageQueue mq : mqs) {
-                        if (!lockOKMQSet.contains(mq)) {
-                            ProcessQueue processQueue = this.processQueueTable.get(mq);
-                            if (processQueue != null) {
+                            if (lockOKMQSet.contains(mq)) {
+                                if (!processQueue.isLocked()) {
+                                    log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
+                                }
+                                processQueue.setLocked(true);
+                                processQueue.setLastLockTimestamp(System.currentTimeMillis());
+                            } else {
                                 processQueue.setLocked(false);
                                 log.warn("the message queue locked Failed, Group: {} {}", this.consumerGroup, mq);
                             }
@@ -479,7 +474,6 @@ public abstract class RebalanceImpl {
         final boolean isOrder) {
         boolean changed = false;
 
-        Map<MessageQueue, MessageQueue> upgradeMqTable = new HashMap<MessageQueue, MessageQueue>();
         // drop process queues no longer belong me
         HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<MessageQueue, ProcessQueue>(this.processQueueTable.size());
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();

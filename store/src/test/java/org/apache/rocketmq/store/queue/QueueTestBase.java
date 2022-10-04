@@ -99,8 +99,8 @@ public class QueueTestBase extends StoreTestBase {
         msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(StoreHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(storeHost);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_NUM, String.valueOf(batchNum));
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         if (batchNum > 1) {

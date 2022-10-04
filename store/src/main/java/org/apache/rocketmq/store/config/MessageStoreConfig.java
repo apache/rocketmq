@@ -62,7 +62,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
-    private static boolean timerWheelEnable = true;
+    private boolean timerWheelEnable = true;
 
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
@@ -238,8 +238,10 @@ public class MessageStoreConfig {
     //For recheck the reput
     private boolean recheckReputOffsetFromCq = false;
 
-    // Maximum length of topic
-    private int maxTopicLength = 1000;
+    // Maximum length of topic, it will be removed in the future release
+    @Deprecated
+    private int maxTopicLength = Byte.MAX_VALUE;
+
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -465,10 +467,12 @@ public class MessageStoreConfig {
         this.maxMessageSize = maxMessageSize;
     }
 
+    @Deprecated
     public int getMaxTopicLength() {
         return maxTopicLength;
     }
 
+    @Deprecated
     public void setMaxTopicLength(int maxTopicLength) {
         this.maxTopicLength = maxTopicLength;
     }
@@ -1441,7 +1445,7 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
-    public static boolean isTimerWheelEnable() {
+    public  boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
     public void setTimerWheelEnable(boolean timerWheelEnable) {

@@ -19,13 +19,13 @@ package org.apache.rocketmq.common;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -59,8 +61,6 @@ public class MixAll {
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-    //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-    //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
@@ -184,18 +184,7 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        FileWriter fileWriter = null;
-
-        try {
-            fileWriter = new FileWriter(file);
-            fileWriter.write(str);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
-        }
+        IOTinyUtils.writeStringToFile(file, str, "UTF-8");
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -208,15 +197,9 @@ public class MixAll {
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
-            FileInputStream inputStream = null;
-            try {
-                inputStream = new FileInputStream(file);
+            try (FileInputStream inputStream = new FileInputStream(file)) {
                 int len = inputStream.read(data);
                 result = len == data.length;
-            } finally {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
             }
 
             if (result) {
@@ -280,7 +263,6 @@ public class MixAll {
 
                     if (logger != null) {
                         logger.info(name + "=" + value);
-                    } else {
                     }
                 }
             }
@@ -288,8 +270,13 @@ public class MixAll {
     }
 
     public static String properties2String(final Properties properties) {
+        return properties2String(properties, false);
+    }
+
+    public static String properties2String(final Properties properties, final boolean isSort) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+        Set<Map.Entry<Object, Object>> entrySet = isSort ? new TreeMap<>(properties).entrySet() : properties.entrySet();
+        for (Map.Entry<Object, Object> entry : entrySet) {
             if (entry.getValue() != null) {
                 sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
             }
@@ -473,11 +460,11 @@ public class MixAll {
     }
 
     public static int compareInteger(int x, int y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Integer.compare(x, y);
     }
 
     public static int compareLong(long x, long y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Long.compare(x, y);
     }
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);

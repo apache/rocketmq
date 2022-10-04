@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -50,10 +51,10 @@ public class RMQDelayListener extends AbstractListener implements MessageListene
         long recvTime = System.currentTimeMillis();
         for (MessageExt msg : msgs) {
             if (isDebug) {
-                logger.info(listenerName + ":" + msg);
+                LOGGER.info(listenerName + ":" + msg);
             }
 
-            msgBodys.addData(new String(msg.getBody()));
+            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
             msgDelayTimes.addData(Math.abs(recvTime - msg.getBornTimestamp()));
         }

@@ -240,12 +240,11 @@ public class TimerMessageStore {
                 Slot slotEach = timerWheel.getSlot(currTime + j * precisionMs);
                 periodTotal += slotEach.num;
             }
-            LOGGER.info("%d period's total num: %d\n", timerDist.get(i), periodTotal);
+            LOGGER.debug("{} period's total num: {}", timerDist.get(i), periodTotal);
             this.timerMetrics.updateDistPair(timerDist.get(i), periodTotal);
         }
         long endTime = System.currentTimeMillis();
-        LOGGER.info("Total cost Time:%d%n", endTime - startTime);
-
+        LOGGER.debug("Total cost Time: {}", endTime - startTime);
     }
 
     public void recover() {
@@ -440,7 +439,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.brokerIdentity.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     long minPy = messageStore.getMinPhyOffset();
@@ -456,7 +455,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.brokerIdentity.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     if (storeConfig.isTimerEnableCheckMetrics()) {
@@ -1063,7 +1062,7 @@ public class TimerMessageStore {
                     case CREATE_MAPPED_FILE_FAILED:
                     case FLUSH_DISK_TIMEOUT:
                     case FLUSH_SLAVE_TIMEOUT:
-                    case OS_PAGECACHE_BUSY:
+                    case OS_PAGE_CACHE_BUSY:
                     case SLAVE_NOT_AVAILABLE:
                     case UNKNOWN_ERROR:
                     default:
@@ -1604,7 +1603,7 @@ public class TimerMessageStore {
                             storeConfig.getBrokerRole(),
                             format(commitReadTimeMs), format(currReadTimeMs), format(currWriteTimeMs), getReadBehind(),
                             tmpQueueOffset, maxOffsetInQueue - tmpQueueOffset, timerCheckpoint.getMasterTimerQueueOffset() - tmpQueueOffset,
-                            enqueuePutQueue.size(), dequeueGetQueue.size(), dequeuePutQueue.size(), getALlCongestNum(), format(lastEnqueueButExpiredStoreTime));
+                            enqueuePutQueue.size(), dequeueGetQueue.size(), dequeuePutQueue.size(), getAllCongestNum(), format(lastEnqueueButExpiredStoreTime));
                     }
                     timerMetrics.persist();
                     waitForRunning(storeConfig.getTimerFlushIntervalMs());
@@ -1616,7 +1615,7 @@ public class TimerMessageStore {
         }
     }
 
-    public long getALlCongestNum() {
+    public long getAllCongestNum() {
         return timerWheel.getAllNum(currReadTimeMs);
     }
 
@@ -1629,7 +1628,7 @@ public class TimerMessageStore {
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
             return false;
         }
-        if (congestNum >= storeConfig.getTimerCongestNumEachSlot() * 2) {
+        if (congestNum >= storeConfig.getTimerCongestNumEachSlot() * 2L) {
             return true;
         }
         if (RANDOM.nextInt(1000) > 1000 * (congestNum - storeConfig.getTimerCongestNumEachSlot()) / (storeConfig.getTimerCongestNumEachSlot() + 0.1)) {

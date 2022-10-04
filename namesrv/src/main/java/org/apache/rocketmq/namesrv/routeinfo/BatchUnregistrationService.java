@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
@@ -30,17 +29,17 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
- * BatchUnRegisterProcessor provides a mechanism to unregister broker in batch manner, which can speed up broker offline
+ * BatchUnregistrationService provides a mechanism to unregister brokers in batch manner, which speeds up broker-offline
  * process.
  */
-public class BatchUnRegisterService extends ServiceThread {
+public class BatchUnregistrationService extends ServiceThread {
     private final RouteInfoManager routeInfoManager;
-    private BlockingQueue<UnRegisterBrokerRequestHeader> unRegisterQueue;
+    private BlockingQueue<UnRegisterBrokerRequestHeader> unregistrationQueue;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
-    public BatchUnRegisterService(RouteInfoManager routeInfoManager, NamesrvConfig namesrvConfig) {
+    public BatchUnregistrationService(RouteInfoManager routeInfoManager, NamesrvConfig namesrvConfig) {
         this.routeInfoManager = routeInfoManager;
-        this.unRegisterQueue = new LinkedBlockingQueue<>(namesrvConfig.getUnRegisterBrokerQueueCapacity());
+        this.unregistrationQueue = new LinkedBlockingQueue<>(namesrvConfig.getUnRegisterBrokerQueueCapacity());
     }
 
     /**
@@ -50,28 +49,26 @@ public class BatchUnRegisterService extends ServiceThread {
      * @return {@code true} if the request was added to this queue, else {@code false}
      */
     public boolean submit(UnRegisterBrokerRequestHeader unRegisterRequest) {
-        return unRegisterQueue.offer(unRegisterRequest);
+        return unregistrationQueue.offer(unRegisterRequest);
     }
 
     @Override
     public String getServiceName() {
-        return BatchUnRegisterService.class.getName();
+        return BatchUnregistrationService.class.getName();
     }
 
     @Override
     public void run() {
         while (!this.isStopped()) {
             try {
-                final UnRegisterBrokerRequestHeader request = unRegisterQueue.poll(3, TimeUnit.SECONDS);
-                if (request != null) {
-                    Set<UnRegisterBrokerRequestHeader> unRegisterRequests = new HashSet<>();
-                    unRegisterQueue.drainTo(unRegisterRequests);
+                final UnRegisterBrokerRequestHeader request = unregistrationQueue.take();
+                Set<UnRegisterBrokerRequestHeader> unregistrationRequests = new HashSet<>();
+                unregistrationQueue.drainTo(unregistrationRequests);
 
-                    // Add polled request
-                    unRegisterRequests.add(request);
+                // Add polled request
+                unregistrationRequests.add(request);
 
-                    this.routeInfoManager.unRegisterBroker(unRegisterRequests);
-                }
+                this.routeInfoManager.unRegisterBroker(unregistrationRequests);
             } catch (Throwable e) {
                 log.error("Handle unregister broker request failed", e);
             }
@@ -80,6 +77,6 @@ public class BatchUnRegisterService extends ServiceThread {
 
     // For test only
     int queueLength() {
-        return this.unRegisterQueue.size();
+        return this.unregistrationQueue.size();
     }
 }

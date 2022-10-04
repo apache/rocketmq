@@ -82,7 +82,7 @@ public class DataVersion extends RemotingSerializable {
             return counter.longValue() == version.counter.longValue();
         }
 
-        return (null == counter) && (null == version.counter);
+        return null == counter && null == version.counter;
 
     }
 

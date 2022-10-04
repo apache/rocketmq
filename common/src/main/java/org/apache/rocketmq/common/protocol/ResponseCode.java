@@ -88,6 +88,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int BROKER_DISPATCH_NOT_COMPLETE = 212;
 
+    public static final int BROADCAST_CONSUMPTION = 213;
+
     public static final int FLOW_CONTROL = 215;
 
     public static final int NOT_LEADER_FOR_QUEUE = 501;
@@ -110,5 +112,13 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int CONTROLLER_NOT_LEADER = 2007;
 
     public static final int CONTROLLER_BROKER_METADATA_NOT_EXIST = 2008;
+
+    public static final int CONTROLLER_INVALID_CLEAN_BROKER_METADATA = 2009;
+
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2010;
+
+    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2011;
+
+    public static final int CONTROLLER_REGISTER_BROKER_FAILED = 2012;
 
 }

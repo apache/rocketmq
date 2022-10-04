@@ -62,7 +62,7 @@ public class AddAndRemoveBrokerIT extends ContainerIntegrationTestBase {
 
     @Test
     public void removeBrokerTest()
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException{
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
 
         boolean exceptionCaught = false;
 

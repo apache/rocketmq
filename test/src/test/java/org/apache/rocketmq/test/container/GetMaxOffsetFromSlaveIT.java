@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.test.container;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +29,6 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.AfterClass;
@@ -44,9 +43,10 @@ import static org.awaitility.Awaitility.await;
 public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private static final String MSG = "Hello RocketMQ ";
+    private static final byte[] MESSAGE_BODY = MSG.getBytes(StandardCharsets.UTF_8);
 
-    public GetMaxOffsetFromSlaveIT() throws UnsupportedEncodingException {
+    public GetMaxOffsetFromSlaveIT() {
     }
 
     @BeforeClass

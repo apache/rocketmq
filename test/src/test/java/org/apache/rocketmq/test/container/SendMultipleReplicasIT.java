@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.test.container;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -27,7 +27,6 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.AfterClass;
@@ -41,10 +40,10 @@ import static org.awaitility.Awaitility.await;
 @Ignore
 public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
+    private static final String MSG = "Hello RocketMQ ";
+    private static final byte[] MESSAGE_BODY = MSG.getBytes(StandardCharsets.UTF_8);
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET);
-
-    public SendMultipleReplicasIT() throws UnsupportedEncodingException {
+    public SendMultipleReplicasIT() {
     }
 
     @BeforeClass
