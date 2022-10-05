@@ -68,7 +68,7 @@ public class CommandUtilTest {
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(1234l, "127.0.0.1:10911");
+        brokerAddrs.put(1234L, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("default-broker");
         brokerData.setCluster("default-cluster");

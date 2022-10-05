@@ -24,17 +24,17 @@ import java.util.Properties;
 public class SessionCredentialsTest {
 
     @Test
-    public void equalsTest(){
-        SessionCredentials sessionCredentials=new SessionCredentials("RocketMQ","12345678");
+    public void equalsTest() {
+        SessionCredentials sessionCredentials = new SessionCredentials("RocketMQ","12345678");
         sessionCredentials.setSecurityToken("abcd");
-        SessionCredentials other=new SessionCredentials("RocketMQ","12345678","abcd");
+        SessionCredentials other = new SessionCredentials("RocketMQ","12345678","abcd");
         Assert.assertTrue(sessionCredentials.equals(other));
     }
 
     @Test
-    public void updateContentTest(){
-        SessionCredentials sessionCredentials=new SessionCredentials();
-        Properties properties=new Properties();
+    public void updateContentTest() {
+        SessionCredentials sessionCredentials = new SessionCredentials();
+        Properties properties = new Properties();
         properties.setProperty(SessionCredentials.ACCESS_KEY,"RocketMQ");
         properties.setProperty(SessionCredentials.SECRET_KEY,"12345678");
         properties.setProperty(SessionCredentials.SECURITY_TOKEN,"abcd");
@@ -42,9 +42,9 @@ public class SessionCredentialsTest {
     }
 
     @Test
-    public void SessionCredentialHashCodeTest(){
-        SessionCredentials sessionCredentials=new SessionCredentials();
-        Properties properties=new Properties();
+    public void SessionCredentialHashCodeTest() {
+        SessionCredentials sessionCredentials = new SessionCredentials();
+        Properties properties = new Properties();
         properties.setProperty(SessionCredentials.ACCESS_KEY,"RocketMQ");
         properties.setProperty(SessionCredentials.SECRET_KEY,"12345678");
         properties.setProperty(SessionCredentials.SECURITY_TOKEN,"abcd");
@@ -53,16 +53,16 @@ public class SessionCredentialsTest {
     }
 
     @Test
-    public void SessionCredentialEqualsTest(){
-        SessionCredentials sessionCredential1 =new SessionCredentials();
-        Properties properties1=new Properties();
+    public void SessionCredentialEqualsTest() {
+        SessionCredentials sessionCredential1  = new SessionCredentials();
+        Properties properties1 = new Properties();
         properties1.setProperty(SessionCredentials.ACCESS_KEY,"RocketMQ");
         properties1.setProperty(SessionCredentials.SECRET_KEY,"12345678");
         properties1.setProperty(SessionCredentials.SECURITY_TOKEN,"abcd");
         sessionCredential1.updateContent(properties1);
 
-        SessionCredentials sessionCredential2 =new SessionCredentials();
-        Properties properties2=new Properties();
+        SessionCredentials sessionCredential2 = new SessionCredentials();
+        Properties properties2 = new Properties();
         properties2.setProperty(SessionCredentials.ACCESS_KEY,"RocketMQ");
         properties2.setProperty(SessionCredentials.SECRET_KEY,"12345678");
         properties2.setProperty(SessionCredentials.SECURITY_TOKEN,"abcd");
@@ -75,9 +75,9 @@ public class SessionCredentialsTest {
     }
 
     @Test
-    public void SessionCredentialToStringTest(){
-        SessionCredentials sessionCredential1 =new SessionCredentials();
-        Properties properties1=new Properties();
+    public void SessionCredentialToStringTest() {
+        SessionCredentials sessionCredential1 = new SessionCredentials();
+        Properties properties1 = new Properties();
         properties1.setProperty(SessionCredentials.ACCESS_KEY,"RocketMQ");
         properties1.setProperty(SessionCredentials.SECRET_KEY,"12345678");
         properties1.setProperty(SessionCredentials.SECURITY_TOKEN,"abcd");

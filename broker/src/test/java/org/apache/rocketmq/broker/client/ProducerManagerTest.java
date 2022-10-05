@@ -69,8 +69,8 @@ public class ProducerManagerTest {
         assertThat(producerManager.findChannel("clientId")).isNotNull();
         Field field = ProducerManager.class.getDeclaredField("CHANNEL_EXPIRED_TIMEOUT");
         field.setAccessible(true);
-        long CHANNEL_EXPIRED_TIMEOUT = field.getLong(producerManager);
-        clientInfo.setLastUpdateTimestamp(System.currentTimeMillis() - CHANNEL_EXPIRED_TIMEOUT - 10);
+        long channelExpiredTimeout = field.getLong(producerManager);
+        clientInfo.setLastUpdateTimestamp(System.currentTimeMillis() - channelExpiredTimeout - 10);
         when(channel.close()).thenReturn(mock(ChannelFuture.class));
         producerManager.scanNotActiveChannel();
         assertThat(producerManager.getGroupChannelTable().get(group)).isNull();

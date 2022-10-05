@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.0.0-SNAPSHOT</version>
+    <version>5.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -217,8 +217,8 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies/>
-                        <dependencyConvergence/>
+                        <banCircularDependencies />
+                        <dependencyConvergence />
                     </rules>
                     <fail>true</fail>
                 </configuration>

@@ -49,7 +49,6 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
@@ -231,10 +230,10 @@ public class TimerMessageStoreTest {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
 
             PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,inner);
-            if (putMessageResult==null || !putMessageResult.getPutMessageStatus().equals(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL)) {
+            if (putMessageResult == null || !putMessageResult.getPutMessageStatus().equals(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL)) {
                 putMessageResult = messageStore.putMessage(inner);
             }
-            else{
+            else {
                 putMessageResult = new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL,null);
             }
 
@@ -378,7 +377,7 @@ public class TimerMessageStoreTest {
             MessageExtBrokerInner inner = buildMessage((i % 2 == 0) ? 5000 : delayMs, topic, i % 2 == 0);
             transformTimerMessage(first,inner);
             PutMessageResult putMessageResult = messageStore.putMessage(inner);
-            long CQOffset = first.getCommitQueueOffset();
+            long cqOffset = first.getCommitQueueOffset();
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
         }
 
@@ -387,7 +386,7 @@ public class TimerMessageStoreTest {
             @Override
             public Boolean call() {
                 long curr = System.currentTimeMillis() / precisionMs * precisionMs;
-                long CQOffset = first.getCommitQueueOffset();
+                long cqOffset = first.getCommitQueueOffset();
                 return first.getCommitQueueOffset() == msgNum
                         && (first.getCurrReadTimeMs() == curr || first.getCurrReadTimeMs() == curr + precisionMs);
             }

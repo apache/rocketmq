@@ -51,7 +51,7 @@ import static org.mockito.Mockito.when;
 public class ConsumeMessageCommandTest {
     private static ConsumeMessageCommand consumeMessageCommand;
 
-    private static PullResult PULL_RESULT = mockPullResult();
+    private static final PullResult PULL_RESULT = mockPullResult();
 
     private static PullResult mockPullResult() {
         MessageExt msg = new MessageExt();

@@ -154,7 +154,7 @@ public class ValidatorsTest {
         Validators.checkBrokerConfig(brokerConfig);
 
         try {
-            brokerConfig.setProperty("brokerPermission", String.valueOf(PermName.PERM_PRIORITY));;
+            brokerConfig.setProperty("brokerPermission", String.valueOf(PermName.PERM_PRIORITY));
             Validators.checkBrokerConfig(brokerConfig);
         } catch (MQClientException e) {
             assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NO_PERMISSION);
@@ -162,7 +162,7 @@ public class ValidatorsTest {
         }
 
         try {
-            brokerConfig.setProperty("brokerPermission", String.valueOf(PermName.PERM_PRIORITY | PermName.PERM_INHERIT));;
+            brokerConfig.setProperty("brokerPermission", String.valueOf(PermName.PERM_PRIORITY | PermName.PERM_INHERIT));
             Validators.checkBrokerConfig(brokerConfig);
         } catch (MQClientException e) {
             assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NO_PERMISSION);

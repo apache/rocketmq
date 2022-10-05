@@ -1,6 +1,6 @@
 name: Build and Run Tests by Bazel
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize]
   push:
     branches:
@@ -17,6 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: bazel build --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
+        run: bazel build --config=remote //...
       - name: Run Tests
-        run: bazel test --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
+        run: bazel test --config=remote --nocache_test_results //...

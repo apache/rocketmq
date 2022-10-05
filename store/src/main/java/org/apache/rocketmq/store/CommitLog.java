@@ -1448,7 +1448,7 @@ public class CommitLog implements Swappable {
         private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<GroupCommitRequest>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
 
-        public synchronized void putRequest(final GroupCommitRequest request) {
+        public void putRequest(final GroupCommitRequest request) {
             lock.lock();
             try {
                 this.requestsWrite.add(request);
@@ -1496,6 +1496,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1516,10 +1517,7 @@ public class CommitLog implements Swappable {
                 CommitLog.log.warn("GroupCommitService Exception, ", e);
             }
 
-            synchronized (this) {
-                this.swapRequests();
-            }
-
+            this.swapRequests();
             this.doCommit();
 
             CommitLog.log.info(this.getServiceName() + " service end");

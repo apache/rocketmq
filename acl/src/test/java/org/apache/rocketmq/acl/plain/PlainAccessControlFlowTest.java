@@ -276,7 +276,6 @@ public class PlainAccessControlFlowTest {
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(
                 RemotingCommand.decode(buf), remoteAddr);
-            System.out.println(accessResource.getWhiteRemoteAddress());
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();

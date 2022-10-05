@@ -42,7 +42,7 @@ public class BroadcastNormalMsgRecvCrashIT extends BaseBroadcast {
         printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -55,17 +55,17 @@ public class BroadcastNormalMsgRecvCrashIT extends BaseBroadcast {
         int msgSize = 16;
 
         String group = initConsumerGroup();
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(NAMESRV_ADDR, group, topic, "*",
             new RMQNormalListener(group + "_1"));
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(NAMESRV_ADDR,
             consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -81,7 +81,7 @@ public class BroadcastNormalMsgRecvCrashIT extends BaseBroadcast {
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

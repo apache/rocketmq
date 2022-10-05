@@ -42,8 +42,6 @@ import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.test.base.BaseConf;
-import org.junit.After;
 import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
@@ -97,7 +95,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     }
 
     public void mockData() throws Exception {
-        System.out.println("Begin test");
         final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
         Thread.sleep(3000);
@@ -112,7 +109,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             if (haClient != null && haClient.getCurrentState().equals(HAConnectionState.TRANSFER)) {
                 return true;
             } else {
-                System.out.println("slave not ready");
                 Thread.sleep(2000);
                 tryTimes++;
             }
@@ -134,7 +130,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         
         // Shutdown controller2
         ScheduledExecutorService singleThread = Executors.newSingleThreadScheduledExecutor();
-        while (!singleThread.awaitTermination(6* 1000, TimeUnit.MILLISECONDS)) {
+        while (!singleThread.awaitTermination(6 * 1000, TimeUnit.MILLISECONDS)) {
             this.brokerController2.shutdown();
             singleThread.shutdown();
         }
@@ -249,7 +245,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     public void shutdown() throws InterruptedException {
         for (BrokerController controller : this.brokerList) {
             controller.shutdown();
-            System.out.println("Shutdown broker " + controller.getBrokerConfig().getListenPort());
             UtilAll.deleteFile(new File(controller.getMessageStoreConfig().getStorePathRootDir()));
         }
         if (this.namesrvController != null) {

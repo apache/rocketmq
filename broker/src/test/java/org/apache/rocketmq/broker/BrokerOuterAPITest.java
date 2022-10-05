@@ -22,10 +22,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
@@ -45,6 +47,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -194,14 +197,14 @@ public class BrokerOuterAPITest {
         final ArgumentCaptor<String> namesrvCaptor = ArgumentCaptor.forClass(String.class);
         when(nettyRemotingClient.invokeSync(namesrvCaptor.capture(), any(RemotingCommand.class),
             timeoutMillisCaptor.capture())).thenAnswer((Answer<RemotingCommand>) invocation -> {
-            final String namesrv = namesrvCaptor.getValue();
-            if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
+                final String namesrv = namesrvCaptor.getValue();
+                if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
+                    return response;
+                }
+                long delayTimeMillis = 1000;
+                TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
                 return response;
-            }
-            long delayTimeMillis = 1000;
-            TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
-            return response;
-        });
+            });
         List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, new BrokerIdentity());
 
         assertEquals(2, registerBrokerResultList.size());
@@ -233,5 +236,22 @@ public class BrokerOuterAPITest {
         response.setRemark(null);
         responseHeader.setChanged(changed);
         return response;
+    }
+
+    @Test
+    public void testLookupAddressByDomain() throws Exception {
+        init();
+        brokerOuterAPI.start();
+        Class<BrokerOuterAPI> clazz = BrokerOuterAPI.class;
+        Method method = clazz.getDeclaredMethod("lookupNameServerAddress", String.class);
+        method.setAccessible(true);
+        List<String> addressList = (List<String>) method.invoke(brokerOuterAPI, "localhost:6789");
+        AtomicBoolean result = new AtomicBoolean(false);
+        addressList.forEach(s -> {
+            if (s.contains("127.0.0.1:6789")) {
+                result.set(true);
+            }
+        });
+        Assert.assertTrue(result.get());
     }
 }

@@ -171,9 +171,7 @@ public class ReplicasInfoManagerTest {
         mockHeartbeatDataHigherEpoch();
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
             electPolicy);
-        System.out.println(cResult.getResponseCode());
         final ElectMasterResponseHeader response = cResult.getResponse();
-        System.out.println(response);
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertEquals("127.0.0.1:9001", response.getNewMasterAddress());
@@ -187,9 +185,7 @@ public class ReplicasInfoManagerTest {
         mockHeartbeatDataHigherOffset();
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
             electPolicy);
-        System.out.println(cResult.getResponseCode());
         final ElectMasterResponseHeader response = cResult.getResponse();
-        System.out.println(response);
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertEquals("127.0.0.1:9002", response.getNewMasterAddress());

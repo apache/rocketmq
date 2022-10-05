@@ -32,7 +32,12 @@ import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.*;
+import org.apache.rocketmq.common.protocol.body.CMResult;
+import org.apache.rocketmq.common.protocol.body.GroupList;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.Connection;
+import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -51,9 +56,17 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.Set;
+import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayList;
 
-import static org.mockito.ArgumentMatchers.*;
+
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -220,11 +233,6 @@ public class QueryMsgByUniqueKeySubCommandTest {
         String[] args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
-
-        System.out.println();
-        System.out.println("commandName=" + cmd.commandName());
-        System.out.println("commandDesc=" + cmd.commandDesc());
-
     }
 
     @Test
