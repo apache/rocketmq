@@ -394,7 +394,7 @@ public class PlainAccessValidatorTest {
         UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader = new UpdateConsumerOffsetRequestHeader();
         updateConsumerOffsetRequestHeader.setConsumerGroup("groupB");
         updateConsumerOffsetRequestHeader.setTopic("topicB");
-        updateConsumerOffsetRequestHeader.setCommitOffset(100000l);
+        updateConsumerOffsetRequestHeader.setCommitOffset(100000L);
         updateConsumerOffsetRequestHeader.setQueueId(0);
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, updateConsumerOffsetRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);

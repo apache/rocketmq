@@ -518,13 +518,13 @@ public class PlainPermissionManager {
                 String type = resourceAndPerm.get("type").toString();
                 String perm = resourceAndPerm.get("perm").toString();
                 if (namespace == null || namespace.isEmpty()) {
-                    if (type.equals(ResourceType.GROUP)) {
+                    if (type.equals(ResourceType.GROUP.toString())) {
                         updatePlainAccessResource.addResourceAndPerm(MixAll.getRetryTopic(resource), Permission.parsePermFromString(perm));
                     } else {
                         updatePlainAccessResource.addResourceAndPerm(resource, Permission.parsePermFromString(perm));
                     }
                 } else {
-                    if (type.equals(ResourceType.GROUP)) {
+                    if (type.equals(ResourceType.GROUP.toString())) {
                         updatePlainAccessResource.addResourceAndPerm(
                             MixAll.RETRY_GROUP_TOPIC_PREFIX + namespace + NAMESPACE_SEPARATOR + resource, Permission.parsePermFromString(perm));
                     } else {
@@ -637,9 +637,9 @@ public class PlainPermissionManager {
             while (iterator.hasNext()) {
                 LinkedHashMap<String, Object> curResourceAndPerm = (LinkedHashMap)iterator.next();
                 if (curResourceAndPerm.get("resource").toString().equals(resourceAndPerm.getResource()) && curResourceAndPerm.get("type").toString().equals(resourceAndPerm.getType().toString())) {
-                    if ((curResourceAndPerm.get("namespace") != null && resourceAndPerm.getNamespace() != null
-                        && !resourceAndPerm.getNamespace().isEmpty() && curResourceAndPerm.get("namespace").toString().equals(resourceAndPerm.getNamespace())) ||
-                        (curResourceAndPerm.get("namespace") == null && resourceAndPerm.getNamespace() == null)) {
+                    if (curResourceAndPerm.get("namespace") != null && resourceAndPerm.getNamespace() != null
+                        && !resourceAndPerm.getNamespace().isEmpty() && curResourceAndPerm.get("namespace").toString().equals(resourceAndPerm.getNamespace()) ||
+                        curResourceAndPerm.get("namespace") == null && resourceAndPerm.getNamespace() == null) {
                         iterator.remove();
                         break;
                     }
