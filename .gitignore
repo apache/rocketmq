@@ -14,3 +14,8 @@ devenv
 localbin
 nohup.out
 docker/
+bazel-out
+bazel-bin
+bazel-rocketmq
+bazel-testlogs
+.vscode

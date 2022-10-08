@@ -17,18 +17,22 @@
 
 package org.apache.rocketmq.test.util;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -46,18 +50,20 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
 
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
+import static org.awaitility.Awaitility.await;
+
 public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
                                       int queueNum, Map<String, String> attributes) {
-        int defaultWaitTime = 5;
+        int defaultWaitTime = 30;
         return createTopic(nameSrvAddr, clusterName, topic, queueNum, attributes, defaultWaitTime);
     }
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
                                       int queueNum, Map<String, String> attributes, int waitTimeSec) {
-        boolean createResult = false;
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
@@ -67,19 +73,9 @@ public class MQAdminTestUtils {
         } catch (Exception e) {
         }
 
-        long startTime = System.currentTimeMillis();
-        while (!createResult) {
-            createResult = checkTopicExist(mqAdminExt, topic);
-            if (System.currentTimeMillis() - startTime < waitTimeSec * 1000) {
-                TestUtils.waitForMoment(100);
-            } else {
-                log.error(String.format("timeout,but create topic[%s] failed!", topic));
-                break;
-            }
-        }
-
+        await().atMost(waitTimeSec, TimeUnit.SECONDS).until(() -> checkTopicExist(mqAdminExt, topic));
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
-        return createResult;
+        return true;
     }
 
     private static boolean checkTopicExist(DefaultMQAdminExt mqAdminExt, String topic) {
@@ -153,6 +149,36 @@ public class MQAdminTestUtils {
         return false;
     }
 
+
+    public static boolean awaitStaticTopicMs(long timeMs, String topic, DefaultMQAdminExt defaultMQAdminExt, MQClientInstance clientInstance) throws Exception {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start <= timeMs) {
+            if (checkStaticTopic(topic, defaultMQAdminExt, clientInstance)) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
+    }
+
+    //Check if the client metadata is consistent with server metadata
+    public static boolean checkStaticTopic(String topic, DefaultMQAdminExt defaultMQAdminExt, MQClientInstance clientInstance) throws Exception {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+        assert !brokerConfigMap.isEmpty();
+        TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+        TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+        Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+        for (int i = 0; i < globalIdMap.size(); i++) {
+            TopicQueueMappingOne mappingOne = globalIdMap.get(i);
+            String mockBrokerName = TopicQueueMappingUtils.getMockBrokerName(mappingOne.getMappingDetail().getScope());
+            String bnameFromRoute = clientInstance.getBrokerNameFromMessageQueue(new MessageQueue(topic, mockBrokerName, mappingOne.getGlobalId()));
+            if (!mappingOne.getBname().equals(bnameFromRoute)) {
+                return false;
+            }
+        }
+        return  true;
+    }
+
     //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
     public static Map<String, TopicConfigAndQueueMapping> createStaticTopic(String topic, int queueNum, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
@@ -171,6 +197,7 @@ public class MQAdminTestUtils {
         MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
         MQAdminUtils.remappingStaticTopic(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), brokerConfigMap, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, false, defaultMQAdminExt);
     }
+
 
     //for test only
     public static void remappingStaticTopicWithNegativeLogicOffset(String topic, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {

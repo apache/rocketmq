@@ -1,0 +1,99 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "proxy",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//remoting",
+        "//logging",   
+        "//common",
+        "//client",
+        "//broker",
+        "//srvutil",
+        "//acl",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",     
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:commons_collections_commons_collections",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_github_ben_manes_caffeine_caffeine",
+        "@maven//:io_grpc_grpc_services",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:org_checkerframework_checker_qual",
+        "@maven//:commons_cli_commons_cli",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":proxy",
+        "//remoting",
+        "//broker",
+        "//client",
+        "//common",
+        "//:test_deps",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",             
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",        
+        "@maven//:io_netty_netty_all",    
+        "@maven//:com_google_guava_guava",  
+        "@maven//:com_alibaba_fastjson",       
+        "@maven//:com_google_protobuf_protobuf_java",  
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:io_grpc_grpc_api",
+    ],
+    resources = [
+        "src/test/resources/rmq-proxy-home/conf/broker.conf",
+        "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
+        "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
+    ],
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+    exclude_tests = [
+        "src/test/java/org/apache/rocketmq/proxy/config/InitConfigAndLoggerTest",
+    ],
+)

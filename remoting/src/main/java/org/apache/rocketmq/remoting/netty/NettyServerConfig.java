@@ -17,7 +17,13 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
-    private int listenPort = 8888;
+
+    /**
+     * Bind address may be hostname, IPv4 or IPv6.
+     * By default, it's wildcard address, listening all network interfaces.
+     */
+    private String bindAddress = "0.0.0.0";
+    private int listenPort = 0;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
     private int serverSelectorThreads = 3;
@@ -33,13 +39,21 @@ public class NettyServerConfig implements Cloneable {
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
-     * make make install
+     * make install
      *
      *
      * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \
      * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
      */
     private boolean useEpollNativeSelector = false;
+
+    public String getBindAddress() {
+        return bindAddress;
+    }
+
+    public void setBindAddress(String bindAddress) {
+        this.bindAddress = bindAddress;
+    }
 
     public int getListenPort() {
         return listenPort;

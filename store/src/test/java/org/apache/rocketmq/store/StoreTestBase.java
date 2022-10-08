@@ -21,7 +21,6 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.After;
 
 import java.io.File;
@@ -151,7 +150,7 @@ public class StoreTestBase {
     }
 
     public static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
+        String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             System.exit(1);

@@ -16,12 +16,14 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface LitePullConsumer {
 
@@ -52,6 +54,14 @@ public interface LitePullConsumer {
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
     /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    void subscribe(final String topic, final String subExpression, final MessageQueueListener messageQueueListener) throws MQClientException;
+
+    /**
      * Subscribe some topic with selector.
      *
      * @param selector message selector({@link MessageSelector}), can be null.
@@ -66,6 +76,14 @@ public interface LitePullConsumer {
      */
     void unsubscribe(final String topic);
 
+
+    /**
+     * subscribe mode, get assigned MessageQueue
+     * @return
+     * @throws MQClientException
+     */
+    Set<MessageQueue> assignment() throws MQClientException;
+
     /**
      * Manually assign a list of message queues to this consumer. This interface does not allow for incremental
      * assignment and will replace the previous assignment (if there is one).
@@ -73,6 +91,15 @@ public interface LitePullConsumer {
      * @param messageQueues Message queues that needs to be assigned.
      */
     void assign(Collection<MessageQueue> messageQueues);
+
+    /**
+     * Set topic subExpression for assign mode. This interface does not allow be call after start(). Default value is * if not set.
+     * assignment and will replace the previous assignment (if there is one).
+     *
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     *      * null or * expression,meaning subscribe all
+     */
+    void setSubExpressionForAssign(final String topic, final String subExpression);
 
     /**
      * Fetch data for the topics or partitions specified using assign API
@@ -159,6 +186,15 @@ public interface LitePullConsumer {
      * Manually commit consume offset.
      */
     void commitSync();
+
+    /**
+     * Offset specified by batch commit
+     * @param offsetMap
+     * @param persist
+     */
+    void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist);
+
+    void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
     /**
      * Get the last committed offset for the given message queue.

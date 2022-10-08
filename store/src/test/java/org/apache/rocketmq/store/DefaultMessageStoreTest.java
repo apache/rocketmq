@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -46,10 +47,10 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.assertj.core.util.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +64,7 @@ import static org.junit.Assert.assertTrue;
 public class DefaultMessageStoreTest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final String messageTopic = "FooBar";
-    private int QUEUE_TOTAL = 100;
+    private int queueTotal = 100;
     private AtomicInteger queueId = new AtomicInteger(0);
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -83,7 +84,7 @@ public class DefaultMessageStoreTest {
 
     @Test(expected = OverlappingFileLockException.class)
     public void test_repeat_restart() throws Exception {
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -91,6 +92,8 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
+        messageStoreConfig.setHaListenPort(0);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
         boolean load = master.load();
@@ -116,6 +119,10 @@ public class DefaultMessageStoreTest {
     }
 
     private MessageStore buildMessageStore() throws Exception {
+        return buildMessageStore(null);
+    }
+
+    private MessageStore buildMessageStore(String storePathRootDir) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
@@ -123,8 +130,16 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStoreConfig.setHaListenPort(0);
+        if (Strings.isNullOrEmpty(storePathRootDir)) {
+            UUID uuid = UUID.randomUUID();
+            storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-" + uuid.toString();
+        }
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        return new DefaultMessageStore(messageStoreConfig,
+            new BrokerStatsManager("simpleTest", true),
+            new MyMessageArrivingListener(),
+            new BrokerConfig());
     }
 
     @Test
@@ -132,7 +147,7 @@ public class DefaultMessageStoreTest {
         long ipv4HostMsgs = 10;
         long ipv6HostMsgs = 10;
         long totalMsgs = ipv4HostMsgs + ipv6HostMsgs;
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
         for (long i = 0; i < ipv4HostMsgs; i++) {
             messageStore.putMessage(buildMessage());
@@ -416,7 +431,7 @@ public class DefaultMessageStoreTest {
         msg.setKeys("Hello");
         msg.setBody(messageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
@@ -433,7 +448,7 @@ public class DefaultMessageStoreTest {
         msg.setBody(messageBody);
         msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornHostV6Flag();
         msg.setStoreHostAddressV6Flag();
@@ -465,7 +480,7 @@ public class DefaultMessageStoreTest {
         msgExtBatch.setKeys("Hello");
         msgExtBatch.setBody(msgBatch.getBody());
         msgExtBatch.setKeys(String.valueOf(System.currentTimeMillis()));
-        msgExtBatch.setQueueId(Math.abs(queueId.getAndIncrement()) % QUEUE_TOTAL);
+        msgExtBatch.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msgExtBatch.setSysFlag(0);
         msgExtBatch.setBornTimestamp(System.currentTimeMillis());
         msgExtBatch.setStoreHost(storeHost);
@@ -476,7 +491,7 @@ public class DefaultMessageStoreTest {
     @Test
     public void testGroupCommit() throws Exception {
         long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
+        queueTotal = 1;
         messageBody = storeMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
@@ -593,14 +608,15 @@ public class DefaultMessageStoreTest {
 
         //1.just reboot
         messageStore.shutdown();
-        messageStore = buildMessageStore();
+        String storeRootDir = ((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir();
+        messageStore = buildMessageStore(storeRootDir);
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
         assertTrue(maxPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(maxCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
-        //2.damage commitlog and reboot normal
+        //2.damage commit-log and reboot normal
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -620,10 +636,10 @@ public class DefaultMessageStoreTest {
         messageStore.shutdown();
 
         //damage last message
-        damageCommitlog(secondLastPhyOffset);
+        damageCommitLog((DefaultMessageStore) messageStore, secondLastPhyOffset);
 
         //reboot
-        messageStore = buildMessageStore();
+        messageStore = buildMessageStore(storeRootDir);
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -649,14 +665,14 @@ public class DefaultMessageStoreTest {
         messageStore.shutdown();
 
         //damage last message
-        damageCommitlog(secondLastPhyOffset);
+        damageCommitLog((DefaultMessageStore) messageStore, secondLastPhyOffset);
         //add abort file
         String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
         File file = new File(fileName);
         UtilAll.ensureDirOK(file.getParent());
         file.createNewFile();
 
-        messageStore = buildMessageStore();
+        messageStore = buildMessageStore(storeRootDir);
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -688,24 +704,23 @@ public class DefaultMessageStoreTest {
         return false;
     }
 
-    private void damageCommitlog(long offset) throws Exception {
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+    private void damageCommitLog(DefaultMessageStore store, long offset) throws Exception {
+        assertThat(store).isNotNull();
+        MessageStoreConfig messageStoreConfig = store.getMessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
-
-        FileChannel fileChannel = new RandomAccessFile(file, "rw").getChannel();
-        MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
-
-        int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
-        int topicLenIndex = (int) offset + 84 + bodyLen + 4;
-        mappedByteBuffer.position(topicLenIndex);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-        mappedByteBuffer.putInt(0);
-
-        mappedByteBuffer.force();
-        fileChannel.force(true);
-        fileChannel.close();
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw");
+             FileChannel fileChannel = raf.getChannel()) {
+            MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
+            int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
+            int topicLenIndex = (int) offset + 84 + bodyLen + 4;
+            mappedByteBuffer.position(topicLenIndex);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.putInt(0);
+            mappedByteBuffer.force();
+            fileChannel.force(true);
+        }
     }
 
     @Test
@@ -732,7 +747,7 @@ public class DefaultMessageStoreTest {
         try {
             PutMessageResult result = this.messageStore.putMessages(msgExtBatch);
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains("message size exceeded");
+            assertThat(e.getMessage()).contains("message body size exceeded");
         }
     }
 
@@ -743,13 +758,31 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setTotalReplicas(2);
         messageStoreConfig.setInSyncReplicas(2);
         messageStoreConfig.setEnableAutoInSyncReplicas(false);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
         this.messageStore.setAliveReplicaNumInGroup(1);
 
         MessageExtBrokerInner msg = buildMessage();
         PutMessageResult result = this.messageStore.putMessage(msg);
         assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
     }
 
+    @Test
+    public void testPutMsgWhenAdaptiveDegradation() {
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) this.messageStore).getMessageStoreConfig();
+        messageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
+        messageStoreConfig.setTotalReplicas(2);
+        messageStoreConfig.setInSyncReplicas(2);
+        messageStoreConfig.setEnableAutoInSyncReplicas(true);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(true);
+        this.messageStore.setAliveReplicaNumInGroup(1);
+
+        MessageExtBrokerInner msg = buildMessage();
+        PutMessageResult result = this.messageStore.putMessage(msg);
+        assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        ((DefaultMessageStore) this.messageStore).getBrokerConfig().setEnableSlaveActingMaster(false);
+        messageStoreConfig.setEnableAutoInSyncReplicas(false);
+    }
 
     @Test
     public void testGetBulkCommitLogData() {
@@ -772,6 +805,66 @@ public class DefaultMessageStoreTest {
         }
 
         assertThat(msgList.size()).isEqualTo(10);
+    }
+
+    @Test
+    public void testPutLongMessage() throws Exception {
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
+
+        //body size, topic size, properties size exactly equal to max size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setTopic(new String(new byte[127]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE]));
+        PutMessageResult encodeResult1 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult1 == null);
+
+        //body size exactly more than max message body size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 1]);
+        PutMessageResult encodeResult2 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult2.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        //body size exactly equal to max message size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 64 * 1024]);
+        PutMessageResult encodeResult3 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult3.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        //message properties length more than properties maxSize
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE + 1]));
+        PutMessageResult encodeResult4 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult4.getPutMessageStatus() == PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
+
+        //message length more than buffer length capacity
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+        messageExtBrokerInner.setTopic(new String(new byte[Short.MAX_VALUE]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE]));
+        PutMessageResult encodeResult5 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult5.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+    }
+
+    @Test
+    public void testDynamicMaxMessageSize() {
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        int originMaxMessageSize = messageStoreConfig.getMaxMessageSize();
+
+        messageExtBrokerInner.setBody(new byte[originMaxMessageSize + 10]);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        int newMaxMessageSize = originMaxMessageSize + 10;
+        messageStoreConfig.setMaxMessageSize(newMaxMessageSize);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK);
+
+        messageStoreConfig.setMaxMessageSize(10);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        messageStoreConfig.setMaxMessageSize(originMaxMessageSize);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

@@ -52,15 +52,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static boolean analyzeSubscription(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
 
-        boolean push = false;
-        {
-            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
-
-            if (property == null) {
-                property = ((ConsumeType) prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
-            }
-            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
-        }
+        boolean push = isPushType(prev);
 
         boolean startForAWhile = false;
         {
@@ -103,6 +95,15 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         return true;
     }
 
+    public static boolean isPushType(ConsumerRunningInfo consumerRunningInfo) {
+        String property = consumerRunningInfo.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+
+        if (property == null) {
+            property = ((ConsumeType) consumerRunningInfo.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
+        }
+        return ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+    }
+
     public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         return true;
     }
@@ -140,7 +141,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                             mq,
                             System.currentTimeMillis() - pq.getLastLockTimestamp()));
                     } else {
-                        if (pq.isDroped() && (pq.getTryUnlockTimes() > 0)) {
+                        if (pq.isDroped() && pq.getTryUnlockTimes() > 0) {
                             sb.append(String.format("%s %s unlock %d times, still failed%n",
                                 clientId,
                                 mq,

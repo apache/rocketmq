@@ -62,7 +62,7 @@ public class StatisticsItemScheduledPrinter extends FutureHolder {
 
     public interface InitialDelay {
         /**
-         * Get inital delay value
+         * Get initial delay value
          * @return
          */
         long get();

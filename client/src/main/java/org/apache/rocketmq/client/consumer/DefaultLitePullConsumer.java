@@ -18,6 +18,8 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -219,6 +221,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
+        this.enableStreamRequestType = true;
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
@@ -263,10 +266,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
-
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
+    }
+
+    @Override
+    public void setSubExpressionForAssign(final String topic, final String subExpresion) {
+        defaultLitePullConsumerImpl.setSubExpressionForAssign(withNamespace(topic), subExpresion);
     }
 
     @Override
@@ -313,6 +320,45 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    /**
+     * Offset specified by batch commit
+     * @param offsetMap
+     * @param persist
+     */
+    @Override
+    public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+    }
+
+    /**
+     * Get the MessageQueue assigned in subscribe mode
+     *
+     * @return
+     * @throws MQClientException
+     */
+    @Override
+    public Set<MessageQueue> assignment() throws MQClientException {
+        return this.defaultLitePullConsumerImpl.assignment();
+    }
+
+    /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     *
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    @Override
+    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
+    }
+
+
+    @Override
+    public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
     }
 
     @Override
@@ -447,10 +493,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.offsetStore = offsetStore;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }

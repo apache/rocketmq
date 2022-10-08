@@ -96,7 +96,7 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
                 inTimeMsgCount.addAndGet(msgs.size());
             }
             receivedMsgCount.addAndGet(msgs.size());
-            msgs.forEach(x -> System.out.printf(receivedMsgCount.get()+" cost " + period + " " + x + "%n"));
+            msgs.forEach(x -> System.out.printf(receivedMsgCount.get() + " cost " + period + " " + x + "%n"));
 
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
@@ -131,6 +131,40 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
         for (int i = 0; i < MESSAGE_COUNT; i++) {
             Message msg = new Message(topic, String.valueOf(i).getBytes());
             msg.setDelayTimeLevel(2);
+            producer.send(msg);
+        }
+
+        isolateBroker(master1With3Replicas);
+
+        producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        assertThat(producer.getDefaultMQProducerImpl().getmQClientFactory().findBrokerAddressInPublish(topic)).isNull();
+
+        pushConsumer.start();
+
+        await().atMost(Duration.ofSeconds(MESSAGE_COUNT * 2)).until(() -> receivedMsgCount.get() >= MESSAGE_COUNT);
+
+        pushConsumer.shutdown();
+        cancelIsolatedBroker(master1With3Replicas);
+
+        await().atMost(100, TimeUnit.SECONDS)
+            .until(() -> ((DefaultMessageStore) master1With3Replicas.getMessageStore()).getHaService().getConnectionCount().get() == 2);
+    }
+
+    @Test
+    public void consumeTimerMsgFromSlave() throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        String topic = TOPIC_PREFIX + random.nextInt(65535);
+        createTopic(topic);
+        DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUME_GROUP);
+        pushConsumer.subscribe(topic, "*");
+        AtomicInteger receivedMsgCount = new AtomicInteger(0);
+        pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            receivedMsgCount.addAndGet(msgs.size());
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
+            Message msg = new Message(topic, String.valueOf(i).getBytes());
+            msg.setDelayTimeSec(3);
             producer.send(msg);
         }
 

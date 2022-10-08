@@ -135,11 +135,23 @@ public class CommandUtil {
         return brokerAddressSet;
     }
 
+    public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)
+        throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
+        RemotingSendRequestException, MQBrokerException {
+        Set<String> brokerAddressSet = new HashSet<>();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        final BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+        if (brokerData != null) {
+            brokerAddressSet.addAll(brokerData.getBrokerAddrs().values());
+        }
+        return brokerAddressSet;
+    }
+
     public static Set<String> fetchBrokerNameByClusterName(final MQAdminExt adminExt, final String clusterName)
         throws Exception {
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
-        if (brokerNameSet.isEmpty()) {
+        if (brokerNameSet == null || brokerNameSet.isEmpty()) {
             throw new Exception(ERROR_MESSAGE);
         }
         return brokerNameSet;

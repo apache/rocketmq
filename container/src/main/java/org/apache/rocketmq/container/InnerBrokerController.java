@@ -87,23 +87,11 @@ public class InnerBrokerController extends BrokerController {
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
-            scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override
-                public void run2() {
-                    if (isIsolated) {
-                        return;
-                    }
-                    try {
-                        InnerBrokerController.this.sendHeartbeat();
-                    } catch (Exception e) {
-                        BrokerController.LOG.error("sendHeartbeat Exception", e);
-                    }
-
-                }
-            }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
+            scheduleSendHeartbeat();
 
             scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override public void run2() {
+                @Override
+                public void run2() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {
@@ -111,6 +99,10 @@ public class InnerBrokerController extends BrokerController {
                     }
                 }
             }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
+        }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            scheduleSendHeartbeat();
         }
 
         if (brokerConfig.isSkipPreOnline()) {
@@ -139,17 +131,6 @@ public class InnerBrokerController extends BrokerController {
     @Override
     public String getBrokerAddr() {
         return this.brokerConfig.getBrokerIP1() + ":" + this.brokerConfig.getListenPort();
-    }
-
-    @Override
-    public String getNameServerList() {
-        if (this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr() != null) {
-            this.brokerContainer.getBrokerOuterAPI().updateNameServerAddressList(brokerContainer.getBrokerContainerConfig().getNamesrvAddr());
-            return this.brokerContainer.getBrokerContainerConfig().getNamesrvAddr();
-        } else if (this.brokerContainer.getBrokerContainerConfig().isFetchNamesrvAddrByAddressServer()) {
-            return this.brokerContainer.getBrokerOuterAPI().fetchNameServerAddr();
-        }
-        return null;
     }
 
     @Override

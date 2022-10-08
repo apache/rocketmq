@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -107,7 +106,7 @@ public class PopReviveService extends ServiceThread {
         }
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNoExit(msgInner.getTopic(), popCheckPoint.getCId());
-        PutMessageResult putMessageResult = brokerController.getMessageStore().putMessage(msgInner);
+        PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("reviveQueueId={},retry msg , ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
                 queueId, popCheckPoint, messageExt.getQueueId(), messageExt.getQueueOffset(),
@@ -154,7 +153,7 @@ public class PopReviveService extends ServiceThread {
         }
     }
 
-    private List<MessageExt> getReviveMessage(long offset, int queueId) {
+    protected List<MessageExt> getReviveMessage(long offset, int queueId) {
         PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32);
         if (pullResult == null) {
             return null;
@@ -174,7 +173,7 @@ public class PopReviveService extends ServiceThread {
 
     private boolean reachTail(PullResult pullResult, long offset) {
         return pullResult.getPullStatus() == PullStatus.NO_NEW_MSG
-            || (pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset());
+            || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset();
     }
 
     private MessageExt getBizMessage(String topic, long offset, int queueId, String brokerName) {
@@ -199,12 +198,11 @@ public class PopReviveService extends ServiceThread {
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
-                    POP_LOGGER.warn("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case NO_MESSAGE_IN_QUEUE:
-                    pullStatus = PullStatus.NO_NEW_MSG;
-                    POP_LOGGER.warn("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    POP_LOGGER.debug("no new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case MESSAGE_WAS_REMOVING:
@@ -226,7 +224,11 @@ public class PopReviveService extends ServiceThread {
                 getMessageResult.getMaxOffset(), foundList);
 
         } else {
-            POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}", topic, group, offset);
+            long maxQueueOffset = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+            if (maxQueueOffset > offset) {
+                POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}, maxQueueOffset={}",
+                    topic, group, offset, maxQueueOffset);
+            }
             return null;
         }
     }
@@ -259,7 +261,7 @@ public class PopReviveService extends ServiceThread {
         return foundList;
     }
 
-    private void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
+    protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
         long startScanTime = System.currentTimeMillis();
         long endTime = 0;
@@ -278,8 +280,10 @@ public class PopReviveService extends ServiceThread {
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
+                long timerDelay = brokerController.getMessageStore().getTimerMessageStore().getReadBehind();
+                long commitLogDelay = brokerController.getMessageStore().getTimerMessageStore().getEnqueueBehind();
                 // move endTime
-                if (endTime != 0 && ((System.currentTimeMillis() - endTime) > (3 * PopAckConstants.SECOND))) {
+                if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
                     endTime = System.currentTimeMillis();
                 }
                 POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
@@ -288,11 +292,12 @@ public class PopReviveService extends ServiceThread {
                     break;
                 }
                 noMsgCount++;
+                // Fixme: why sleep is useful here?
                 try {
                     Thread.sleep(100);
-                } catch (Throwable e) {
+                } catch (Throwable ignore) {
                 }
-                if (noMsgCount * 100 > 4 * PopAckConstants.SECOND) {
+                if (noMsgCount * 100L > 4 * PopAckConstants.SECOND) {
                     break;
                 } else {
                     continue;
@@ -336,7 +341,7 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
                     }
                 }
-                long deliverTime = MsgUtil.getMessageDeliverTime(this.brokerController, messageExt);
+                long deliverTime = messageExt.getDeliverTimeMs();
                 if (deliverTime > endTime) {
                     endTime = deliverTime;
                 }
@@ -346,7 +351,7 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.endTime = endTime;
     }
 
-    private void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
+    protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
         POP_LOGGER.info("reviveQueueId={},ck listSize={}", queueId, sortList.size());
         if (sortList.size() != 0) {

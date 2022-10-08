@@ -20,15 +20,25 @@ package org.apache.rocketmq.common.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * The class describes that a typical broker cluster's (in replication) details: the cluster (in sharding) name
+ * that it belongs to, and all the single instance information for this cluster.
+ */
 public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
-    private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
+    /**
+     * The container that store the all single instances for the current broker replication cluster.
+     * The key is the brokerId, and the value is the address of the single broker instance.
+     */
+    private HashMap<Long, String> brokerAddrs;
+    private String zoneName;
     private final Random random = new Random();
 
     /**
@@ -44,10 +54,7 @@ public class BrokerData implements Comparable<BrokerData> {
         this.cluster = brokerData.cluster;
         this.brokerName = brokerData.brokerName;
         if (brokerData.brokerAddrs != null) {
-            this.brokerAddrs = new HashMap<Long, String>();
-            for (final Map.Entry<Long, String> brokerEntry : brokerData.brokerAddrs.entrySet()) {
-                this.brokerAddrs.put(brokerEntry.getKey(), brokerEntry.getValue());
-            }
+            this.brokerAddrs = new HashMap<>(brokerData.brokerAddrs);
         }
         this.enableActingMaster = brokerData.enableActingMaster;
     }
@@ -58,29 +65,36 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerAddrs = brokerAddrs;
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs,
-        boolean enableActingMaster) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
         this.enableActingMaster = enableActingMaster;
     }
 
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster, String zoneName) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+        this.brokerAddrs = brokerAddrs;
+        this.enableActingMaster = enableActingMaster;
+        this.zoneName = zoneName;
+    }
+
     /**
-     * Selects a (preferably master) broker address from the registered list.
-     * If the master's address cannot be found, a slave broker address is selected in a random manner.
+     * Selects a (preferably master) broker address from the registered list. If the master's address cannot be found, a
+     * slave broker address is selected in a random manner.
      *
      * @return Broker address.
      */
     public String selectBrokerAddr() {
-        String addr = this.brokerAddrs.get(MixAll.MASTER_ID);
+        String masterAddress = this.brokerAddrs.get(MixAll.MASTER_ID);
 
-        if (addr == null) {
-            List<String> addrs = new ArrayList<String>(brokerAddrs.values());
+        if (masterAddress == null) {
+            List<String> addrs = new ArrayList<>(brokerAddrs.values());
             return addrs.get(random.nextInt(addrs.size()));
         }
 
-        return addr;
+        return masterAddress;
     }
 
     public HashMap<Long, String> getBrokerAddrs() {
@@ -105,6 +119,14 @@ public class BrokerData implements Comparable<BrokerData> {
 
     public void setEnableActingMaster(boolean enableActingMaster) {
         this.enableActingMaster = enableActingMaster;
+    }
+
+    public String getZoneName() {
+        return zoneName;
+    }
+
+    public void setZoneName(String zoneName) {
+        this.zoneName = zoneName;
     }
 
     @Override
@@ -135,11 +157,7 @@ public class BrokerData implements Comparable<BrokerData> {
         } else if (!brokerAddrs.equals(other.brokerAddrs)) {
             return false;
         }
-        if (brokerName == null) {
-            return other.brokerName == null;
-        } else {
-            return brokerName.equals(other.brokerName);
-        }
+        return StringUtils.equals(brokerName, other.brokerName);
     }
 
     @Override

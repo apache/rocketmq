@@ -54,7 +54,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
-            (EndTransactionRequestHeader)request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+            (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
         LOGGER.debug("Transaction request:{}", requestHeader);
         if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
             response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
@@ -237,7 +237,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                    response.setRemark("The message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                    response.setRemark(String.format("The message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
+                        this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                     break;
                 case SERVICE_NOT_AVAILABLE:
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
@@ -247,9 +248,31 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("OS page cache busy, please try another machine");
                     break;
+                case WHEEL_TIMER_MSG_ILLEGAL:
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                    response.setRemark(String.format("timer message illegal, the delay time should not be bigger than the max delay %dms; or if set del msg, the delay time should be bigger than the current time",
+                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000));
+                    break;
+                case WHEEL_TIMER_FLOW_CONTROL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("timer message is under flow control, max num limit is %d or the current value is greater than %d and less than %d, trigger random flow control",
+                        this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L, this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot(), this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L));
+                    break;
+                case WHEEL_TIMER_NOT_ENABLE:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
+                        this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");
+                    break;
+                case IN_SYNC_REPLICAS_NOT_ENOUGH:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("in-sync replicas not enough");
+                    break;
+                case PUT_TO_REMOTE_BROKER_FAIL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("put to remote broker fail");
                     break;
                 default:
                     response.setCode(ResponseCode.SYSTEM_ERROR);

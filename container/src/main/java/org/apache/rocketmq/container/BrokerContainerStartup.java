@@ -59,9 +59,9 @@ public class BrokerContainerStartup {
     public static CommandLine commandLine = null;
     public static String configFile = null;
     public static InternalLogger log;
-    public static SystemConfigFileHelper configFileHelper = new SystemConfigFileHelper();
+    public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
     public static String rocketmqHome = null;
-    public static JoranConfigurator configurator = new JoranConfigurator();
+    public static final JoranConfigurator CONFIGURATOR = new JoranConfigurator();
 
     public static void main(String[] args) {
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
@@ -149,20 +149,22 @@ public class BrokerContainerStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
-        switch (messageStoreConfig.getBrokerRole()) {
-            case ASYNC_MASTER:
-            case SYNC_MASTER:
-                brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                break;
-            case SLAVE:
-                if (brokerConfig.getBrokerId() <= 0) {
-                    System.out.printf("Slave's brokerId must be > 0%n");
-                    System.exit(-3);
-                }
+        if (!brokerConfig.isEnableControllerMode()) {
+            switch (messageStoreConfig.getBrokerRole()) {
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                    break;
+                case SLAVE:
+                    if (brokerConfig.getBrokerId() <= 0) {
+                        System.out.printf("Slave's brokerId must be > 0%n");
+                        System.exit(-3);
+                    }
 
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
+            }
         }
 
         if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()
@@ -278,13 +280,13 @@ public class BrokerContainerStartup {
             if (commandLine.hasOption(BROKER_CONTAINER_CONFIG_OPTION)) {
                 String file = commandLine.getOptionValue(BROKER_CONTAINER_CONFIG_OPTION);
                 if (file != null) {
-                    configFileHelper.setFile(file);
+                    CONFIG_FILE_HELPER.setFile(file);
                     configFile = file;
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
                 }
             }
 
-            properties = configFileHelper.loadConfig();
+            properties = CONFIG_FILE_HELPER.loadConfig();
             if (properties != null) {
                 properties2SystemEnv(properties);
                 MixAll.properties2Object(properties, containerConfig);
@@ -316,12 +318,12 @@ public class BrokerContainerStartup {
             }
 
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            configurator.setContext(lc);
+            CONFIGURATOR.setContext(lc);
             lc.reset();
             //https://logback.qos.ch/manual/configuration.html
             lc.setPackagingDataEnabled(false);
 
-            configurator.doConfigure(rocketmqHome + "/conf/logback_broker.xml");
+            CONFIGURATOR.doConfigure(rocketmqHome + "/conf/logback_broker.xml");
 
             if (commandLine.hasOption(PRINT_PROPERTIES_OPTION)) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);

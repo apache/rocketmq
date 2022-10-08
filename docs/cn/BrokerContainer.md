@@ -96,7 +96,7 @@ usage: mqadmin removeBroker -b <arg> -c <arg> [-h] [-n <arg>]
 
 ## 存储变化
 
-storePathRootDir, storePathCommitLog路径依然为MessageStoreConfig中配置值，需要注意的是同一个brokerContainer中的broker不能使用相同的storePathRootDir, storePathCommitLog，否则不同的broker占用同一个存储目录，发生数据混乱。
+storePathRootDir，storePathCommitLog路径依然为MessageStoreConfig中配置值，需要注意的是同一个brokerContainer中的broker不能使用相同的storePathRootDir，storePathCommitLog，否则不同的broker占用同一个存储目录，发生数据混乱。
 
 在文件删除策略上，仍然单个Broker的视角来进行删除，但MessageStoreConfig新增replicasPerDiskPartition参数和logicalDiskSpaceCleanForciblyThreshold。
 
@@ -128,7 +128,7 @@ eg.假设broker获取到的配额是500g（根据replicasPerDiskPartition计算�
 
 **开发者需要注意!**
 
-在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，因此所有broker的日志将会输出到同一个日志文件中，BrokerContainer模式下将提供broker日志分离功能，通过BrokerConfig配置isolateLogEnable=true进行开启，开启后不同broker的日志将会输出到不同文件中。
+在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，BrokerContainer模式下将提供broker日志分离功能，不同broker的日志将会输出到不同文件中。
 
 主要通过线程名（ThreadName）或者通过设置线程本地变量（ThreadLocal）来区分不同broker线程，并且hack logback的logAppender将日志重定向到不同的文件中。
 
@@ -149,4 +149,4 @@ InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName())
 通过线程名和线程本地变量区分可以参考org.apache.rocketmq.common.AbstractBrokerRunnable、org.apache.rocketmq.common.ThreadFactoryImpl以及各个ServiceThread中getServiceName的实现。
 
 
-参考文档: [原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)
+参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)

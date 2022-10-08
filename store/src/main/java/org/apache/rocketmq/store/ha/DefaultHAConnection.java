@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class DefaultHAConnection implements HAConnection {
@@ -48,8 +49,12 @@ public class DefaultHAConnection implements HAConnection {
         this.socketChannel.configureBlocking(false);
         this.socketChannel.socket().setSoLinger(false, -1);
         this.socketChannel.socket().setTcpNoDelay(true);
-        this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
-        this.socketChannel.socket().setSendBufferSize(1024 * 64);
+        if (NettySystemConfig.socketSndbufSize > 0) {
+            this.socketChannel.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+        }
+        if (NettySystemConfig.socketRcvbufSize > 0) {
+            this.socketChannel.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+        }
         this.writeSocketService = new WriteSocketService(this.socketChannel);
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();
@@ -90,15 +95,18 @@ public class DefaultHAConnection implements HAConnection {
         this.currentState = currentState;
     }
 
-    @Override public HAConnectionState getCurrentState() {
+    @Override
+    public HAConnectionState getCurrentState() {
         return currentState;
     }
 
-    @Override public String getClientAddress() {
+    @Override
+    public String getClientAddress() {
         return this.clientAddress;
     }
 
-    @Override public long getSlaveAckOffset() {
+    @Override
+    public long getSlaveAckOffset() {
         return slaveAckOffset;
     }
 
@@ -432,7 +440,7 @@ public class DefaultHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerConfig().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
             }
             return WriteSocketService.class.getSimpleName();
         }

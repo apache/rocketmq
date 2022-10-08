@@ -42,6 +42,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
     private DLedgerCommitLog dLedgerCommitLog;
     private DLedgerServer dLegerServer;
     private Future<?> slaveSyncFuture;
+    private long lastSyncTimeMs = System.currentTimeMillis();
 
     public DLedgerRoleChangeHandler(BrokerController brokerController, DefaultMessageStore messageStore) {
         this.brokerController = brokerController;
@@ -52,9 +53,11 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             new ThreadFactoryImpl("DLegerRoleChangeHandler_", brokerController.getBrokerIdentity()));
     }
 
-    @Override public void handle(long term, MemberState.Role role) {
+    @Override
+    public void handle(long term, MemberState.Role role) {
         Runnable runnable = new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 long start = System.currentTimeMillis();
                 try {
                     boolean succ = true;
@@ -110,12 +113,17 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                 @Override
                 public void run() {
                     try {
-                        brokerController.getSlaveSynchronize().syncAll();
+                        if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
+                            brokerController.getSlaveSynchronize().syncAll();
+                            lastSyncTimeMs = System.currentTimeMillis();
+                        }
+                        //timer checkpoint, latency-sensitive, so sync it more frequently
+                        brokerController.getSlaveSynchronize().syncTimerCheckPoint();
                     } catch (Throwable e) {
                         LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
                 }
-            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 3, TimeUnit.MILLISECONDS);
         } else {
             //handle the slave synchronise
             if (null != slaveSyncFuture) {
@@ -168,11 +176,13 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         LOGGER.info("Finish to change to master brokerName={}", this.brokerController.getBrokerConfig().getBrokerName());
     }
 
-    @Override public void startup() {
+    @Override
+    public void startup() {
 
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
         executorService.shutdown();
     }
 }

@@ -1,0 +1,26 @@
+name: Build and Run Tests by Maven
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [master, develop, bazel]
+jobs:
+  java_build:
+    name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, windows-2022, macos-11]
+        jdk: [8]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: "adopt"
+          cache: "maven"
+      - name: Build with Maven
+        run: mvn -B package -T 2C --file pom.xml

@@ -6,7 +6,7 @@
 extends ClientConfig 
 implements MQProducer`
 
->`DefaultMQProducer` is the entry point for an application to post messages, out of the box，ca  quickly create a producer with a no-argument construction. it is mainly responsible for message sending, support synchronous、asynchronous、one-way send. All of these send methods support batch send.  The parameters of the sender can be adjusted through the getter/setter methods , provided by this class. `DefaultMQProducer` has multi send method and each method is slightly different. Make  sure you know the usage before you use it . Blow is a producer example . [see more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/)。
+>`DefaultMQProducer` is the entry point for an application to post messages, out of the box, ca  quickly create a producer with a no-argument construction. it is mainly responsible for message sending, support synchronous、asynchronous、one-way send. All of these send methods support batch send.  The parameters of the sender can be adjusted through the getter/setter methods , provided by this class. `DefaultMQProducer` has multi send method and each method is slightly different. Make  sure you know the usage before you use it . Blow is a producer example . [see more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/).
 
 ``` java 
 public class Producer {
@@ -54,7 +54,7 @@ public class Producer {
 |int|retryTimesWhenSendFailed|Maximum number of internal attempts to send a message in synchronous mode|
 |int|retryTimesWhenSendAsyncFailed|Maximum number of internal attempts to send a message in asynchronous mode|
 |boolean|retryAnotherBrokerWhenNotStoreOK|Whether to retry another broker if an internal send fails|
-|int|maxMessageSize| Maximum length of message                                    |
+|int|maxMessageSize| Maximum length of message body                                   |
 |TraceDispatcher|traceDispatcher| Message trackers. Use rcpHook to track messages              |
 
 ### construction method 

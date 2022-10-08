@@ -22,7 +22,7 @@ import java.util.Iterator;
 public interface ReferredIterator<T> extends Iterator<T> {
 
     /**
-     * Release the refered resources.
+     * Release the referred resources.
      */
     void release();
 

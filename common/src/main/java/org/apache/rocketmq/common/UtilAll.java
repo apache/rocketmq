@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -42,11 +43,15 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import sun.misc.Unsafe;
+import sun.nio.ch.DirectBuffer;
 
 public class UtilAll {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -332,6 +337,10 @@ public class UtilAll {
         return (byte) "0123456789ABCDEF".indexOf(c);
     }
 
+    /**
+     * use {@link org.apache.rocketmq.common.compression.Compressor#decompress(byte[])} instead.
+     */
+    @Deprecated
     public static byte[] uncompress(final byte[] src) throws IOException {
         byte[] result = src;
         byte[] uncompressData = new byte[src.length];
@@ -372,6 +381,10 @@ public class UtilAll {
         return result;
     }
 
+    /**
+     * use {@link org.apache.rocketmq.common.compression.Compressor#compress(byte[], int)} instead.
+     */
+    @Deprecated
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
@@ -662,7 +675,19 @@ public class UtilAll {
         if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) {
             return;
         }
-        invoke(invoke(viewed(buffer), "cleaner"), "clean");
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+            try {
+                Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                field.setAccessible(true);
+                Unsafe unsafe = (Unsafe) field.get(null);
+                Method cleaner = method(unsafe, "invokeCleaner", new Class[] {ByteBuffer.class});
+                cleaner.invoke(unsafe, viewed(buffer));
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        } else {
+            invoke(invoke(viewed(buffer), "cleaner"), "clean");
+        }
     }
 
     public static Object invoke(final Object target, final String methodName, final Class<?>... args) {
@@ -689,17 +714,10 @@ public class UtilAll {
     }
 
     private static ByteBuffer viewed(ByteBuffer buffer) {
-        String methodName = "viewedBuffer";
-
-        Method[] methods = buffer.getClass().getMethods();
-        for (Method method : methods) {
-            if (method.getName().equals("attachment")) {
-                methodName = "attachment";
-                break;
-            }
+        if (!buffer.isDirect()) {
+            throw new IllegalArgumentException("buffer is non-direct");
         }
-
-        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
+        ByteBuffer viewedBuffer = (ByteBuffer) ((DirectBuffer) buffer).attachment();
         if (viewedBuffer == null) {
             return buffer;
         } else {

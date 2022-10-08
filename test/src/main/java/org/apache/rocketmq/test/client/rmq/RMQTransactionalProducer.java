@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
@@ -82,10 +83,10 @@ public class RMQTransactionalProducer extends AbstractMQProducer {
             sendResult.setSendResult(true);
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
             if (commitMsg) {
-                msgBodys.addData(new String(message.getBody()));
+                msgBodys.addData(new String(message.getBody(), StandardCharsets.UTF_8));
             }
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(message.getBody()), metaqResult);
+            originMsgIndex.put(new String(message.getBody(), StandardCharsets.UTF_8), metaqResult);
         } catch (MQClientException e) {
             if (isDebug) {
                 e.printStackTrace();

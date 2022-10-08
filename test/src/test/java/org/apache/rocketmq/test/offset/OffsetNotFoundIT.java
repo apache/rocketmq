@@ -44,7 +44,8 @@ public class OffsetNotFoundIT extends BaseConf {
 
         private boolean addSetZeroOfNotFound = false;
 
-        @Override public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+        @Override
+        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
 
             if (request.getCode() == RequestCode.QUERY_CONSUMER_OFFSET) {
                 if (throwException) {
@@ -56,7 +57,8 @@ public class OffsetNotFoundIT extends BaseConf {
             }
         }
 
-        @Override public void doAfterResponse(String remoteAddr, RemotingCommand request,
+        @Override
+        public void doAfterResponse(String remoteAddr, RemotingCommand request,
             RemotingCommand response) {
 
         }
