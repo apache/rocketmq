@@ -28,8 +28,8 @@ import org.apache.rocketmq.test.clientinterface.MQCollector;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class AbstractListener extends MQCollector implements MessageListener {
-    public static Logger logger = Logger.getLogger(AbstractListener.class);
-    protected boolean isDebug = false;
+    public static final Logger LOGGER = Logger.getLogger(AbstractListener.class);
+    protected boolean isDebug = true;
     protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;
 
@@ -81,11 +81,11 @@ public class AbstractListener extends MQCollector implements MessageListener {
                 break;
             } else {
                 if (System.currentTimeMillis() - curTime >= timeoutMills) {
-                    logger.error(String.format("timeout but  [%s]  not recv all send messages!",
+                    LOGGER.error(String.format("timeout but  [%s]  not recv all send messages!",
                         listenerName));
                     break;
                 } else {
-                    logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
+                    LOGGER.info(String.format("[%s] still [%s] msg not recv!", listenerName,
                         sendMsgs.size()));
                     TestUtil.waitForMonment(500);
                 }
@@ -104,11 +104,11 @@ public class AbstractListener extends MQCollector implements MessageListener {
                 break;
             }
             if (System.currentTimeMillis() - curTime >= timeoutMills) {
-                logger.error(String.format("timeout but  [%s]  not recv all send messages!",
+                LOGGER.error(String.format("timeout but  [%s]  not recv all send messages!",
                     listenerName));
                 break;
             } else {
-                logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
+                LOGGER.info(String.format("[%s] still [%s] msg not recv!", listenerName,
                     size - msgBodys.getDataSize()));
                 TestUtil.waitForMonment(500);
             }
@@ -120,7 +120,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
     public void waitForMessageConsume(Map<Object, Object> sendMsgIndex, int timeoutMills) {
         Collection<Object> notRecvMsgs = waitForMessageConsume(sendMsgIndex.keySet(), timeoutMills);
         for (Object object : notRecvMsgs) {
-            logger.info(sendMsgIndex.get(object));
+            LOGGER.info(sendMsgIndex.get(object));
         }
     }
 }

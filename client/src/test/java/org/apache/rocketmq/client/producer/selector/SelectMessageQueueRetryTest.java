@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.producer.selector;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Test;
 
@@ -48,7 +47,7 @@ public class SelectMessageQueueRetryTest {
         topicPublishInfo.setMessageQueueList(messageQueueList);
 
         Set<String> retryBrokerNameSet = retryBroker(topicPublishInfo);
-        //always in Set （broker-0，broker-1，broker-2）
+        //always in Set (broker-0, broker-1, broker-2)
         assertThat(retryBroker(topicPublishInfo)).isEqualTo(retryBrokerNameSet);
     }
 

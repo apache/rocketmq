@@ -26,7 +26,7 @@ The Name Server boot success...
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+$ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
@@ -34,9 +34,9 @@ The broker[broker-a, 192.169.1.2:10911] boot success...
 
 Cluster contains Master node only, no Slave node, eg: 2 Master nodes, 3 Master nodes, advantages and disadvantages of this mode are shown below:
 
-- advantages：simple configuration, single Master node broke down or restart do not impact application. Under RAID10 disk config, even if machine broken down and cannot recover, message do not get lost because of RAID10's high reliable(async flush to disk lost little message, sync to disk do not lost message), this mode get highest performance.
+- advantages: simple configuration, single Master node broke down or restart do not impact application. Under RAID10 disk config, even if machine broken down and cannot recover, message do not get lost because of RAID10's high reliable(async flush to disk lost little message, sync to disk do not lost message), this mode get highest performance.
 
-- disadvantages：during the machine's down time, messages have not be consumed on this machine can not be subscribed before recovery. That will impacts message's instantaneity.
+- disadvantages: during the machine's down time, messages have not be consumed on this machine can not be subscribed before recovery. That will impacts message's instantaneity.
 
 ##### 1）Start NameServer
 
@@ -54,10 +54,10 @@ The Name Server boot success...
 ##### 2）start Broker cluster
 
 ```bash
-### start the first Master on machine A, eg:NameServer's IP is ：192.168.1.1
+### start the first Master on machine A, eg:NameServer's IP is 192.168.1.1
 $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
  
-### start the second Master on machine B, eg:NameServer's IP is ：192.168.1.1
+### start the second Master on machine B, eg:NameServer's IP is 192.168.1.1
 $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
 
 ...
@@ -104,7 +104,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 
 Each Master node is equipped with one Slave node, this mode has many Master-Slave group, using synchronous double write for HA, application's write operation is successful means both master and slave write successful, advantages and disadvantages of this mode are shown below:
 
-- advantages:both data and service have no single point failure, message has no lantancy even if Master is down, service available and data available is very high;
+- advantages:both data and service have no single point failure, message has no latency even if Master is down, service available and data available is very high;
 
 - disadvantages:this mode's performance is 10% lower than async replication mode, sending latency is a little high,  in the current version, it do not have auto Master-Slave switch when Master is down.
 
@@ -139,9 +139,9 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
 
 ### 2 mqadmin management tool
 
-> Attentions：
+> Attentions:
 >
-> 1. execute command：`./mqadmin {command} {args}`
+> 1. execute command: `./mqadmin {command} {args}`
 > 2. almost all commands need -n indicates NameSerer address, format is ip:port
 > 3. almost all commands can get help info by -h
 > 4. if command contains both Broker address(-b) and cluster name(-c), it's prior to use broker address. If command do not contains broker address, it will executed on all hosts in this cluster. Support only one broker host. -b format is ip:port, default port is 10911
@@ -158,7 +158,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td rowspan=8 height=593 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -170,7 +170,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>cluster name, whic cluster that topic belongs to(query cluster info by clusterList)</td>
+  <td class=xl66 width=159 style='width:119pt'>cluster name, which cluster that topic belongs to(query cluster info by clusterList)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h-</td>
@@ -226,7 +226,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>return topic list only if do not contains -c, if containis -c, it will return cluster name, topic name, consumer group name</td>
+  <td class=xl66 width=159 style='width:119pt'>return topic list only if do not contains -c, if contains -c, it will return cluster name, topic name, consumer group name</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
@@ -306,7 +306,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>cluster name, which topic belongs to(query cluster info by clusterList), if do not have -b, execute comman an all brokers.</td>
+  <td class=xl66 width=159 style='width:119pt'>cluster name, which topic belongs to(query cluster info by clusterList), if do not have -b, execute command on all brokers.</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=5 height=199 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -350,7 +350,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-i</td>
-  <td class=xl66 width=159 style='width:119pt'>ipList, seperate by comma, calculate which topic queue that ips will load.</td>
+  <td class=xl66 width=159 style='width:119pt'>ipList, separate by comma, calculate which topic queue that ips will load.</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=4 height=142 class=xl68 width=163 style='border-bottom:1.0pt solid black;
@@ -387,7 +387,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td rowspan=4 height=326 class=xl67 width=177 style='border-bottom:1.0pt;
@@ -414,7 +414,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
   height:292.0pt;border-top:none;width:133pt'>clusterRT</td>
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>send message to detect each cluster's Broker RT. Message will be sent to ${BrokerName} Topic。</td>
+  border-top:none;width:131pt'>send message to detect each cluster's Broker RT. Message will be sent to ${BrokerName} Topic.</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
   <td class=xl66 width=185 style='width:139pt'>amount, count of detection, RT = sum time /
   amount</td>
@@ -429,7 +429,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=177 style='height:57.0pt;width:133pt'>-p</td>
-  <td class=xl66 width=185 style='width:139pt'>whether print format log, splitted by |, default is not print</td>
+  <td class=xl66 width=185 style='width:139pt'>whether print format log, split by |, default is not print</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=177 style='height:17.0pt;width:133pt'>-h</td>
@@ -461,7 +461,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=206 class=xl69 width=191 style='border-bottom:1.0pt;
@@ -497,7 +497,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>get Broker's statistics info, running status(including whatever you want).</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -511,9 +511,9 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=6 height=256 class=xl69 width=191 style='border-bottom:1.0pt;
   height:192.0pt;border-top:none;width:143pt'>brokerConsumeStats</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>Broker's consumer info, including Consume Offset, Broker Offset, Diff, Timestamp that ordered by essage Queue</td>
+  border-top:none;width:65pt'>Broker's consumer info, including Consume Offset, Broker Offset, Diff, Timestamp that ordered by message Queue</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -525,7 +525,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-o</td>
-  <td class=xl68 width=87 style='width:65pt'>whether is sequencial topic, generally false</td>
+  <td class=xl68 width=87 style='width:65pt'>whether is sequential topic, generally false</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -541,7 +541,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=2 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>get Broker's config</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -553,7 +553,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>revoke broker's write authority from NameServer.</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -577,17 +577,17 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
   <td class=xl68 width=87 style='width:65pt'>cluster name</td>
  </tr>
- <tr height=88 style='mso-height-source:userset;height:66.0pt'>
-  <td rowspan=4 height=191 class=xl69 width=191 style='border-bottom:1.0pt;
-  height:143.0pt;border-top:none;width:143pt'>cleanUnusedTopic</td>
+ <tr height=57 style='height:43.0pt'>
+  <td rowspan=4 height=160 class=xl69 width=191 style='border-bottom:1.0pt;
+  height:120.0pt;border-top:none;width:143pt'>deleteExpiredCommitLog</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>clean Broker's unused Topic that deleted mannually to release memory that Topic's Consume Queue occupied.</td>
+  border-top:none;width:65pt'>delete Broker's expired CommitLog files.</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>NameServer Service address, format is ip:port</td>
  </tr>
@@ -598,6 +598,26 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
   <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
+  <td class=xl68 width=87 style='width:65pt'>cluster name</td>
+ </tr>
+ <tr height=88 style='mso-height-source:userset;height:66.0pt'>
+  <td rowspan=4 height=191 class=xl69 width=191 style='border-bottom:1.0pt;
+  height:143.0pt;border-top:none;width:143pt'>cleanUnusedTopic</td>
+  <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
+  border-top:none;width:65pt'>clean Broker's unused Topic that deleted manually to release memory that Topic's Consume Queue occupied.</td>
+  <td class=xl67 width=87 style='width:65pt'>-n</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer Service address, format is ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
+  <td class=xl68 width=87 style='width:65pt'>print help info</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -641,7 +661,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=128 style='height:96.0pt'>
   <td rowspan=3 height=208 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -721,7 +741,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-i</td>
-  <td class=xl67 width=87 style='width:65pt'>uniqe msg id</td>
+  <td class=xl67 width=87 style='width:65pt'>unique msg id</td>
  </tr>
  <tr height=36 style='height:27.0pt'>
   <td height=36 class=xl67 width=87 style='height:27.0pt;width:65pt'>-g</td>
@@ -739,7 +759,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=5 height=149 class=xl69 width=87 style='border-bottom:1.0pt
   height:111.0pt;border-top:none;width:65pt'>checkMsgSendRT</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>detect RT of sending a message to a topic, similiar to clusterRT</td>
+  border-top:none;width:65pt'>detect RT of sending a message to a topic, similar to clusterRT</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>print help info</td>
  </tr>
@@ -799,7 +819,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=10 height=312 class=xl69 width=87 style='border-bottom:1.0pt;
   height:232.0pt;border-top:none;width:65pt'>consumeMessage</td>
   <td rowspan=10 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>consume message. Differert consume logic depends on offset, start & end timestamp, message queue, please refer to ConsumeMessageCommand for details.</td>
+  border-top:none;width:65pt'>consume message. Different consume logic depends on offset, start & end timestamp, message queue, please refer to ConsumeMessageCommand for details.</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>print help info</td>
  </tr>
@@ -825,7 +845,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-g</td>
-  <td class=xl68 width=87 style='width:65pt'>consumer gropu</td>
+  <td class=xl68 width=87 style='width:65pt'>consumer group</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
@@ -865,7 +885,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>timestap at start, refer to -h to get format</td>
+  <td class=xl68 width=87 style='width:65pt'>timestamp at start, refer to -h to get format</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-e</td>
@@ -931,7 +951,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=7 height=410 class=xl69 width=87 style='border-bottom:1.0pt;
   height:307.0pt;border-top:none;width:65pt'>resetOffsetByTime</td>
   <td rowspan=7 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>reset offset by timestamp, Broker and consumer will all be reseted</td>
+  border-top:none;width:65pt'>reset offset by timestamp, Broker and consumer will all be reset</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>print help info</td>
  </tr>
@@ -973,7 +993,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=158 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -1069,7 +1089,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl67 width=87 style='height:99.0pt;width:65pt'>-w</td>
-  <td class=xl68 width=87 style='width:65pt'>If broker consume from slave, whic slave node depends on this config that configed by BrokerId, eg: 1.</td>
+  <td class=xl68 width=87 style='width:65pt'>If broker consume from slave, which slave node depends on this config that defined by BrokerId, eg: 1.</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl67 width=87 style='height:57.0pt;width:65pt'>-a</td>
@@ -1143,11 +1163,11 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>query Consumer's connection</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1163,7 +1183,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>query Producer's connection</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1197,7 +1217,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=21 style='height:16.0pt'>
   <td rowspan=5 height=143 class=xl69 width=87 style='border-bottom:1.0pt
@@ -1291,7 +1311,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
-  <td class=xl64 width=185 style='width:139pt'>explaination</td>
+  <td class=xl64 width=185 style='width:139pt'>explanation</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=2 height=80 class=xl69 width=87 style='border-bottom:1.0pt
@@ -1312,7 +1332,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
 
 #### 3.1 RocketMQ's mqadmin command error
 
->  question description：execute mqadmin occur below exception after deploy RocketMQ cluster.
+>  question description: execute mqadmin occur below exception after deploy RocketMQ cluster.
 >
 > ```java
 > org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <null> failed
@@ -1325,7 +1345,7 @@ Solution: execute command `export NAMESRV_ADDR=ip:9876` (ip is NameServer's ip a
 > question description: one producer produce message, consumer A can consume, consume B cannot consume, RocketMQ console print:
 >
 > ```java
-> Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message。
+> Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message.
 > ```
 
 Solution: make sure that producer and consumer has the same version of rocketmq-client.
@@ -1342,7 +1362,7 @@ Solution: rocketmq's default policy is consume from latest, that is skip oldest 
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 ```
 
-- a new consumer group consume from oldest postion at first startup, then consume from last time's offset at next startup, that is consume the unexpired message;
+- a new consumer group consume from oldest position at first startup, then consume from last time's offset at next startup, that is consume the unexpired message;
 
 ```java
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);

@@ -22,7 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * @author MQDevelopers
+ * MQDevelopers
  */
 public class NamespaceUtilTest {
 
@@ -75,14 +75,14 @@ public class NamespaceUtilTest {
         Assert.assertEquals(dlqTopicWithNamespace, DLQ_TOPIC_WITH_NAMESPACE);
         String dlqTopicWithNamespaceAgain = NamespaceUtil.wrapNamespace(INSTANCE_ID, dlqTopicWithNamespace);
         Assert.assertEquals(dlqTopicWithNamespaceAgain, dlqTopicWithNamespace);
-        Assert.assertEquals(dlqTopicWithNamespaceAgain, DLQ_TOPIC_WITH_NAMESPACE );
+        Assert.assertEquals(dlqTopicWithNamespaceAgain, DLQ_TOPIC_WITH_NAMESPACE);
         //test system topic
         String systemTopic = NamespaceUtil.wrapNamespace(INSTANCE_ID, SYSTEM_TOPIC);
         Assert.assertEquals(systemTopic, SYSTEM_TOPIC);
     }
 
     @Test
-    public void testGetNamespaceFromResource(){
+    public void testGetNamespaceFromResource() {
         String namespaceExpectBlank = NamespaceUtil.getNamespaceFromResource(TOPIC);
         Assert.assertEquals(namespaceExpectBlank, NamespaceUtil.STRING_BLANK);
         String namespace =  NamespaceUtil.getNamespaceFromResource(TOPIC_WITH_NAMESPACE);

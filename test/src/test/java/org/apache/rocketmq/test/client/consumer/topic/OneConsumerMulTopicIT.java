@@ -35,7 +35,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
 
     @Before
     public void setUp() {
-        producer = getProducer(nsAddr, null);
+        producer = getProducer(NAMESRV_ADDR, null);
     }
 
     @After
@@ -48,14 +48,14 @@ public class OneConsumerMulTopicIT extends BaseConf {
         int msgSize = 10;
         String topic1 = initTopic();
         String topic2 = initTopic();
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, "*");
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
         producer.send(MQMessageFactory.getMsg(topic2, msgSize));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -67,14 +67,14 @@ public class OneConsumerMulTopicIT extends BaseConf {
         String topic1 = initTopic();
         String topic2 = initTopic();
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, tag);
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -87,7 +87,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
         String topic2 = initTopic();
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, tag1);
 
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag2));
@@ -96,7 +96,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag1));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

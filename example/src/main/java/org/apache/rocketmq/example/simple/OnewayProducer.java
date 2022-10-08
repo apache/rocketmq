@@ -18,7 +18,8 @@ package org.apache.rocketmq.example.simple;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+
+import java.nio.charset.StandardCharsets;
 
 public class OnewayProducer {
     public static void main(String[] args) throws Exception {
@@ -33,7 +34,7 @@ public class OnewayProducer {
             Message msg = new Message("TopicTest" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " +
-                            i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                            i).getBytes(StandardCharsets.UTF_8) /* Message body */
             );
             //Call send message to deliver message to one of brokers.
             producer.sendOneway(msg);

@@ -1,0 +1,70 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "store",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common",
+        "//logging",
+        "//remoting",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_conversantmedia_disruptor",
+        "@maven//:com_google_guava_guava",
+        "@maven//:commons_collections_commons_collections",
+        "@maven//:io_netty_netty_all",
+        "@maven//:io_openmessaging_storage_dledger",
+        "@maven//:net_java_dev_jna_jna",
+        "@maven//:org_apache_commons_commons_lang3",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":store",
+        "//:test_deps",
+        "//common",
+        "//logging",
+        "@maven//:com_conversantmedia_disruptor",
+        "@maven//:io_openmessaging_storage_dledger",
+        "@maven//:org_apache_commons_commons_lang3",
+    ],
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    exclude_tests = [
+        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
+        "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
+        "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
+        "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
+    ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
+        "src/test/java/org/apache/rocketmq/store/HATest",
+    ],
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+)

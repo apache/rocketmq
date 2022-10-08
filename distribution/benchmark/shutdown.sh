@@ -24,7 +24,7 @@ case $1 in
             exit -1;
     fi
 
-    echo "The benchmkar producer(${pid}) is running..."
+    echo "The benchmark producer(${pid}) is running..."
 
     kill ${pid}
 
@@ -52,12 +52,26 @@ case $1 in
             exit -1;
     fi
 
-    echo "The benchmkar transaction producer(${pid}) is running..."
+    echo "The benchmark transaction producer(${pid}) is running..."
 
     kill ${pid}
 
     echo "Send shutdown request to benchmark transaction producer(${pid}) OK"
     ;;
+    bproducer)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.example.benchmark.BatchProducer' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No benchmark batch producer running."
+            exit -1;
+    fi
+
+    echo "The benchmark batch producer(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to benchmark batch producer(${pid}) OK"
+    ;;
     *)
-    echo "Useage: shutdown producer | consumer | tproducer"
+    echo "Usage: shutdown producer | consumer | tproducer | bproducer"
 esac

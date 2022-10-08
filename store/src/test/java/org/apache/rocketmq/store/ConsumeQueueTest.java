@@ -23,42 +23,50 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class ConsumeQueueTest {
 
-    private static final String msg = "Once, there was a chance for me!";
-    private static final byte[] msgBody = msg.getBytes();
+    private static final String MSG = "Once, there was a chance for me!";
+    private static final byte[] MSG_BODY = MSG.getBytes();
 
-    private static final String topic = "abc";
-    private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
-    private static final int commitLogFileSize = 1024 * 8;
-    private static final int cqFileSize = 10 * 20;
-    private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
+    private static final String TOPIC = "abc";
+    private static final int QUEUE_ID = 0;
+    private static final String STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
+    private static final int COMMIT_LOG_FILE_SIZE = 1024 * 8;
+    private static final int CQ_FILE_SIZE = 10 * 20;
+    private static final int CQ_EXT_FILE_SIZE = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
 
-    private static SocketAddress BornHost;
+    private static SocketAddress bornHost;
 
-    private static SocketAddress StoreHost;
+    private static SocketAddress storeHost;
 
     static {
         try {
-            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         try {
-            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+            bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -66,16 +74,16 @@ public class ConsumeQueueTest {
 
     public MessageExtBrokerInner buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic(topic);
+        msg.setTopic(TOPIC);
         msg.setTags("TAG1");
         msg.setKeys("Hello");
-        msg.setBody(msgBody);
+        msg.setBody(MSG_BODY);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(queueId);
+        msg.setQueueId(QUEUE_ID);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         for (int i = 0; i < 1; i++) {
             msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
         }
@@ -86,13 +94,13 @@ public class ConsumeQueueTest {
 
     public MessageExtBrokerInner buildIPv6HostMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic(topic);
+        msg.setTopic(TOPIC);
         msg.setTags("TAG1");
         msg.setKeys("Hello");
-        msg.setBody(msgBody);
+        msg.setBody(MSG_BODY);
         msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(queueId);
+        msg.setQueueId(QUEUE_ID);
         msg.setSysFlag(0);
         msg.setBornHostV6Flag();
         msg.setStoreHostAddressV6Flag();
@@ -115,16 +123,16 @@ public class ConsumeQueueTest {
         messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
-
-        messageStoreConfig.setStorePathRootDir(storePath);
-        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+        messageStoreConfig.setHaListenPort(0);
+        messageStoreConfig.setStorePathRootDir(STORE_PATH);
+        messageStoreConfig.setStorePathCommitLog(STORE_PATH + File.separator + "commitlog");
 
         return messageStoreConfig;
     }
 
     protected DefaultMessageStore gen() throws Exception {
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
-            commitLogFileSize, cqFileSize, true, cqExtFileSize
+                COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
 
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -149,7 +157,7 @@ public class ConsumeQueueTest {
 
     protected DefaultMessageStore genForMultiQueue() throws Exception {
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
-            commitLogFileSize, cqFileSize, true, cqExtFileSize
+                COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
 
         messageStoreConfig.setEnableLmq(true);
@@ -175,7 +183,7 @@ public class ConsumeQueueTest {
         return master;
     }
 
-    protected void putMsg(DefaultMessageStore master) throws Exception {
+    protected void putMsg(DefaultMessageStore master) {
         long totalMsgs = 200;
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -187,7 +195,7 @@ public class ConsumeQueueTest {
         }
     }
 
-    protected void putMsgMultiQueue(DefaultMessageStore master) throws Exception {
+    protected void putMsgMultiQueue(DefaultMessageStore master) {
         for (long i = 0; i < 1; i++) {
             master.putMessage(buildMessageMultiQueue());
         }
@@ -195,16 +203,16 @@ public class ConsumeQueueTest {
 
     private MessageExtBrokerInner buildMessageMultiQueue() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic(topic);
+        msg.setTopic(TOPIC);
         msg.setTags("TAG1");
         msg.setKeys("Hello");
-        msg.setBody(msgBody);
+        msg.setBody(MSG_BODY);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(queueId);
+        msg.setQueueId(QUEUE_ID);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         for (int i = 0; i < 1; i++) {
             msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
             msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
@@ -244,7 +252,7 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
 
             assertThat(method).isNotNull();
@@ -268,7 +276,7 @@ public class ConsumeQueueTest {
                 messageStore.shutdown();
                 messageStore.destroy();
             }
-            deleteDirectory(storePath);
+            deleteDirectory(STORE_PATH);
         }
 
     }
@@ -279,7 +287,6 @@ public class ConsumeQueueTest {
         try {
             messageStore = genForMultiQueue();
 
-
             int totalMessages = 10;
 
             for (int i = 0; i < totalMessages; i++) {
@@ -287,8 +294,8 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-            Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class, boolean.class);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
+            Method method = ((ConsumeQueue) cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
 
             assertThat(method).isNotNull();
 
@@ -301,11 +308,11 @@ public class ConsumeQueueTest {
 
             assertThat(cq).isNotNull();
 
-            Object dispatchResult = method.invoke(cq,  dispatchRequest, true);
+            Object dispatchResult = method.invoke(cq, dispatchRequest);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(lmqCq1).isNotNull();
 
@@ -316,7 +323,7 @@ public class ConsumeQueueTest {
                 messageStore.shutdown();
                 messageStore.destroy();
             }
-            deleteDirectory(storePath);
+            deleteDirectory(STORE_PATH);
         }
 
     }
@@ -335,11 +342,11 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(cq).isNotNull();
 
@@ -352,7 +359,7 @@ public class ConsumeQueueTest {
                 messageStore.shutdown();
                 messageStore.destroy();
             }
-            deleteDirectory(storePath);
+            deleteDirectory(STORE_PATH);
         }
     }
 
@@ -377,58 +384,100 @@ public class ConsumeQueueTest {
         });
 
         try {
-            try {
-                putMsg(master);
-                Thread.sleep(3000L);//wait ConsumeQueue create success.
-            } catch (Exception e) {
-                e.printStackTrace();
-                assertThat(Boolean.FALSE).isTrue();
-            }
 
-            ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            putMsg(master);
+            final DefaultMessageStore master1 = master;
+            ConsumeQueueInterface cq = await().atMost(3, SECONDS).until(() -> {
+                ConcurrentMap<Integer, ConsumeQueueInterface> map = master1.getConsumeQueueTable().get(TOPIC);
+                if (map == null) {
+                    return null;
+                }
+                ConsumeQueueInterface anInterface = map.get(QUEUE_ID);
+                return anInterface;
+            }, item -> null != item);
 
             assertThat(cq).isNotNull();
 
-            long index = 0;
+            ReferredIterator<CqUnit> bufferResult = cq.iterateFrom(0);
 
-            while (index < cq.getMaxOffsetInQueue()) {
-                SelectMappedBufferResult bufferResult = cq.getIndexBuffer(index);
+            assertThat(bufferResult).isNotNull();
 
-                assertThat(bufferResult).isNotNull();
+            Assert.assertTrue(bufferResult.hasNext());
 
-                ByteBuffer buffer = bufferResult.getByteBuffer();
+            try {
+                while (bufferResult.hasNext()) {
+                    CqUnit cqUnit = bufferResult.next();
+                    Assert.assertNotNull(cqUnit);
+                    long phyOffset = cqUnit.getPos();
+                    int size = cqUnit.getSize();
+                    long tagsCode = cqUnit.getTagsCode();
 
-                assertThat(buffer).isNotNull();
-                try {
-                    ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                    for (int i = 0; i < bufferResult.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                        long phyOffset = buffer.getLong();
-                        int size = buffer.getInt();
-                        long tagsCode = buffer.getLong();
+                    assertThat(phyOffset).isGreaterThanOrEqualTo(0);
+                    assertThat(size).isGreaterThan(0);
+                    assertThat(tagsCode).isGreaterThan(0);
 
-                        assertThat(phyOffset).isGreaterThanOrEqualTo(0);
-                        assertThat(size).isGreaterThan(0);
-                        assertThat(tagsCode).isLessThan(0);
-
-                        boolean ret = cq.getExt(tagsCode, cqExtUnit);
-
-                        assertThat(ret).isTrue();
-                        assertThat(cqExtUnit).isNotNull();
-                        assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
-                        assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
-                        assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
-                    }
-
-                } finally {
-                    bufferResult.release();
+                    ConsumeQueueExt.CqExtUnit cqExtUnit = cqUnit.getCqExtUnit();
+                    assertThat(cqExtUnit).isNotNull();
+                    assertThat(tagsCode).isEqualTo(cqExtUnit.getTagsCode());
+                    assertThat(cqExtUnit.getSize()).isGreaterThan((short) 0);
+                    assertThat(cqExtUnit.getMsgStoreTime()).isGreaterThan(0);
+                    assertThat(cqExtUnit.getTagsCode()).isGreaterThan(0);
                 }
 
-                index += cqFileSize / ConsumeQueue.CQ_STORE_UNIT_SIZE;
+            } finally {
+                bufferResult.release();
             }
+
         } finally {
             master.shutdown();
             master.destroy();
-            UtilAll.deleteFile(new File(storePath));
+            UtilAll.deleteFile(new File(STORE_PATH));
         }
+    }
+
+    @Test
+    public void testCorrectMinOffset() {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "test_correct_min_offset");
+        tmpDir.deleteOnExit();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        int max = 10000;
+        int messageSize = 100;
+        for (int i = 0; i < max; ++i) {
+            DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, messageSize * i, messageSize, 0, 0, i, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+        }
+
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset(100);
+        consumeQueue.correctMinOffset(2000);
+        Assert.assertEquals(20, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset((max - 1) * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * messageSize);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+
+        consumeQueue.setMinLogicOffset(max * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * messageSize);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+        consumeQueue.destroy();
     }
 }

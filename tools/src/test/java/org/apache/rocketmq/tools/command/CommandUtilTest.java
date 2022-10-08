@@ -68,7 +68,7 @@ public class CommandUtilTest {
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(1234l, "127.0.0.1:10911");
+        brokerAddrs.put(1234L, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("default-broker");
         brokerData.setCluster("default-cluster");
@@ -92,7 +92,7 @@ public class CommandUtilTest {
     @Test
     public void testFetchMasterAndSlaveDistinguish() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         Map<String, List<String>> result = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExtImpl, "default-cluster");
-        assertThat(result.get(null).get(0)).isEqualTo("127.0.0.1:10911");
+        assertThat(result.get(CommandUtil.NO_MASTER_PLACEHOLDER).get(0)).isEqualTo("127.0.0.1:10911");
     }
 
     @Test

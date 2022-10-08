@@ -16,10 +16,11 @@
  */
 package org.apache.rocketmq.store;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -87,6 +88,19 @@ public class StoreStatsServiceTest {
             }
             latch.await();
         }
+    }
+
+    @Test
+    public void findPutMessageEntireTimePXTest() throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        final StoreStatsService storeStatsService = new StoreStatsService();
+        for (int i = 1; i <= 1000; i++) {
+            for (int j = 0; j < i; j++) {
+                storeStatsService.incPutMessageEntireTime(i);
+            }
+        }
+        Method method = StoreStatsService.class.getDeclaredMethod("resetPutMessageTimeBuckets");
+        method.setAccessible(true);
+        method.invoke(storeStatsService);
     }
 
 }

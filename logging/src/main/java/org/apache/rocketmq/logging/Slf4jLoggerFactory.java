@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.logging;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,116 +47,147 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
     }
 
     public static class Slf4jLogger implements InternalLogger {
+        private static final Pattern PATTERN = Pattern.compile("#.*#");
 
-        private Logger logger = null;
+        private final String loggerSuffix;
+        private final Logger defaultLogger;
 
-        public Slf4jLogger(String name) {
-            logger = LoggerFactory.getLogger(name);
+        private final Map<String, Logger> loggerMap = new HashMap<String, Logger>();
+
+        public Slf4jLogger(String loggerSuffix) {
+            this.loggerSuffix = loggerSuffix;
+            this.defaultLogger = LoggerFactory.getLogger(loggerSuffix);
+        }
+
+        private Logger getLogger() {
+            if (loggerSuffix.equals(ACCOUNT_LOGGER_NAME)
+                || loggerSuffix.equals(CONSUMER_STATS_LOGGER_NAME)
+                || loggerSuffix.equals(COMMERCIAL_LOGGER_NAME)) {
+                return defaultLogger;
+            }
+            String brokerIdentity = InnerLoggerFactory.BROKER_IDENTITY.get();
+            if (brokerIdentity == null) {
+                Matcher m = PATTERN.matcher(Thread.currentThread().getName());
+                if (m.find()) {
+                    String match = m.group();
+                    brokerIdentity = match.substring(1, match.length() - 1);
+                }
+            }
+            if (InnerLoggerFactory.BROKER_CONTAINER_NAME.equals(brokerIdentity)) {
+                return defaultLogger;
+            }
+            if (brokerIdentity != null) {
+                if (!loggerMap.containsKey(brokerIdentity)) {
+                    loggerMap.put(brokerIdentity, LoggerFactory.getLogger("#" + brokerIdentity + "#" + loggerSuffix));
+                }
+                return loggerMap.get(brokerIdentity);
+            }
+            return defaultLogger;
         }
 
         @Override
         public String getName() {
-            return logger.getName();
+            return getLogger().getName();
         }
 
         @Override
         public void debug(String s) {
-            logger.debug(s);
+            getLogger().debug(s);
         }
 
         @Override
         public void debug(String s, Object o) {
-            logger.debug(s, o);
+            getLogger().debug(s, o);
         }
 
         @Override
         public void debug(String s, Object o, Object o1) {
-            logger.debug(s, o, o1);
+            getLogger().debug(s, o, o1);
         }
 
         @Override
         public void debug(String s, Object... objects) {
-            logger.debug(s, objects);
+            getLogger().debug(s, objects);
         }
 
         @Override
         public void debug(String s, Throwable throwable) {
-            logger.debug(s, throwable);
+            getLogger().debug(s, throwable);
         }
 
         @Override
         public void info(String s) {
-            logger.info(s);
+            getLogger().info(s);
         }
 
         @Override
         public void info(String s, Object o) {
-            logger.info(s, o);
+            getLogger().info(s, o);
         }
 
         @Override
         public void info(String s, Object o, Object o1) {
-            logger.info(s, o, o1);
+            getLogger().info(s, o, o1);
         }
 
         @Override
         public void info(String s, Object... objects) {
-            logger.info(s, objects);
+            getLogger().info(s, objects);
         }
 
         @Override
         public void info(String s, Throwable throwable) {
-            logger.info(s, throwable);
+            getLogger().info(s, throwable);
         }
 
         @Override
         public void warn(String s) {
-            logger.warn(s);
+            getLogger().warn(s);
         }
 
         @Override
         public void warn(String s, Object o) {
-            logger.warn(s, o);
+            getLogger().warn(s, o);
         }
 
         @Override
         public void warn(String s, Object... objects) {
-            logger.warn(s, objects);
+            getLogger().warn(s, objects);
         }
 
         @Override
         public void warn(String s, Object o, Object o1) {
-            logger.warn(s, o, o1);
+            getLogger().warn(s, o, o1);
         }
 
         @Override
         public void warn(String s, Throwable throwable) {
-            logger.warn(s, throwable);
+            getLogger().warn(s, throwable);
         }
 
         @Override
         public void error(String s) {
-            logger.error(s);
+            getLogger().error(s);
         }
 
         @Override
         public void error(String s, Object o) {
-            logger.error(s, o);
+            getLogger().error(s, o);
         }
 
         @Override
         public void error(String s, Object o, Object o1) {
-            logger.error(s, o, o1);
+            getLogger().error(s, o, o1);
         }
 
         @Override
         public void error(String s, Object... objects) {
-            logger.error(s, objects);
+            getLogger().error(s, objects);
         }
 
         @Override
         public void error(String s, Throwable throwable) {
-            logger.error(s, throwable);
+            getLogger().error(s, throwable);
         }
     }
 }

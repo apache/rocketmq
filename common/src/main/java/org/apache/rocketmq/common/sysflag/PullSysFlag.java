@@ -69,6 +69,10 @@ public class PullSysFlag {
         return (sysFlag & FLAG_SUSPEND) == FLAG_SUSPEND;
     }
 
+    public static int clearSuspendFlag(final int sysFlag) {
+        return sysFlag & (~FLAG_SUSPEND);
+    }
+
     public static boolean hasSubscriptionFlag(final int sysFlag) {
         return (sysFlag & FLAG_SUBSCRIPTION) == FLAG_SUBSCRIPTION;
     }

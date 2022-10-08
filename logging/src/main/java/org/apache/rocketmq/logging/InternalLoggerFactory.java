@@ -27,7 +27,18 @@ public abstract class InternalLoggerFactory {
 
     public static final String DEFAULT_LOGGER = LOGGER_SLF4J;
 
+    public static final String BROKER_CONTAINER_NAME = "BrokerContainer";
+
+    /**
+     * Loggers with following name will be directed to default logger for LogTail parser.
+     */
+    public static final String CONSUMER_STATS_LOGGER_NAME = "RocketmqConsumerStats";
+    public static final String COMMERCIAL_LOGGER_NAME = "RocketmqCommercial";
+    public static final String ACCOUNT_LOGGER_NAME = "RocketmqAccount";
+
     private static String loggerType = null;
+
+    public static final ThreadLocal<String> BROKER_IDENTITY = new ThreadLocal<String>();
 
     private static ConcurrentHashMap<String, InternalLoggerFactory> loggerFactoryCache = new ConcurrentHashMap<String, InternalLoggerFactory>();
 

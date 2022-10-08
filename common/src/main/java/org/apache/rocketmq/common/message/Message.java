@@ -128,14 +128,10 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
 
-    public void setKeys(Collection<String> keys) {
-        StringBuilder sb = new StringBuilder();
-        for (String k : keys) {
-            sb.append(k);
-            sb.append(MessageConst.KEY_SEPARATOR);
-        }
+    public void setKeys(Collection<String> keyCollection) {
+        String keys = String.join(MessageConst.KEY_SEPARATOR, keyCollection);
 
-        this.setKeys(sb.toString().trim());
+        this.setKeys(keys);
     }
 
     public int getDelayTimeLevel() {
@@ -217,5 +213,19 @@ public class Message implements Serializable {
             ", body=" + Arrays.toString(body) +
             ", transactionId='" + transactionId + '\'' +
             '}';
+    }
+
+    public void setDelayTimeSec(long sec) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC, String.valueOf(sec));
+    }
+    public void setDelayTimeMs(long timeMs) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_MS, String.valueOf(timeMs));
+    }
+    public void setDeliverTimeMs(long timeMs) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(timeMs));
+    }
+
+    public long getDeliverTimeMs() {
+        return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
     }
 }

@@ -20,19 +20,32 @@ package org.apache.rocketmq.common.utils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.File;
+import java.io.Reader;
+import java.io.Writer;
+import java.io.StringReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.BufferedReader;
 import java.lang.reflect.Method;
 import java.util.List;
 
 public class IOTinyUtilsTest {
 
-    private String testRootDir = System.getProperty("user.home") + File.separator + "iotinyutilstest";
+    /**
+     * https://bazel.build/reference/test-encyclopedia#filesystem
+     */
+    private String testRootDir = System.getProperty("java.io.tmpdir") + File.separator + "iotinyutilstest";
 
     @Before
     public void init() {
@@ -45,11 +58,10 @@ public class IOTinyUtilsTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File(testRootDir);
         UtilAll.deleteFile(file);
     }
-
 
     @Test
     public void testToString() throws Exception {
@@ -150,7 +162,7 @@ public class IOTinyUtilsTest {
 
     @Test
     public void testCopyFile() throws Exception {
-        File source = new File(testRootDir, "soruce");
+        File source = new File(testRootDir, "source");
         String target = testRootDir + File.separator + "dest";
 
         IOTinyUtils.writeStringToFile(source, "testCopyFile", RemotingHelper.DEFAULT_CHARSET);

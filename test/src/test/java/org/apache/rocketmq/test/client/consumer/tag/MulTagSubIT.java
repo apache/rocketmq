@@ -44,7 +44,7 @@ public class MulTagSubIT extends BaseConf {
         topic = initTopic();
         String consumerId = initConsumerGroup();
         logger.info(String.format("use topic: %s; consumerId: %s !", topic, consumerId));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -57,11 +57,11 @@ public class MulTagSubIT extends BaseConf {
         String tag = "jueyin1";
         String subExpress = String.format("%s||jueyin2", tag);
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -74,7 +74,7 @@ public class MulTagSubIT extends BaseConf {
         String tag2 = "jueyin2";
         String subExpress = String.format("%s||noExistTag", tag2);
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tag1, msgSize);
@@ -84,7 +84,7 @@ public class MulTagSubIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
-            consumeTime);
+            CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(MQMessageFactory.getMessageBody(tag2Msgs));
@@ -97,14 +97,14 @@ public class MulTagSubIT extends BaseConf {
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());
         Assert.assertEquals("Not all sent succeeded", msgSize * tags.length,
             producer.getAllUndupMsgBody().size());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -118,7 +118,7 @@ public class MulTagSubIT extends BaseConf {
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());
@@ -126,7 +126,7 @@ public class MulTagSubIT extends BaseConf {
             producer.getAllUndupMsgBody().size());
 
         consumer.getListener().waitForMessageConsume(
-            tagMessage.getMessageBodyByTag(tags[0], tags[1]), consumeTime);
+            tagMessage.getMessageBodyByTag(tags[0], tags[1]), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody())).containsExactlyElementsIn(
@@ -140,7 +140,7 @@ public class MulTagSubIT extends BaseConf {
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());

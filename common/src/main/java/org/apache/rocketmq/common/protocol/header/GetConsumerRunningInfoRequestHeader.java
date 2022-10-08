@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -56,5 +57,14 @@ public class GetConsumerRunningInfoRequestHeader implements CommandCustomHeader 
 
     public void setJstackEnable(boolean jstackEnable) {
         this.jstackEnable = jstackEnable;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("clientId", clientId)
+            .add("jstackEnable", jstackEnable)
+            .toString();
     }
 }

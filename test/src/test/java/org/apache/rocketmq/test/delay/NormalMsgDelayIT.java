@@ -17,18 +17,18 @@
 
 package org.apache.rocketmq.test.delay;
 
-import java.util.List;
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQDelayListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQDelayListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 public class NormalMsgDelayIT extends DelayConf {
     private static Logger logger = Logger.getLogger(NormalMsgDelayIT.class);
@@ -41,8 +41,8 @@ public class NormalMsgDelayIT extends DelayConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQDelayListner());
+        producer = getProducer(NAMESRV_ADDR, topic);
+        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQDelayListener());
     }
 
     @After
@@ -58,12 +58,12 @@ public class NormalMsgDelayIT extends DelayConf {
         producer.send(delayMsgs);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         Assert.assertEquals("Not all are consumed", 0, VerifyUtils.verify(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()));
         Assert.assertEquals("Timer is not correct", true,
             VerifyUtils.verifyDelay(DELAY_LEVEL[delayLevel - 1] * 1000,
-                ((RMQDelayListner) consumer.getListener()).getMsgDelayTimes()));
+                ((RMQDelayListener) consumer.getListener()).getMsgDelayTimes()));
     }
 
     @Test
@@ -79,7 +79,7 @@ public class NormalMsgDelayIT extends DelayConf {
             consumer.getListener().getAllMsgBody()));
         Assert.assertEquals("Timer is not correct", true,
             VerifyUtils.verifyDelay(DELAY_LEVEL[delayLevel - 1] * 1000,
-                ((RMQDelayListner) consumer.getListener()).getMsgDelayTimes()));
+                ((RMQDelayListener) consumer.getListener()).getMsgDelayTimes()));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class NormalMsgDelayIT extends DelayConf {
             consumer.getListener().getAllMsgBody()));
         Assert.assertEquals("Timer is not correct", true,
             VerifyUtils.verifyDelay(DELAY_LEVEL[delayLevel - 1] * 1000,
-                ((RMQDelayListner) consumer.getListener()).getMsgDelayTimes()));
+                ((RMQDelayListener) consumer.getListener()).getMsgDelayTimes()));
     }
 
     @Test
@@ -111,6 +111,6 @@ public class NormalMsgDelayIT extends DelayConf {
             consumer.getListener().getAllMsgBody()));
         Assert.assertEquals("Timer is not correct", true,
             VerifyUtils.verifyDelay(DELAY_LEVEL[delayLevel - 1] * 1000,
-                ((RMQDelayListner) consumer.getListener()).getMsgDelayTimes()));
+                ((RMQDelayListener) consumer.getListener()).getMsgDelayTimes()));
     }
 }
