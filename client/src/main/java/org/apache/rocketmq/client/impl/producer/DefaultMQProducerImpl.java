@@ -348,11 +348,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     try {
                         if (transactionCheckListener != null) {
                             localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
-                        } else if (transactionListener != null) {
-                            log.debug("Used new check API in transaction message");
-                            localTransactionState = transactionListener.checkLocalTransaction(message);
                         } else {
-                            log.warn("CheckTransactionState, pick transactionListener by group[{}] failed", group);
+                            log.debug("TransactionCheckListener is null, used new check API, producerGroup={}", group);
+                            localTransactionState = transactionListener.checkLocalTransaction(message);
                         }
                     } catch (Throwable e) {
                         log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
