@@ -110,8 +110,7 @@ public class NettyRemotingAbstractTest {
     public void testProcessRequestCommand() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
         RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
-        ResponseFuture responseFuture = new ResponseFuture(
-            null, 1, request, 3000, new InvokeCallback() {
+        ResponseFuture responseFuture = new ResponseFuture(null, 1, request, 3000, new InvokeCallback() {
             @Override
             public void operationComplete(final ResponseFuture responseFuture) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
