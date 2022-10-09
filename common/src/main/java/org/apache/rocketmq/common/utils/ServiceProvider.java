@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.utils;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.rocketmq.common.constant.LoggerName;
