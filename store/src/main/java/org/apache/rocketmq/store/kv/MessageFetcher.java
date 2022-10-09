@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.store.kv;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -68,14 +68,14 @@ public class MessageFetcher implements AutoCloseable {
         int sysFlag = PullSysFlag.buildSysFlag(false, false, false, false, true);
 
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-        requestHeader.setConsumerGroup(String.join("-", topic, String.valueOf(queueId), "pull", "group"));
+        requestHeader.setConsumerGroup(getConsumerGroup(topic, queueId));
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
         requestHeader.setQueueOffset(queueOffset);
         requestHeader.setMaxMsgNums(10);
         requestHeader.setSysFlag(sysFlag);
         requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(1000 * 20L);
+        requestHeader.setSuspendTimeoutMillis(20_000L);
 //        requestHeader.setSubscription(subExpression);
         requestHeader.setSubVersion(subVersion);
         requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
@@ -83,12 +83,18 @@ public class MessageFetcher implements AutoCloseable {
         return requestHeader;
     }
 
+    private String getConsumerGroup(String topic, int queueId) {
+        return String.join("-", topic, String.valueOf(queueId), "pull", "group");
+    }
+    private String getClientId() {
+        return String.join("@", RemotingUtil.getLocalAddress(), "compactionIns", "compactionUnit");
+    }
+
     private boolean prepare(String masterAddr, String topic, String groupName, long subVersion)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         HeartbeatData heartbeatData = new HeartbeatData();
 
-        heartbeatData.setClientID(String.join("@",
-            RemotingUtil.getLocalAddress(), "compactionIns", "compactionUnit"));
+        heartbeatData.setClientID(getClientId());
 
         ConsumerData consumerData = new ConsumerData();
         consumerData.setGroupName(groupName);
@@ -118,8 +124,7 @@ public class MessageFetcher implements AutoCloseable {
     private boolean pullDone(String masterAddr, String groupName)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
-        requestHeader.setClientID(String.join("@",
-            RemotingUtil.getLocalAddress(), "compactionIns", "compactionUnit"));
+        requestHeader.setClientID(getClientId());
         requestHeader.setProducerGroup("");
         requestHeader.setConsumerGroup(groupName);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, requestHeader);
@@ -141,7 +146,7 @@ public class MessageFetcher implements AutoCloseable {
 
         try {
             long subVersion = System.currentTimeMillis();
-            String groupName = String.join("-", topic, String.valueOf(queueId), "pull", "group");
+            String groupName = getConsumerGroup(topic, queueId);
             prepare(masterAddr, topic, groupName, subVersion);
 
 
@@ -156,7 +161,8 @@ public class MessageFetcher implements AutoCloseable {
                     request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
                 RemotingCommand response = client.invokeSync(masterAddr, request, 1000 * 30L);
 
-                PullMessageResponseHeader responseHeader = response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+                PullMessageResponseHeader responseHeader =
+                    (PullMessageResponseHeader)response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
                 if (responseHeader == null) {
                     log.error("{}:{} pull message responseHeader is null", topic, queueId);
                     throw new RemotingCommandException(topic + ":" + queueId + " pull message responseHeader is null");
