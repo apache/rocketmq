@@ -108,65 +108,40 @@ public class ServiceProvider {
     public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         List<T> services = new ArrayList<>();
-        InputStream is = null;
-        BufferedReader reader = null;
-        try {
-            is = getResourceAsStream(getContextClassLoader(), name);
-            if (is != null) {
-                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String serviceName = reader.readLine();
-                List<String> names = new ArrayList<>();
-                while (serviceName != null && !"".equals(serviceName)) {
-                    LOG.info(
-                            "Creating an instance as specified by file {} which was present in the path of the context classloader.",
-                            name);
-                    if (!names.contains(serviceName)) {
-                        names.add(serviceName);
-                        services.add(initService(getContextClassLoader(), serviceName, clazz));
-                    }
-                    serviceName = reader.readLine();
+        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+            String serviceName = reader.readLine();
+            List<String> names = new ArrayList<>();
+            while (serviceName != null && !"".equals(serviceName)) {
+                LOG.info(
+                        "Creating an instance as specified by file {} which was present in the path of the context classloader.",
+                        name);
+                if (!names.contains(serviceName)) {
+                    names.add(serviceName);
+                    services.add(initService(getContextClassLoader(), serviceName, clazz));
                 }
-            } else {
-                LOG.warn("No resource file with name [{}] found.", name);
+                serviceName = reader.readLine();
             }
         } catch (Exception e) {
             LOG.error("Error occurred when looking for resource file " + name, e);
-        } finally {
-            try {
-                if (is != null) is.close();
-                if (reader != null) reader.close();
-            } catch (IOException e) {
-                LOG.error("Error closing configuration file" + name, e);
-            }
         }
         return services;
     }
 
     public static <T> T loadClass(String name, Class<?> clazz) {
-        InputStream is = null;
-        BufferedReader reader = null;
         T s = null;
-        try {
-            is = getResourceAsStream(getContextClassLoader(), name);
-            if (is != null) {
-                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String serviceName = reader.readLine();
+        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
-                if (serviceName != null && !"".equals(serviceName)) {
-                    s = initService(getContextClassLoader(), serviceName, clazz);
-                } else {
-                    LOG.warn("ServiceName is empty!");
-                }
+            String serviceName = reader.readLine();
+            if (serviceName != null && !"".equals(serviceName)) {
+                s = initService(getContextClassLoader(), serviceName, clazz);
+            } else {
+                LOG.warn("ServiceName is empty!");
             }
         } catch (Exception e) {
             LOG.warn("Error occurred when looking for resource file " + name, e);
-        } finally {
-            try {
-                if (is != null) is.close();
-                if (reader != null) reader.close();
-            } catch (IOException e) {
-                LOG.error("Error closing configuration file" + name, e);
-            }
         }
         return s;
     }
