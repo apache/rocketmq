@@ -23,6 +23,7 @@ github:
     - cloud-native
     - rocketmq
     - java
+    - hacktoberfest
   enabled_merge_buttons:
     # Enable squash button
     squash: true
