@@ -13,6 +13,7 @@ devenv
 .DS_Store
 localbin
 nohup.out
+docker/
 bazel-out
 bazel-bin
 bazel-rocketmq
