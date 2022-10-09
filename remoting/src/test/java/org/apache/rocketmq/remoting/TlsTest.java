@@ -23,10 +23,13 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.UUID;
 import java.io.InputStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -70,6 +73,7 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerTrustC
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -147,6 +151,8 @@ public class TlsTest {
 
         remotingServer = RemotingServerTest.createRemotingServer();
         remotingClient = RemotingServerTest.createRemotingClient(clientConfig);
+
+        await().atMost(200, TimeUnit.MILLISECONDS).until(() -> isHostConnectable(getServerAddress()));
     }
 
     @After
@@ -203,7 +209,7 @@ public class TlsTest {
     @Test
     public void serverRejectsSSLClient() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 5);
+            RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -216,7 +222,7 @@ public class TlsTest {
     @Test
     public void serverRejectsUntrustedClientCert() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 5);
+            RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -234,7 +240,7 @@ public class TlsTest {
     @Test
     public void noClientAuthFailure() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
+            RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -247,7 +253,7 @@ public class TlsTest {
     @Test
     public void clientRejectsUntrustedServerCert() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
+            RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
@@ -333,6 +339,10 @@ public class TlsTest {
         }
     }
 
+    private String getServerAddress() {
+        return "localhost:" + remotingServer.localListenPort();
+    }
+
     private static RemotingCommand createRequest() {
         RequestHeader requestHeader = new RequestHeader();
         requestHeader.setCount(1);
@@ -345,10 +355,19 @@ public class TlsTest {
     }
 
     private void requestThenAssertResponse(RemotingClient remotingClient) throws Exception {
-        RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), createRequest(), 1000 * 3);
+        RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 3);
         assertNotNull(response);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
         assertThat(response.getExtFields().get("messageTitle")).isEqualTo("Welcome");
+    }
+
+    private boolean isHostConnectable(String addr) {
+        try (Socket socket = new Socket()) {
+            socket.connect(RemotingUtil.string2SocketAddress(addr));
+            return true;
+        } catch (IOException ignored) {
+        }
+        return false;
     }
 }
