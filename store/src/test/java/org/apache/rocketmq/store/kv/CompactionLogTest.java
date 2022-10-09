@@ -85,8 +85,8 @@ public class CompactionLogTest {
 
 
     private static MessageExtEncoder encoder = new MessageExtEncoder(1024);
-    private static SocketAddress StoreHost;
-    private static SocketAddress BornHost;
+    private static SocketAddress STORE_HOST;
+    private static SocketAddress BORN_HOST;
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -95,11 +95,11 @@ public class CompactionLogTest {
 
     static {
         try {
-            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            STORE_HOST = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         } catch (UnknownHostException e) {
         }
         try {
-            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+            BORN_HOST = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (UnknownHostException e) {
         }
     }
@@ -130,8 +130,8 @@ public class CompactionLogTest {
         msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(STORE_HOST);
+        msg.setBornHost(BORN_HOST);
         msg.setQueueOffset(queueOffset);
         queueOffset++;
         for (int i = 1; i < 3; i++) {
@@ -199,7 +199,7 @@ public class CompactionLogTest {
         MessageStore messageStore = mock(DefaultMessageStore.class);
         CommitLog commitLog = mock(CommitLog.class);
         when(messageStore.getCommitLog()).thenReturn(commitLog);
-        when(commitLog.getCommitLogSize()).thenReturn(1024*1024);
+        when(commitLog.getCommitLogSize()).thenReturn(1024 * 1024);
         CompactionLog clog = mock(CompactionLog.class);
         FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
         doCallRealMethod().when(clog).getOffsetMap(any());
@@ -217,7 +217,7 @@ public class CompactionLogTest {
         List<MessageExt> compactResult = Lists.newArrayList();
         when(clog.asyncPutMessage(any(ByteBuffer.class), any(MessageExt.class),
             any(CompactionLog.TopicPartitionLog.class)))
-            .thenAnswer((Answer<CompletableFuture< PutMessageResult >>)invocation -> {
+            .thenAnswer((Answer<CompletableFuture<PutMessageResult>>)invocation -> {
                 compactResult.add(invocation.getArgument(1));
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK,
                     new AppendMessageResult(AppendMessageStatus.PUT_OK)));

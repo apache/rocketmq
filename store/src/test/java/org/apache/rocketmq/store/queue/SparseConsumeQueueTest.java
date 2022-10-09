@@ -33,7 +33,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,7 +58,7 @@ public class SparseConsumeQueueTest {
         defaultMessageStore = mock(DefaultMessageStore.class);
         CommitLog commitLog = mock(CommitLog.class);
         when(defaultMessageStore.getCommitLog()).thenReturn(commitLog);
-        when(commitLog.getCommitLogSize()).thenReturn(10*1024*1024);
+        when(commitLog.getCommitLogSize()).thenReturn(10 * 1024 * 1024);
         MessageStoreConfig config = mock(MessageStoreConfig.class);
         doReturn(config).when(defaultMessageStore).getMessageStoreConfig();
         doReturn(true).when(config).isSearchBcqByCacheEnable();
@@ -93,7 +96,7 @@ public class SparseConsumeQueueTest {
 
         scq.load();
         scq.recover();
-        assertEquals(scq.get(queueOffset+1).getPos(), phyOffset+1);
+        assertEquals(scq.get(queueOffset + 1).getPos(), phyOffset + 1);
     }
 
     private void fillByteBufSeq(ByteBuffer bb, int circle, long basePhyOffset, long baseQueueOffset) {

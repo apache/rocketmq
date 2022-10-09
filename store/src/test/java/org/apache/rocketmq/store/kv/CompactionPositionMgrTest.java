@@ -24,7 +24,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class CompactionPositionMgrTest {
 
@@ -36,7 +36,6 @@ public class CompactionPositionMgrTest {
     @Before
     public void setUp() throws IOException  {
         file = tmpFolder.newFolder("compaction");
-        System.out.println(file.getAbsolutePath());
     }
 
     @Test

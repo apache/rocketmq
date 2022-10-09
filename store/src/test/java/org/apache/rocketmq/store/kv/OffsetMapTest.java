@@ -19,7 +19,9 @@ package org.apache.rocketmq.store.kv;
 import org.apache.rocketmq.store.kv.CompactionLog.OffsetMap;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 public class OffsetMapTest {
 
@@ -46,6 +48,6 @@ public class OffsetMapTest {
         assertEquals(offsetMap.get("66"), 66);
         assertNotEquals(offsetMap.get("55"), 56);
         assertEquals(offsetMap.getLastOffset(), 99);
-        assertThrows(IllegalArgumentException.class, ()-> offsetMap.put(String.valueOf(100), 100));
+        assertThrows(IllegalArgumentException.class, () -> offsetMap.put(String.valueOf(100), 100));
     }
 }

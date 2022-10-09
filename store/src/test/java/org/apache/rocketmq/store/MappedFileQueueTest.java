@@ -393,13 +393,13 @@ public class MappedFileQueueTest {
     public void testMappedFile_Rename() throws IOException, InterruptedException {
         final String fixedMsg = RandomStringUtils.randomAlphanumeric(128);
         final byte[] msgByteArr = fixedMsg.getBytes(StandardCharsets.UTF_8);
-        final int mappedFileSize = 5*1024*1024;
+        final int mappedFileSize = 5 * 1024 * 1024;
 
         MappedFileQueue mappedFileQueue =
             new MappedFileQueue("target/unit_test_store", mappedFileSize, null);
 
         int currentSize = 0;
-        while (currentSize <= 2*mappedFileSize) {
+        while (currentSize <= 2 * mappedFileSize) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             mappedFile.appendMessage(msgByteArr);
             currentSize += fixedMsg.length();
@@ -420,7 +420,7 @@ public class MappedFileQueueTest {
             new MappedFileQueue("target/unit_test_store/compacting", mappedFileSize, null);
 
         currentSize = 0;
-        while (currentSize < (2*mappedFileSize - mappedFileSize/2)) {
+        while (currentSize < (2 * mappedFileSize - mappedFileSize / 2)) {
             MappedFile mappedFile = compactingMappedFileQueue.getLastMappedFile(0);
             mappedFile.appendMessage(msgByteArr);
             currentSize += fixedMsg.length();
