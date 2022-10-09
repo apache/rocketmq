@@ -132,6 +132,12 @@ public class MQClientInstance {
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final Random random = new Random();
+    
+    private static final Integer fetchNameServerAddrDelayTime = 1000 * 10 ;
+    private static final Integer fetchNameServerAddrPeriod = 1000 * 60 * 2;
+    private static final Integer persistAllConsumerOffsetDelayTIme = 1000 * 10;
+    private static final Integer updateTopicRouteInfoFromNameServerDelayTime = 1;
+    private static final Integer updateTopicRouteInfoFromNameServerPeriod = 1;
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this(clientConfig, instanceIndex, clientId, null);
@@ -287,7 +293,7 @@ public class MQClientInstance {
                 } catch (Exception e) {
                     log.error("ScheduledTask fetchNameServerAddr exception", e);
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }, fetchNameServerAddrDelayTime, fetchNameServerAddrPeriod, TimeUnit.MILLISECONDS);
         }
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
@@ -313,7 +319,7 @@ public class MQClientInstance {
             } catch (Exception e) {
                 log.error("ScheduledTask persistAllConsumerOffset exception", e);
             }
-        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+        }, persistAllConsumerOffsetDelayTIme, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
@@ -321,7 +327,7 @@ public class MQClientInstance {
             } catch (Exception e) {
                 log.error("ScheduledTask adjustThreadPool exception", e);
             }
-        }, 1, 1, TimeUnit.MINUTES);
+        }, updateTopicRouteInfoFromNameServerDelayTime, updateTopicRouteInfoFromNameServerPeriod, TimeUnit.MINUTES);
     }
 
     public String getClientId() {
