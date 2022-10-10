@@ -15,30 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.protocol.header.namesrv;
-
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-import java.util.Set;
+package org.apache.rocketmq.common.constant;
 
 /**
- *
+ * common const
  */
-public class UpdateTopicRouteRequestHeader implements CommandCustomHeader {
+public class CommonConstants {
 
-    /** multi topics, split by ','(COMMA) */
-    private String topics;
-
-    public String getTopics() {
-        return topics;
-    }
-
-    public void setTopics(String topics) {
-        this.topics = topics;
-    }
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
+    public static final String COMMA = ",";
 }

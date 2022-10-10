@@ -19,12 +19,14 @@ package org.apache.rocketmq.test.client.producer.topicroute;
 
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
+import org.apache.rocketmq.namesrv.routeinfo.TopicRouteNotifier;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
@@ -32,6 +34,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -63,12 +66,26 @@ public class TopicRouteUpdateTest extends BaseConf {
 
     @Test
     public void modifyTopicQueueNumAndCheck() throws Exception {
+        // if busy, then skip this test case
+        if (isCurrentSystemBusy()) {
+            logger.warn("system busy, skip TopicRouteUpdateTest test");
+            return;
+        }
         resetProducerAndTopic();
+        // wait for the ready
+        Thread.sleep(8000);
+
         producer.send(20);
         for (int queueNum = 100; queueNum < 105; queueNum++) {
             modifyQueueNumAndCheck(queueNum);
         }
-        shutDownProducerAndCheck();
+//        shutDownProducerAndCheck();
+    }
+
+    private boolean isCurrentSystemBusy() throws Exception {
+        TopicRouteNotifier topicRouteNotifier = new TopicRouteNotifier(null, null);
+        Object systemBusy = MethodUtils.invokeMethod(topicRouteNotifier, true, "isSystemBusy");
+        return Boolean.parseBoolean(systemBusy.toString());
     }
 
     private void shutDownProducerAndCheck() throws Exception {

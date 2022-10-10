@@ -29,6 +29,7 @@ public class TopicPublishInfo {
     private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
+    private boolean topicExistFlag = true;
     private long lastUpdateTime = System.currentTimeMillis();
 
     public boolean isOrderTopic() {
@@ -121,5 +122,13 @@ public class TopicPublishInfo {
 
     public void setLastUpdateTime(long lastUpdateTime) {
         this.lastUpdateTime = lastUpdateTime;
+    }
+
+    public boolean isTopicExistFlag() {
+        return topicExistFlag;
+    }
+
+    public void setTopicExistFlag(boolean topicExistFlag) {
+        this.topicExistFlag = topicExistFlag;
     }
 }

@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.compression.Compressor;
 import org.apache.rocketmq.common.compression.CompressorFactory;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -106,9 +107,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     private RemotingCommand notifyClientTopicRouteChanged(RemotingCommand request) throws RemotingCommandException {
         UpdateTopicRouteRequestHeader requestHeader = (UpdateTopicRouteRequestHeader) request
                 .decodeCommandCustomHeader(UpdateTopicRouteRequestHeader.class);
-        String topic = requestHeader.getTopic();
-        // update local topic route info
-        mqClientFactory.updateTopicRouteInfoFromNameServer(topic);
+        String topics = requestHeader.getTopics();
+        if (StringUtils.isNotEmpty(topics)) {
+            String[] topicArr = topics.split(CommonConstants.COMMA);
+            for (String topic : topicArr) {
+                // update local topic route info
+                mqClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            }
+        }
         return null;
     }
 

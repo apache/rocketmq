@@ -314,8 +314,6 @@ public class RouteInfoManager {
                 ConcurrentMap<String, TopicConfig> tcTable =
                     topicConfigWrapper.getTopicConfigTable();
                 if (tcTable != null) {
-                    // is single topic route data changed
-                    boolean singleTopicRouteChanged = tcTable.size() == 1;
                     for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
                         if (registerFirst || this.isTopicConfigChanged(clusterName, brokerAddr,
                             topicConfigWrapper.getDataVersion(), brokerName,
@@ -325,7 +323,7 @@ public class RouteInfoManager {
                                 // Wipe write perm for prime slave
                                 topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
                             }
-                            this.createAndUpdateQueueData(brokerName, topicConfig, singleTopicRouteChanged);
+                            this.createAndUpdateQueueData(brokerName, topicConfig);
                         }
                     }
                 }
@@ -446,8 +444,7 @@ public class RouteInfoManager {
         }
     }
 
-    private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig,
-                                          boolean singleTopicRouteChanged) {
+    private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
@@ -470,10 +467,8 @@ public class RouteInfoManager {
                 log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), existedQD,
                     queueData);
                 queueDataMap.put(brokerName, queueData);
-                // if broker restart, many topic will register, for avoid hot, then ignore
-                if (singleTopicRouteChanged) {
-                    changedTopicSet.add(topic);
-                }
+                // mark topic route changed
+                changedTopicSet.add(topic);
             }
         }
     }

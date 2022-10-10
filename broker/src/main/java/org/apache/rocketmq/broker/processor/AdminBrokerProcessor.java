@@ -48,6 +48,7 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
@@ -2635,9 +2636,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand notifyBrokerTopicRouteChanged(RemotingCommand request) throws RemotingCommandException {
         UpdateTopicRouteRequestHeader requestHeader = (UpdateTopicRouteRequestHeader) request
                 .decodeCommandCustomHeader(UpdateTopicRouteRequestHeader.class);
-        String topic = requestHeader.getTopic();
-        TopicRouteInfoManager topicRouteInfoManager = brokerController.getTopicRouteInfoManager();
-        topicRouteInfoManager.updateTopicRouteInfoFromNameServer(topic, true, false);
+        String topics = requestHeader.getTopics();
+        if (StringUtils.isNotEmpty(topics)) {
+            TopicRouteInfoManager topicRouteInfoManager = brokerController.getTopicRouteInfoManager();
+
+            String[] topicArr = StringUtils.split(CommonConstants.COMMA);
+            for (String topic : topicArr) {
+                topicRouteInfoManager.updateTopicRouteInfoFromNameServer(topic, true, false);
+            }
+        }
         return null;
     }
 }

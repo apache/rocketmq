@@ -761,8 +761,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
 
+        // if topic exist flag is false, just return
+        if (topicPublishInfo != null && !topicPublishInfo.isTopicExistFlag()) {
+            return topicPublishInfo;
+        }
+
         // topic route info not in local cache, then make a request to nameServer
-        if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+        if (!(isTopicPublishInfoOK(topicPublishInfo))) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
@@ -772,10 +777,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (!topicPublishInfo.isHaveTopicRouterInfo() && !topicPublishInfo.ok()) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
+            // auto create topic failed
+            if (!isTopicPublishInfoOK(topicPublishInfo)) {
+                topicPublishInfo = topicPublishInfoTable.computeIfAbsent(topic, (k) -> new TopicPublishInfo());
+                topicPublishInfo.setTopicExistFlag(false);
+            }
         }
 
         topicPublishInfo.setLastUpdateTime(System.currentTimeMillis());
         return topicPublishInfo;
+    }
+
+    private boolean isTopicPublishInfoOK(TopicPublishInfo topicPublishInfo) {
+        return topicPublishInfo != null && topicPublishInfo.ok();
     }
 
     private SendResult sendKernelImpl(final Message msg,
