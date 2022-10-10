@@ -82,7 +82,6 @@ public class InnerLoggerFactoryTest extends BasicLoggerTest {
         logger3.debug("debug {}", "hahahah");
 
         String content = new String(byteArrayOutputStream.toByteArray());
-        System.out.println(content);
 
         Assert.assertTrue(content.contains("InnerLoggerFactoryTest"));
         Assert.assertTrue(content.contains("info"));
