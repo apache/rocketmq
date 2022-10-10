@@ -30,8 +30,8 @@ public class LevelTest {
     }
 
     @Test
-    public void loggerLevel(){
+    public void loggerLevel() {
         Level level = Logger.getRootLogger().getLevel();
-        Assert.assertTrue(level!=null);
+        Assert.assertTrue(level != null);
     }
 }
