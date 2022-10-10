@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.attribute.DeletePolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -69,6 +70,7 @@ import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.DeletePolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -85,6 +87,9 @@ import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
+import org.apache.rocketmq.store.kv.CommitLogDispatcherCompaction;
+import org.apache.rocketmq.store.kv.CompactionService;
+import org.apache.rocketmq.store.kv.CompactionStore;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
@@ -120,6 +125,11 @@ public class DefaultMessageStore implements MessageStore {
     private ReputMessageService reputMessageService;
 
     private HAService haService;
+
+    // CompactionLog
+    private CompactionStore compactionStore;
+
+    private CompactionService compactionService;
 
     private final StoreStatsService storeStatsService;
 
@@ -184,6 +194,7 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.commitLog = new CommitLog(this);
         }
+
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
@@ -216,6 +227,11 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        if (messageStoreConfig.isEnableCompaction()) {
+            this.compactionStore = new CompactionStore(this);
+            this.compactionService = new CompactionService(commitLog, this, compactionStore);
+            this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
+        }
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         UtilAll.ensureDirOK(file.getParent());
@@ -281,6 +297,10 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
 
+            if (messageStoreConfig.isEnableCompaction()) {
+                result = result && this.compactionService.load(lastExitOK);
+            }
+
             if (result) {
                 this.storeCheckpoint =
                     new StoreCheckpoint(
@@ -345,6 +365,9 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
+        if (messageStoreConfig.isEnableCompaction() && this.compactionService != null) {
+            this.compactionService.start();
+        }
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -428,6 +451,9 @@ public class DefaultMessageStore implements MessageStore {
 
             this.storeStatsService.shutdown();
             this.indexService.shutdown();
+            if (this.compactionService != null) {
+                this.compactionService.shutdown();
+            }
             this.commitLog.shutdown();
             this.reputMessageService.shutdown();
             this.flushConsumeQueueService.shutdown();
@@ -687,9 +713,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
-        final int maxMsgNums,
-        final int maxTotalMsgSize,
-        final MessageFilter messageFilter) {
+        final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter) {
         if (this.shutdown) {
             LOGGER.warn("message store has shutdown, so getMessage is forbidden");
             return null;
@@ -699,6 +723,13 @@ public class DefaultMessageStore implements MessageStore {
             LOGGER.warn("message store is not readable, so getMessage is forbidden " + this.runningFlags.getFlagBits());
             return null;
         }
+
+        Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+        DeletePolicy policy = DeletePolicyUtils.getDeletePolicy(topicConfig);
+        //check request topic flag
+        if (Objects.equals(policy, DeletePolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
+            return compactionStore.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize);
+        } // else skip
 
         long beginTime = this.getSystemClock().now();
 
@@ -2378,6 +2409,10 @@ public class DefaultMessageStore implements MessageStore {
                         result = DefaultMessageStore.this.consumeQueueStore.flush(cq, flushConsumeQueueLeastPages);
                     }
                 }
+            }
+
+            if (messageStoreConfig.isEnableCompaction()) {
+                compactionStore.flushCQ(flushConsumeQueueLeastPages);
             }
 
             if (0 == flushConsumeQueueLeastPages) {
