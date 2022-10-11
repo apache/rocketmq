@@ -218,8 +218,8 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies/>
-                        <dependencyConvergence/>
+                        <banCircularDependencies />
+                        <dependencyConvergence />
                     </rules>
                     <fail>true</fail>
                 </configuration>
