@@ -43,7 +43,7 @@ public class GetConsumerStatusCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -66,6 +66,6 @@ public class GetConsumerStatusCommandTest {
     private ServerResponseMocker startOneBroker() {
         GetConsumerStatusBody getConsumerStatusBody = new GetConsumerStatusBody();
         // start broker
-        return ServerResponseMocker.startServer(0, getConsumerStatusBody.encode());
+        return ServerResponseMocker.startServer(getConsumerStatusBody.encode());
     }
 }

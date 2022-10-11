@@ -42,7 +42,7 @@ public class ConsumerProgressSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -79,6 +79,6 @@ public class ConsumerProgressSubCommandTest {
         offsetTable.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(offsetTable);
         // start broker
-        return ServerResponseMocker.startServer(0, consumeStats.encode());
+        return ServerResponseMocker.startServer(consumeStats.encode());
     }
 }

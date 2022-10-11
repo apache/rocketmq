@@ -25,12 +25,6 @@ import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.Test;
 
 public class CleanUnusedTopicCommandTest extends ServerResponseMocker {
-
-    @Override
-    protected int getPort() {
-        return 0;
-    }
-
     @Override
     protected byte[] getBody() {
         return null;

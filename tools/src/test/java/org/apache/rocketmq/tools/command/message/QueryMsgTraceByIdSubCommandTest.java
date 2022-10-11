@@ -89,7 +89,7 @@ public class QueryMsgTraceByIdSubCommandTest {
         queueDatas.add(queueData);
         topicRouteData.setQueueDatas(queueDatas);
 
-        return ServerResponseMocker.startServer(0, topicRouteData.encode());
+        return ServerResponseMocker.startServer(topicRouteData.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -107,7 +107,7 @@ public class QueryMsgTraceByIdSubCommandTest {
             extMap.put("indexLastUpdateTimestamp", String.valueOf(System.currentTimeMillis()));
             extMap.put("indexLastUpdatePhyoffset", String.valueOf(System.currentTimeMillis()));
             // start broker
-            return ServerResponseMocker.startServer(0, body, extMap);
+            return ServerResponseMocker.startServer(body, extMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);

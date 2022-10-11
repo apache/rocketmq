@@ -42,7 +42,7 @@ public class ConsumerStatusSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -69,6 +69,6 @@ public class ConsumerStatusSubCommandTest {
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
-        return ServerResponseMocker.startServer(0, consumerConnection.encode());
+        return ServerResponseMocker.startServer(consumerConnection.encode());
     }
 }
