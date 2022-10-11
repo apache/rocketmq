@@ -65,6 +65,14 @@ public class ConsumerManager {
         return null;
     }
 
+    public ClientChannelInfo findChannel(final String group, final Channel channel) {
+        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+        if (consumerGroupInfo != null) {
+            return consumerGroupInfo.findChannel(channel);
+        }
+        return null;
+    }
+
     public SubscriptionData findSubscriptionData(final String group, final String topic) {
         ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
         if (consumerGroupInfo != null) {
