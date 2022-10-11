@@ -20,8 +20,6 @@ package org.apache.rocketmq.common.protocol.header.namesrv;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-import java.util.Set;
-
 /**
  *
  */
