@@ -26,6 +26,8 @@ test --action_env=TEST_TMPDIR=/tmp
 test  --experimental_strict_java_deps=warn
 build --experimental_strict_java_deps=warn
 
+test --test_output=errors
+
 
 # This .bazelrc file contains all of the flags required for the provided
 # toolchain with Remote Build Execution.
