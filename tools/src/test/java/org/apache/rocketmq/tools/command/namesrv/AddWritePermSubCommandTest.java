@@ -31,10 +31,6 @@ import java.util.HashMap;
 
 public class AddWritePermSubCommandTest {
 
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -65,11 +61,11 @@ public class AddWritePermSubCommandTest {
         HashMap<String, String> extMap = new HashMap<>();
         extMap.put("addTopicCount", "1");
         // start name server
-        return NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT, extMap);
+        return NameServerMocker.startByDefaultConf(1234, extMap);
     }
 
     private ServerResponseMocker startOneBroker() {
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, null);
+        return ServerResponseMocker.startServer(null);
     }
 }

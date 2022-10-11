@@ -37,7 +37,7 @@ public class ResetOffsetByTimeCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -50,7 +50,8 @@ public class ResetOffsetByTimeCommandTest {
     public void testExecute() throws SubCommandException {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-group", "-t unit-test", "-s 1412131213231", "-f false",
+        String[] subargs = new String[] {
+            "-g default-group", "-t unit-test", "-s 1412131213231", "-f false",
             String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
@@ -60,6 +61,6 @@ public class ResetOffsetByTimeCommandTest {
     private ServerResponseMocker startOneBroker() {
         ResetOffsetBody resetOffsetBody = new ResetOffsetBody();
         // start broker
-        return ServerResponseMocker.startServer(0, resetOffsetBody.encode());
+        return ServerResponseMocker.startServer(resetOffsetBody.encode());
     }
 }

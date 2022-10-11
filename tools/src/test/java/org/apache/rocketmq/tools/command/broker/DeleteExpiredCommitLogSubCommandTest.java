@@ -31,8 +31,6 @@ import org.junit.Test;
 
 public class DeleteExpiredCommitLogSubCommandTest extends ServerResponseMocker {
 
-    private static final int PORT = 45678;
-
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
@@ -51,11 +49,6 @@ public class DeleteExpiredCommitLogSubCommandTest extends ServerResponseMocker {
     }
 
     @Override
-    protected int getPort() {
-        return PORT;
-    }
-
-    @Override
     protected byte[] getBody() {
         return null;
     }
@@ -64,7 +57,7 @@ public class DeleteExpiredCommitLogSubCommandTest extends ServerResponseMocker {
     public void testExecute() throws SubCommandException {
         DeleteExpiredCommitLogSubCommand cmd = new DeleteExpiredCommitLogSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-b 127.0.0.1:" + PORT, "-c default-cluster"};
+        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort(), "-c default-cluster"};
         final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
             cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);

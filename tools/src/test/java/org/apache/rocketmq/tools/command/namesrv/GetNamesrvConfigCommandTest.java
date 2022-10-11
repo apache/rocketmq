@@ -28,10 +28,6 @@ import org.junit.Test;
 
 public class GetNamesrvConfigCommandTest {
 
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -39,7 +35,7 @@ public class GetNamesrvConfigCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -61,6 +57,6 @@ public class GetNamesrvConfigCommandTest {
 
     private ServerResponseMocker startOneBroker() {
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, null);
+        return ServerResponseMocker.startServer(null);
     }
 }

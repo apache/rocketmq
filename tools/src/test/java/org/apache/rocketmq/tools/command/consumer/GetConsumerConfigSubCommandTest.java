@@ -86,7 +86,7 @@ public class GetConsumerConfigSubCommandTest {
         clusterInfo.setClusterAddrTable(clusterAddressTable);
 
         // start name server
-        return ServerResponseMocker.startServer(0, clusterInfo.encode());
+        return ServerResponseMocker.startServer(clusterInfo.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -96,6 +96,6 @@ public class GetConsumerConfigSubCommandTest {
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
-        return ServerResponseMocker.startServer(0, consumerConnection.encode());
+        return ServerResponseMocker.startServer(consumerConnection.encode());
     }
 }

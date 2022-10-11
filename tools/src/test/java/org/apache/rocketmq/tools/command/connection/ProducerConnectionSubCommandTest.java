@@ -42,7 +42,7 @@ public class ProducerConnectionSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -69,6 +69,6 @@ public class ProducerConnectionSubCommandTest {
         producerConnection.setConnectionSet(connectionSet);
 
         // start broker
-        return ServerResponseMocker.startServer(0, producerConnection.encode());
+        return ServerResponseMocker.startServer(producerConnection.encode());
     }
 }

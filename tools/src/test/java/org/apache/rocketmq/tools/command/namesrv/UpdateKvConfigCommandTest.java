@@ -35,7 +35,7 @@ public class UpdateKvConfigCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(0, brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -48,15 +48,16 @@ public class UpdateKvConfigCommandTest {
     public void testExecute() throws SubCommandException {
         UpdateKvConfigCommand cmd = new UpdateKvConfigCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[]{"-s namespace", "-k topicname", "-v unit_test",
+        String[] subargs = new String[] {
+            "-s namespace", "-k topicname", "-v unit_test",
             String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName() + cmd.commandDesc(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName() + cmd.commandDesc(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 
     private ServerResponseMocker startOneBroker() {
         // start broker
-        return ServerResponseMocker.startServer(0, null);
+        return ServerResponseMocker.startServer(null);
     }
 }

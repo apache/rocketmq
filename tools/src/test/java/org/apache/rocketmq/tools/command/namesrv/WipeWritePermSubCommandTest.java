@@ -30,11 +30,6 @@ import org.junit.Test;
 import java.util.HashMap;
 
 public class WipeWritePermSubCommandTest {
-
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -65,13 +60,13 @@ public class WipeWritePermSubCommandTest {
         HashMap<String, String> extMap = new HashMap<>();
         extMap.put("wipeTopicCount", "1");
         // start name server
-        return NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT, extMap);
+        return NameServerMocker.startByDefaultConf(brokerMocker.listenPort(), extMap);
     }
 
     private ServerResponseMocker startOneBroker() {
         // start broker
         HashMap<String, String> extMap = new HashMap<>();
         extMap.put("wipeTopicCount", "1");
-        return ServerResponseMocker.startServer(BROKER_PORT, new byte[0], extMap);
+        return ServerResponseMocker.startServer(new byte[0], extMap);
     }
 }
