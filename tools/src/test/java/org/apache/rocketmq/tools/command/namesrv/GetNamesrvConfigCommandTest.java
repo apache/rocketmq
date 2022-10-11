@@ -17,8 +17,8 @@
 package org.apache.rocketmq.tools.command.namesrv;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
@@ -48,9 +48,10 @@ public class GetNamesrvConfigCommandTest {
     public void testExecute() throws Exception {
         GetNamesrvConfigCommand cmd = new GetNamesrvConfigCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {};
+        String[] subargs = new String[] {"-n localhost:" + nameServerMocker.listenPort()};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
 
         cmd.execute(commandLine, options, null);
     }

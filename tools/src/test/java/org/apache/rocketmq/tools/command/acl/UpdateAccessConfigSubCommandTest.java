@@ -19,8 +19,8 @@ package org.apache.rocketmq.tools.command.acl;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Assert;
@@ -45,7 +45,8 @@ public class UpdateAccessConfigSubCommandTest {
             "-g groupA=DENY;groupB=SUB",
             "-m true"};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
         assertThat(commandLine.getOptionValue('b').trim()).isEqualTo("127.0.0.1:10911");
         assertThat(commandLine.getOptionValue('a').trim()).isEqualTo("RocketMQ");
         assertThat(commandLine.getOptionValue('s').trim()).isEqualTo("12345678");

@@ -17,8 +17,8 @@
 package org.apache.rocketmq.tools.command.consumer;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
@@ -62,7 +62,7 @@ public class GetConsumerConfigSubCommandTest {
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options),
-                new PosixParser());
+                new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
