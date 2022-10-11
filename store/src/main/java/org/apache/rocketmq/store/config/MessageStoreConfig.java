@@ -879,9 +879,7 @@ public class MessageStoreConfig {
     }
 
     /**
-     * Enable transient commitLog store pool only if transientStorePoolEnable is true and the FlushDiskType is
-     * ASYNC_FLUSH
-     *
+     * Enable transient commitLog store pool only if transientStorePoolEnable is true and broker role is not SLAVE
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {
