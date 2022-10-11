@@ -21,25 +21,29 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.namesrv.routeinfo.TopicRouteNotifier;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
+import org.apache.rocketmq.test.util.RandomUtil;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * test when topic route changed
@@ -71,6 +75,14 @@ public class TopicRouteUpdateTest extends BaseConf {
             logger.warn("system busy, skip TopicRouteUpdateTest test");
             return;
         }
+
+        // check queue num changed
+        checkModifyQueueNum();
+        // check broker shutdown
+        checkBrokerStartAndShutdown();
+    }
+
+    private void checkModifyQueueNum() throws Exception {
         resetProducerAndTopic();
         // wait for the ready
         Thread.sleep(8000);
@@ -79,23 +91,57 @@ public class TopicRouteUpdateTest extends BaseConf {
         for (int queueNum = 100; queueNum < 105; queueNum++) {
             modifyQueueNumAndCheck(queueNum);
         }
-//        shutDownProducerAndCheck();
     }
 
-    private boolean isCurrentSystemBusy() throws Exception {
-        TopicRouteNotifier topicRouteNotifier = new TopicRouteNotifier(null, null);
-        Object systemBusy = MethodUtils.invokeMethod(topicRouteNotifier, true, "isSystemBusy");
-        return Boolean.parseBoolean(systemBusy.toString());
-    }
-
-    private void shutDownProducerAndCheck() throws Exception {
+    private void checkBrokerStartAndShutdown() throws Exception {
         resetProducerAndTopic();
         producer.send(20);
         Thread.sleep(2000);
-        brokerController1.shutdown();
-        RouteInfoManager routeInfoManager = namesrvController.getRouteInfoManager();
-        Set<String> changedTopicSet = (Set<String>) reflectGetAtr(routeInfoManager, "changedTopicSet");
-        Assert.assertEquals(0, changedTopicSet.size());
+
+        shutdownBrokerAndCheck(brokerController1);
+        shutdownBrokerAndCheck(brokerController2);
+
+        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(nsAddr));
+        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(nsAddr));
+    }
+
+    private void addNewBrokerAndCheck(BrokerController newBrokerController) throws Exception {
+        String brokerName = newBrokerController.getBrokerConfig().getBrokerName();
+        TopicPublishInfo topicPublishInfo = queryTopicPublishInfo();
+        Set<String> allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
+        System.out.println(String.format("addNewBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
+        assertFalse(allBrokerNameSet.contains(brokerName));
+
+        int newQueueNum = RandomUtil.getIntegerBetween(1, 100);
+        MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
+        // wait notify client
+        Thread.sleep(3000);
+
+        topicPublishInfo = queryTopicPublishInfo();
+        assertThat(topicPublishInfo).isNotNull();
+        allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
+        assertTrue(allBrokerNameSet.contains(brokerName));
+        System.out.println(String.format("addNewBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
+    }
+
+
+    private void shutdownBrokerAndCheck(BrokerController brokerController) throws Exception {
+        String brokerName = brokerController.getBrokerConfig().getBrokerName();
+        TopicPublishInfo topicPublishInfo = queryTopicPublishInfo();
+        Set<String> allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
+        System.out.println(String.format("shutdownBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
+        assertTrue(allBrokerNameSet.contains(brokerName));
+
+        // update topic route info
+        brokerController.shutdown();
+        // wait notify client
+        Thread.sleep(3000);
+
+        topicPublishInfo = queryTopicPublishInfo();
+        assertThat(topicPublishInfo).isNotNull();
+        allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
+        assertFalse(allBrokerNameSet.contains(brokerName));
+        System.out.println(String.format("shutdownBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
     }
 
     /**
@@ -129,5 +175,11 @@ public class TopicRouteUpdateTest extends BaseConf {
 
     private Object reflectGetAtr(Object obj, String fieldName) throws Exception {
         return FieldUtils.readDeclaredField(obj, fieldName, true);
+    }
+
+    private boolean isCurrentSystemBusy() throws Exception {
+        TopicRouteNotifier topicRouteNotifier = new TopicRouteNotifier(null, null);
+        Object systemBusy = MethodUtils.invokeMethod(topicRouteNotifier, true, "isSystemBusy");
+        return Boolean.parseBoolean(systemBusy.toString());
     }
 }

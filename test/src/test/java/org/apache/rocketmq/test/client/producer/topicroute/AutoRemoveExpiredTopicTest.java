@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentMap;
  * test for auto delete expired topic
  */
 public class AutoRemoveExpiredTopicTest extends BaseConf {
-    private static final Logger logger = Logger.getLogger(TopicRouteUpdateTest.class);
+    private static final Logger logger = Logger.getLogger(AutoRemoveExpiredTopicTest.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -53,28 +53,34 @@ public class AutoRemoveExpiredTopicTest extends BaseConf {
 
     @Test
     public void modifyTopicQueueNumAndCheck() throws Exception {
-        producer.send(1);
-        modifyTopicRouteExpireTime(30000);
-        Thread.sleep(2000);
-        boolean exist = isTopicMetaInProducer(topic);
-        Assert.assertTrue(exist);
+        long originTopicRouteExpireTime = ClientConfig.getTopicRouteExpireTime();
+        try {
+            producer.send(1);
+            modifyTopicRouteExpireTime(30000);
+            Thread.sleep(2000);
+            boolean exist = isTopicMetaInProducer(topic);
+            Assert.assertTrue(exist);
 
-        producer.send(1);
-        modifyTopicRouteExpireTime(1000);
-        Thread.sleep(2000);
-        exist = isTopicMetaInProducer(topic);
-        Assert.assertFalse(exist);
+            producer.send(1);
+            modifyTopicRouteExpireTime(1000);
+            Thread.sleep(2000);
+            exist = isTopicMetaInProducer(topic);
+            Assert.assertFalse(exist);
 
-        producer.send(1);
-        exist = isTopicMetaInProducer(topic);
-        Assert.assertTrue(exist);
+            producer.send(1);
+            exist = isTopicMetaInProducer(topic);
+            Assert.assertTrue(exist);
+        } finally {
+            // reset
+            modifyTopicRouteExpireTime(originTopicRouteExpireTime);
+        }
     }
 
-    private boolean isTopicMetaInProducer(String topic) throws Exception {
-        DefaultMQProducer defaultMQProducer = (DefaultMQProducer) FieldUtils.readField(producer, "producer", true);
-        DefaultMQProducerImpl defaultMQProducer2 = (DefaultMQProducerImpl) FieldUtils.readField(defaultMQProducer, "defaultMQProducerImpl", true);
-        ConcurrentMap<String, TopicPublishInfo> map = (ConcurrentMap) FieldUtils.readField(defaultMQProducer2, "topicPublishInfoTable", true);
-        return map.containsKey(topic);
+    private boolean isTopicMetaInProducer(String topic) {
+        DefaultMQProducer defaultMQProducer = this.producer.getProducer();
+        DefaultMQProducerImpl defaultMQProducerImpl = defaultMQProducer.getDefaultMQProducerImpl();
+        ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = defaultMQProducerImpl.getTopicPublishInfoTable();
+        return topicPublishInfoTable.containsKey(topic);
     }
 
 

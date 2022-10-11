@@ -763,6 +763,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         // if topic exist flag is false, just return
         if (topicPublishInfo != null && !topicPublishInfo.isTopicExistFlag()) {
+            topicPublishInfo.setLastUpdateTime(System.currentTimeMillis());
             return topicPublishInfo;
         }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv.routeinfo;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 
@@ -634,6 +635,7 @@ public class RouteInfoManager {
             for (final String brokerName : removedBroker) {
                 final QueueData removedQD = queueDataMap.remove(brokerName);
                 if (removedQD != null) {
+                    changedTopicSet.add(topic);
                     log.debug("removeTopicByBrokerName, remove one broker's topic {} {}", topic, removedQD);
                 }
             }

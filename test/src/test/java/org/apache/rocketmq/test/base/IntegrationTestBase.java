@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
@@ -126,6 +128,14 @@ public class IntegrationTestBase {
     }
 
     public static BrokerController createAndStartBroker(String nsAddr) {
+        return createAndStartBroker(nsAddr, null,true);
+    }
+
+    public static BrokerController createAndStartBroker(String nsAddr, boolean autoCreateTopic) {
+        return createAndStartBroker(nsAddr, null,autoCreateTopic);
+    }
+
+    public static BrokerController createAndStartBroker(String nsAddr, String clusterName, boolean autoCreateTopic) {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
         MessageStoreConfig storeConfig = new MessageStoreConfig();
@@ -134,6 +144,10 @@ public class IntegrationTestBase {
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
+        brokerConfig.setAutoCreateTopicEnable(autoCreateTopic);
+        if (StringUtils.isNotEmpty(clusterName)) {
+            brokerConfig.setBrokerClusterName(clusterName);
+        }
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setMappedFileSizeCommitLog(commitLogSize);
@@ -144,6 +158,7 @@ public class IntegrationTestBase {
         storeConfig.setMaxTransferCountOnMessageInDisk(1024);
         return createAndStartBroker(storeConfig, brokerConfig);
     }
+
 
     public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();

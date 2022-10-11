@@ -80,7 +80,11 @@ public class ClientConfig {
     protected boolean enableStreamRequestType = false;
 
     /** the expire time of topic route */
-    private static final long TOPIC_ROUTE_EXPIRE_TIME = 300 * 1000;
+    private static long TOPIC_ROUTE_EXPIRE_TIME;
+
+    static {
+        TOPIC_ROUTE_EXPIRE_TIME = 300 * 1000;
+    }
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
