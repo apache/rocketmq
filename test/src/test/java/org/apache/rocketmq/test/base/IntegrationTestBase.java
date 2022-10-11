@@ -131,10 +131,6 @@ public class IntegrationTestBase {
         return createAndStartBroker(nsAddr, null,true);
     }
 
-    public static BrokerController createAndStartBroker(String nsAddr, boolean autoCreateTopic) {
-        return createAndStartBroker(nsAddr, null,autoCreateTopic);
-    }
-
     public static BrokerController createAndStartBroker(String nsAddr, String clusterName, boolean autoCreateTopic) {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -158,7 +154,6 @@ public class IntegrationTestBase {
         storeConfig.setMaxTransferCountOnMessageInDisk(1024);
         return createAndStartBroker(storeConfig, brokerConfig);
     }
-
 
     public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();

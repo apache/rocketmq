@@ -780,7 +780,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
             // auto create topic failed
             if (!isTopicPublishInfoOK(topicPublishInfo)) {
-                topicPublishInfo = topicPublishInfoTable.computeIfAbsent(topic, (k) -> new TopicPublishInfo());
                 topicPublishInfo.setTopicExistFlag(false);
             }
         }

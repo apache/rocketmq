@@ -85,7 +85,7 @@ public class AutoRemoveExpiredTopicTest extends BaseConf {
 
 
     private void modifyTopicRouteExpireTime(long topicRouteExpireTime) throws Exception {
-        FieldUtils.writeStaticField(ClientConfig.class, "TOPIC_ROUTE_EXPIRE_TIME", topicRouteExpireTime, true);
+        FieldUtils.writeStaticField(ClientConfig.class, "topicRouteExpireTime", topicRouteExpireTime, true);
 
         long actualTime = ClientConfig.getTopicRouteExpireTime();
         Assert.assertEquals(topicRouteExpireTime, actualTime);

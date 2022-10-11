@@ -80,11 +80,7 @@ public class ClientConfig {
     protected boolean enableStreamRequestType = false;
 
     /** the expire time of topic route */
-    private static long TOPIC_ROUTE_EXPIRE_TIME;
-
-    static {
-        TOPIC_ROUTE_EXPIRE_TIME = 300 * 1000;
-    }
+    private static long topicRouteExpireTime = 300000L;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -384,8 +380,12 @@ public class ClientConfig {
         this.enableStreamRequestType = enableStreamRequestType;
     }
 
+//    public static void setTopicRouteExpireTime(long topicRouteExpireTime) {
+//        ClientConfig.topicRouteExpireTime = topicRouteExpireTime;
+//    }
+
     public static long getTopicRouteExpireTime() {
-        return TOPIC_ROUTE_EXPIRE_TIME;
+        return topicRouteExpireTime;
     }
 
     @Override
@@ -402,6 +402,6 @@ public class ClientConfig {
             + ", socksProxyConfig=" + socksProxyConfig + ", language=" + language.name()
             + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
             + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
-            + ", enableStreamRequestType=" + enableStreamRequestType + ", topicRouteExpireTime=" + TOPIC_ROUTE_EXPIRE_TIME + "]";
+            + ", enableStreamRequestType=" + enableStreamRequestType + ", topicRouteExpireTime=" + topicRouteExpireTime + "]";
     }
 }

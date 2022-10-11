@@ -45,8 +45,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author xijiu
- * @since 2022/10/11 上午10:03
+ * test topic not exist case
  */
 public class TopicNotExistTest {
     private static final Logger logger = Logger.getLogger(TopicNotExistTest.class);

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import com.alibaba.fastjson.JSON;
 import com.sun.management.OperatingSystemMXBean;
 import io.netty.channel.Channel;
 import org.apache.commons.collections.CollectionUtils;
