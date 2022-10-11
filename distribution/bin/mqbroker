@@ -45,7 +45,7 @@ export ROCKETMQ_HOME
 other_args=" "
 enable_proxy=false
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
   case $1 in
     --enable-proxy)
       enable_proxy=true
