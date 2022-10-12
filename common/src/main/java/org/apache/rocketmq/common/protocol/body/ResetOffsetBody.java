@@ -17,12 +17,18 @@
 
 package org.apache.rocketmq.common.protocol.body;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ResetOffsetBody extends RemotingSerializable {
+
     private Map<MessageQueue, Long> offsetTable;
+
+    public ResetOffsetBody() {
+        offsetTable = new HashMap<>();
+    }
 
     public Map<MessageQueue, Long> getOffsetTable() {
         return offsetTable;

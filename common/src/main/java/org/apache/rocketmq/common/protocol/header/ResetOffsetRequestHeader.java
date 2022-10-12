@@ -22,12 +22,21 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ResetOffsetRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
     private String topic;
+
     @CFNotNull
     private String group;
+
+    private int queueId = -1;
+
+    @CFNotNull
+    private Long offset;
+
     @CFNotNull
     private long timestamp;
+
     @CFNotNull
     private boolean isForce;
 
@@ -61,6 +70,22 @@ public class ResetOffsetRequestHeader implements CommandCustomHeader {
 
     public void setForce(boolean isForce) {
         this.isForce = isForce;
+    }
+
+    public int getQueueId() {
+        return queueId;
+    }
+
+    public void setQueueId(int queueId) {
+        this.queueId = queueId;
+    }
+
+    public Long getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Long offset) {
+        this.offset = offset;
     }
 
     @Override

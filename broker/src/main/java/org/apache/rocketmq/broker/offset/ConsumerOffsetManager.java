@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,12 +42,15 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     private DataVersion dataVersion = new DataVersion();
 
-    protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+        new ConcurrentHashMap<>(512);
+
+    private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
         new ConcurrentHashMap<>(512);
 
     protected transient BrokerController brokerController;
 
-    private transient AtomicLong versionChangeCounter = new AtomicLong(0);
+    private final transient AtomicLong versionChangeCounter = new AtomicLong(0);
 
     public ConsumerOffsetManager() {
     }
@@ -204,6 +208,14 @@ public class ConsumerOffsetManager extends ConfigManager {
     public long queryOffset(final String group, final String topic, final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
+
+        if (this.brokerController.getBrokerConfig().isUseServerSideResetOffset()) {
+            Map<Integer, Long> reset = resetOffsetTable.get(key);
+            if (null != reset && reset.containsKey(queueId)) {
+                return reset.get(queueId);
+            }
+        }
+
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null != map) {
             Long offset = map.get(queueId);
@@ -215,6 +227,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return -1;
     }
 
+    @Override
     public String encode() {
         return this.encode(false);
     }
@@ -229,7 +242,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         if (jsonString != null) {
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
-                this.offsetTable = obj.offsetTable;
+                this.setOffsetTable(obj.getOffsetTable());
                 this.dataVersion = obj.dataVersion;
             }
         }
@@ -244,7 +257,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return offsetTable;
     }
 
-    public void setOffsetTable(ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
+    public void setOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
     }
 
@@ -318,7 +331,55 @@ public class ConsumerOffsetManager extends ConfigManager {
                 }
             }
         }
-
     }
 
+    public void assignResetOffset(String topic, String group, int queueId, long offset) {
+        if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
+            LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
+                topic, group, queueId, offset);
+            return;
+        }
+
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+        if (null == map) {
+            map = new ConcurrentHashMap<Integer, Long>();
+            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
+            if (null != previous) {
+                map = previous;
+            }
+        }
+
+        map.put(queueId, offset);
+        LOG.debug("Reset offset OK. Topic={}, group={}, queueId={}, resetOffset={}",
+            topic, group, queueId, offset);
+
+        // Two things are important here:
+        // 1, currentOffsetMap might be null if there is no previous records;
+        // 2, Our overriding here may get overridden by the client instantly in concurrent cases; But it still makes
+        // sense in cases like clients are offline.
+        ConcurrentMap<Integer, Long> currentOffsetMap = offsetTable.get(key);
+        if (null != currentOffsetMap) {
+            currentOffsetMap.put(queueId, offset);
+        }
+    }
+
+    public boolean hasOffsetReset(String topic, String group, int queueId) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+        if (null == map) {
+            return false;
+        }
+        return map.containsKey(queueId);
+    }
+
+    public Long queryThenEraseResetOffset(String topic, String group, Integer queueId) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+        if (null == map) {
+            return null;
+        } else {
+            return map.remove(queueId);
+        }
+    }
 }

@@ -2053,6 +2053,40 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public Map<MessageQueue, Long> invokeBrokerToResetOffset(final String addr, final String topic, final String group,
+        final long timestamp, int queueId, Long offset, final long timeoutMillis)
+        throws RemotingException, MQClientException, InterruptedException {
+
+        ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setGroup(group);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setTimestamp(timestamp);
+        requestHeader.setOffset(offset);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET,
+            requestHeader);
+
+        RemotingCommand response = remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (null != response.getBody()) {
+                    return ResetOffsetBody.decode(response.getBody(), ResetOffsetBody.class).getOffsetTable();
+                }
+                break;
+            }
+            case ResponseCode.TOPIC_NOT_EXIST:
+            case ResponseCode.SUBSCRIPTION_NOT_EXIST:
+            case ResponseCode.SYSTEM_ERROR:
+                log.warn("Invoke broker to reset offset error code={}, remark={}",
+                    response.getCode(), response.getRemark());
+                break;
+            default:
+                break;
+        }
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public Map<MessageQueue, Long> invokeBrokerToResetOffset(final String addr, final String topic, final String group,
         final long timestamp, final boolean isForce, final long timeoutMillis, boolean isC)
         throws RemotingException, MQClientException, InterruptedException {
         ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
