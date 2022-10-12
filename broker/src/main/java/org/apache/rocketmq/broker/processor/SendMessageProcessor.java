@@ -27,7 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
-import org.apache.rocketmq.common.attribute.DeletePolicy;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.MQVersion;
@@ -250,8 +250,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         MessageAccessor.setProperties(msgInner, oriProps);
 
-        DeletePolicy deletePolicy = DeletePolicyUtils.getDeletePolicy(Optional.of(topicConfig));
-        if (Objects.equals(deletePolicy, DeletePolicy.COMPACTION)) {
+        CleanupPolicy cleanupPolicy = DeletePolicyUtils.getDeletePolicy(Optional.of(topicConfig));
+        if (Objects.equals(cleanupPolicy, CleanupPolicy.COMPACTION)) {
             if (StringUtils.isBlank(msgInner.getKeys())) {
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                 response.setRemark("Required message key is missing");

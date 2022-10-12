@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.common.attribute;
 
-public enum DeletePolicy {
+public enum CleanupPolicy {
     DELETE,
     COMPACTION
 }

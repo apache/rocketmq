@@ -34,8 +34,8 @@ public class TopicAttributes {
     public static final EnumAttribute DELETE_POLICY_ATTRIBUTE = new EnumAttribute(
         "delete.policy",
         false,
-        newHashSet("NORMAL", "COMPACTION"),
-        "NORMAL"
+        newHashSet("DELETE", "COMPACTION"),
+        "DELETE"
     );
     public static final EnumAttribute TOPIC_MESSAGE_TYPE_ATTRIBUTE = new EnumAttribute(
         "message.type",
