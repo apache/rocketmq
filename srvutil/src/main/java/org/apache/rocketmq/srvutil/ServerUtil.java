@@ -53,7 +53,7 @@ public class ServerUtil {
             }
         } catch (ParseException e) {
             hf.printHelp(appName, options, true);
-            e.printStackTrace();
+            System.exit(1);
         }
 
         return commandLine;
