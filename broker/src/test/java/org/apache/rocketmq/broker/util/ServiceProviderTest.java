@@ -21,14 +21,11 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.utils.ServiceProvider;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.store.ha.HAService;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class ServiceProviderTest {
 
