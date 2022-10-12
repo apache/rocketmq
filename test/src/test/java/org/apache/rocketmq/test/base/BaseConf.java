@@ -210,7 +210,7 @@ public class BaseConf {
     }
 
     public static DefaultMQAdminExt getAdmin(String nsAddr) {
-        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
+        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(3 * 1000);
         mqAdminExt.setNamesrvAddr(nsAddr);
         mqAdminExt.setPollNameServerInterval(100);
         mqClients.add(mqAdminExt);

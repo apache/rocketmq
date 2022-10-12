@@ -1703,7 +1703,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         if (queueId >= 0) {
-            if (null != offset) {
+            if (null != offset && -1 != offset) {
                 long min = brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
                 long max = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                 if (min >= 0 && offset < min || offset > max + 1) {

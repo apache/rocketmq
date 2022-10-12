@@ -17,14 +17,19 @@
 
 package org.apache.rocketmq.test.offset;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -38,11 +43,14 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import static org.awaitility.Awaitility.await;
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class OffsetResetIT extends BaseConf {
 
     private static final Logger LOGGER = Logger.getLogger(OffsetResetIT.class);
 
+    private RMQNormalListener listener = null;
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private DefaultMQAdminExt defaultMQAdminExt = null;
@@ -59,8 +67,9 @@ public class OffsetResetIT extends BaseConf {
             controller.getBrokerConfig().setUseServerSideResetOffset(true);
         }
 
+        listener = new RMQNormalListener();
         producer = getProducer(NAMESRV_ADDR, topic);
-        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        consumer = getConsumer(NAMESRV_ADDR, topic, "*", listener);
 
         defaultMQAdminExt = BaseConf.getAdmin(NAMESRV_ADDR);
         defaultMQAdminExt.start();
@@ -69,6 +78,16 @@ public class OffsetResetIT extends BaseConf {
     @After
     public void tearDown() {
         shutdown();
+    }
+
+    @Test
+    public void testEncodeOffsetHeader() {
+        ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setGroup(consumer.getConsumerGroup());
+        requestHeader.setTimestamp(System.currentTimeMillis());
+        requestHeader.setForce(false);
+        RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
     }
 
     /**
@@ -100,7 +119,7 @@ public class OffsetResetIT extends BaseConf {
     }
 
     @Test
-    public void testOffset() throws Exception {
+    public void testResetOffsetSingleQueue() throws Exception {
         int msgSize = 100;
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg messageQueueMsg = new MessageQueueMsg(mqs, msgSize);
@@ -108,14 +127,49 @@ public class OffsetResetIT extends BaseConf {
         producer.send(messageQueueMsg.getMsgsWithMQ());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        long consumerLag = this.getConsumerLag(topic, consumer.getConsumerGroup());
-        Assert.assertEquals(0L, consumerLag);
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
+            () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
 
         for (BrokerController controller : brokerControllerList) {
             defaultMQAdminExt.resetOffsetByQueueId(controller.getBrokerAddr(),
                 consumer.getConsumerGroup(), consumer.getTopic(), 3, 0);
         }
 
-        consumer.getListener().waitForMessageConsume(CONSUME_TIME, 100 * 3);
+        int hasConsumeBefore = listener.getMsgIndex().get();
+        int expectAfterReset = brokerControllerList.size() * msgSize;
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(() -> {
+            long receive = listener.getMsgIndex().get();
+            long expect = hasConsumeBefore + expectAfterReset;
+            return receive >= expect;
+        });
+    }
+
+    @Test
+    public void testResetOffsetTotal() throws Exception {
+        int msgSize = 100;
+        long start = System.currentTimeMillis();
+        List<MessageQueue> mqs = producer.getMessageQueue();
+        MessageQueueMsg messageQueueMsg = new MessageQueueMsg(mqs, msgSize);
+
+        producer.send(messageQueueMsg.getMsgsWithMQ());
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
+            () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
+
+        for (BrokerController controller : brokerControllerList) {
+            defaultMQAdminExt.getDefaultMQAdminExtImpl().getMqClientInstance().getMQClientAPIImpl()
+                .invokeBrokerToResetOffset(controller.getBrokerAddr(),
+                    consumer.getTopic(), consumer.getConsumerGroup(), start, true, 3 * 1000);
+        }
+
+        int hasConsumeBefore = listener.getMsgIndex().get();
+        int expectAfterReset = mqs.size() * msgSize;
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(() -> {
+            long receive = listener.getMsgIndex().get();
+            long expect = hasConsumeBefore + expectAfterReset;
+            System.out.println("count message: " + receive + " " + expect);
+            return receive >= expect;
+        });
     }
 }

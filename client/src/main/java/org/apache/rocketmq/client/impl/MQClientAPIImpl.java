@@ -2094,6 +2094,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         requestHeader.setGroup(group);
         requestHeader.setTimestamp(timestamp);
         requestHeader.setForce(isForce);
+        // offset is -1 means offset is null
+        requestHeader.setOffset(-1L);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
         if (isC) {
