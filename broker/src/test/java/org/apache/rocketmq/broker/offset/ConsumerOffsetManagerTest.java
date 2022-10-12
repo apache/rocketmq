@@ -45,7 +45,6 @@ public class ConsumerOffsetManagerTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
 
-        consumerOffsetManager = new ConsumerOffsetManager();
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
         offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
                 put(1,2L);

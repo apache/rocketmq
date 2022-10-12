@@ -161,14 +161,27 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
 
         String topic = requestHeader.getTopic();
+        String group = requestHeader.getConsumerGroup();
+        Integer queueId = requestHeader.getQueueId();
+        Long offset = requestHeader.getCommitOffset();
+
         if (!this.brokerController.getTopicConfigManager().containsTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("Topic " + topic + " not exist!");
+            return response;
         }
 
-        String group = requestHeader.getConsumerGroup();
-        int queueId = requestHeader.getQueueId();
-        long offset = requestHeader.getCommitOffset();
+        if (queueId == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("QueueId is null, topic is " + topic);
+            return response;
+        }
+
+        if (offset == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Offset is null, topic is " + topic);
+            return response;
+        }
 
         ConsumerOffsetManager consumerOffsetManager = brokerController.getConsumerOffsetManager();
         if (this.brokerController.getBrokerConfig().isUseServerSideResetOffset()) {
