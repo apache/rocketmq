@@ -168,7 +168,6 @@ public class OffsetResetIT extends BaseConf {
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(() -> {
             long receive = listener.getMsgIndex().get();
             long expect = hasConsumeBefore + expectAfterReset;
-            System.out.println("count message: " + receive + " " + expect);
             return receive >= expect;
         });
     }

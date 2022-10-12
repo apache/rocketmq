@@ -19,7 +19,6 @@ package org.apache.rocketmq.test.listener;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
@@ -96,7 +95,6 @@ public class AbstractListener extends MQCollector implements MessageListener {
             } else {
                 LOGGER.info(String.format("[%s] still [%s] msg not recv!",
                     listenerName, size - msgBodys.getDataSize()));
-                System.out.println(size - msgBodys.getDataSize());
                 TestUtil.waitForMonment(500);
             }
         }
