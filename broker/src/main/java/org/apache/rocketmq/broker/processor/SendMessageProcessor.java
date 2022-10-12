@@ -254,7 +254,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (Objects.equals(deletePolicy, DeletePolicy.COMPACTION)) {
             if (StringUtils.isBlank(msgInner.getKeys())) {
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark("the message don't have message key");
+                response.setRemark("Required message key is missing");
                 return response;
             }
         }
