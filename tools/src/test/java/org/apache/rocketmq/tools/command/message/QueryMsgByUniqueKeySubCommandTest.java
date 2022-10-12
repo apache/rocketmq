@@ -17,8 +17,8 @@
 package org.apache.rocketmq.tools.command.message;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -197,7 +197,8 @@ public class QueryMsgByUniqueKeySubCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         String[] args = new String[] {"-t myTopicTest", "-i msgId"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
+            cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
 
     }
@@ -220,7 +221,8 @@ public class QueryMsgByUniqueKeySubCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         String[] args = new String[] {"-t myTopicTest", "-i 7F000001000004D20000000000000066"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
+            cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
 
     }
@@ -231,7 +233,8 @@ public class QueryMsgByUniqueKeySubCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         String[] args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
+            cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -242,11 +245,13 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000"};
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
+            cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
 
         args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
-        commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options),
+            new DefaultParser());
         cmd.execute(commandLine, options, null);
 
     }

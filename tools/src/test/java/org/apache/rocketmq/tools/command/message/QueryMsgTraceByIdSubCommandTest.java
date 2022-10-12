@@ -17,8 +17,8 @@
 package org.apache.rocketmq.tools.command.message;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -65,7 +65,8 @@ public class QueryMsgTraceByIdSubCommandTest {
         String[] subargs = new String[] {String.format("-i %s", MSG_ID),
             String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -89,7 +90,7 @@ public class QueryMsgTraceByIdSubCommandTest {
         queueDatas.add(queueData);
         topicRouteData.setQueueDatas(queueDatas);
 
-        return ServerResponseMocker.startServer(0, topicRouteData.encode());
+        return ServerResponseMocker.startServer(topicRouteData.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -107,7 +108,7 @@ public class QueryMsgTraceByIdSubCommandTest {
             extMap.put("indexLastUpdateTimestamp", String.valueOf(System.currentTimeMillis()));
             extMap.put("indexLastUpdatePhyoffset", String.valueOf(System.currentTimeMillis()));
             // start broker
-            return ServerResponseMocker.startServer(0, body, extMap);
+            return ServerResponseMocker.startServer(body, extMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);

@@ -74,8 +74,6 @@ public abstract class ServerResponseMocker {
         }
     }
 
-    protected abstract int getPort();
-
     public int listenPort() {
         return listenPort;
     }
@@ -110,7 +108,7 @@ public abstract class ServerResponseMocker {
                     }
                 });
         try {
-            ChannelFuture sync = serverBootstrap.bind(getPort()).sync();
+            ChannelFuture sync = serverBootstrap.bind(0).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             this.listenPort = addr.getPort();
         } catch (InterruptedException e1) {
@@ -141,18 +139,13 @@ public abstract class ServerResponseMocker {
         }
     }
 
-    public static ServerResponseMocker startServer(int port, byte[] body) {
-        return startServer(port, body, null);
+    public static ServerResponseMocker startServer(byte[] body) {
+        return startServer(body, null);
     }
 
 
-    public static ServerResponseMocker startServer(int port, byte[] body, HashMap<String, String> extMap) {
+    public static ServerResponseMocker startServer(byte[] body, HashMap<String, String> extMap) {
         ServerResponseMocker mocker = new ServerResponseMocker() {
-            @Override
-            protected int getPort() {
-                return port;
-            }
-
             @Override
             protected byte[] getBody() {
                 return body;

@@ -18,8 +18,8 @@
 package org.apache.rocketmq.tools.command.producer;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -34,10 +34,6 @@ import org.junit.Test;
 import java.util.HashMap;
 
 public class ProducerSubCommandTest {
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
-
     private ServerResponseMocker brokerMocker;
 
     private ServerResponseMocker nameServerMocker;
@@ -45,7 +41,7 @@ public class ProducerSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -58,9 +54,10 @@ public class ProducerSubCommandTest {
     public void testExecute() throws SubCommandException {
         ProducerSubCommand cmd = new ProducerSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[]{"-b 127.0.0.1:" + BROKER_PORT};
+        String[] subargs = new String[]{"-b 127.0.0.1:" + brokerMocker.listenPort()};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -80,6 +77,6 @@ public class ProducerSubCommandTest {
         offsetTable.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(offsetTable);
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, consumeStats.encode());
+        return ServerResponseMocker.startServer(consumeStats.encode());
     }
 }
