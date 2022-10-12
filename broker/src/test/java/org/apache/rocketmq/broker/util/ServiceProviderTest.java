@@ -21,6 +21,7 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.store.ha.HAService;
 import org.junit.Test;
 
@@ -48,17 +49,5 @@ public class ServiceProviderTest {
     public void loadAccessValidatorTest() {
         List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
         assertThat(accessValidators).isNotNull();
-        
-    }
-    
-    @Test
-    public void loadHAServiceTest() {
-        HAService service = ServiceProvider.loadClass(HAService.class);
-        assertThat(service).isNotNull();
-    }
-    
-    @Test
-    public void loadRPCHookTest() {
-    
     }
 }
