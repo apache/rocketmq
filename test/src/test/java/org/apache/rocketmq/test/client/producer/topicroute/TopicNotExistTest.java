@@ -32,6 +32,8 @@ import org.apache.rocketmq.test.sendresult.ResultWrapper;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -53,14 +55,25 @@ public class TopicNotExistTest {
     private static String nsAddr;
     private static String clusterName;
     private static List<BrokerController> brokerControllers = new ArrayList<>();
+    private static RMQNormalProducer producer;
+    private static NamesrvController namesrvController;
+
+    @Before
+    public void before() {
+        clusterStart();
+    }
+
+
+    @Before
+    public void after() {
+        clusterShutDown();
+    }
 
     @Test
     public void test() throws Exception {
-        clusterStart();
-
         String topic = "topic_not_exist";
         int pollNameServerInterval = 8000;
-        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, false, pollNameServerInterval);
+        producer = new RMQNormalProducer(nsAddr, topic, false, pollNameServerInterval);
         DefaultMQProducerImpl defaultMQProducerImpl = producer.getProducer().getDefaultMQProducerImpl();
         ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = defaultMQProducerImpl.getTopicPublishInfoTable();
 
@@ -91,10 +104,22 @@ public class TopicNotExistTest {
         return (ResultWrapper) FieldUtils.readField(producer, "sendResult", true);
     }
 
+    private void clusterShutDown() {
+        if (producer != null) {
+            producer.shutdown();
+        }
+        for (BrokerController brokerController : brokerControllers) {
+            brokerController.shutdown();
+        }
+        if (namesrvController != null) {
+            namesrvController.shutdown();
+        }
+    }
+
     private void clusterStart() {
         clusterName = "test_test_cluster_name";
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-        NamesrvController namesrvController = IntegrationTestBase.createAndStartNamesrv();
+        namesrvController = IntegrationTestBase.createAndStartNamesrv();
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
 
         BrokerController brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr, clusterName, false);
