@@ -198,7 +198,7 @@ public class DefaultMessageStore implements MessageStore {
                 this.haService = new AutoSwitchHAService();
                 LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
             } else {
-                this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
+                this.haService = ServiceProvider.loadClass(HAService.class);
                 if (null == this.haService) {
                     this.haService = new DefaultHAService();
                     LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());

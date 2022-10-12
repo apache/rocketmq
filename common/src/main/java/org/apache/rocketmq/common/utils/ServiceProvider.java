@@ -30,31 +30,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServiceProvider {
-
+    
     private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    
     /**
      * A reference to the classloader that loaded this class. It's more efficient to compute it once and cache it here.
      */
     private static ClassLoader thisClassLoader;
-
+    
     /**
      * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider'
      * specification</a>.
      */
-    public static final String TRANSACTION_SERVICE_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService";
-
-    public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
-
-    public static final String HA_SERVICE_ID = "META-INF/service/org.apache.rocketmq.store.ha.HAService";
-
-    public static final String RPC_HOOK_ID = "META-INF/service/org.apache.rocketmq.remoting.RPCHook";
-
-    public static final String ACL_VALIDATOR_ID = "META-INF/service/org.apache.rocketmq.acl.AccessValidator";
-
+    public static final String PREFIX = "META-INF/service/";
+    
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);
     }
-
+    
     /**
      * Returns a string that uniquely identifies the specified object, including its class.
      * <p>
@@ -95,7 +88,7 @@ public class ServiceProvider {
         }
         return classLoader;
     }
-
+    
     protected static InputStream getResourceAsStream(ClassLoader loader, String name) {
         if (loader != null) {
             return loader.getResourceAsStream(name);
@@ -103,13 +96,18 @@ public class ServiceProvider {
             return ClassLoader.getSystemResourceAsStream(name);
         }
     }
-
+    
+    public static <T> List<T> load(Class<?> clazz) {
+        String fullName = PREFIX + clazz.getName();
+        return load(fullName, clazz);
+    }
+    
     public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         List<T> services = new ArrayList<>();
         try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            
             String serviceName = reader.readLine();
             List<String> names = new ArrayList<>();
             while (serviceName != null && !"".equals(serviceName)) {
@@ -127,12 +125,17 @@ public class ServiceProvider {
         }
         return services;
     }
-
+    
+    public static <T> T loadClass(Class<?> clazz) {
+        String fullName = PREFIX + clazz.getName();
+        return loadClass(fullName, clazz);
+    }
+    
     public static <T> T loadClass(String name, Class<?> clazz) {
         T s = null;
         try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            
             String serviceName = reader.readLine();
             if (serviceName != null && !"".equals(serviceName)) {
                 s = initService(getContextClassLoader(), serviceName, clazz);
