@@ -35,11 +35,11 @@ public class ConsumerConnectionTest {
     @Test
     public void testFromJson() {
         ConsumerConnection consumerConnection = new ConsumerConnection();
-        HashSet<Connection> connections = new HashSet<Connection>();
+        HashSet<Connection> connections = new HashSet<>();
         Connection conn = new Connection();
         connections.add(conn);
 
-        ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable = new ConcurrentHashMap<String, SubscriptionData>();
+        ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable = new ConcurrentHashMap<>();
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionTable.put("topicA", subscriptionData);
 
@@ -68,7 +68,7 @@ public class ConsumerConnectionTest {
     @Test
     public void testComputeMinVersion() {
         ConsumerConnection consumerConnection = new ConsumerConnection();
-        HashSet<Connection> connections = new HashSet<Connection>();
+        HashSet<Connection> connections = new HashSet<>();
         Connection conn1 = new Connection();
         conn1.setVersion(1);
         connections.add(conn1);

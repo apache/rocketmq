@@ -35,10 +35,10 @@ public class SubscriptionGroupManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-        new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+        new ConcurrentHashMap<>(1024);
 
     private final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
-        new ConcurrentHashMap<String, ConcurrentMap<String, Integer>>(4);
+        new ConcurrentHashMap<>(4);
 
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
@@ -182,7 +182,7 @@ public class SubscriptionGroupManager extends ConfigManager {
 
         ConcurrentMap<String, Integer> topicsPermMap = this.forbiddenTable.get(group);
         if (topicsPermMap == null) {
-            this.forbiddenTable.putIfAbsent(group, new ConcurrentHashMap<String, Integer>());
+            this.forbiddenTable.putIfAbsent(group, new ConcurrentHashMap<>());
             topicsPermMap = this.forbiddenTable.get(group);
         }
         Integer old = topicsPermMap.put(topic, forbidden);

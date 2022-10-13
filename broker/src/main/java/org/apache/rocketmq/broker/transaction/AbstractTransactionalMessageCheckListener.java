@@ -97,7 +97,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
 
     public synchronized void initExecutorService() {
         if (executorService == null) {
-            executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000),
+            executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
                 new ThreadFactoryImpl("Transaction-msg-check-thread", brokerController.getBrokerIdentity()), new CallerRunsPolicy());
         }
     }

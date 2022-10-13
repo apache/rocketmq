@@ -219,7 +219,7 @@ public class ScheduleMessageServiceTest {
         // timer run maybe delay, then consumer message again
         // and wait offsetTable
         TimeUnit.SECONDS.sleep(15);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>());
+        scheduleMessageService.buildRunningStats(new HashMap<>());
 
         messageResult = getMessage(realQueueId, offset);
         // now,found the message

@@ -125,7 +125,7 @@ public class ClientConfig {
     }
 
     public Set<String> withNamespace(Set<String> resourceSet) {
-        Set<String> resourceWithNamespace = new HashSet<String>();
+        Set<String> resourceWithNamespace = new HashSet<>();
         for (String resource : resourceSet) {
             resourceWithNamespace.add(withNamespace(resource));
         }
@@ -137,7 +137,7 @@ public class ClientConfig {
     }
 
     public Set<String> withoutNamespace(Set<String> resourceSet) {
-        Set<String> resourceWithoutNamespace = new HashSet<String>();
+        Set<String> resourceWithoutNamespace = new HashSet<>();
         for (String resource : resourceSet) {
             resourceWithoutNamespace.add(withoutNamespace(resource));
         }

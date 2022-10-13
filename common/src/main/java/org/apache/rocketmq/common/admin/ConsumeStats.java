@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumeStats extends RemotingSerializable {
-    private Map<MessageQueue, OffsetWrapper> offsetTable = new ConcurrentHashMap<MessageQueue, OffsetWrapper>();
+    private Map<MessageQueue, OffsetWrapper> offsetTable = new ConcurrentHashMap<>();
     private double consumeTps = 0;
 
     public long computeTotalDiff() {

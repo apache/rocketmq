@@ -18,8 +18,6 @@ package org.apache.rocketmq.tools.command.broker;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -28,7 +26,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -74,7 +71,7 @@ public class BrokerConsumeStatsSubCommadTest {
 
         ConsumeStatsList consumeStatsList = new ConsumeStatsList();
         consumeStatsList.setBrokerAddr("127.0l.0.1:10911");
-        consumeStatsList.setConsumeStatsList(new ArrayList<Map<String, List<ConsumeStats>>>());
+        consumeStatsList.setConsumeStatsList(new ArrayList<>());
         consumeStatsList.setTotalDiff(123);
         when(mQClientAPIImpl.fetchConsumeStatsInBroker(anyString(), anyBoolean(), anyLong())).thenReturn(consumeStatsList);
     }

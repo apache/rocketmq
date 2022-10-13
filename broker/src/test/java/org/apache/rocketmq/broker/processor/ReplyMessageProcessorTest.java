@@ -121,7 +121,7 @@ public class ReplyMessageProcessorTest {
         requestHeader.setBornTimestamp(System.currentTimeMillis());
         requestHeader.setFlag(124);
         requestHeader.setReconsumeTimes(0);
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
         requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
         return requestHeader;

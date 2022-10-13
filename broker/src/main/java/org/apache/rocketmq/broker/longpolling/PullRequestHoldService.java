@@ -36,7 +36,7 @@ public class PullRequestHoldService extends ServiceThread {
     protected final BrokerController brokerController;
     private final SystemClock systemClock = new SystemClock();
     protected ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
-        new ConcurrentHashMap<String, ManyPullRequest>(1024);
+        new ConcurrentHashMap<>(1024);
 
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -126,7 +126,7 @@ public class PullRequestHoldService extends ServiceThread {
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();
             if (requestList != null) {
-                List<PullRequest> replayList = new ArrayList<PullRequest>();
+                List<PullRequest> replayList = new ArrayList<>();
 
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;

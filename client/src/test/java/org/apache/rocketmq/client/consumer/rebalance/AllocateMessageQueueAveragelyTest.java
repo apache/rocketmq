@@ -37,7 +37,7 @@ public class AllocateMessageQueueAveragelyTest extends TestCase {
     }
 
     private List<String> createConsumerIdList(int size) {
-        List<String> consumerIdList = new ArrayList<String>(size);
+        List<String> consumerIdList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             consumerIdList.add("CID_PREFIX" + i);
         }
@@ -45,7 +45,7 @@ public class AllocateMessageQueueAveragelyTest extends TestCase {
     }
 
     private List<MessageQueue> createMessageQueueList(int size) {
-        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(size);
+        List<MessageQueue> messageQueueList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             MessageQueue mq = new MessageQueue("topic", "brokerName", i);
             messageQueueList.add(mq);
