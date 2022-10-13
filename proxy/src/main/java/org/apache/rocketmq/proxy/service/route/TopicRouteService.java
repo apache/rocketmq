@@ -95,6 +95,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                     try {
                         return load(key);
                     } catch (Exception e) {
+                        log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
                         return oldValue;
                     }
                 }
