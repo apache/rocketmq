@@ -31,7 +31,6 @@ public class ResetOffsetRequestHeader implements CommandCustomHeader {
 
     private int queueId = -1;
 
-    @CFNotNull
     private Long offset;
 
     @CFNotNull
