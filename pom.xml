@@ -279,7 +279,8 @@
                             <inputEncoding>UTF-8</inputEncoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
-                            <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <excludes>**/generated*/**/*</excludes>
                         </configuration>
                         <goals>
                             <goal>check</goal>
