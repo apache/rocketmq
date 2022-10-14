@@ -176,8 +176,7 @@ public class PlainAccessResource implements AccessResource {
         // Content
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
-            if (!SessionCredentials.SIGNATURE.equals(entry.getKey())
-                && !MixAll.UNIQUE_MSG_QUERY_FLAG.equals(entry.getKey())) {
+            if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue());
             }
         }
