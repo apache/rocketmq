@@ -42,6 +42,14 @@ public abstract class AbstractStartAndShutdown implements StartAndShutdown {
         }
     }
 
+    @Override
+    public void preShutdown() throws Exception {
+        int index = startAndShutdownList.size() - 1;
+        for (; index >= 0; index--) {
+            startAndShutdownList.get(index).preShutdown();
+        }
+    }
+
     public void appendStart(Start start) {
         this.appendStartAndShutdown(new StartAndShutdown() {
             @Override
