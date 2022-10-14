@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.admin;
 
+import com.alibaba.fastjson.JSON;
 import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -1780,6 +1781,18 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         requestHeader.setQueueId(queueId);
         requestHeader.setCommitOffset(resetOffset);
         this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
+        try {
+            Map<MessageQueue, Long> result = mqClientInstance.getMQClientAPIImpl()
+                .invokeBrokerToResetOffset(brokerAddr, topicName, consumeGroup, 0, queueId, resetOffset, timeoutMillis);
+            if (null != result) {
+                for (Map.Entry<MessageQueue, Long> entry : result.entrySet()) {
+                    log.info("Reset single message queue {} offset from {} to {}",
+                        JSON.toJSONString(entry.getKey()), entry.getValue(), resetOffset);
+                }
+            }
+        } catch (MQClientException e) {
+            throw new MQBrokerException(e.getResponseCode(), e.getMessage());
+        }
     }
 
     @Override

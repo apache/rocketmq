@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -251,6 +252,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
@@ -293,5 +295,13 @@ public class SubscriptionGroupManager extends ConfigManager {
         for (String key : otherSubscriptionGroupTable.keySet()) {
             this.subscriptionGroupTable.put(key, otherSubscriptionGroupTable.get(key));
         }
+    }
+
+    public boolean containsSubscriptionGroup(String group) {
+        if (StringUtils.isBlank(group)) {
+            return false;
+        }
+
+        return subscriptionGroupTable.containsKey(group);
     }
 }

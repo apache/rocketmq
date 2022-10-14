@@ -17,22 +17,34 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumerOffsetManagerTest {
 
+    private static final String KEY = "FooBar@FooBarGroup";
+
+    private BrokerController brokerController;
+
     private ConsumerOffsetManager consumerOffsetManager;
 
-    private static final String KEY = "FooBar@FooBarGroup";
     @Before
     public void init() {
-        consumerOffsetManager = new ConsumerOffsetManager();
+        brokerController = Mockito.mock(BrokerController.class);
+        consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
         offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
                 put(1,2L);
@@ -51,5 +63,22 @@ public class ConsumerOffsetManagerTest {
     public void cleanOffsetByTopic_Exist() {
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
         assertThat(!consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
+    }
+
+    @Test
+    public void testOffsetPersistInMemory() {
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = consumerOffsetManager.getOffsetTable();
+        ConcurrentMap<Integer, Long> table = new ConcurrentHashMap<>();
+        table.put(0, 1L);
+        table.put(1, 3L);
+        String group = "G1";
+        offsetTable.put(group, table);
+
+        consumerOffsetManager.persist();
+        ConsumerOffsetManager manager = new ConsumerOffsetManager(brokerController);
+        manager.load();
+
+        ConcurrentMap<Integer, Long> offsetTableLoaded = manager.getOffsetTable().get(group);
+        Assert.assertEquals(table, offsetTableLoaded);
     }
 }
