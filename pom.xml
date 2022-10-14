@@ -280,6 +280,7 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <excludes>**/generated*/**/*</excludes>
                         </configuration>
                         <goals>
                             <goal>check</goal>
