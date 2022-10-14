@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.tools.command.producer;
 
+import java.util.HashMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -30,8 +31,6 @@ import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 public class ProducerSubCommandTest {
     private ServerResponseMocker brokerMocker;

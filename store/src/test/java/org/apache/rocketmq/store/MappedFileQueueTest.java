@@ -272,7 +272,7 @@ public class MappedFileQueueTest {
 
         ThreadPoolExecutor executor = new ThreadPoolExecutor(3, 3, 1000 * 60,
             TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(),
+            new LinkedBlockingQueue<>(),
             new ThreadFactoryImpl("testThreadPool"));
 
         for (int i = 0; i < mappedFileSize; i++) {
@@ -351,7 +351,7 @@ public class MappedFileQueueTest {
 
         ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 1000 * 60,
             TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(),
+            new LinkedBlockingQueue<>(),
             new ThreadFactoryImpl("testThreadPool"));
         for (int i = 0; i < mappedFileSize; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);

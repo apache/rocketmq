@@ -31,7 +31,7 @@ public class AllocateMessageQueueByMachineRoom extends AbstractAllocateMessageQu
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
             return result;
         }
@@ -39,7 +39,7 @@ public class AllocateMessageQueueByMachineRoom extends AbstractAllocateMessageQu
         if (currentIndex < 0) {
             return result;
         }
-        List<MessageQueue> premqAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> premqAll = new ArrayList<>();
         for (MessageQueue mq : mqAll) {
             String[] temp = mq.getBrokerName().split("@");
             if (temp.length == 2 && consumeridcs.contains(temp[0])) {

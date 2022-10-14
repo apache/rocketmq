@@ -171,7 +171,7 @@ public class ExtraInfoUtil {
             return null;
         }
 
-        Map<String, List<Long>> msgOffsetMap = new HashMap<String, List<Long>>(4);
+        Map<String, List<Long>> msgOffsetMap = new HashMap<>(4);
         String[] array;
         if (msgOffsetInfo.indexOf(";") < 0) {
             array = new String[]{msgOffsetInfo};
@@ -188,7 +188,7 @@ public class ExtraInfoUtil {
             if (msgOffsetMap.containsKey(key)) {
                 throw new IllegalArgumentException("parse msgOffsetMap error, duplicate, " + msgOffsetMap);
             }
-            msgOffsetMap.put(key, new ArrayList<Long>(8));
+            msgOffsetMap.put(key, new ArrayList<>(8));
             String[] msgOffsets = split[2].split(",");
             for (String msgOffset : msgOffsets) {
                 msgOffsetMap.get(key).add(Long.valueOf(msgOffset));
@@ -202,7 +202,7 @@ public class ExtraInfoUtil {
         if (startOffsetInfo == null || startOffsetInfo.length() == 0) {
             return null;
         }
-        Map<String, Long> startOffsetMap = new HashMap<String, Long>(4);
+        Map<String, Long> startOffsetMap = new HashMap<>(4);
         String[] array;
         if (startOffsetInfo.indexOf(";") < 0) {
             array = new String[]{startOffsetInfo};
@@ -229,7 +229,7 @@ public class ExtraInfoUtil {
         if (orderCountInfo == null || orderCountInfo.length() == 0) {
             return null;
         }
-        Map<String, Integer> startOffsetMap = new HashMap<String, Integer>(4);
+        Map<String, Integer> startOffsetMap = new HashMap<>(4);
         String[] array;
         if (orderCountInfo.indexOf(";") < 0) {
             array = new String[]{orderCountInfo};

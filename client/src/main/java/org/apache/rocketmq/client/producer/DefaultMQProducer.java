@@ -66,13 +66,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
     private final InternalLogger log = ClientLogger.getLog();
-    private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<Integer>(Arrays.asList(
-            ResponseCode.TOPIC_NOT_EXIST,
-            ResponseCode.SERVICE_NOT_AVAILABLE,
-            ResponseCode.SYSTEM_ERROR,
-            ResponseCode.NO_PERMISSION,
-            ResponseCode.NO_BUYER_ID,
-            ResponseCode.NOT_IN_CURRENT_UNIT
+    private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<>(Arrays.asList(
+        ResponseCode.TOPIC_NOT_EXIST,
+        ResponseCode.SERVICE_NOT_AVAILABLE,
+        ResponseCode.SYSTEM_ERROR,
+        ResponseCode.NO_PERMISSION,
+        ResponseCode.NO_BUYER_ID,
+        ResponseCode.NOT_IN_CURRENT_UNIT
     ));
 
     /**

@@ -33,7 +33,7 @@ public class Configuration {
 
     private final InternalLogger log;
 
-    private List<Object> configObjectList = new ArrayList<Object>(4);
+    private List<Object> configObjectList = new ArrayList<>(4);
     private String storePath;
     private boolean storePathFromConfig = false;
     private Object storePathObject;

@@ -72,7 +72,7 @@ public class UpdateAccessConfigSubCommandTest {
         // groupPerms list value
         if (commandLine.hasOption('g')) {
             String[] groupPerms = commandLine.getOptionValue('g').trim().split(";");
-            List<String> groupPermList = new ArrayList<String>();
+            List<String> groupPermList = new ArrayList<>();
             Collections.addAll(groupPermList, groupPerms);
             accessConfig.setGroupPerms(groupPermList);
         }

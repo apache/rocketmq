@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MessageRequestModeSerializeWrapper extends RemotingSerializable {
 
     private ConcurrentHashMap<String/* Topic */, ConcurrentHashMap<String/* Group */, SetMessageRequestModeRequestBody>>
-            messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
+            messageRequestModeMap = new ConcurrentHashMap<>();
 
     public ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> getMessageRequestModeMap() {
         return messageRequestModeMap;

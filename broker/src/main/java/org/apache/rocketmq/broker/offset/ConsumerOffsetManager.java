@@ -42,7 +42,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private DataVersion dataVersion = new DataVersion();
 
     protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
-        new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
+        new ConcurrentHashMap<>(512);
 
     protected transient BrokerController brokerController;
 
@@ -119,7 +119,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public Set<String> whichTopicByConsumer(final String group) {
-        Set<String> topics = new HashSet<String>();
+        Set<String> topics = new HashSet<>();
 
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -137,7 +137,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public Set<String> whichGroupByTopic(final String topic) {
-        Set<String> groups = new HashSet<String>();
+        Set<String> groups = new HashSet<>();
 
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -155,7 +155,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public Map<String, Set<String>> getGroupTopicMap() {
-        Map<String, Set<String>> retMap = new HashMap<String, Set<String>>(128);
+        Map<String, Set<String>> retMap = new HashMap<>(128);
 
         for (String key : this.offsetTable.keySet()) {
             String[] arr = key.split(TOPIC_GROUP_SEPARATOR);
@@ -165,7 +165,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
                 Set<String> topics = retMap.get(group);
                 if (topics == null) {
-                    topics = new HashSet<String>(8);
+                    topics = new HashSet<>(8);
                     retMap.put(group, topics);
                 }
 
@@ -186,7 +186,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
-            map = new ConcurrentHashMap<Integer, Long>(32);
+            map = new ConcurrentHashMap<>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
@@ -250,7 +250,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
 
-        Map<Integer, Long> queueMinOffset = new HashMap<Integer, Long>();
+        Map<Integer, Long> queueMinOffset = new HashMap<>();
         Set<String> topicGroups = this.offsetTable.keySet();
         if (!UtilAll.isBlank(filterGroups)) {
             for (String group : filterGroups.split(",")) {
@@ -293,7 +293,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     public void cloneOffset(final String srcGroup, final String destGroup, final String topic) {
         ConcurrentMap<Integer, Long> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
         if (offsets != null) {
-            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<Integer, Long>(offsets));
+            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<>(offsets));
         }
     }
 

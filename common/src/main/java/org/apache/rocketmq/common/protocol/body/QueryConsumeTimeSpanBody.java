@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class QueryConsumeTimeSpanBody extends RemotingSerializable {
-    List<QueueTimeSpan> consumeTimeSpanSet = new ArrayList<QueueTimeSpan>();
+    List<QueueTimeSpan> consumeTimeSpanSet = new ArrayList<>();
 
     public List<QueueTimeSpan> getConsumeTimeSpanSet() {
         return consumeTimeSpanSet;

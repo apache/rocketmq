@@ -201,13 +201,13 @@ public class TimerMessageStore {
             dequeuePutMessageServices[i] = new TimerDequeuePutMessageService();
         }
         if (storeConfig.isTimerEnableDisruptor()) {
-            enqueuePutQueue = new DisruptorBlockingQueue<TimerRequest>(1024);
-            dequeueGetQueue = new DisruptorBlockingQueue<List<TimerRequest>>(1024);
-            dequeuePutQueue = new DisruptorBlockingQueue<TimerRequest>(1024);
+            enqueuePutQueue = new DisruptorBlockingQueue<>(1024);
+            dequeueGetQueue = new DisruptorBlockingQueue<>(1024);
+            dequeuePutQueue = new DisruptorBlockingQueue<>(1024);
         } else {
-            enqueuePutQueue = new LinkedBlockingDeque<TimerRequest>(1024);
-            dequeueGetQueue = new LinkedBlockingDeque<List<TimerRequest>>(1024);
-            dequeuePutQueue = new LinkedBlockingDeque<TimerRequest>(1024);
+            enqueuePutQueue = new LinkedBlockingDeque<>(1024);
+            dequeueGetQueue = new LinkedBlockingDeque<>(1024);
+            dequeuePutQueue = new LinkedBlockingDeque<>(1024);
         }
         this.brokerStatsManager = brokerStatsManager;
     }

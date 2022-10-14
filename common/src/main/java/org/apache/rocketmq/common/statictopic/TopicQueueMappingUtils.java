@@ -39,13 +39,13 @@ public class TopicQueueMappingUtils {
     public static final int DEFAULT_BLOCK_SEQ_SIZE = 10000;
 
     public static class MappingAllocator {
-        Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
-        Map<Integer, String> idToBroker = new HashMap<Integer, String>();
+        Map<String, Integer> brokerNumMap = new HashMap<>();
+        Map<Integer, String> idToBroker = new HashMap<>();
         //used for remapping
         Map<String, Integer> brokerNumMapBeforeRemapping = null;
         int currentIndex = 0;
         Random random = new Random();
-        List<String> leastBrokers = new ArrayList<String>();
+        List<String> leastBrokers = new ArrayList<>();
         private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap, Map<String, Integer> brokerNumMapBeforeRemapping) {
             this.idToBroker.putAll(idToBroker);
             this.brokerNumMap.putAll(brokerNumMap);
@@ -134,11 +134,11 @@ public class TopicQueueMappingUtils {
                 queueNum = mappingDetail.getTotalQueues();
             }
         }
-        return new AbstractMap.SimpleImmutableEntry<Long, Integer>(epoch, queueNum);
+        return new AbstractMap.SimpleImmutableEntry<>(epoch, queueNum);
     }
 
     public static List<TopicQueueMappingDetail> getMappingDetailFromConfig(Collection<TopicConfigAndQueueMapping> configs) {
-        List<TopicQueueMappingDetail> detailList = new ArrayList<TopicQueueMappingDetail>();
+        List<TopicQueueMappingDetail> detailList = new ArrayList<>();
         for (TopicConfigAndQueueMapping configMapping : configs) {
             if (configMapping.getMappingDetail() != null) {
                 detailList.add(configMapping.getMappingDetail());
@@ -198,7 +198,7 @@ public class TopicQueueMappingUtils {
                 maxNum = mappingDetail.getTotalQueues();
             }
         }
-        return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
+        return new AbstractMap.SimpleEntry<>(maxEpoch, maxNum);
     }
 
     public static String getMockBrokerName(String scope) {
@@ -295,7 +295,7 @@ public class TopicQueueMappingUtils {
     }
 
     public static void  checkIfReusePhysicalQueue(Collection<TopicQueueMappingOne> mappingOnes) {
-        Map<String, TopicQueueMappingOne>  physicalQueueIdMap = new HashMap<String, TopicQueueMappingOne>();
+        Map<String, TopicQueueMappingOne>  physicalQueueIdMap = new HashMap<>();
         for (TopicQueueMappingOne mappingOne : mappingOnes) {
             for (LogicQueueMappingItem item: mappingOne.items) {
                 String physicalQueueId = item.getBname() + "-" + item.getQueueId();
@@ -353,7 +353,7 @@ public class TopicQueueMappingUtils {
         });
 
         int maxNum = 0;
-        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
+        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
         for (TopicQueueMappingDetail mappingDetail : mappingDetailList) {
             if (mappingDetail.totalQueues > maxNum) {
                 maxNum = mappingDetail.totalQueues;
@@ -444,11 +444,11 @@ public class TopicQueueMappingUtils {
 
     public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         checkTargetBrokersComplete(targetBrokers, brokerConfigMap);
-        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
-        Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
+        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
+        Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
         if (!brokerConfigMap.isEmpty()) {
             maxEpochAndNum = TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
-            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
             checkIfReusePhysicalQueue(globalIdMap.values());
             checkPhysicalQueueConsistence(brokerConfigMap);
         }
@@ -461,11 +461,11 @@ public class TopicQueueMappingUtils {
         }
 
         //the check is ok, now do the mapping allocation
-        Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
+        Map<String, Integer> brokerNumMap = new HashMap<>();
         for (String broker: targetBrokers) {
             brokerNumMap.put(broker, 0);
         }
-        final Map<Integer, String> oldIdToBroker = new HashMap<Integer, String>();
+        final Map<Integer, String> oldIdToBroker = new HashMap<>();
         for (Map.Entry<Integer, TopicQueueMappingOne> entry : globalIdMap.entrySet()) {
             String leaderbroker = entry.getValue().getBname();
             oldIdToBroker.put(entry.getKey(), leaderbroker);
@@ -500,7 +500,7 @@ public class TopicQueueMappingUtils {
                 configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
             }
             LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
-            TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, new ArrayList<LogicQueueMappingItem>(Collections.singletonList(mappingItem)));
+            TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, new ArrayList<>(Collections.singletonList(mappingItem)));
         }
 
         // set the topic config
@@ -516,7 +516,7 @@ public class TopicQueueMappingUtils {
             checkIfReusePhysicalQueue(globalIdMap.values());
             checkPhysicalQueueConsistence(brokerConfigMap);
         }
-        return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, brokerConfigMap, new HashSet<String>(), new HashSet<String>());
+        return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, brokerConfigMap, new HashSet<>(), new HashSet<>());
     }
 
 
@@ -529,11 +529,11 @@ public class TopicQueueMappingUtils {
         //the check is ok, now do the mapping allocation
         int maxNum = maxEpochAndNum.getValue();
 
-        Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
+        Map<String, Integer> brokerNumMap = new HashMap<>();
         for (String broker: targetBrokers) {
             brokerNumMap.put(broker, 0);
         }
-        Map<String, Integer> brokerNumMapBeforeRemapping = new HashMap<String, Integer>();
+        Map<String, Integer> brokerNumMapBeforeRemapping = new HashMap<>();
         for (TopicQueueMappingOne mappingOne: globalIdMap.values()) {
             if (brokerNumMapBeforeRemapping.containsKey(mappingOne.bname)) {
                 brokerNumMapBeforeRemapping.put(mappingOne.bname, brokerNumMapBeforeRemapping.get(mappingOne.bname) + 1);
@@ -542,12 +542,12 @@ public class TopicQueueMappingUtils {
             }
         }
 
-        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<Integer, String>(), brokerNumMap, brokerNumMapBeforeRemapping);
+        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<>(), brokerNumMap, brokerNumMapBeforeRemapping);
         allocator.upToNum(maxNum);
         Map<String, Integer> expectedBrokerNumMap = allocator.getBrokerNumMap();
-        Queue<Integer> waitAssignQueues = new ArrayDeque<Integer>();
+        Queue<Integer> waitAssignQueues = new ArrayDeque<>();
         //cannot directly use the idBrokerMap from allocator, for the number of globalId maybe not in the natural order
-        Map<Integer, String> expectedIdToBroker = new HashMap<Integer, String>();
+        Map<Integer, String> expectedIdToBroker = new HashMap<>();
         //the following logic will make sure that, for one broker, either "map in" or "map out"
         //It can't both,  map in some queues but also map out some queues.
         for (Map.Entry<Integer, TopicQueueMappingOne> entry : globalIdMap.entrySet()) {
@@ -579,8 +579,8 @@ public class TopicQueueMappingUtils {
         long newEpoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
 
         //Now construct the remapping info
-        Set<String> brokersToMapOut = new HashSet<String>();
-        Set<String> brokersToMapIn = new HashSet<String>();
+        Set<String> brokersToMapOut = new HashSet<>();
+        Set<String> brokersToMapIn = new HashSet<>();
         for (Map.Entry<Integer, String> mapEntry : expectedIdToBroker.entrySet()) {
             Integer queueId = mapEntry.getKey();
             String broker = mapEntry.getValue();
@@ -605,7 +605,7 @@ public class TopicQueueMappingUtils {
             mapInConfig.setWriteQueueNums(mapInConfig.getWriteQueueNums() + 1);
             mapInConfig.setReadQueueNums(mapInConfig.getReadQueueNums() + 1);
 
-            List<LogicQueueMappingItem> items = new ArrayList<LogicQueueMappingItem>(topicQueueMappingOne.getItems());
+            List<LogicQueueMappingItem> items = new ArrayList<>(topicQueueMappingOne.getItems());
             LogicQueueMappingItem last = items.get(items.size() - 1);
             items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, -1, 0, -1, -1, -1));
 

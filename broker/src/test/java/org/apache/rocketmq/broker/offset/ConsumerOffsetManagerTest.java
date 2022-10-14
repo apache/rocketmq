@@ -33,7 +33,7 @@ public class ConsumerOffsetManagerTest {
     @Before
     public void init() {
         consumerOffsetManager = new ConsumerOffsetManager();
-        ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
+        ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
         offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
                 put(1,2L);
                 put(2,3L);

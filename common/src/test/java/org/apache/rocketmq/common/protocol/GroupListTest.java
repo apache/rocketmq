@@ -45,7 +45,7 @@ public class GroupListTest {
     }
 
     private HashSet<String> createUniqueNewSet() {
-        HashSet<String> groups = new HashSet<String>();
+        HashSet<String> groups = new HashSet<>();
         groups.add(UUID.randomUUID().toString());
         return groups;
     }

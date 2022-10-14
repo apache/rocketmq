@@ -372,7 +372,7 @@ public class MixAll {
     }
 
     public static List<String> getLocalInetAddress() {
-        List<String> inetAddressList = new ArrayList<String>();
+        List<String> inetAddressList = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
             while (enumeration.hasMoreElements()) {
@@ -407,7 +407,7 @@ public class MixAll {
 
     //Reverse logic comparing to RemotingUtil method, consider refactor in RocketMQ 5.0
     public static String getLocalhostByNetworkInterface() throws SocketException {
-        List<String> candidatesHost = new ArrayList<String>();
+        List<String> candidatesHost = new ArrayList<>();
         Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
 
         while (enumeration.hasMoreElements()) {

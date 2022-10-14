@@ -492,7 +492,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 clusterAclVersionInfo.setBrokerAddr(responseHeader.getBrokerAddr());
                 clusterAclVersionInfo.setAclConfigDataVersion(DataVersion.fromJson(responseHeader.getVersion(), DataVersion.class));
                 HashMap<String, Object> dataVersionMap = JSON.parseObject(responseHeader.getAllAclFileVersion(), HashMap.class);
-                Map<String, DataVersion> allAclConfigDataVersion = new HashMap<String, DataVersion>(dataVersionMap.size(), 1);
+                Map<String, DataVersion> allAclConfigDataVersion = new HashMap<>(dataVersionMap.size(), 1);
                 for (Map.Entry<String, Object> entry : dataVersionMap.entrySet()) {
                     allAclConfigDataVersion.put(entry.getKey(), DataVersion.fromJson(JSON.toJSONString(entry.getValue()), DataVersion.class));
                 }
@@ -1079,15 +1079,15 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 msgOffsetInfo = ExtraInfoUtil.parseMsgOffsetInfo(responseHeader.getMsgOffsetInfo());
                 orderCountInfo = ExtraInfoUtil.parseOrderCountInfo(responseHeader.getOrderCountInfo());
             }
-            Map<String/*topicMark@queueId*/, List<Long>/*msg queueOffset*/> sortMap = new HashMap<String, List<Long>>(16);
+            Map<String/*topicMark@queueId*/, List<Long>/*msg queueOffset*/> sortMap = new HashMap<>(16);
             for (MessageExt messageExt : msgFoundList) {
                 String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
                 if (!sortMap.containsKey(key)) {
-                    sortMap.put(key, new ArrayList<Long>(4));
+                    sortMap.put(key, new ArrayList<>(4));
                 }
                 sortMap.get(key).add(messageExt.getQueueOffset());
             }
-            Map<String, String> map = new HashMap<String, String>(5);
+            Map<String, String> map = new HashMap<>(5);
             for (MessageExt messageExt : msgFoundList) {
                 if (requestHeader instanceof PopMessageRequestHeader) {
                     if (startOffsetInfo == null) {
@@ -2706,7 +2706,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESRV_CONFIG, null);
 
-        Map<String, Properties> configMap = new HashMap<String, Properties>(4);
+        Map<String, Properties> configMap = new HashMap<>(4);
         for (String nameServer : invokeNameServers) {
             RemotingCommand response = this.remotingClient.invokeSync(nameServer, request, timeoutMillis);
 
@@ -2989,7 +2989,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONTROLLER_CONFIG, null);
 
-        Map<String, Properties> configMap = new HashMap<String, Properties>(4);
+        Map<String, Properties> configMap = new HashMap<>(4);
         for (String controller : invokeControllerServers) {
             RemotingCommand response = this.remotingClient.invokeSync(controller, request, timeoutMillis);
 

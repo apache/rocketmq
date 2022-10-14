@@ -113,9 +113,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
-    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
     private final long consumerStartTimestamp = System.currentTimeMillis();
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
     private final RPCHook rpcHook;
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
@@ -204,7 +204,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public Set<MessageQueue> parseSubscribeMessageQueues(Set<MessageQueue> messageQueueList) {
-        Set<MessageQueue> resultQueues = new HashSet<MessageQueue>();
+        Set<MessageQueue> resultQueues = new HashSet<>();
         for (MessageQueue queue : messageQueueList) {
             String userTopic = NamespaceUtil.withoutNamespace(queue.getTopic(), this.defaultMQPushConsumer.getNamespace());
             resultQueues.add(new MessageQueue(userTopic, queue.getBrokerName(), queue.getQueueId()));
@@ -605,7 +605,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             List<MessageExt> msgListFilterAgain = msgFoundList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()
                 && popResult.getMsgFoundList().size() > 0) {
-                msgListFilterAgain = new ArrayList<MessageExt>(popResult.getMsgFoundList().size());
+                msgListFilterAgain = new ArrayList<>(popResult.getMsgFoundList().size());
                 for (MessageExt msg : popResult.getMsgFoundList()) {
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {
@@ -1297,7 +1297,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
             if (CollectionUtils.isNotEmpty(mqs)) {
-                Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>(mqs.size(), 1);
+                Map<MessageQueue, Long> offsetTable = new HashMap<>(mqs.size(), 1);
                 for (MessageQueue mq : mqs) {
                     long offset = searchOffset(mq, timeStamp);
                     offsetTable.put(mq, offset);
@@ -1333,7 +1333,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
-        return new HashSet<SubscriptionData>(this.rebalanceImpl.getSubscriptionInner().values());
+        return new HashSet<>(this.rebalanceImpl.getSubscriptionInner().values());
     }
 
     @Override
@@ -1347,7 +1347,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void persistConsumerOffset() {
         try {
             this.makeSureStateOK();
-            Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            Set<MessageQueue> mqs = new HashSet<>();
             Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
             mqs.addAll(allocateMq);
 
@@ -1480,7 +1480,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public List<QueueTimeSpan> queryConsumeTimeSpan(final String topic)
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-        List<QueueTimeSpan> queueTimeSpan = new ArrayList<QueueTimeSpan>();
+        List<QueueTimeSpan> queueTimeSpan = new ArrayList<>();
         TopicRouteData routeData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
         for (BrokerData brokerData : routeData.getBrokerDatas()) {
             String addr = brokerData.selectBrokerAddr();

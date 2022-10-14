@@ -90,7 +90,7 @@ public class RouteInfoManagerTest {
             topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
             Channel channel = mock(Channel.class);
             RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster-1", "127.0.0.1:10911", "default-broker-1", 1234, "127.0.0.1:1001", "", 
-                    null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                    null, topicConfigSerializeWrapper, new ArrayList<>(), channel);
             assertThat(registerBrokerResult).isNotNull();
 
             DataVersion dataVersion0 = routeInfoManager.queryBrokerTopicConfig("default-cluster", "127.0.0.1:10911");
@@ -130,7 +130,7 @@ public class RouteInfoManagerTest {
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
         RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001", "", 
-                null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                null, topicConfigSerializeWrapper, new ArrayList<>(), channel);
         assertThat(registerBrokerResult).isNotNull();
     }
 

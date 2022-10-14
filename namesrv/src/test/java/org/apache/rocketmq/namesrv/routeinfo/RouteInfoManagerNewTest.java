@@ -707,7 +707,7 @@ public class RouteInfoManagerNewTest {
             "",
             null,
             brokerInfo.enableActingMaster,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
         return registerBrokerResult;
     }
 

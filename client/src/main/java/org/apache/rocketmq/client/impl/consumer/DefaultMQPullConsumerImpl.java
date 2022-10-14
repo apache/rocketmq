@@ -76,8 +76,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final RPCHook rpcHook;
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
-    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     protected MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
@@ -124,7 +124,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         ConcurrentMap<MessageQueue, ProcessQueue> mqTable = this.rebalanceImpl.getProcessQueueTable();
-        Set<MessageQueue> mqResult = new HashSet<MessageQueue>();
+        Set<MessageQueue> mqResult = new HashSet<>();
         for (MessageQueue mq : mqTable.keySet()) {
             if (mq.getTopic().equals(topic)) {
                 mqResult.add(mq);
@@ -151,7 +151,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public Set<MessageQueue> parseSubscribeMessageQueues(Set<MessageQueue> queueSet) {
-        Set<MessageQueue> resultQueues = new HashSet<MessageQueue>();
+        Set<MessageQueue> resultQueues = new HashSet<>();
         for (MessageQueue messageQueue : queueSet) {
             String userTopic = NamespaceUtil.withoutNamespace(messageQueue.getTopic(),
                 this.defaultMQPullConsumer.getNamespace());
@@ -355,7 +355,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
-        Set<SubscriptionData> result = new HashSet<SubscriptionData>();
+        Set<SubscriptionData> result = new HashSet<>();
 
         Set<String> topics = this.defaultMQPullConsumer.getRegisterTopics();
         if (topics != null) {
@@ -389,7 +389,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void persistConsumerOffset() {
         try {
             this.isRunning();
-            Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            Set<MessageQueue> mqs = new HashSet<>();
             Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
             mqs.addAll(allocateMq);
             this.offsetStore.persistAll(mqs);

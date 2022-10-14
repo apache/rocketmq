@@ -1214,7 +1214,7 @@ public class SelectorParser implements SelectorParserConstants {
             return jjNtk = jjNt.kind;
     }
 
-    private java.util.List<int[]> jjExpentries = new java.util.ArrayList<int[]>();
+    private java.util.List<int[]> jjExpentries = new java.util.ArrayList<>();
     private int[] jjExpentry;
     private int jjKind = -1;
     private int[] jjLasttokens = new int[100];

@@ -97,13 +97,13 @@ public class AllocateMessageQueueConsitentHashTest {
         List<MessageQueue> mqAll = createMessageQueueList(queueSize);
 
         List<String> cidAll = createConsumerIdList(consumerSize);
-        List<MessageQueue> allocatedResAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> allocatedResAll = new ArrayList<>();
 
-        Map<MessageQueue, String> allocateToAllOrigin = new TreeMap<MessageQueue, String>();
+        Map<MessageQueue, String> allocateToAllOrigin = new TreeMap<>();
         //test allocate all
         {
 
-            List<String> cidBegin = new ArrayList<String>(cidAll);
+            List<String> cidBegin = new ArrayList<>(cidAll);
 
             for (String cid : cidBegin) {
                 List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidBegin);
@@ -117,12 +117,12 @@ public class AllocateMessageQueueConsitentHashTest {
                 verifyAllocateAll(cidBegin, mqAll, allocatedResAll));
         }
 
-        Map<MessageQueue, String> allocateToAllAfterRemoveOne = new TreeMap<MessageQueue, String>();
-        List<String> cidAfterRemoveOne = new ArrayList<String>(cidAll);
+        Map<MessageQueue, String> allocateToAllAfterRemoveOne = new TreeMap<>();
+        List<String> cidAfterRemoveOne = new ArrayList<>(cidAll);
         //test allocate remove one cid
         {
             String removeCID = cidAfterRemoveOne.remove(0);
-            List<MessageQueue> mqShouldOnlyChanged = new ArrayList<MessageQueue>();
+            List<MessageQueue> mqShouldOnlyChanged = new ArrayList<>();
             Iterator<Map.Entry<MessageQueue, String>> it = allocateToAllOrigin.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<MessageQueue, String> entry = it.next();
@@ -131,7 +131,7 @@ public class AllocateMessageQueueConsitentHashTest {
                 }
             }
 
-            List<MessageQueue> allocatedResAllAfterRemove = new ArrayList<MessageQueue>();
+            List<MessageQueue> allocatedResAllAfterRemove = new ArrayList<>();
             for (String cid : cidAfterRemoveOne) {
                 List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidAfterRemoveOne);
                 allocatedResAllAfterRemove.addAll(rs);
@@ -145,14 +145,14 @@ public class AllocateMessageQueueConsitentHashTest {
             verifyAfterRemove(allocateToAllOrigin, allocateToAllAfterRemoveOne, removeCID);
         }
 
-        List<String> cidAfterAdd = new ArrayList<String>(cidAfterRemoveOne);
+        List<String> cidAfterAdd = new ArrayList<>(cidAfterRemoveOne);
         //test allocate add one more cid
         {
             String newCid = CID_PREFIX + "NEW";
             cidAfterAdd.add(newCid);
-            List<MessageQueue> mqShouldOnlyChanged = new ArrayList<MessageQueue>();
-            List<MessageQueue> allocatedResAllAfterAdd = new ArrayList<MessageQueue>();
-            Map<MessageQueue, String> allocateToAll3 = new TreeMap<MessageQueue, String>();
+            List<MessageQueue> mqShouldOnlyChanged = new ArrayList<>();
+            List<MessageQueue> allocatedResAllAfterAdd = new ArrayList<>();
+            Map<MessageQueue, String> allocateToAll3 = new TreeMap<>();
             for (String cid : cidAfterAdd) {
                 List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidAfterAdd);
                 allocatedResAllAfterAdd.addAll(rs);
@@ -204,7 +204,7 @@ public class AllocateMessageQueueConsitentHashTest {
     }
 
     private List<String> createConsumerIdList(int size) {
-        List<String> consumerIdList = new ArrayList<String>(size);
+        List<String> consumerIdList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             consumerIdList.add(CID_PREFIX + String.valueOf(i));
         }
@@ -212,7 +212,7 @@ public class AllocateMessageQueueConsitentHashTest {
     }
 
     private List<MessageQueue> createMessageQueueList(int size) {
-        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(size);
+        List<MessageQueue> messageQueueList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             MessageQueue mq = new MessageQueue(topic, "brokerName", i);
             messageQueueList.add(mq);

@@ -67,7 +67,7 @@ public class AllocateMQSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             String ips = commandLine.getOptionValue('i').trim();
             final String[] split = ips.split(",");
-            final List<String> ipList = new LinkedList<String>();
+            final List<String> ipList = new LinkedList<>();
             for (String ip : split) {
                 ipList.add(ip);
             }
@@ -80,7 +80,7 @@ public class AllocateMQSubCommand implements SubCommand {
             RebalanceResult rr = new RebalanceResult();
 
             for (String i : ipList) {
-                final List<MessageQueue> mqResult = averagely.allocate("aa", i, new ArrayList<MessageQueue>(mqs), ipList);
+                final List<MessageQueue> mqResult = averagely.allocate("aa", i, new ArrayList<>(mqs), ipList);
                 rr.getResult().put(i, mqResult);
             }
 

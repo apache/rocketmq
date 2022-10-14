@@ -538,7 +538,7 @@ public class MessageDecoder {
         final boolean readBody,
         final boolean decompressBody,
         final boolean isClient) {
-        List<MessageExt> msgExts = new ArrayList<MessageExt>();
+        List<MessageExt> msgExts = new ArrayList<>();
         while (byteBuffer.hasRemaining()) {
             MessageExt msgExt = decode(byteBuffer, readBody, decompressBody, isClient);
             if (null != msgExt) {
@@ -551,7 +551,7 @@ public class MessageDecoder {
     }
 
     public static List<MessageExt> decodes(ByteBuffer byteBuffer, final boolean readBody) {
-        List<MessageExt> msgExts = new ArrayList<MessageExt>();
+        List<MessageExt> msgExts = new ArrayList<>();
         while (byteBuffer.hasRemaining()) {
             MessageExt msgExt = clientDecode(byteBuffer, readBody);
             if (null != msgExt) {
@@ -600,7 +600,7 @@ public class MessageDecoder {
     }
 
     public static Map<String, String> string2messageProperties(final String properties) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         if (properties != null) {
             int len = properties.length();
             int index = 0;
@@ -697,7 +697,7 @@ public class MessageDecoder {
 
     public static byte[] encodeMessages(List<Message> messages) {
         //TO DO refactor, accumulate in one buffer, avoid copies
-        List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
+        List<byte[]> encodedMessages = new ArrayList<>(messages.size());
         int allSize = 0;
         for (Message message : messages) {
             byte[] tmp = encodeMessage(message);
@@ -715,7 +715,7 @@ public class MessageDecoder {
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {
         //TO DO add a callback for processing,  avoid creating lists
-        List<Message> msgs = new ArrayList<Message>();
+        List<Message> msgs = new ArrayList<>();
         while (byteBuffer.hasRemaining()) {
             Message msg = decodeMessage(byteBuffer);
             msgs.add(msg);

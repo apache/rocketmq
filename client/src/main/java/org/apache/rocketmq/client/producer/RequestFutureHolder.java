@@ -38,8 +38,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 public class RequestFutureHolder {
     private static InternalLogger log = ClientLogger.getLog();
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
-    private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private final Set<DefaultMQProducerImpl> producerSet = new HashSet<DefaultMQProducerImpl>();
+    private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<>();
+    private final Set<DefaultMQProducerImpl> producerSet = new HashSet<>();
     private ScheduledExecutorService scheduledExecutorService = null;
 
     public ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
@@ -47,7 +47,7 @@ public class RequestFutureHolder {
     }
 
     private void scanExpiredRequest() {
-        final List<RequestResponseFuture> rfList = new LinkedList<RequestResponseFuture>();
+        final List<RequestResponseFuture> rfList = new LinkedList<>();
         Iterator<Map.Entry<String, RequestResponseFuture>> it = requestFutureTable.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, RequestResponseFuture> next = it.next();
