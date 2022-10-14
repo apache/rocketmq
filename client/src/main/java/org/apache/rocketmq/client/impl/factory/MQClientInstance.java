@@ -28,6 +28,7 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.PullMessageService;
@@ -84,6 +85,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 
 import static org.apache.rocketmq.common.rpc.ClientMetadata.topicRouteData2EndpointsForStaticTopic;
 
@@ -1099,50 +1101,75 @@ public class MQClientInstance {
 
     public synchronized void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
         DefaultMQPushConsumerImpl consumer = null;
-        try {
-            MQConsumerInner impl = this.consumerTable.get(group);
-            if (impl instanceof DefaultMQPushConsumerImpl) {
-                consumer = (DefaultMQPushConsumerImpl) impl;
-            } else {
-                log.info("[reset-offset] consumer dose not exist. group={}", group);
-                return;
-            }
-            consumer.suspend();
-
-            ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
-            for (Map.Entry<MessageQueue, ProcessQueue> entry : processQueueTable.entrySet()) {
-                MessageQueue mq = entry.getKey();
-                if (topic.equals(mq.getTopic()) && offsetTable.containsKey(mq)) {
-                    ProcessQueue pq = entry.getValue();
-                    pq.setDropped(true);
-                    pq.clear();
-                }
-            }
-
+        MQConsumerInner impl = this.consumerTable.get(group);
+        if (impl instanceof DefaultMQPushConsumerImpl) {
+            consumer = (DefaultMQPushConsumerImpl) impl;
             try {
-                TimeUnit.SECONDS.sleep(10);
-            } catch (InterruptedException ignored) {
-            }
+                consumer.suspend();
 
-            Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
-            while (iterator.hasNext()) {
-                MessageQueue mq = iterator.next();
-                Long offset = offsetTable.get(mq);
-                if (topic.equals(mq.getTopic()) && offset != null) {
-                    try {
-                        consumer.updateConsumeOffset(mq, offset);
-                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
-                        iterator.remove();
-                    } catch (Exception e) {
-                        log.warn("reset offset failed. group={}, {}", group, mq, e);
+                ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
+                for (Map.Entry<MessageQueue, ProcessQueue> entry : processQueueTable.entrySet()) {
+                    MessageQueue mq = entry.getKey();
+                    if (topic.equals(mq.getTopic()) && offsetTable.containsKey(mq)) {
+                        ProcessQueue pq = entry.getValue();
+                        pq.setDropped(true);
+                        pq.clear();
                     }
                 }
+
+                try {
+                    TimeUnit.SECONDS.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+
+                Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
+                while (iterator.hasNext()) {
+                    MessageQueue mq = iterator.next();
+                    Long offset = offsetTable.get(mq);
+                    if (topic.equals(mq.getTopic()) && offset != null) {
+                        try {
+                            consumer.updateConsumeOffset(mq, offset);
+                            consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
+                            iterator.remove();
+                        } catch (Exception e) {
+                            log.warn("reset offset failed. group={}, {}", group, mq, e);
+                        }
+                    }
+                }
+            } finally {
+                if (consumer != null) {
+                    consumer.resume();
+                }
             }
-        } finally {
-            if (consumer != null) {
-                consumer.resume();
+        } else if (impl instanceof DefaultLitePullConsumerImpl) {
+            final DefaultLitePullConsumerImpl litePullConsumer = (DefaultLitePullConsumerImpl) impl;
+            try {
+                litePullConsumer.pause(offsetTable.keySet());
+                offsetTable.forEach(new BiConsumer<MessageQueue, Long>() {
+                    @Override
+                    public void accept(MessageQueue messageQueue, Long offset) {
+                        try {
+                            if (litePullConsumer.getAssignedMessageQueue().getAssignedMessageQueues().contains(messageQueue)) {
+                                litePullConsumer.seek(messageQueue, offset);
+                                log.info("LitePullConsumer seek " + messageQueue + " to " + offset);
+                            }
+                        } catch (MQClientException e) {
+                            log.warn("LitePullConsumer seek offset error", e);
+                        }
+                    }
+                });
+                litePullConsumer.commit(offsetTable, true);
+                log.info("litePullConsumer commit offset " + offsetTable);
+            } finally {
+                if (litePullConsumer != null) {
+                    litePullConsumer.resume(offsetTable.keySet());
+                }
             }
+        } else {
+            log.info("[reset-offset] consumer dose not exist. group={}", group);
+            return;
         }
+
     }
 
     @SuppressWarnings("unchecked")
