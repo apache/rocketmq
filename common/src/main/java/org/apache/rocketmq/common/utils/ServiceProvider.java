@@ -64,7 +64,7 @@ public class ServiceProvider {
             return o.getClass().getName() + "@" + System.identityHashCode(o);
         }
     }
-
+    
     protected static ClassLoader getClassLoader(Class<?> clazz) {
         try {
             return clazz.getClassLoader();
@@ -74,7 +74,7 @@ public class ServiceProvider {
             throw e;
         }
     }
-
+    
     protected static ClassLoader getContextClassLoader() {
         ClassLoader classLoader = null;
         try {
@@ -98,7 +98,11 @@ public class ServiceProvider {
     }
     
     public static <T> List<T> load(Class<?> clazz) {
-        String name = PREFIX + clazz.getName();
+        String fullName = PREFIX + clazz.getName();
+        return load(fullName, clazz);
+    }
+    
+    public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         List<T> services = new ArrayList<>();
         try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
@@ -123,12 +127,16 @@ public class ServiceProvider {
     }
     
     public static <T> T loadClass(Class<?> clazz) {
-        String name = PREFIX + clazz.getName();
+        String fullName = PREFIX + clazz.getName();
+        return loadClass(fullName, clazz);
+    }
+    
+    public static <T> T loadClass(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         T s = null;
         try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-        
+            
             String serviceName = reader.readLine();
             if (serviceName != null && !"".equals(serviceName)) {
                 s = initService(getContextClassLoader(), serviceName, clazz);
