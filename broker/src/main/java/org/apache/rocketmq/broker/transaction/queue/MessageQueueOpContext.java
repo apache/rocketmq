@@ -16,28 +16,35 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.topic.TopicValidator;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+public class MessageQueueOpContext {
+    private AtomicInteger totalSize = new AtomicInteger(0);
+    private volatile long lastWriteTimestamp;
+    private LinkedBlockingQueue<String> contextQueue;
 
-public class TransactionalMessageUtil {
-    public static final String REMOVE_TAG = "d";
-    public static final Charset CHARSET = StandardCharsets.UTF_8;
-    public static final String OFFSET_SEPARATOR = ",";
-    public static final String TRANSACTION_ID = "__transactionId__";
-
-    public static String buildOpTopic() {
-        return TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC;
+    public MessageQueueOpContext(long timestamp, int queueLength) {
+        this.lastWriteTimestamp = timestamp;
+        contextQueue = new LinkedBlockingQueue<String>(queueLength);
     }
 
-    public static String buildHalfTopic() {
-        return TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
+    public LinkedBlockingQueue<String> getContextQueue() {
+        return contextQueue;
     }
 
-    public static String buildConsumerGroup() {
-        return MixAll.CID_SYS_RMQ_TRANS;
+
+    public AtomicInteger getTotalSize() {
+        return totalSize;
     }
 
+
+    public long getLastWriteTimestamp() {
+        return lastWriteTimestamp;
+    }
+
+
+    public void setLastWriteTimestamp(long lastWriteTimestamp) {
+        this.lastWriteTimestamp = lastWriteTimestamp;
+    }
 }
