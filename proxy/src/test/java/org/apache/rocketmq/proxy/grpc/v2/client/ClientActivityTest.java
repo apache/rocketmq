@@ -208,7 +208,6 @@ public class ClientActivityTest extends BaseActivityTest {
         GrpcClientChannel channel = (GrpcClientChannel) clientChannelInfo.getChannel();
         assertEquals(REMOTE_ADDR, channel.getRemoteAddress());
         assertEquals(LOCAL_ADDR, channel.getLocalAddress());
-        assertEquals(group, channel.getGroup());
     }
 
     @Test

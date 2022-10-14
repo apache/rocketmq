@@ -75,7 +75,7 @@ public class ProxyClientRemotingProcessorTest {
                 proxyRelayResultFuture));
 
         GrpcClientChannel grpcClientChannel = new GrpcClientChannel(proxyRelayService, null,
-            ProxyContext.create().setRemoteAddress("127.0.0.1:8888").setLocalAddress("127.0.0.1:10911"), "group", "clientId");
+            ProxyContext.create().setRemoteAddress("127.0.0.1:8888").setLocalAddress("127.0.0.1:10911"), "clientId");
         when(producerManager.getAvailableChannel(anyString()))
             .thenReturn(grpcClientChannel);
 
