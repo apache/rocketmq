@@ -18,7 +18,6 @@
 package org.apache.rocketmq.namesrv.processor;
 
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,7 +63,7 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
         boolean namesrvReady = needCheckNamesrvReady.get() && namesrvController.getNamesrvConfig().isNeedWaitForService() &&
-            System.currentTimeMillis() - startupTimeMillis > TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
+            System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
 
         if (!namesrvReady) {
             //protect  logic
@@ -116,10 +115,5 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
     @Override
     public boolean rejectRequest() {
         return false;
-    }
-
-    @VisibleForTesting
-    public void setStartupTimeMillis(long startupTimeMillis) {
-        this.startupTimeMillis = startupTimeMillis;
     }
 }

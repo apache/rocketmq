@@ -122,7 +122,6 @@ public class ClusterTestRequestProcessorTest {
         RouteInfoManager routeInfoManager = mockRouteInfoManager();
         NamesrvController namesrvController = mockNamesrvController(routeInfoManager, true, -1);
         ClientRequestProcessor clientRequestProcessor = new ClientRequestProcessor(namesrvController);
-        clientRequestProcessor.setStartupTimeMillis(System.currentTimeMillis()-300);
         GetRouteInfoRequestHeader routeInfoRequestHeader = mockRouteInfoRequestHeader(topicName);
         RemotingCommand remotingCommand = mockTopicRouteCommand(routeInfoRequestHeader);
         RemotingCommand response = clientRequestProcessor.processRequest(mock(ChannelHandlerContext.class),
