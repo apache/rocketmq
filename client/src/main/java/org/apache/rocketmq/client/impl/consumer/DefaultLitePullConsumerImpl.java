@@ -691,12 +691,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         this.seek(messageQueue, end);
     }
 
-    private long maxOffset(MessageQueue messageQueue) throws MQClientException {
+    public long maxOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(messageQueue);
     }
 
-    private long minOffset(MessageQueue messageQueue) throws MQClientException {
+    public long minOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().minOffset(messageQueue);
     }

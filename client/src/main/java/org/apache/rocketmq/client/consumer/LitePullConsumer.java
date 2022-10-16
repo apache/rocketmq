@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.consumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 
 import java.util.Collection;
 import java.util.List;
@@ -238,4 +239,12 @@ public interface LitePullConsumer {
      * @param messageQueue
      */
     void seekToEnd(MessageQueue messageQueue)throws MQClientException;
+
+
+    Collection<MessageQueueInfo> fetchMessageQueuesInfo(String topic) throws MQClientException;
+
+    Map<MessageQueue, Long> beginningOffsets(Collection<MessageQueue> messageQueues) throws MQClientException;
+
+    Map<MessageQueue, Long> endOffsets(Collection<MessageQueue> messageQueues) throws MQClientException;
+
 }

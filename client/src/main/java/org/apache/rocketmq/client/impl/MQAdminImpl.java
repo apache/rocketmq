@@ -39,13 +39,9 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.message.*;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
@@ -179,6 +175,26 @@ public class MQAdminImpl {
             throw new MQClientException(
                 "Can not find Message Queue for this topic, " + topic + FAQUrl.suggestTodo(FAQUrl.MQLIST_NOT_EXIST),
                 e);
+        }
+
+        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+    }
+
+    public Set<MessageQueueInfo> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+        try {
+            TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
+            if (topicRouteData != null) {
+                Set<MessageQueue> mqList = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                if (!mqList.isEmpty()) {
+                    return mqList;
+                } else {
+                    throw new MQClientException("Can not find Message Queue for this topic, " + topic + " Namesrv return empty", null);
+                }
+            }
+        } catch (Exception e) {
+            throw new MQClientException(
+                    "Can not find Message Queue for this topic, " + topic + FAQUrl.suggestTodo(FAQUrl.MQLIST_NOT_EXIST),
+                    e);
         }
 
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);

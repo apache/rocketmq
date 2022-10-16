@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
@@ -233,6 +234,26 @@ public class MQClientInstance {
         if (route.getTopicQueueMappingByBroker() != null
                 && !route.getTopicQueueMappingByBroker().isEmpty()) {
             ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
+            return mqEndPoints.keySet();
+        }
+        List<QueueData> qds = route.getQueueDatas();
+        for (QueueData qd : qds) {
+            if (PermName.isReadable(qd.getPerm())) {
+                for (int i = 0; i < qd.getReadQueueNums(); i++) {
+                    MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
+                    mqList.add(mq);
+                }
+            }
+        }
+
+        return mqList;
+    }
+
+    public static Set<MessageQueueInfo> topicRouteData2TopicSubscribeDetailInfo(final String topic, final TopicRouteData route) {
+        Set<MessageQueueInfo> mqList = new HashSet<>();
+        if (route.getTopicQueueMappingByBroker() != null
+                && !route.getTopicQueueMappingByBroker().isEmpty()) {
+            ConcurrentMap<MessageQueueInfo, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
             return mqEndPoints.keySet();
         }
         List<QueueData> qds = route.getQueueDatas();

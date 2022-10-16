@@ -16,10 +16,8 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -34,6 +32,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -379,6 +378,33 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
         this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
+    }
+
+    @Override
+    public Collection<MessageQueueInfo> fetchMessageQueuesInfo(String topic) throws MQClientException {
+        return null;
+    }
+
+    @Override
+    public Map<MessageQueue, Long> beginningOffsets(Collection<MessageQueue> messageQueues) throws MQClientException {
+        Map<MessageQueue, Long> beginningOffsets = new HashMap<>(messageQueues.size());
+        for (MessageQueue messageQueue : messageQueues) {
+            // TODO optimise in one request from server
+            long currentOffset = this.defaultLitePullConsumerImpl.maxOffset(messageQueue);
+            beginningOffsets.put(messageQueue, currentOffset);
+        }
+        return beginningOffsets;
+    }
+
+    @Override
+    public Map<MessageQueue, Long> endOffsets(Collection<MessageQueue> messageQueues) throws MQClientException {
+        Map<MessageQueue, Long> endOffsets = new HashMap<>(messageQueues.size());
+        for (MessageQueue messageQueue : messageQueues) {
+            // TODO optimise in one request from server
+            long currentOffset = this.defaultLitePullConsumerImpl.minOffset(messageQueue);
+            endOffsets.put(messageQueue, currentOffset);
+        }
+        return endOffsets;
     }
 
     @Override
