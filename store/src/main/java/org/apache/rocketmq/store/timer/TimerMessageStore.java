@@ -1589,7 +1589,6 @@ public class TimerMessageStore {
             while (!this.isStopped()) {
                 try {
                     prepareTimerCheckPoint();
-                    timerLog.getMappedFileQueue().flush(0);
                     timerWheel.flush();
                     timerCheckpoint.flush();
                     timerLog.getMappedFileQueue().flush(0);
