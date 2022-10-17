@@ -62,10 +62,9 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        boolean namesrvReady = needCheckNamesrvReady.get() && namesrvController.getNamesrvConfig().isNeedWaitForService() &&
-            System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
+        boolean namesrvReady = needCheckNamesrvReady.get()  && System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
 
-        if (!namesrvReady) {
+        if (namesrvController.getNamesrvConfig().isNeedWaitForService() && !namesrvReady) {
             //protect  logic
             if (request.getCode() != RequestCode.REGISTER_BROKER && request.getCode() != RequestCode.UNREGISTER_BROKER) {
                 log.warn("name server not ready. request code {} ", request.getCode());

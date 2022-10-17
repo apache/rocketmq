@@ -120,7 +120,7 @@ public class ClusterTestRequestProcessorTest {
     public void testNamesrvReady() throws Exception {
         String topicName = "rocketmq-topic-test-ready";
         RouteInfoManager routeInfoManager = mockRouteInfoManager();
-        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, true, -1);
+        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, true, -1,true);
         ClientRequestProcessor clientRequestProcessor = new ClientRequestProcessor(namesrvController);
         GetRouteInfoRequestHeader routeInfoRequestHeader = mockRouteInfoRequestHeader(topicName);
         RemotingCommand remotingCommand = mockTopicRouteCommand(routeInfoRequestHeader);
@@ -130,10 +130,23 @@ public class ClusterTestRequestProcessorTest {
     }
 
     @Test
+    public void testNamesrvNoNeedWaitForService() throws Exception {
+        String topicName = "rocketmq-topic-test-ready";
+        RouteInfoManager routeInfoManager = mockRouteInfoManager();
+        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, true, 45,false);
+        ClientRequestProcessor clientRequestProcessor = new ClientRequestProcessor(namesrvController);
+        GetRouteInfoRequestHeader routeInfoRequestHeader = mockRouteInfoRequestHeader(topicName);
+        RemotingCommand remotingCommand = mockTopicRouteCommand(routeInfoRequestHeader);
+        RemotingCommand response = clientRequestProcessor.processRequest(mock(ChannelHandlerContext.class),
+            remotingCommand);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
     public void testNamesrvNotReady() throws Exception {
         String topicName = "rocketmq-topic-test";
         RouteInfoManager routeInfoManager = mockRouteInfoManager();
-        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, false, 45);
+        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, false, 45,true);
         GetRouteInfoRequestHeader routeInfoRequestHeader = mockRouteInfoRequestHeader(topicName);
         RemotingCommand remotingCommand = mockTopicRouteCommand(routeInfoRequestHeader);
         ClientRequestProcessor clientRequestProcessor = new ClientRequestProcessor(namesrvController);
@@ -147,7 +160,7 @@ public class ClusterTestRequestProcessorTest {
         int waitSecondsForService = 3;
         String topicName = "rocketmq-topic-test";
         RouteInfoManager routeInfoManager = mockRouteInfoManager();
-        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, false, waitSecondsForService);
+        NamesrvController namesrvController = mockNamesrvController(routeInfoManager, false, waitSecondsForService,true);
         GetRouteInfoRequestHeader routeInfoRequestHeader = mockRouteInfoRequestHeader(topicName);
         RemotingCommand remotingCommand = mockTopicRouteCommand(routeInfoRequestHeader);
         ClientRequestProcessor clientRequestProcessor = new ClientRequestProcessor(namesrvController);
@@ -168,9 +181,9 @@ public class ClusterTestRequestProcessorTest {
     }
 
     public NamesrvController mockNamesrvController(RouteInfoManager routeInfoManager, boolean ready,
-            int waitSecondsForService) {
+            int waitSecondsForService,boolean needWaitForService) {
         NamesrvConfig namesrvConfig = mock(NamesrvConfig.class);
-        when(namesrvConfig.isNeedWaitForService()).thenReturn(true);
+        when(namesrvConfig.isNeedWaitForService()).thenReturn(needWaitForService);
         when(namesrvConfig.getUnRegisterBrokerQueueCapacity()).thenReturn(10);
         when(namesrvConfig.getWaitSecondsForService()).thenReturn(ready ? 0 : waitSecondsForService);
         NamesrvController namesrvController = mock(NamesrvController.class);

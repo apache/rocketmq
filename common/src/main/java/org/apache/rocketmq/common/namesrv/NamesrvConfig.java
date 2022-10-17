@@ -78,7 +78,7 @@ public class NamesrvConfig {
      */
     private boolean enableControllerInNamesrv = false;
 
-    private volatile boolean needWaitForService = true;
+    private volatile boolean needWaitForService = false;
 
     private int waitSecondsForService = 45;
 
