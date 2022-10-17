@@ -20,8 +20,8 @@ import java.util.HashSet;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumeByWho extends RemotingSerializable {
-    private HashSet<String> consumedGroup = new HashSet<String>();
-    private HashSet<String> notConsumedGroup = new HashSet<String>();
+    private HashSet<String> consumedGroup = new HashSet<>();
+    private HashSet<String> notConsumedGroup = new HashSet<>();
     private String topic;
     private int queueId;
     private long offset;

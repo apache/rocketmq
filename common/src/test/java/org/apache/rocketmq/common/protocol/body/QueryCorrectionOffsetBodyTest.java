@@ -30,7 +30,7 @@ public class QueryCorrectionOffsetBodyTest {
     @Test
     public void testFromJson() throws Exception {
         QueryCorrectionOffsetBody qcob = new QueryCorrectionOffsetBody();
-        Map<Integer, Long> offsetMap = new HashMap<Integer, Long>();
+        Map<Integer, Long> offsetMap = new HashMap<>();
         offsetMap.put(1, 100L);
         offsetMap.put(2, 200L);
         qcob.setCorrectionOffsets(offsetMap);

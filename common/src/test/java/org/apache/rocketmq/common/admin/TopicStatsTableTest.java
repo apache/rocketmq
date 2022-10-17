@@ -44,7 +44,7 @@ public class TopicStatsTableTest {
 
     @Before
     public void buildTopicStatsTable() {
-        HashMap<MessageQueue, TopicOffset> offsetTableMap = new HashMap<MessageQueue, TopicOffset>();
+        HashMap<MessageQueue, TopicOffset> offsetTableMap = new HashMap<>();
 
         MessageQueue messageQueue = new MessageQueue(TEST_TOPIC, TEST_BROKER, QUEUE_ID);
 

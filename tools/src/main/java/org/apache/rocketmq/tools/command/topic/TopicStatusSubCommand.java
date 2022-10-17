@@ -63,7 +63,7 @@ public class TopicStatusSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
 
-            List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+            List<MessageQueue> mqList = new LinkedList<>();
             mqList.addAll(topicStatsTable.getOffsetTable().keySet());
             Collections.sort(mqList);
 

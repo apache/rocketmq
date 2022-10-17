@@ -104,7 +104,7 @@ public class AllocateMachineRoomNearByTest {
     public void testWhenIDCSizeEquals(int idcSize, int queueSize, int consumerSize) {
         List<String> cidAll = prepareConsumer(idcSize, consumerSize);
         List<MessageQueue> mqAll = prepareMQ(idcSize, queueSize);
-        List<MessageQueue> resAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> resAll = new ArrayList<>();
         for (String currentID : cidAll) {
             List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
             for (MessageQueue mq : res) {
@@ -116,14 +116,14 @@ public class AllocateMachineRoomNearByTest {
     }
 
     public void testWhenConsumerIDCIsMore(int brokerIDCSize, int consumerMore, int queueSize, int consumerSize, boolean print) {
-        Set<String> brokerIDCWithConsumer = new TreeSet<String>();
+        Set<String> brokerIDCWithConsumer = new TreeSet<>();
         List<String> cidAll = prepareConsumer(brokerIDCSize + consumerMore, consumerSize);
         List<MessageQueue> mqAll = prepareMQ(brokerIDCSize, queueSize);
         for (MessageQueue mq : mqAll) {
             brokerIDCWithConsumer.add(machineRoomResolver.brokerDeployIn(mq));
         }
 
-        List<MessageQueue> resAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> resAll = new ArrayList<>();
         for (String currentID : cidAll) {
             List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
             for (MessageQueue mq : res) {
@@ -138,20 +138,20 @@ public class AllocateMachineRoomNearByTest {
     }
 
     public void testWhenConsumerIDCIsLess(int brokerIDCSize, int consumerIDCLess, int queueSize, int consumerSize, boolean print) {
-        Set<String> healthyIDC = new TreeSet<String>();
+        Set<String> healthyIDC = new TreeSet<>();
         List<String> cidAll = prepareConsumer(brokerIDCSize - consumerIDCLess, consumerSize);
         List<MessageQueue> mqAll = prepareMQ(brokerIDCSize, queueSize);
         for (String cid : cidAll) {
             healthyIDC.add(machineRoomResolver.consumerDeployIn(cid));
         }
 
-        List<MessageQueue> resAll = new ArrayList<MessageQueue>();
-        Map<String, List<MessageQueue>> idc2Res = new TreeMap<String, List<MessageQueue>>();
+        List<MessageQueue> resAll = new ArrayList<>();
+        Map<String, List<MessageQueue>> idc2Res = new TreeMap<>();
         for (String currentID : cidAll) {
             String currentIDC = machineRoomResolver.consumerDeployIn(currentID);
             List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
             if (!idc2Res.containsKey(currentIDC)) {
-                idc2Res.put(currentIDC, new ArrayList<MessageQueue>());
+                idc2Res.put(currentIDC, new ArrayList<>());
             }
             idc2Res.get(currentIDC).addAll(res);
             resAll.addAll(res);
@@ -176,7 +176,7 @@ public class AllocateMachineRoomNearByTest {
 
 
     private List<String> createConsumerIdList(String machineRoom, int size) {
-        List<String> consumerIdList = new ArrayList<String>(size);
+        List<String> consumerIdList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             consumerIdList.add(machineRoom + "-" + CID_PREFIX + String.valueOf(i));
         }
@@ -184,7 +184,7 @@ public class AllocateMachineRoomNearByTest {
     }
 
     private List<MessageQueue> createMessageQueueList(String machineRoom, int size) {
-        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(size);
+        List<MessageQueue> messageQueueList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             MessageQueue mq = new MessageQueue(topic, machineRoom + "-brokerName", i);
             messageQueueList.add(mq);
@@ -193,7 +193,7 @@ public class AllocateMachineRoomNearByTest {
     }
 
     private List<MessageQueue> prepareMQ(int brokerIDCSize, int queueSize) {
-        List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> mqAll = new ArrayList<>();
         for (int i = 1; i <= brokerIDCSize; i++) {
             mqAll.addAll(createMessageQueueList("IDC" + i, queueSize));
         }
@@ -202,7 +202,7 @@ public class AllocateMachineRoomNearByTest {
     }
 
     private List<String> prepareConsumer(int idcSize, int consumerSize) {
-        List<String> cidAll = new ArrayList<String>();
+        List<String> cidAll = new ArrayList<>();
         for (int i = 1; i <= idcSize; i++) {
             cidAll.addAll(createConsumerIdList("IDC" + i, consumerSize));
         }

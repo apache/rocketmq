@@ -59,11 +59,11 @@ public class PullAPIWrapper {
     private final String consumerGroup;
     private final boolean unitMode;
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
-        new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
+        new ConcurrentHashMap<>(32);
     private volatile boolean connectBrokerByUser = false;
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
     private Random random = new Random(System.nanoTime());
-    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
 
     public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
         this.mQClientFactory = mQClientFactory;
@@ -94,7 +94,7 @@ public class PullAPIWrapper {
                 }
             }
             if (needDecodeInnerMessage) {
-                List<MessageExt> innerMsgList = new ArrayList<MessageExt>();
+                List<MessageExt> innerMsgList = new ArrayList<>();
                 try {
                     for (MessageExt messageExt: msgList) {
                         if (MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)
@@ -112,7 +112,7 @@ public class PullAPIWrapper {
 
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
-                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
+                msgListFilterAgain = new ArrayList<>(msgList.size());
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {

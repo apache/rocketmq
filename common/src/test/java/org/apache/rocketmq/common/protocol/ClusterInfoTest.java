@@ -74,8 +74,8 @@ public class ClusterInfoTest {
 
     private ClusterInfo buildClusterInfo() throws Exception {
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
-        HashMap<String, Set<String>> clusterAddrTable = new HashMap<String, Set<String>>();
+        HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
+        HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
 
         //build brokerData
         BrokerData brokerData = new BrokerData();
@@ -83,13 +83,13 @@ public class ClusterInfoTest {
         brokerData.setCluster("DEFAULT_CLUSTER");
 
         //build brokerAddrs
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(MixAll.MASTER_ID, MixAll.getLocalhostByNetworkInterface());
 
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerAddrTable.put("master", brokerData);
 
-        Set<String> brokerNames = new HashSet<String>();
+        Set<String> brokerNames = new HashSet<>();
         brokerNames.add("master");
 
         clusterAddrTable.put("DEFAULT_CLUSTER", brokerNames);

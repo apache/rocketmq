@@ -30,7 +30,7 @@ public class Permission {
     public static final byte PUB = 1 << 2;
     public static final byte SUB = 1 << 3;
 
-    public static final Set<Integer> ADMIN_CODE = new HashSet<Integer>();
+    public static final Set<Integer> ADMIN_CODE = new HashSet<>();
 
     static {
         // UPDATE_AND_CREATE_TOPIC

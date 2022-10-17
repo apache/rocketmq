@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -64,6 +65,84 @@ public class ReceiptHandleGroupTest extends InitConfigAndLoggerTest {
             .commitLogOffset(0L)
             .build().encode();
     }
+
+    @Test
+    public void testGetWhenComputeIfPresent() {
+        String handle1 = createHandle();
+        String handle2 = createHandle();
+        AtomicReference<MessageReceiptHandle> getHandleRef = new AtomicReference<>();
+
+        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        CountDownLatch latch = new CountDownLatch(2);
+        Thread getThread = new Thread(() -> {
+            try {
+                latch.countDown();
+                latch.await();
+                getHandleRef.set(receiptHandleGroup.get(msgID, handle1));
+            } catch (Exception ignored) {
+            }
+        }, "getThread");
+        Thread computeThread = new Thread(() -> {
+            try {
+                receiptHandleGroup.computeIfPresent(msgID, handle1, messageReceiptHandle -> {
+                    try {
+                        latch.countDown();
+                        latch.await();
+                    } catch (Exception ignored) {
+                    }
+                    messageReceiptHandle.updateReceiptHandle(handle2);
+                    return FutureUtils.addExecutor(CompletableFuture.completedFuture(messageReceiptHandle), Executors.newCachedThreadPool());
+                });
+            } catch (Exception ignored) {
+            }
+        }, "computeThread");
+        getThread.start();
+        computeThread.start();
+
+        await().atMost(Duration.ofSeconds(1)).until(() -> getHandleRef.get() != null);
+        assertEquals(handle2, getHandleRef.get().getReceiptHandleStr());
+        assertFalse(receiptHandleGroup.isEmpty());
+    }
+
+    @Test
+    public void testGetWhenComputeIfPresentReturnNull() {
+        String handle1 = createHandle();
+        AtomicBoolean getCalled = new AtomicBoolean(false);
+        AtomicReference<MessageReceiptHandle> getHandleRef = new AtomicReference<>();
+
+        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        CountDownLatch latch = new CountDownLatch(2);
+        Thread getThread = new Thread(() -> {
+            try {
+                latch.countDown();
+                latch.await();
+                getHandleRef.set(receiptHandleGroup.get(msgID, handle1));
+                getCalled.set(true);
+            } catch (Exception ignored) {
+            }
+        }, "getThread");
+        Thread computeThread = new Thread(() -> {
+            try {
+                receiptHandleGroup.computeIfPresent(msgID, handle1, messageReceiptHandle -> {
+                    try {
+                        latch.countDown();
+                        latch.await();
+                    } catch (Exception ignored) {
+                    }
+                    return FutureUtils.addExecutor(CompletableFuture.completedFuture(null), Executors.newCachedThreadPool());
+                });
+            } catch (Exception ignored) {
+            }
+        }, "computeThread");
+        getThread.start();
+        computeThread.start();
+
+        await().atMost(Duration.ofSeconds(1)).until(getCalled::get);
+        assertNull(getHandleRef.get());
+        assertTrue(receiptHandleGroup.isEmpty());
+    }
+
+
 
     @Test
     public void testRemoveWhenComputeIfPresent() {

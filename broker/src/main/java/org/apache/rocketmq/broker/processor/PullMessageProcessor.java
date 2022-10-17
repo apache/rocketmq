@@ -66,6 +66,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -303,7 +304,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark(String.format("the broker[%s] pulling message is forbidden", this.brokerController.getBrokerConfig().getBrokerIP1()));
+            response.setRemark(String.format("the broker[%s] pulling message is forbidden",
+                    this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
         }
 
@@ -462,9 +464,26 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerFilterManager());
         }
 
-        final GetMessageResult getMessageResult =
-            this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
+        final MessageStore messageStore = brokerController.getMessageStore();
+        final boolean useResetOffsetFeature = brokerController.getBrokerConfig().isUseServerSideResetOffset();
+        String topic = requestHeader.getTopic();
+        String group = requestHeader.getConsumerGroup();
+        int queueId = requestHeader.getQueueId();
+        Long resetOffset = brokerController.getConsumerOffsetManager().queryThenEraseResetOffset(topic, group, queueId);
+
+        GetMessageResult getMessageResult;
+        if (useResetOffsetFeature && null != resetOffset) {
+            getMessageResult = new GetMessageResult();
+            getMessageResult.setStatus(GetMessageStatus.OFFSET_RESET);
+            getMessageResult.setNextBeginOffset(resetOffset);
+            getMessageResult.setMinOffset(messageStore.getMinOffsetInQueue(topic, queueId));
+            getMessageResult.setMaxOffset(messageStore.getMaxOffsetInQueue(topic, queueId));
+            getMessageResult.setSuggestPullingFromSlave(false);
+        } else {
+            getMessageResult = messageStore.getMessage(
+                group, topic, queueId, requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
+        }
+
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
@@ -511,6 +530,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     break;
                 case OFFSET_OVERFLOW_ONE:
                     response.setCode(ResponseCode.PULL_NOT_FOUND);
+                    break;
+                case OFFSET_RESET:
+                    response.setCode(ResponseCode.PULL_OFFSET_MOVED);
+                    LOGGER.info("The queue under pulling was previously reset to start from {}",
+                        getMessageResult.getNextBeginOffset());
                     break;
                 case OFFSET_TOO_SMALL:
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);

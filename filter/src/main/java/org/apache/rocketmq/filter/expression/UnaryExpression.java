@@ -82,7 +82,7 @@ public abstract class UnaryExpression implements Expression {
         } else if (elements.size() < 5) {
             t = elements;
         } else {
-            t = new HashSet<Object>(elements);
+            t = new HashSet<>(elements);
         }
         final Collection inList = t;
 

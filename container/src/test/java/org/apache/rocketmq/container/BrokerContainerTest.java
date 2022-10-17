@@ -27,7 +27,11 @@ import java.util.Set;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.common.*;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.BrokerIdentity;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -45,7 +49,13 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyBoolean;
 
 public class BrokerContainerTest {
     private static final List<File> TMP_FILE_LIST = new ArrayList<>();

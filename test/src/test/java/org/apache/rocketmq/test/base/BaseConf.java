@@ -57,25 +57,31 @@ import org.slf4j.LoggerFactory;
 import static org.awaitility.Awaitility.await;
 
 public class BaseConf {
+
+    private final static Logger log = LoggerFactory.getLogger(BaseConf.class);
+
     public final static String NAMESRV_ADDR;
+
+    //the logic queue test need at least three brokers
+    protected final static String CLUSTER_NAME;
     protected final static String BROKER1_NAME;
     protected final static String BROKER2_NAME;
-    //the logic queue test need at least three brokers
     protected final static String BROKER3_NAME;
-    protected final static String CLUSTER_NAME;
+
     protected final static int BROKER_NUM = 3;
     protected final static int WAIT_TIME = 5;
     protected final static int CONSUME_TIME = 2 * 60 * 1000;
     protected final static int QUEUE_NUMBERS = 8;
+
     protected static NamesrvController namesrvController;
     protected static BrokerController brokerController1;
     protected static BrokerController brokerController2;
     protected static BrokerController brokerController3;
     protected static List<BrokerController> brokerControllerList;
     protected static Map<String, BrokerController> brokerControllerMap;
+
     protected static List<Object> mqClients = new ArrayList<Object>();
     protected static boolean debug = false;
-    private final static Logger log = LoggerFactory.getLogger(BaseConf.class);
 
     static {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
@@ -100,7 +106,8 @@ public class BaseConf {
         BROKER2_NAME = brokerController2.getBrokerConfig().getBrokerName();
         BROKER3_NAME = brokerController3.getBrokerConfig().getBrokerName();
         brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
-        brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
+        brokerControllerMap = brokerControllerList.stream().collect(
+            Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
 
     public BaseConf() {
@@ -203,7 +210,7 @@ public class BaseConf {
     }
 
     public static DefaultMQAdminExt getAdmin(String nsAddr) {
-        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
+        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(3 * 1000);
         mqAdminExt.setNamesrvAddr(nsAddr);
         mqAdminExt.setPollNameServerInterval(100);
         mqClients.add(mqAdminExt);

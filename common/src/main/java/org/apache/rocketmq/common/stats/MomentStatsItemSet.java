@@ -28,7 +28,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public class MomentStatsItemSet {
     private final ConcurrentMap<String/* key */, MomentStatsItem> statsItemTable =
-        new ConcurrentHashMap<String, MomentStatsItem>(128);
+        new ConcurrentHashMap<>(128);
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
     private final InternalLogger log;

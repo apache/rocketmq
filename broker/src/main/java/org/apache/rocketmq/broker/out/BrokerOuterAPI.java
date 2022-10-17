@@ -204,7 +204,7 @@ public class BrokerOuterAPI {
 
     public void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
-        List<String> lst = new ArrayList<String>(Arrays.asList(addrArray));
+        List<String> lst = new ArrayList<>(Arrays.asList(addrArray));
         this.remotingClient.updateNameServerAddressList(lst);
     }
 

@@ -35,7 +35,7 @@ public class KVConfigManager {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
-        new HashMap<String, HashMap<String, String>>();
+        new HashMap<>();
 
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;

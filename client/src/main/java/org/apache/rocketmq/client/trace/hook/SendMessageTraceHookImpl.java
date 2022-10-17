@@ -48,7 +48,7 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         }
         //build the context content of TraceContext
         TraceContext traceContext = new TraceContext();
-        traceContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        traceContext.setTraceBeans(new ArrayList<>(1));
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.Pub);
         traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));

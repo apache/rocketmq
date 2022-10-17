@@ -291,6 +291,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean asyncSendEnable = true;
 
+    private boolean useServerSideResetOffset = false;
+
     private long consumerOffsetUpdateVersionStep = 500;
 
     private long delayOffsetUpdateVersionStep = 200;
@@ -1355,5 +1357,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
         this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
+    }
+
+    public boolean isUseServerSideResetOffset() {
+        return useServerSideResetOffset;
+    }
+
+    public void setUseServerSideResetOffset(boolean useServerSideResetOffset) {
+        this.useServerSideResetOffset = useServerSideResetOffset;
     }
 }

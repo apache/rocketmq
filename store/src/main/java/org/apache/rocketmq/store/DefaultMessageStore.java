@@ -167,7 +167,7 @@ public class DefaultMessageStore implements MessageStore {
     private SendMessageBackHook sendMessageBackHook;
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+        new ConcurrentHashMap<>(32);
 
     private int maxDelayLevel;
 
@@ -227,7 +227,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public boolean parseDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
+        HashMap<String, Long> timeUnitTable = new HashMap<>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);
@@ -1276,7 +1276,7 @@ public class DefaultMessageStore implements MessageStore {
 
     public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
         SocketAddress storeHost) {
-        Map<String, Long> messageIds = new HashMap<String, Long>();
+        Map<String, Long> messageIds = new HashMap<>();
         if (this.shutdown) {
             return messageIds;
         }

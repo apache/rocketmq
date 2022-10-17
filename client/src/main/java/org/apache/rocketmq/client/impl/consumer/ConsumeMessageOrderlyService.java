@@ -72,7 +72,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
+        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
         String consumeThreadPrefix = null;
         if (consumerGroup.length() > 100) {
@@ -146,7 +146,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
         result.setOrder(true);
 
-        List<MessageExt> msgs = new ArrayList<MessageExt>();
+        List<MessageExt> msgs = new ArrayList<>();
         msgs.add(msg);
         MessageQueue mq = new MessageQueue();
         mq.setBrokerName(brokerName);
@@ -486,7 +486,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                 consumeMessageContext.setMsgList(msgs);
                                 consumeMessageContext.setSuccess(false);
                                 // init the consume context type
-                                consumeMessageContext.setProps(new HashMap<String, String>());
+                                consumeMessageContext.setProps(new HashMap<>());
                                 ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
                             }
 

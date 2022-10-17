@@ -82,7 +82,7 @@ public class ClusterTestRequestProcessorTest {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDatas = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(1234l, "127.0.0.1:10911");
+        brokerAddrs.put(1234L, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
         brokerData.setCluster("default-cluster");
         brokerData.setBrokerName("default-broker");

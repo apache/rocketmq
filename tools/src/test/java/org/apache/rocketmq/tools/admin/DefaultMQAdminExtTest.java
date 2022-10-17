@@ -38,7 +38,6 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -48,12 +47,10 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.ProducerInfo;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
@@ -63,9 +60,7 @@ import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -150,8 +145,8 @@ public class DefaultMQAdminExtTest {
         brokerDatas.add(brokerData);
         brokerDatas.add(new BrokerData(CLUSTER, BROKER2_NAME, (HashMap<Long, String>) Maps.newHashMap(MixAll.MASTER_ID, BROKER2_ADDR)));
         topicRouteData.setBrokerDatas(brokerDatas);
-        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        topicRouteData.setQueueDatas(new ArrayList<>());
+        topicRouteData.setFilterServerTable(new HashMap<>());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         HashMap<String, String> result = new HashMap<>();
@@ -164,7 +159,7 @@ public class DefaultMQAdminExtTest {
         brokerAddrTable.put(BROKER1_NAME, brokerData);
         brokerAddrTable.put(BROKER2_NAME, new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
-        clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
+        clusterInfo.setClusterAddrTable(new HashMap<>());
         when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
         when(mQClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
 
@@ -216,7 +211,7 @@ public class DefaultMQAdminExtTest {
         HashSet<Connection> connections = new HashSet<>();
         connections.add(new Connection());
         consumerConnection.setConnectionSet(connections);
-        consumerConnection.setSubscriptionTable(new ConcurrentHashMap<String, SubscriptionData>());
+        consumerConnection.setSubscriptionTable(new ConcurrentHashMap<>());
         consumerConnection.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
 
@@ -224,7 +219,7 @@ public class DefaultMQAdminExtTest {
         Connection connection = new Connection();
         connection.setClientAddr("127.0.0.1:9898");
         connection.setClientId("PID_12345");
-        HashSet<Connection> connectionSet = new HashSet<Connection>();
+        HashSet<Connection> connectionSet = new HashSet<>();
         connectionSet.add(connection);
         producerConnection.setConnectionSet(connectionSet);
         when(mQClientAPIImpl.getProducerConnectionList(anyString(), anyString(), anyLong())).thenReturn(producerConnection);
@@ -244,7 +239,7 @@ public class DefaultMQAdminExtTest {
         when(mQClientAPIImpl.addWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(7);
 
         TopicStatsTable topicStatsTable = new TopicStatsTable();
-        topicStatsTable.setOffsetTable(new HashMap<MessageQueue, TopicOffset>());
+        topicStatsTable.setOffsetTable(new HashMap<>());
 
         Map<String, Map<MessageQueue, Long>> consumerStatus = new HashMap<>();
         when(mQClientAPIImpl.invokeBrokerToGetConsumerStatus(anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(consumerStatus);
@@ -254,9 +249,9 @@ public class DefaultMQAdminExtTest {
 
         ConsumerRunningInfo consumerRunningInfo = new ConsumerRunningInfo();
         consumerRunningInfo.setJstack("test");
-        consumerRunningInfo.setMqTable(new TreeMap<MessageQueue, ProcessQueueInfo>());
-        consumerRunningInfo.setStatusTable(new TreeMap<String, ConsumeStatus>());
-        consumerRunningInfo.setSubscriptionSet(new TreeSet<SubscriptionData>());
+        consumerRunningInfo.setMqTable(new TreeMap<>());
+        consumerRunningInfo.setStatusTable(new TreeMap<>());
+        consumerRunningInfo.setSubscriptionSet(new TreeSet<>());
         when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
 
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
