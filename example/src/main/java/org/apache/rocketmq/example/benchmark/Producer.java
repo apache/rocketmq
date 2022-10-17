@@ -100,7 +100,7 @@ public class Producer {
         ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1,
                 new BasicThreadFactory.Builder().namingPattern("BenchmarkTimerThread-%d").daemon(true).build());
 
-        final LinkedList<Long[]> snapshotList = new LinkedList<Long[]>();
+        final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
         final long[] msgNums = new long[threadCount];
 

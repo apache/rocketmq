@@ -167,7 +167,7 @@ public class DefaultMessageStore implements MessageStore {
     private SendMessageBackHook sendMessageBackHook;
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+        new ConcurrentHashMap<>(32);
 
     private int maxDelayLevel;
 
@@ -227,7 +227,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public boolean parseDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
+        HashMap<String, Long> timeUnitTable = new HashMap<>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);
@@ -272,23 +272,23 @@ public class DefaultMessageStore implements MessageStore {
 
         try {
             boolean lastExitOK = !this.isTempFileExist();
-            LOGGER.info("last shutdown {}, root dir: {}", lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
+            LOGGER.info("last shutdown {}, store path root dir: {}",
+                lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
 
             // load Commit Log
-            result = result && this.commitLog.load();
+            result = this.commitLog.load();
 
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
 
             if (result) {
                 this.storeCheckpoint =
-                    new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+                    new StoreCheckpoint(
+                        StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
-                this.indexService.load(lastExitOK);
-
+                result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
-
-                LOGGER.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
+                LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
 
             long maxOffset = this.getMaxPhyOffset();
@@ -645,7 +645,7 @@ public class DefaultMessageStore implements MessageStore {
         // truncate consume queue
         this.truncateDirtyLogicFiles(offsetToTruncate);
 
-        recoverTopicQueueTable();
+        this.recoverTopicQueueTable();
 
         this.reputMessageService = new ReputMessageService();
         this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
@@ -729,7 +729,7 @@ public class DefaultMessageStore implements MessageStore {
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
                 nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
             } else {
-                final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                final int maxFilterMessageSize = Math.max(16000, maxMsgNums * consumeQueue.getUnitSize());
                 final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
 
                 long maxPullSize = Math.max(maxTotalMsgSize, 100);
@@ -764,7 +764,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
-                            if (cqUnit.getQueueOffset() - offset > maxFilterMessageCount) {
+                            if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() > maxFilterMessageSize) {
                                 break;
                             }
 
@@ -816,7 +816,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            this.storeStatsService.getGetMessageTransferredMsgCount().add(1);
+                            this.storeStatsService.getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
                             getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -1276,7 +1276,7 @@ public class DefaultMessageStore implements MessageStore {
 
     public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
         SocketAddress storeHost) {
-        Map<String, Long> messageIds = new HashMap<String, Long>();
+        Map<String, Long> messageIds = new HashMap<>();
         if (this.shutdown) {
             return messageIds;
         }
@@ -1630,21 +1630,31 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) {
-        long recoverCqStart = System.currentTimeMillis();
-        long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
-        long recoverCqEnd = System.currentTimeMillis();
+        boolean recoverConcurrently = this.brokerConfig.isRecoverConcurrently();
+        LOGGER.info("message store recover mode: {}", recoverConcurrently ? "concurrent" : "normal");
 
+        // recover consume queue
+        long recoverConsumeQueueStart = System.currentTimeMillis();
+        this.recoverConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.getMaxOffsetInConsumeQueue();
+        long recoverConsumeQueueEnd = System.currentTimeMillis();
+
+        // recover commitlog
         if (lastExitOK) {
             this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
-        long recoverClogEnd = System.currentTimeMillis();
-        this.recoverTopicQueueTable();
-        long recoverOffsetEnd = System.currentTimeMillis();
 
-        LOGGER.info("Recover end total:{} recoverCq:{} recoverClog:{} recoverOffset:{}",
-            recoverOffsetEnd - recoverCqStart, recoverCqEnd - recoverCqStart, recoverClogEnd - recoverCqEnd, recoverOffsetEnd - recoverClogEnd);
+        // recover consume offset table
+        long recoverCommitLogEnd = System.currentTimeMillis();
+        this.recoverTopicQueueTable();
+        long recoverConsumeOffsetEnd = System.currentTimeMillis();
+
+        LOGGER.info("message store recover total cost: {} ms, " +
+                "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
+            recoverConsumeOffsetEnd - recoverConsumeQueueStart, recoverConsumeQueueEnd - recoverConsumeQueueStart,
+            recoverCommitLogEnd - recoverConsumeQueueEnd, recoverConsumeOffsetEnd - recoverCommitLogEnd);
     }
 
     @Override
@@ -1666,8 +1676,16 @@ public class DefaultMessageStore implements MessageStore {
         return transientStorePool;
     }
 
-    private long recoverConsumeQueue() {
-        return this.consumeQueueStore.recover();
+    private void recoverConsumeQueue() {
+        if (!this.brokerConfig.isRecoverConcurrently()) {
+            this.consumeQueueStore.recover();
+        } else {
+            this.consumeQueueStore.recoverConcurrently();
+        }
+    }
+
+    private long getMaxOffsetInConsumeQueue() {
+        return this.consumeQueueStore.getMaxOffsetInConsumeQueue();
     }
 
     public void recoverTopicQueueTable() {
@@ -2441,10 +2459,7 @@ public class DefaultMessageStore implements MessageStore {
             if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
                 return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
             }
-            if (DefaultMessageStore.this.getBrokerConfig().isEnableControllerMode()) {
-                return this.reputFromOffset < ((AutoSwitchHAService) DefaultMessageStore.this.haService).getConfirmOffset();
-            }
-            return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
+            return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
         }
 
         private void doReput() {
@@ -2456,70 +2471,70 @@ public class DefaultMessageStore implements MessageStore {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
-                if (result != null) {
-                    try {
-                        this.reputFromOffset = result.getStartOffset();
 
-                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
-                            DispatchRequest dispatchRequest =
-                                DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
-                            int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
+                if (result == null) {
+                    break;
+                }
 
-                            if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
-                                doNext = false;
-                                break;
-                            }
+                try {
+                    this.reputFromOffset = result.getStartOffset();
 
-                            if (dispatchRequest.isSuccess()) {
-                                if (size > 0) {
-                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        DispatchRequest dispatchRequest =
+                            DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
+                        int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
-                                    if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                        && DefaultMessageStore.this.messageArrivingListener != null) {
-                                        DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                            dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                            dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                            dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                                        notifyMessageArrive4MultiQueue(dispatchRequest);
-                                    }
+                        if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                            doNext = false;
+                            break;
+                        }
 
-                                    this.reputFromOffset += size;
-                                    readSize += size;
-                                    if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
-                                        DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-                                        DefaultMessageStore.this.storeStatsService
-                                            .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
-                                        DefaultMessageStore.this.storeStatsService
-                                            .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
-                                            .add(dispatchRequest.getMsgSize());
-                                    }
-                                } else if (size == 0) {
-                                    this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
-                                    readSize = result.getSize();
+                        if (dispatchRequest.isSuccess()) {
+                            if (size > 0) {
+                                DefaultMessageStore.this.doDispatch(dispatchRequest);
+
+                                if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+                                    && DefaultMessageStore.this.messageArrivingListener != null) {
+                                    DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
+                                        dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
+                                        dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+                                    notifyMessageArrive4MultiQueue(dispatchRequest);
                                 }
-                            } else if (!dispatchRequest.isSuccess()) {
 
-                                if (size > 0) {
-                                    LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
-                                    this.reputFromOffset += size;
-                                } else {
-                                    doNext = false;
-                                    // If user open the dledger pattern or the broker is master node,
-                                    // it will not ignore the exception and fix the reputFromOffset variable
-                                    if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
-                                        DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
-                                        LOGGER.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
-                                            this.reputFromOffset);
-                                        this.reputFromOffset += result.getSize() - readSize;
-                                    }
+                                this.reputFromOffset += size;
+                                readSize += size;
+                                if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
+                                    DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                                    DefaultMessageStore.this.storeStatsService
+                                        .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(dispatchRequest.getBatchSize());
+                                    DefaultMessageStore.this.storeStatsService
+                                        .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
+                                        .add(dispatchRequest.getMsgSize());
+                                }
+                            } else if (size == 0) {
+                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
+                                readSize = result.getSize();
+                            }
+                        } else {
+                            if (size > 0) {
+                                LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
+                                this.reputFromOffset += size;
+                            } else {
+                                doNext = false;
+                                // If user open the dledger pattern or the broker is master node,
+                                // it will not ignore the exception and fix the reputFromOffset variable
+                                if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
+                                    DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                    LOGGER.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                        this.reputFromOffset);
+                                    this.reputFromOffset += result.getSize() - readSize;
                                 }
                             }
                         }
-                    } finally {
-                        result.release();
                     }
-                } else {
-                    doNext = false;
+                } finally {
+                    result.release();
                 }
             }
         }

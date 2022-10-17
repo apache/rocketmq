@@ -61,8 +61,6 @@ public class MixAll {
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-    //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-    //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
@@ -199,15 +197,9 @@ public class MixAll {
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
-            FileInputStream inputStream = null;
-            try {
-                inputStream = new FileInputStream(file);
+            try (FileInputStream inputStream = new FileInputStream(file)) {
                 int len = inputStream.read(data);
                 result = len == data.length;
-            } finally {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
             }
 
             if (result) {
@@ -271,7 +263,6 @@ public class MixAll {
 
                     if (logger != null) {
                         logger.info(name + "=" + value);
-                    } else {
                     }
                 }
             }
@@ -381,7 +372,7 @@ public class MixAll {
     }
 
     public static List<String> getLocalInetAddress() {
-        List<String> inetAddressList = new ArrayList<String>();
+        List<String> inetAddressList = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
             while (enumeration.hasMoreElements()) {
@@ -416,7 +407,7 @@ public class MixAll {
 
     //Reverse logic comparing to RemotingUtil method, consider refactor in RocketMQ 5.0
     public static String getLocalhostByNetworkInterface() throws SocketException {
-        List<String> candidatesHost = new ArrayList<String>();
+        List<String> candidatesHost = new ArrayList<>();
         Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
 
         while (enumeration.hasMoreElements()) {
@@ -469,11 +460,11 @@ public class MixAll {
     }
 
     public static int compareInteger(int x, int y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Integer.compare(x, y);
     }
 
     public static int compareLong(long x, long y) {
-        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        return Long.compare(x, y);
     }
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);

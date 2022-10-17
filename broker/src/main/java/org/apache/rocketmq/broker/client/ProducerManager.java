@@ -82,12 +82,12 @@ public class ProducerManager {
                             clientChannelInfo.getLastUpdateTimestamp()
                     ));
                 } else {
-                    map.put(group, new ArrayList<ProducerInfo>(Collections.singleton(new ProducerInfo(
-                            clientChannelInfo.getClientId(),
-                            clientChannelInfo.getChannel().remoteAddress().toString(),
-                            clientChannelInfo.getLanguage(),
-                            clientChannelInfo.getVersion(),
-                            clientChannelInfo.getLastUpdateTimestamp()
+                    map.put(group, new ArrayList<>(Collections.singleton(new ProducerInfo(
+                        clientChannelInfo.getClientId(),
+                        clientChannelInfo.getChannel().remoteAddress().toString(),
+                        clientChannelInfo.getLanguage(),
+                        clientChannelInfo.getVersion(),
+                        clientChannelInfo.getLastUpdateTimestamp()
                     ))));
                 }
             }

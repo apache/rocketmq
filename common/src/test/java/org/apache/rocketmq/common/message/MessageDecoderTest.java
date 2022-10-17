@@ -383,7 +383,7 @@ public class MessageDecoderTest {
     }
 
     @Test
-    public void testMessageId() throws Exception{
+    public void testMessageId() throws Exception {
         // ipv4 messageId test
         MessageExt msgExt = new MessageExt();
         msgExt.setStoreHost(new InetSocketAddress("127.0.0.1", 9103));

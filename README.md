@@ -1,12 +1,13 @@
-## Apache RocketMQ 
-[![Build Status](https://travis-ci.org/apache/rocketmq.svg?branch=master)](https://travis-ci.org/apache/rocketmq) [![Coverage Status](https://coveralls.io/repos/github/apache/rocketmq/badge.svg?branch=master)](https://coveralls.io/github/apache/rocketmq?branch=master)
-[![CodeCov](https://codecov.io/gh/apache/rocketmq/branch/master/graph/badge.svg)](https://codecov.io/gh/apache/rocketmq)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.rocketmq/rocketmq-all/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq)
-[![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://rocketmq.apache.org/dowloading/releases)
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/apache/rocketmq.svg)](http://isitmaintained.com/project/apache/rocketmq "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/apache/rocketmq.svg)](http://isitmaintained.com/project/apache/rocketmq "Percentage of issues still open")
-[![Twitter Follow](https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social)](https://twitter.com/intent/follow?screen_name=ApacheRocketMQ)
+## Apache RocketMQ
+
+[![Build Status][maven-build-image]][maven-build-url]
+[![CodeCov][codecov-image]][codecov-url]
+[![Maven Central][maven-central-image]][maven-central-url]
+[![Release][release-image]][release-url]
+[![License][license-image]][license-url]
+[![Average Time to Resolve An Issue][percentage-of-issues-still-open-image]][pencentage-of-issues-still-open-url]
+[![Percentage of Issues Still Open][average-time-to-resolve-an-issue-image]][average-time-to-resolve-an-issue-url]
+[![Twitter Follow][twitter-follow-image]][twitter-follow-url]
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
@@ -48,20 +49,20 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip) to download the 4.9.3 RocketMQ binary release,
+For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip) to download the 4.9.4 RocketMQ binary release,
 unpack it to your local disk, such as `D:\rocketmq`.
 For macOS and Linux users, execute following commands:
 ```shell
 # Download release from the Apache mirror
-$ wget https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip
+$ wget https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip
 
 # Unpack the release
-$ unzip rocketmq-all-4.9.3-bin-release.zip
+$ unzip rocketmq-all-4.9.4-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-4.9.3/bin
+$ cd rocketmq-4.9.4/bin
 ```
 
 **1) Start NameServer**
@@ -168,7 +169,7 @@ name-service         1/1     107m
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The Apache RocketMQ connector of Apache Flink that supports source and sink connector in data stream and Table.
 * [RocketMQ APIs](https://github.com/apache/rocketmq-apis): RocketMQ protobuf protocol.
 * [RocketMQ Clients](https://github.com/apache/rocketmq-clients): gRPC/protobuf-based RocketMQ clients.
-* RocketMQ Native Protocol-Based Clients
+* RocketMQ Remoting-based Clients
 	 - [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 	 - [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 	 - [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
@@ -227,3 +228,20 @@ The following provides more details on the included cryptographic software:
 This software uses Apache Commons Crypto (https://commons.apache.org/proper/commons-crypto/) to
 support authentication, and encryption and decryption of data sent across the network between
 services.
+
+[maven-build-image]: https://github.com/apache/rocketmq/actions/workflows/maven.yaml/badge.svg
+[maven-build-url]: https://github.com/apache/rocketmq/actions/workflows/maven.yaml
+[codecov-image]: https://codecov.io/gh/apache/rocketmq/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/apache/rocketm
+[maven-central-image]: https://maven-badges.herokuapp.com/maven-central/org.apache.rocketmq/rocketmq-all/badge.svg
+[maven-central-url]: http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq
+[release-image]: https://img.shields.io/badge/release-download-orange.svg
+[release-url]: https://www.apache.org/licenses/LICENSE-2.0.html
+[license-image]: https://img.shields.io/badge/license-Apache%202-4EB1BA.svg
+[license-url]: https://www.apache.org/licenses/LICENSE-2.0.html
+[average-time-to-resolve-an-issue-image]: http://isitmaintained.com/badge/resolution/apache/rocketmq.svg
+[average-time-to-resolve-an-issue-url]: http://isitmaintained.com/project/apache/rocketmq
+[percentage-of-issues-still-open-image]: http://isitmaintained.com/badge/open/apache/rocketmq.svg
+[pencentage-of-issues-still-open-url]: http://isitmaintained.com/project/apache/rocketmq
+[twitter-follow-image]: https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social
+[twitter-follow-url]: https://twitter.com/intent/follow?screen_name=ApacheRocketMQ

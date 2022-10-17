@@ -18,6 +18,7 @@
 package org.apache.rocketmq.common.utils;
 
 import java.nio.charset.StandardCharsets;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -105,30 +106,21 @@ public class ServiceProvider {
 
     public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
-        List<T> services = new ArrayList<T>();
-        try {
-            ArrayList<String> names = new ArrayList<String>();
-            final InputStream is = getResourceAsStream(getContextClassLoader(), name);
-            if (is != null) {
-                BufferedReader reader;
-                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String serviceName = reader.readLine();
-                while (serviceName != null && !"".equals(serviceName)) {
-                    LOG.info(
+        List<T> services = new ArrayList<>();
+        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+            String serviceName = reader.readLine();
+            List<String> names = new ArrayList<>();
+            while (serviceName != null && !"".equals(serviceName)) {
+                LOG.info(
                         "Creating an instance as specified by file {} which was present in the path of the context classloader.",
                         name);
-                    if (!names.contains(serviceName)) {
-                        names.add(serviceName);
-                    }
-
-                    services.add((T) initService(getContextClassLoader(), serviceName, clazz));
-
-                    serviceName = reader.readLine();
+                if (!names.contains(serviceName)) {
+                    names.add(serviceName);
+                    services.add(initService(getContextClassLoader(), serviceName, clazz));
                 }
-                reader.close();
-            } else {
-                // is == null
-                LOG.warn("No resource file with name [{}] found.", name);
+                serviceName = reader.readLine();
             }
         } catch (Exception e) {
             LOG.error("Error occurred when looking for resource file " + name, e);
@@ -137,24 +129,20 @@ public class ServiceProvider {
     }
 
     public static <T> T loadClass(String name, Class<?> clazz) {
-        final InputStream is = getResourceAsStream(getContextClassLoader(), name);
-        if (is != null) {
-            BufferedReader reader;
-            try {
-                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String serviceName = reader.readLine();
-                reader.close();
-                if (serviceName != null && !"".equals(serviceName)) {
-                    return initService(getContextClassLoader(), serviceName, clazz);
-                } else {
-                    LOG.warn("ServiceName is empty!");
-                    return null;
-                }
-            } catch (Exception e) {
-                LOG.warn("Error occurred when looking for resource file " + name, e);
+        T s = null;
+        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+            String serviceName = reader.readLine();
+            if (serviceName != null && !"".equals(serviceName)) {
+                s = initService(getContextClassLoader(), serviceName, clazz);
+            } else {
+                LOG.warn("ServiceName is empty!");
             }
+        } catch (Exception e) {
+            LOG.warn("Error occurred when looking for resource file " + name, e);
         }
-        return null;
+        return s;
     }
 
     protected static <T> T initService(ClassLoader classLoader, String serviceName, Class<?> clazz) {

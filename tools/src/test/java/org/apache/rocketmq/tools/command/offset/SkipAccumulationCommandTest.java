@@ -18,8 +18,8 @@ package org.apache.rocketmq.tools.command.offset;
 
 import java.lang.reflect.Field;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
@@ -71,7 +71,8 @@ public class SkipAccumulationCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g group-test", "-t topic-test", "-f false"};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 }

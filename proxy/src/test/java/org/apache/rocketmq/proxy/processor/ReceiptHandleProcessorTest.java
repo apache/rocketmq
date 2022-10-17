@@ -17,6 +17,19 @@
 
 package org.apache.rocketmq.proxy.processor;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelConfig;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelId;
+import io.netty.channel.ChannelMetadata;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelProgressivePromise;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoop;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +95,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .commitLogOffset(0L)
             .build().encode();
         PROXY_CONTEXT.withVal(ContextVariable.CLIENT_ID, "channel-id");
+        PROXY_CONTEXT.withVal(ContextVariable.CHANNEL, new MockChannel());
         receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
         Mockito.doNothing().when(messagingProcessor).registerConsumerListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
@@ -90,10 +104,10 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testAddReceiptHandle() {
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
@@ -103,11 +117,11 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Test
     public void testRenewReceiptHandle() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         long newInvisibleTime = 2000L;
         ReceiptHandle newReceiptHandleClass = ReceiptHandle.builder()
             .startOffset(0L)
@@ -140,9 +154,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Test
     public void testRenewExceedMaxRenewTimes() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
 
         CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
         ackResultFuture.completeExceptionally(new MQClientException(0, "error"));
@@ -166,9 +180,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRenewWithInvalidHandle() {
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
 
         CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
         ackResultFuture.completeExceptionally(new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "error"));
@@ -190,9 +204,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Test
     public void testRenewWithErrorThenOK() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
 
         AtomicInteger count = new AtomicInteger(0);
         List<CompletableFuture<AckResult>> futureList = new ArrayList<>();
@@ -261,9 +275,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
@@ -293,9 +307,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(null);
         Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new AckResult()));
@@ -329,11 +343,11 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
-        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channelId))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Mockito.when(messagingProcessor.findConsumerChannel(Mockito.any(), Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),
@@ -342,9 +356,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRemoveReceiptHandle() {
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
-        receiptHandleProcessor.removeReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle);
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.removeReceiptHandle(channel, GROUP, MSG_ID, receiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
@@ -355,9 +369,9 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testClearGroup() {
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
-        receiptHandleProcessor.clearGroup(new ReceiptHandleProcessor.ReceiptHandleGroupKey(channelId, GROUP));
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.clearGroup(new ReceiptHandleProcessor.ReceiptHandleGroupKey(channel, GROUP));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
@@ -370,9 +384,241 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     public void testClientOffline() {
         ArgumentCaptor<ConsumerIdsChangeListener> listenerArgumentCaptor = ArgumentCaptor.forClass(ConsumerIdsChangeListener.class);
         Mockito.verify(messagingProcessor, Mockito.times(1)).registerConsumerListener(listenerArgumentCaptor.capture());
-        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
-        listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(null, channelId, LanguageCode.JAVA, 0));
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleProcessor.addReceiptHandle(channel, GROUP, MSG_ID, receiptHandle, messageReceiptHandle);
+        listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(channel, "", LanguageCode.JAVA, 0));
         assertTrue(receiptHandleProcessor.receiptHandleGroupMap.isEmpty());
+    }
+
+    class MockChannel implements Channel {
+        @Override
+        public ChannelId id() {
+            return new ChannelId() {
+                @Override
+                public String asShortText() {
+                    return "short";
+                }
+
+                @Override
+                public String asLongText() {
+                    return "long";
+                }
+
+                @Override
+                public int compareTo(ChannelId o) {
+                    return 1;
+                }
+            };
+        }
+
+        @Override
+        public EventLoop eventLoop() {
+            return null;
+        }
+
+        @Override
+        public Channel parent() {
+            return null;
+        }
+
+        @Override
+        public ChannelConfig config() {
+            return null;
+        }
+
+        @Override
+        public boolean isOpen() {
+            return false;
+        }
+
+        @Override
+        public boolean isRegistered() {
+            return false;
+        }
+
+        @Override
+        public boolean isActive() {
+            return false;
+        }
+
+        @Override
+        public ChannelMetadata metadata() {
+            return null;
+        }
+
+        @Override
+        public SocketAddress localAddress() {
+            return null;
+        }
+
+        @Override
+        public SocketAddress remoteAddress() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture closeFuture() {
+            return null;
+        }
+
+        @Override
+        public boolean isWritable() {
+            return false;
+        }
+
+        @Override
+        public long bytesBeforeUnwritable() {
+            return 0;
+        }
+
+        @Override
+        public long bytesBeforeWritable() {
+            return 0;
+        }
+
+        @Override
+        public Unsafe unsafe() {
+            return null;
+        }
+
+        @Override
+        public ChannelPipeline pipeline() {
+            return null;
+        }
+
+        @Override
+        public ByteBufAllocator alloc() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture bind(SocketAddress localAddress) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture connect(SocketAddress remoteAddress) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture disconnect() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture close() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture deregister() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture disconnect(ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture close(ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture deregister(ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public Channel read() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture write(Object msg) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture write(Object msg, ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public Channel flush() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture writeAndFlush(Object msg) {
+            return null;
+        }
+
+        @Override
+        public ChannelPromise newPromise() {
+            return null;
+        }
+
+        @Override
+        public ChannelProgressivePromise newProgressivePromise() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture newSucceededFuture() {
+            return null;
+        }
+
+        @Override
+        public ChannelFuture newFailedFuture(Throwable cause) {
+            return null;
+        }
+
+        @Override
+        public ChannelPromise voidPromise() {
+            return null;
+        }
+
+        @Override
+        public <T> Attribute<T> attr(AttributeKey<T> key) {
+            return null;
+        }
+
+        @Override
+        public <T> boolean hasAttr(AttributeKey<T> key) {
+            return false;
+        }
+
+        @Override
+        public int compareTo(Channel o) {
+            return 1;
+        }
     }
 }

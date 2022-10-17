@@ -30,7 +30,7 @@ import java.util.TreeMap;
  * algorithm
  */
 public class ConsistentHashRouter<T extends Node> {
-    private final SortedMap<Long, VirtualNode<T>> ring = new TreeMap<Long, VirtualNode<T>>();
+    private final SortedMap<Long, VirtualNode<T>> ring = new TreeMap<>();
     private final HashFunction hashFunction;
 
     public ConsistentHashRouter(Collection<T> pNodes, int vNodeCount) {
@@ -65,7 +65,7 @@ public class ConsistentHashRouter<T extends Node> {
             throw new IllegalArgumentException("illegal virtual node counts :" + vNodeCount);
         int existingReplicas = getExistingReplicas(pNode);
         for (int i = 0; i < vNodeCount; i++) {
-            VirtualNode<T> vNode = new VirtualNode<T>(pNode, i + existingReplicas);
+            VirtualNode<T> vNode = new VirtualNode<>(pNode, i + existingReplicas);
             ring.put(hashFunction.hash(vNode.getKey()), vNode);
         }
     }

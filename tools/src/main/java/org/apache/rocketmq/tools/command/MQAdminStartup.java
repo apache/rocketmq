@@ -105,7 +105,7 @@ import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
-    protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<SubCommand>();
+    protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
 
     private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -294,7 +294,7 @@ public class MQAdminStartup {
 
     private static SubCommand findSubCommand(final String name) {
         for (SubCommand cmd : SUB_COMMANDS) {
-            if (cmd.commandName().equalsIgnoreCase(name) || (cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name))) {
+            if (cmd.commandName().equalsIgnoreCase(name) || cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name)) {
                 return cmd;
             }
         }

@@ -42,7 +42,7 @@ public class ConsumerManager {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private final ConcurrentMap<String, ConsumerGroupInfo> consumerTable =
-        new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
+        new ConcurrentHashMap<>(1024);
     private final List<ConsumerIdsChangeListener> consumerIdsChangeListenerList = new CopyOnWriteArrayList<>();
     protected final BrokerStatsManager brokerStatsManager;
 
@@ -61,6 +61,14 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (consumerGroupInfo != null) {
             return consumerGroupInfo.findChannel(clientId);
+        }
+        return null;
+    }
+
+    public ClientChannelInfo findChannel(final String group, final Channel channel) {
+        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+        if (consumerGroupInfo != null) {
+            return consumerGroupInfo.findChannel(channel);
         }
         return null;
     }

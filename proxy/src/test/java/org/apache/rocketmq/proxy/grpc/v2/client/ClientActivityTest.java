@@ -208,7 +208,6 @@ public class ClientActivityTest extends BaseActivityTest {
         GrpcClientChannel channel = (GrpcClientChannel) clientChannelInfo.getChannel();
         assertEquals(REMOTE_ADDR, channel.getRemoteAddress());
         assertEquals(LOCAL_ADDR, channel.getLocalAddress());
-        assertEquals(group, channel.getGroup());
     }
 
     @Test
@@ -320,6 +319,19 @@ public class ClientActivityTest extends BaseActivityTest {
             StatusRuntimeException exception = (StatusRuntimeException) e.getCause();
             assertEquals(Status.Code.INVALID_ARGUMENT, exception.getStatus().getCode());
         }
+    }
+
+    @Test
+    public void testEmptyProducerSettings() throws Throwable {
+        ProxyContext context = createContext();
+        TelemetryCommand command = this.sendClientTelemetry(
+            context,
+            Settings.newBuilder()
+                .setClientType(ClientType.PRODUCER)
+                .setPublishing(Publishing.getDefaultInstance())
+                .build()).get();
+        assertTrue(command.hasSettings());
+        assertTrue(command.getSettings().hasPublishing());
     }
 
     @Test

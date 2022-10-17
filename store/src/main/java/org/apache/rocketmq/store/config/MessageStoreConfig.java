@@ -238,8 +238,10 @@ public class MessageStoreConfig {
     //For recheck the reput
     private boolean recheckReputOffsetFromCq = false;
 
-    // Maximum length of topic
-    private int maxTopicLength = 1000;
+    // Maximum length of topic, it will be removed in the future release
+    @Deprecated
+    private int maxTopicLength = Byte.MAX_VALUE;
+
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -465,10 +467,12 @@ public class MessageStoreConfig {
         this.maxMessageSize = maxMessageSize;
     }
 
+    @Deprecated
     public int getMaxTopicLength() {
         return maxTopicLength;
     }
 
+    @Deprecated
     public void setMaxTopicLength(int maxTopicLength) {
         this.maxTopicLength = maxTopicLength;
     }
@@ -875,9 +879,7 @@ public class MessageStoreConfig {
     }
 
     /**
-     * Enable transient commitLog store pool only if transientStorePoolEnable is true and the FlushDiskType is
-     * ASYNC_FLUSH
-     *
+     * Enable transient commitLog store pool only if transientStorePoolEnable is true and broker role is not SLAVE
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {

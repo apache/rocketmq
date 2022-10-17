@@ -26,6 +26,8 @@ test --action_env=TEST_TMPDIR=/tmp
 test  --experimental_strict_java_deps=warn
 build --experimental_strict_java_deps=warn
 
+test --test_output=errors
+
 
 # This .bazelrc file contains all of the flags required for the provided
 # toolchain with Remote Build Execution.
@@ -71,3 +73,7 @@ build:remote --incompatible_strict_action_env=true
 
 # Set a higher timeout value, just in case.
 build:remote --remote_timeout=3600
+
+# Use a pre-configured account, such that we may have pull-request replacing pull-request-target
+build:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU
+test:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU

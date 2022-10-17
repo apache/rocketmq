@@ -926,7 +926,7 @@ public class CommitLog implements Swappable {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
-        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
+        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
         return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
@@ -1444,11 +1444,11 @@ public class CommitLog implements Swappable {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
-        private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<GroupCommitRequest>();
-        private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<GroupCommitRequest>();
+        private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
+        private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
 
-        public synchronized void putRequest(final GroupCommitRequest request) {
+        public void putRequest(final GroupCommitRequest request) {
             lock.lock();
             try {
                 this.requestsWrite.add(request);
@@ -1496,6 +1496,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1516,10 +1517,7 @@ public class CommitLog implements Swappable {
                 CommitLog.log.warn("GroupCommitService Exception, ", e);
             }
 
-            synchronized (this) {
-                this.swapRequests();
-            }
-
+            this.swapRequests();
             this.doCommit();
 
             CommitLog.log.info(this.getServiceName() + " service end");
@@ -1545,8 +1543,8 @@ public class CommitLog implements Swappable {
     }
 
     class GroupCheckService extends FlushCommitLogService {
-        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
-        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
+        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<>();
+        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<>();
 
         public boolean isAsyncRequestsFull() {
             return requestsWrite.size() > CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests() * 2;

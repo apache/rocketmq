@@ -23,6 +23,7 @@ github:
     - cloud-native
     - rocketmq
     - java
+    - hacktoberfest
   enabled_merge_buttons:
     # Enable squash button
     squash: true
@@ -42,3 +43,4 @@ github:
           - misspell-check
           - check-license
           - maven-compile (ubuntu-18.04, JDK-8)
+          - bazel-compile (ubuntu-20.04)

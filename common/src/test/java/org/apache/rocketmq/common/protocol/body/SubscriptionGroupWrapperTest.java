@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SubscriptionGroupWrapperTest {
 
     @Test
-    public void testFromJson(){
+    public void testFromJson() {
         SubscriptionGroupWrapper subscriptionGroupWrapper = new SubscriptionGroupWrapper();
-        ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptions = new ConcurrentHashMap<String, SubscriptionGroupConfig>();
+        ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptions = new ConcurrentHashMap<>();
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setConsumeBroadcastEnable(true);
         subscriptionGroupConfig.setBrokerId(1234);

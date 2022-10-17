@@ -272,7 +272,7 @@ public class MappedFileQueueTest {
 
         ThreadPoolExecutor executor = new ThreadPoolExecutor(3, 3, 1000 * 60,
             TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(),
+            new LinkedBlockingQueue<>(),
             new ThreadFactoryImpl("testThreadPool"));
 
         for (int i = 0; i < mappedFileSize; i++) {
@@ -315,7 +315,7 @@ public class MappedFileQueueTest {
                     }
                     assertThat(mappedFile != null).isTrue();
                     retryTime = 0;
-                    int pos = ((i * fixedMsg.getBytes().length) % mappedFileSize);
+                    int pos = (i * fixedMsg.getBytes().length) % mappedFileSize;
                     while ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition() && retryTime < 10000) {
                         retryTime++;
                         if ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition()) {
@@ -351,7 +351,7 @@ public class MappedFileQueueTest {
 
         ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 1000 * 60,
             TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(),
+            new LinkedBlockingQueue<>(),
             new ThreadFactoryImpl("testThreadPool"));
         for (int i = 0; i < mappedFileSize; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -373,7 +373,7 @@ public class MappedFileQueueTest {
                     }
                 } catch (Exception e) {
                     hasException.set(true);
-                }finally {
+                } finally {
                     downLatch.countDown();
                 }
             });

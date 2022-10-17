@@ -44,7 +44,7 @@ public class MappedFileQueue implements Swappable {
 
     protected final int mappedFileSize;
 
-    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
 
     protected final AllocateMappedFileService allocateMappedFileService;
 
@@ -107,7 +107,7 @@ public class MappedFileQueue implements Swappable {
     }
 
     public void truncateDirtyFiles(long offset) {
-        List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
+        List<MappedFile> willRemoveFiles = new ArrayList<>();
 
         for (MappedFile file : this.mappedFiles) {
             long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
@@ -354,7 +354,7 @@ public class MappedFileQueue implements Swappable {
 
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int skipFileNum = 0;
         if (null != mfs) {
             //do check before deleting
@@ -399,7 +399,7 @@ public class MappedFileQueue implements Swappable {
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int deleteCount = 0;
         if (null != mfs) {
 
@@ -442,7 +442,7 @@ public class MappedFileQueue implements Swappable {
     public int deleteExpiredFileByOffsetForTimerLog(long offset, int checkOffset, int unitSize) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int deleteCount = 0;
         if (null != mfs) {
 
@@ -621,7 +621,7 @@ public class MappedFileQueue implements Swappable {
                 boolean result = mappedFile.destroy(intervalForcibly);
                 if (result) {
                     log.info("the mappedFile re delete OK, " + mappedFile.getFileName());
-                    List<MappedFile> tmpFiles = new ArrayList<MappedFile>();
+                    List<MappedFile> tmpFiles = new ArrayList<>();
                     tmpFiles.add(mappedFile);
                     this.deleteExpiredFile(tmpFiles);
                 } else {

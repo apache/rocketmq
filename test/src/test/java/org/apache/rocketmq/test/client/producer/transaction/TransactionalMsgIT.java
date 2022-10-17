@@ -47,8 +47,8 @@ public class TransactionalMsgIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getTransactionalProducer(nsAddr, topic, new TransactionListenerImpl());
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        producer = getTransactionalProducer(NAMESRV_ADDR, topic, new TransactionListenerImpl());
+        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
     }
 
     @After
@@ -64,7 +64,7 @@ public class TransactionalMsgIT extends BaseConf {
         for (int i = 0; i < msgSize; i++) {
             producer.send(msgs.get(i), getTransactionHandle(i));
         }
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer.getListener());
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 

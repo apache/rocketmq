@@ -104,7 +104,6 @@ public class ControllerManagerTest {
             for (ControllerManager controllerManager : controllers) {
                 final DLedgerController controller = (DLedgerController) controllerManager.getController();
                 if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
-                    System.out.println("New leader " + leaderId);
                     return controllerManager;
                 }
             }
@@ -169,7 +168,6 @@ public class ControllerManagerTest {
             heartbeatRequestHeader.setBrokerName("broker1");
             heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
-            System.out.println("send heartbeat success");
             try {
                 final RemotingCommand remotingCommand = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
             } catch (Exception e) {
@@ -196,7 +194,6 @@ public class ControllerManagerTest {
             controller.shutdown();
         }
         for (String dir : this.baseDirs) {
-            System.out.println("Delete file " + dir);
             new File(dir).delete();
         }
         this.remotingClient.shutdown();

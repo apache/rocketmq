@@ -24,6 +24,7 @@ java_library(
         "//logging",
         "@maven//:com_alibaba_fastjson",
         "@maven//:io_netty_netty_all",
+        "@maven//:org_apache_commons_commons_lang3",
     ],
 )
 
@@ -37,6 +38,7 @@ java_library(
         "@maven//:io_netty_netty_all",     
         "@maven//:com_google_code_gson_gson",   
         "@maven//:com_alibaba_fastjson",
+        "@maven//:org_apache_commons_commons_lang3",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

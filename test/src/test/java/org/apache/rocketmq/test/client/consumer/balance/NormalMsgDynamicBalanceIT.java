@@ -41,7 +41,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -52,21 +52,21 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
     @Test
     public void testTwoConsumerAndCrashOne() {
         int msgSize = 400;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.send(msgSize);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+        MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener());
         consumer2.shutdown();
 
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
@@ -81,16 +81,16 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
     @Test
     public void test3ConsumerAndCrashOne() {
         int msgSize = 400;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer3 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.send(msgSize);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+        MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener(), consumer3.getListener());
         consumer3.shutdown();
         producer.clearMsg();
@@ -100,7 +100,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 

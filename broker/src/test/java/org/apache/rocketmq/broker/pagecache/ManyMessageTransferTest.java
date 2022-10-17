@@ -25,7 +25,7 @@ import org.junit.Test;
 public class ManyMessageTransferTest {
 
     @Test
-    public void ManyMessageTransferBuilderTest(){
+    public void ManyMessageTransferBuilderTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         GetMessageResult getMessageResult = new GetMessageResult();
@@ -33,7 +33,7 @@ public class ManyMessageTransferTest {
     }
 
     @Test
-    public void ManyMessageTransferPosTest(){
+    public void ManyMessageTransferPosTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         GetMessageResult getMessageResult = new GetMessageResult();
@@ -42,7 +42,7 @@ public class ManyMessageTransferTest {
     }
 
     @Test
-    public void ManyMessageTransferCountTest(){
+    public void ManyMessageTransferCountTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         GetMessageResult getMessageResult = new GetMessageResult();
@@ -53,7 +53,7 @@ public class ManyMessageTransferTest {
     }
 
     @Test
-    public void ManyMessageTransferCloseTest(){
+    public void ManyMessageTransferCloseTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         GetMessageResult getMessageResult = new GetMessageResult();

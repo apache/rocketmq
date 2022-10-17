@@ -48,6 +48,7 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
@@ -181,6 +182,8 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -202,6 +205,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.deleteTopic(ctx, request);
             case RequestCode.GET_ALL_TOPIC_CONFIG:
                 return this.getAllTopicConfig(ctx, request);
+            case RequestCode.GET_TIMER_CHECK_POINT:
+                return this.getTimerCheckPoint(ctx, request);
+            case RequestCode.GET_TIMER_METRICS:
+                return this.getTimerMetrics(ctx, request);
             case RequestCode.UPDATE_BROKER_CONFIG:
                 return this.updateBrokerConfig(ctx, request);
             case RequestCode.GET_BROKER_CONFIG:
@@ -704,6 +711,36 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private RemotingCommand getTimerCheckPoint(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
+        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerCheckpoint();
+        if (null == timerCheckpoint) {
+            LOGGER.error("AdminBrokerProcessor#getTimerCheckPoint: checkpoint is null, caller={}", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The checkpoint is null");
+            return response;
+        }
+        response.setBody(TimerCheckpoint.encode(timerCheckpoint).array());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getTimerMetrics(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
+        TimerMessageStore timerMessageStore = this.brokerController.getMessageStore().getTimerMessageStore();
+        if (null == timerMessageStore) {
+            LOGGER.error("The timer message store is null, client: {}", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The timer message store is null");
+            return response;
+        }
+        response.setBody(timerMessageStore.getTimerMetrics().encode().getBytes(StandardCharsets.UTF_8));
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
     private synchronized RemotingCommand updateBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -806,7 +843,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     }
                     SearchOffsetResponseHeader offsetResponseHeader = (SearchOffsetResponseHeader) rpcResponse.getHeader();
                     if (offsetResponseHeader.getOffset() < 0
-                        || (item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset())) {
+                        || item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset()) {
                         continue;
                     } else {
                         offset = item.computeStaticQueueOffsetStrictly(offsetResponseHeader.getOffset());
@@ -1426,7 +1463,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         ConsumeStats consumeStats = new ConsumeStats();
 
-        Set<String> topics = new HashSet<String>();
+        Set<String> topics = new HashSet<>();
         if (UtilAll.isBlank(requestHeader.getTopic())) {
             topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(requestHeader.getConsumerGroup());
         } else {
@@ -1597,6 +1634,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         LOGGER.info("[reset-offset] reset offset started by {}. topic={}, group={}, timestamp={}, isForce={}",
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
             requestHeader.getTimestamp(), requestHeader.isForce());
+
+        if (this.brokerController.getBrokerConfig().isUseServerSideResetOffset()) {
+            String topic = requestHeader.getTopic();
+            String group = requestHeader.getGroup();
+            int queueId = requestHeader.getQueueId();
+            long timestamp = requestHeader.getTimestamp();
+            Long offset = requestHeader.getOffset();
+            return resetOffsetInner(topic, group, queueId, timestamp, offset);
+        }
+
         boolean isC = false;
         LanguageCode language = request.getLanguage();
         switch (language) {
@@ -1606,6 +1653,98 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(), requestHeader.getGroup(),
             requestHeader.getTimestamp(), requestHeader.isForce(), isC);
+    }
+
+    private Long searchOffsetByTimestamp(String topic, int queueId, long timestamp) {
+        if (timestamp < 0) {
+            return brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+        } else {
+            return brokerController.getMessageStore().getOffsetInQueueByTime(topic, queueId, timestamp);
+        }
+    }
+
+    /**
+     * Reset consumer offset.
+     *
+     * @param topic         Required, not null.
+     * @param group         Required, not null.
+     * @param queueId       if target queue ID is negative, all message queues will be reset;
+     *                      otherwise, only the target queue would get reset.
+     * @param timestamp     if timestamp is negative, offset would be reset to broker offset at the time being;
+     *                      otherwise, binary search is performed to locate target offset.
+     * @param offset        Target offset to reset to if target queue ID is properly provided.
+     * @return Affected queues and their new offset
+     */
+    private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+
+        if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Can not reset offset in slave broker");
+            return response;
+        }
+
+        Map<Integer, Long> queueOffsetMap = new HashMap<>();
+
+        // Reset offset for all queues belonging to the specified topic
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
+        if (null == topicConfig) {
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+            response.setRemark("Topic " + topic + " does not exist");
+            LOGGER.warn("Reset offset failed, topic does not exist. topic={}, group={}", topic, group);
+            return response;
+        }
+
+        if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+            response.setRemark("Group " + group + " does not exist");
+            LOGGER.warn("Reset offset failed, group does not exist. topic={}, group={}", topic, group);
+            return response;
+        }
+
+        if (queueId >= 0) {
+            if (null != offset && -1 != offset) {
+                long min = brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+                long max = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                if (min >= 0 && offset < min || offset > max + 1) {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(
+                        String.format("Target offset %d not in consume queue range [%d-%d]", offset, min, max));
+                    return response;
+                }
+            } else {
+                offset = searchOffsetByTimestamp(topic, queueId, timestamp);
+            }
+            queueOffsetMap.put(queueId, offset);
+        } else {
+            for (int index = 0; index < topicConfig.getReadQueueNums(); index++) {
+                offset = searchOffsetByTimestamp(topic, index, timestamp);
+                queueOffsetMap.put(index, offset);
+            }
+        }
+
+        if (queueOffsetMap.isEmpty()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("No queues to reset.");
+            LOGGER.warn("Reset offset aborted: no queues to reset");
+            return response;
+        }
+
+        for (Map.Entry<Integer, Long> entry : queueOffsetMap.entrySet()) {
+            brokerController.getConsumerOffsetManager()
+                .assignResetOffset(topic, group, entry.getKey(), entry.getValue());
+        }
+
+        // Prepare reset result.
+        ResetOffsetBody body = new ResetOffsetBody();
+        String brokerName = brokerController.getBrokerConfig().getBrokerName();
+        for (Map.Entry<Integer, Long> entry : queueOffsetMap.entrySet()) {
+            body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());
+        }
+
+        LOGGER.info("Reset offset, topic={}, group={}, queues={}", topic, group, body.toJson(false));
+        response.setBody(body.encode());
+        return response;
     }
 
     public RemotingCommand getConsumerStatus(ChannelHandlerContext ctx,
@@ -1715,7 +1854,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        List<QueueTimeSpan> timeSpanSet = new ArrayList<QueueTimeSpan>();
+        List<QueueTimeSpan> timeSpanSet = new ArrayList<>();
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
             QueueTimeSpan timeSpan = new QueueTimeSpan();
             MessageQueue mq = new MessageQueue();
@@ -1887,7 +2026,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         if (UtilAll.isBlank(requestHeader.getTopic())) {
             topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(requestHeader.getSrcGroup());
         } else {
-            topics = new HashSet<String>();
+            topics = new HashSet<>();
             topics.add(requestHeader.getTopic());
         }
 
@@ -1979,14 +2118,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
 
         List<Map<String/* subscriptionGroupName */, List<ConsumeStats>>> brokerConsumeStatsList =
-            new ArrayList<Map<String, List<ConsumeStats>>>();
+            new ArrayList<>();
 
         long totalDiff = 0L;
 
         for (String group : subscriptionGroups.keySet()) {
-            Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
+            Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<>();
             Set<String> topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group);
-            List<ConsumeStats> consumeStatsList = new ArrayList<ConsumeStats>();
+            List<ConsumeStats> consumeStatsList = new ArrayList<>();
             for (String topic : topics) {
                 ConsumeStats consumeStats = new ConsumeStats();
                 TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);

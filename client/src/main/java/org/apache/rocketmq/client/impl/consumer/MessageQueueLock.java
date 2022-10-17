@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
  */
 public class MessageQueueLock {
     private ConcurrentMap<MessageQueue, ConcurrentMap<Integer, Object>> mqLockTable =
-        new ConcurrentHashMap<MessageQueue, ConcurrentMap<Integer, Object>>(32);
+        new ConcurrentHashMap<>(32);
 
     public Object fetchLockObject(final MessageQueue mq) {
         return fetchLockObject(mq, -1);
@@ -34,7 +34,7 @@ public class MessageQueueLock {
     public Object fetchLockObject(final MessageQueue mq, final int shardingKeyIndex) {
         ConcurrentMap<Integer, Object> objMap = this.mqLockTable.get(mq);
         if (null == objMap) {
-            objMap = new ConcurrentHashMap<Integer, Object>(32);
+            objMap = new ConcurrentHashMap<>(32);
             ConcurrentMap<Integer, Object> prevObjMap = this.mqLockTable.putIfAbsent(mq, objMap);
             if (prevObjMap != null) {
                 objMap = prevObjMap;

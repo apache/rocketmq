@@ -30,13 +30,13 @@ public class BrokerMemberGroup extends RemotingSerializable {
 
     // Provide default constructor for serializer
     public BrokerMemberGroup() {
-        this.brokerAddrs = new HashMap<Long, String>();
+        this.brokerAddrs = new HashMap<>();
     }
 
     public BrokerMemberGroup(final String cluster, final String brokerName) {
         this.cluster = cluster;
         this.brokerName = brokerName;
-        this.brokerAddrs = new HashMap<Long, String>();
+        this.brokerAddrs = new HashMap<>();
     }
 
     public long minimumBrokerId() {

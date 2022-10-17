@@ -49,7 +49,7 @@ public class OrderMsgBroadcastIT extends BaseBroadcast {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -61,11 +61,11 @@ public class OrderMsgBroadcastIT extends BaseBroadcast {
     public void testTwoConsumerSubTag() {
         int msgSize = 10;
 
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, topic, "*",
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(NAMESRV_ADDR, topic, "*",
             new RMQOrderListener());
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(NAMESRV_ADDR,
             consumer1.getConsumerGroup(), topic, "*", new RMQOrderListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);

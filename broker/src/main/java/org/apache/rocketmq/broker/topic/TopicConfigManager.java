@@ -59,7 +59,7 @@ public class TopicConfigManager extends ConfigManager {
     private transient final Lock topicConfigTableLock = new ReentrantLock();
 
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
-        new ConcurrentHashMap<String, TopicConfig>(1024);
+        new ConcurrentHashMap<>(1024);
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
@@ -727,5 +727,9 @@ public class TopicConfigManager extends ConfigManager {
 
     private String realKey(String key) {
         return key.substring(1);
+    }
+
+    public boolean containsTopic(String topic) {
+        return topicConfigTable.containsKey(topic);
     }
 }

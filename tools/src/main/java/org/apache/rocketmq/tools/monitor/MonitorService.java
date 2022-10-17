@@ -196,20 +196,20 @@ public class MonitorService {
         ConsumeStats cs = null;
         try {
             cs = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-        } catch (Exception e) {
+        } catch (Exception ignore) {
             return;
         }
 
         ConsumerConnection cc = null;
         try {
             cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
-        } catch (Exception e) {
+        } catch (Exception ignore) {
             return;
         }
 
         if (cs != null) {
 
-            HashMap<String/* Topic */, ConsumeStats> csByTopic = new HashMap<String, ConsumeStats>();
+            HashMap<String/* Topic */, ConsumeStats> csByTopic = new HashMap<>();
             {
                 Iterator<Entry<MessageQueue, OffsetWrapper>> it = cs.getOffsetTable().entrySet().iterator();
                 while (it.hasNext()) {
@@ -244,7 +244,7 @@ public class MonitorService {
     public void reportConsumerRunningInfo(final String consumerGroup) throws InterruptedException,
         MQBrokerException, RemotingException, MQClientException {
         ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
-        TreeMap<String, ConsumerRunningInfo> infoMap = new TreeMap<String, ConsumerRunningInfo>();
+        TreeMap<String, ConsumerRunningInfo> infoMap = new TreeMap<>();
         for (Connection c : cc.getConnectionSet()) {
             String clientId = c.getClientId();
 
