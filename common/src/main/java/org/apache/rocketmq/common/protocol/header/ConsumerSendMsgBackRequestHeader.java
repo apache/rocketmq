@@ -18,12 +18,12 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
+public class ConsumerSendMsgBackRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private Long offset;
     @CFNotNull
