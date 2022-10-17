@@ -32,7 +32,6 @@ public class CheckTransactionStateRequestHeader extends RpcRequestHeader {
     private String msgId;
     private String transactionId;
     private String offsetMsgId;
-    private int queueId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -76,13 +75,5 @@ public class CheckTransactionStateRequestHeader extends RpcRequestHeader {
 
     public void setOffsetMsgId(String offsetMsgId) {
         this.offsetMsgId = offsetMsgId;
-    }
-
-    public int getQueueId() {
-        return queueId;
-    }
-
-    public void setQueueId(int queueId) {
-        this.queueId = queueId;
     }
 }
