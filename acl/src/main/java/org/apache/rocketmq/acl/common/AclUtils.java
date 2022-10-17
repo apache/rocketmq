@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -260,11 +263,11 @@ public class AclUtils {
 
     public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
         Yaml yaml = new Yaml();
-        if (new File(path).exists()) {
-            String pathBak = path + ".bak";
-            copyFile(path, pathBak);
-        }
         try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
+            if (Files.exists(Paths.get(path))) {
+                String pathBak = path + ".bak";
+                Files.copy(Paths.get(path), Paths.get(pathBak), StandardCopyOption.REPLACE_EXISTING);
+            }
             String dumpAsMap = yaml.dumpAsMap(dataMap);
             pw.print(dumpAsMap);
             pw.flush();

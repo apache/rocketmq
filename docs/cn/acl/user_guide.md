@@ -28,8 +28,8 @@ ACL客户端可以参考：**org.apache.rocketmq.example.simple**包下面的**A
 | admin | true;false | 是否管理员账户 |
 | defaultTopicPerm | DENY;PUB;SUB;PUB\|SUB | 默认的Topic权限 |
 | defaultGroupPerm | DENY;PUB;SUB;PUB\|SUB | 默认的ConsumerGroup权限 |
-| topicPerms | topic=权限 | 各个Topic的权限 |
-| groupPerms | group=权限 | 各个ConsumerGroup的权限 |
+| topicPerms | topic=权限 | 各个Topic的权限，注意：该配置项后续会被弃用，topic权限配置请在resourcePerms中配置 |
+| groupPerms | group=权限 | 各个ConsumerGroup的权限，注意：该配置项后续会被弃用，ConsumerGroup权限配置请在resourcePerms中配置 |
 | resourcePerms |  | 各个Topic、ConsumerGroup的权限 |
 | namespacePerms |  | 各个Namespace的权限 |
 

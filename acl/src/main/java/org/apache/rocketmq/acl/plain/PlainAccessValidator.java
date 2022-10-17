@@ -74,8 +74,8 @@ public class PlainAccessValidator implements AccessValidator {
     }
 
     @Override
-    public PlainAccessConfig getAccesskeyConfg(String accesskey) {
-        return aclPlugEngine.getAccesskeyConfg(accesskey);
+    public PlainAccessConfig getConfigByAccessKey(String accesskey) {
+        return aclPlugEngine.getConfigByAccessKey(accesskey);
     }
 
     @Override

@@ -93,7 +93,7 @@ public interface AccessValidator {
      * @param accesskey
      * @return
      */
-    PlainAccessConfig getAccesskeyConfg(String accesskey);
+    PlainAccessConfig getConfigByAccessKey(String accesskey);
 
     /**
      * Delete the access resource config

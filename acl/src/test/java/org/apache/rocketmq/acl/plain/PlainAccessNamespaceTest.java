@@ -610,7 +610,7 @@ public class PlainAccessNamespaceTest {
     }
 
     @Test
-    public void getAccessKeyConfigTest() throws IOException, InterruptedException {
+    public void getConfigByAccessKeyTest() throws IOException, InterruptedException {
         String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
         File transport = new File(fileName);
         if (transport.exists()) {
@@ -641,7 +641,7 @@ public class PlainAccessNamespaceTest {
 
         String accesskey = "rocketmqx";
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        PlainAccessConfig plainAccessConfig = plainAccessValidator.getAccesskeyConfg(accesskey);
+        PlainAccessConfig plainAccessConfig = plainAccessValidator.getConfigByAccessKey(accesskey);
         Assert.assertEquals(plainAccessConfig.getSecretKey(), "12345678");
         Assert.assertEquals(plainAccessConfig.getWhiteRemoteAddress(), "127.0.0.1");
         Assert.assertEquals(plainAccessConfig.isAdmin(), false);

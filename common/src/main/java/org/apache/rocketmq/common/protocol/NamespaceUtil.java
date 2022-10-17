@@ -170,4 +170,20 @@ public class NamespaceUtil {
     public static boolean isDLQTopic(String resource) {
         return StringUtils.isNotBlank(resource) && resource.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX);
     }
+
+    public static boolean isContainNamespace(String resource) {
+        if (resource == null || resource.isEmpty())
+            return false;
+        //resource's type is group
+        if (resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            if (resource.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length()).contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return true;
+            }
+        } else { //resource's type is topic
+            if (resource.contains(String.valueOf(NAMESPACE_SEPARATOR))) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

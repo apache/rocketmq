@@ -65,4 +65,12 @@ public class AclConstants {
     public static final String CONFIG_RESOURCE_PERMS = "resourcePerms";
 
     public static final String CONFIG_NAMESPACE_PERMS = "namespacePerms";
+
+    public static final String CONFIG_RESOURCE = "resource";
+
+    public static final String CONFIG_TYPE = "type";
+
+    public static final String CONFIG_NAMESPACE = "namespace";
+
+    public static final String CONFIG_PERM = "perm";
 }

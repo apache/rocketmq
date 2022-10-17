@@ -47,4 +47,13 @@ public class NamespaceAndPerm {
     public void setGroupPerm(String groupPerm) {
         this.groupPerm = groupPerm;
     }
+
+    @Override
+    public String toString() {
+        return "NamespaceAndPerm{" +
+            "namespace='" + namespace + '\'' +
+            ", topicPerm='" + topicPerm + '\'' +
+            ", groupPerm='" + groupPerm + '\'' +
+            '}';
+    }
 }

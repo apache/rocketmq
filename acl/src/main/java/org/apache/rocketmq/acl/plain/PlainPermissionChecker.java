@@ -23,6 +23,7 @@ import org.apache.rocketmq.acl.PermissionChecker;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.Permission;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 
 public class PlainPermissionChecker implements PermissionChecker {
     public void check(AccessResource checkedAccess, AccessResource ownedAccess) {
@@ -49,12 +50,12 @@ public class PlainPermissionChecker implements PermissionChecker {
             String resource = needCheckedEntry.getKey();
             Byte neededPerm = needCheckedEntry.getValue();
             boolean isGroup = PlainAccessResource.isRetryTopic(resource);
-            boolean isResourceContainsNamespace = PlainAccessResource.isContainNamespace(resource);
+            boolean isResourceContainsNamespace = NamespaceUtil.isContainNamespace(resource);
 
             //the resource perm that ak owned is null or doesn't contain the resource
             if (ownedResourcePermMap == null || !ownedResourcePermMap.containsKey(resource)) {
                 //check the namespace perm and the default perm
-                if (isMatchNamespaceAndDeafultPerm(isResourceContainsNamespace, resource, ownedNamespacePermMap, isGroup, neededPerm, ownedPlainAccess)) {
+                if (isMatchNamespaceOrDeafultPerm(isResourceContainsNamespace, resource, ownedNamespacePermMap, isGroup, neededPerm, ownedPlainAccess)) {
                     continue;
                 } else {
                     throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
@@ -62,19 +63,14 @@ public class PlainPermissionChecker implements PermissionChecker {
             } else {
                 //check whether the resource perm that the ak owned is match the needed
                 if (!Permission.checkPermission(neededPerm, ownedResourcePermMap.get(resource))) {
-                    //check the namespace perm and the default perm
-                    if (isMatchNamespaceAndDeafultPerm(isResourceContainsNamespace, resource, ownedNamespacePermMap, isGroup, neededPerm, ownedPlainAccess)) {
-                        continue;
-                    } else {
-                        throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
-                    }
+                    throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
                 }
                 continue;
             }
         }
     }
 
-    public boolean isMatchNamespaceAndDeafultPerm(boolean isResourceContainsNamespace, String resource, Map<String, Map<String, Byte>> ownedNamespacePermMap,
+    public boolean isMatchNamespaceOrDeafultPerm(boolean isResourceContainsNamespace, String resource, Map<String, Map<String, Byte>> ownedNamespacePermMap,
         boolean isGroup, byte neededPerm, PlainAccessResource ownedPlainAccess) {
         if (isResourceContainsNamespace) {
             String namespace = PlainAccessResource.getResourceNamespace(resource);

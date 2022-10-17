@@ -333,7 +333,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.UPDATE_ACL_NAMESPACE_PERMS:
                 return this.updateAclNamespacePerms(ctx, request);
             case RequestCode.GET_ACCESSKEY_CONFIG:
-                return this.getAccesskeyConfig(ctx, request);
+                return this.getConfigByAccessKey(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -733,7 +733,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return  null;
     }
 
-    private RemotingCommand getAccesskeyConfig(ChannelHandlerContext ctx,
+    private RemotingCommand getConfigByAccessKey(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAccesskeyConfigRequestHeader.class);
 
@@ -743,7 +743,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            PlainAccessConfig plainAccessConfig = accessValidator.getAccesskeyConfg(accesskey);
+            PlainAccessConfig plainAccessConfig = accessValidator.getConfigByAccessKey(accesskey);
             GetBrokerClusterAccesskeyConfigResponseBody body = new GetBrokerClusterAccesskeyConfigResponseBody();
             body.setPlainAccessConfig(plainAccessConfig);
             response.setCode(ResponseCode.SUCCESS);

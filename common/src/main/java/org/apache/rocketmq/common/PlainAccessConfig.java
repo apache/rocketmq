@@ -130,10 +130,10 @@ public class PlainAccessConfig {
             ", admin=" + admin +
             ", defaultTopicPerm='" + defaultTopicPerm + '\'' +
             ", defaultGroupPerm='" + defaultGroupPerm + '\'' +
-            ", topicPerms=" + topicPerms +
-            ", groupPerms=" + groupPerms +
-            ", resourcePerms=" + resourcePerms +
-            ", namespacePerms=" + namespacePerms +
+            ", topicPerms='" + topicPerms + '\'' +
+            ", groupPerms='" + groupPerms + '\'' +
+            ", resourcePerms='" + resourcePerms + '\'' +
+            ", namespacePerms='" + namespacePerms + '\'' +
             '}';
     }
 }

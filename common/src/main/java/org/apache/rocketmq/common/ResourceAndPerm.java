@@ -57,4 +57,14 @@ public class ResourceAndPerm {
     public void setPerm(String perm) {
         this.perm = perm;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceAndPerm{" +
+            "resource='" + resource + '\'' +
+            ", type='" + type + '\'' +
+            ", namespace='" + namespace + '\'' +
+            ", perm='" + perm + '\'' +
+            '}';
+    }
 }
