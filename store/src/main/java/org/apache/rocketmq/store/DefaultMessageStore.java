@@ -138,8 +138,6 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
 
-    private AtomicLong printTimes = new AtomicLong(0);
-
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
