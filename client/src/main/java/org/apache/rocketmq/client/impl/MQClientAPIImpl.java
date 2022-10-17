@@ -1451,6 +1451,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void consumerSendMessageBack(
         final String addr,
+        final String brokerName,
         final MessageExt msg,
         final String consumerGroup,
         final int delayLevel,
@@ -1466,6 +1467,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
         requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
+        requestHeader.setBname(brokerName);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
