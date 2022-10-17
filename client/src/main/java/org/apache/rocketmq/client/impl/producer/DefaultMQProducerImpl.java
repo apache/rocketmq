@@ -351,7 +351,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
                 thisHeader.setBname(checkRequestHeader.getBname());
-                thisHeader.setQueueId(checkRequestHeader.getQueueId());
 
                 String uniqueKey = message.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                 if (uniqueKey == null) {
@@ -1327,7 +1326,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
         requestHeader.setBname(sendResult.getMessageQueue().getBrokerName());
-        requestHeader.setQueueId(sendResult.getMessageQueue().getQueueId());
         switch (localTransactionState) {
             case COMMIT_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);

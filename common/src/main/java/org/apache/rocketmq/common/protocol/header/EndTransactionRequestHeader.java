@@ -43,8 +43,6 @@ public class EndTransactionRequestHeader extends RpcRequestHeader {
 
     private String transactionId;
 
-    private int queueId;
-
     @Override
     public void checkFields() throws RemotingCommandException {
         if (MessageSysFlag.TRANSACTION_NOT_TYPE == this.commitOrRollback) {
@@ -128,16 +126,7 @@ public class EndTransactionRequestHeader extends RpcRequestHeader {
             ", fromTransactionCheck=" + fromTransactionCheck +
             ", msgId='" + msgId + '\'' +
             ", transactionId='" + transactionId + '\'' +
-            ", queueId=" + queueId +
             ", bname='" + bname + '\'' +
             '}';
-    }
-
-    public int getQueueId() {
-        return queueId;
-    }
-
-    public void setQueueId(int queueId) {
-        this.queueId = queueId;
     }
 }
