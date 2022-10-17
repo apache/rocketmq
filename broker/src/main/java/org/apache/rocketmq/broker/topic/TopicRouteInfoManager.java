@@ -109,10 +109,14 @@ public class TopicRouteInfoManager {
 
                     if (isNeedUpdateSubscribeInfo) {
                         this.updateSubscribeInfoTable(topicRouteData, topic);
+                    } else {
+                        log.warn("TopicRouteInfoManager: updateTopicRouteInfoFromNameServer, Topic: {} not do updateSubscribeInfoTable ", topic);
                     }
 
                     if (isNeedUpdatePublishInfo) {
                         this.updateTopicRouteTable(topic, topicRouteData);
+                    } else {
+                        log.warn("TopicRouteInfoManager: updateTopicRouteInfoFromNameServer, Topic: {} not do updateTopicRouteTable ", topic);
                     }
                 } catch (RemotingException e) {
                     log.error("updateTopicRouteInfoFromNameServer Exception", e);
