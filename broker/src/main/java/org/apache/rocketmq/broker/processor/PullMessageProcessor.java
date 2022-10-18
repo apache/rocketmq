@@ -22,6 +22,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Objects;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -748,9 +749,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     }
 
     private boolean isBroadcast(boolean proxyPullBroadcast, ConsumerGroupInfo consumerGroupInfo) {
-        return consumerGroupInfo != null && MessageModel.BROADCASTING.equals(consumerGroupInfo.getMessageModel()) &&
-            ConsumeType.CONSUME_PASSIVELY.equals(consumerGroupInfo.getConsumeType()) ||
-            proxyPullBroadcast;
+        return proxyPullBroadcast ||
+            consumerGroupInfo != null
+                && MessageModel.BROADCASTING.equals(consumerGroupInfo.getMessageModel())
+                && ConsumeType.CONSUME_PASSIVELY.equals(consumerGroupInfo.getConsumeType());
     }
 
     protected void updateBroadcastPulledOffset(String topic, String group, int queueId,
@@ -760,7 +762,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             return;
         }
 
-        boolean proxyPullBroadcast = RequestSource.PROXY_FOR_BROADCAST.getValue() == requestHeader.getRequestSource();
+        boolean proxyPullBroadcast = Objects.equals(
+            RequestSource.PROXY_FOR_BROADCAST.getValue(), requestHeader.getRequestSource());
         ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
 
         if (isBroadcast(proxyPullBroadcast, consumerGroupInfo)) {
@@ -794,7 +797,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
-        boolean proxyPullBroadcast = RequestSource.PROXY_FOR_BROADCAST.getValue() == requestHeader.getRequestSource();
+        boolean proxyPullBroadcast = Objects.equals(
+            RequestSource.PROXY_FOR_BROADCAST.getValue(), requestHeader.getRequestSource());
 
         if (isBroadcast(proxyPullBroadcast, consumerGroupInfo)) {
             String clientId;
