@@ -59,7 +59,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.attribute.DeletePolicy;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -70,7 +70,7 @@ import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.common.utils.DeletePolicyUtils;
+import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -725,9 +725,9 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         Optional<TopicConfig> topicConfig = getTopicConfig(topic);
-        DeletePolicy policy = DeletePolicyUtils.getDeletePolicy(topicConfig);
+        CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
         //check request topic flag
-        if (Objects.equals(policy, DeletePolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
+        if (Objects.equals(policy, CleanupPolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
             return compactionStore.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize);
         } // else skip
 

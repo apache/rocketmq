@@ -18,9 +18,9 @@ package org.apache.rocketmq.store.kv;
 
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.attribute.DeletePolicy;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.utils.DeletePolicyUtils;
+import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.CommitLog;
@@ -55,9 +55,9 @@ public class CompactionService extends ServiceThread {
 
         String topic = request.getTopic();
         Optional<TopicConfig> topicConfig = defaultMessageStore.getTopicConfig(topic);
-        DeletePolicy policy = DeletePolicyUtils.getDeletePolicy(topicConfig);
+        CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
         //check request topic flag
-        if (Objects.equals(policy, DeletePolicy.COMPACTION)) {
+        if (Objects.equals(policy, CleanupPolicy.COMPACTION)) {
             int queueId = request.getQueueId();
             long physicalOffset = request.getCommitLogOffset();
             TopicPartitionOffset tpo = new TopicPartitionOffset(topic, queueId, physicalOffset);

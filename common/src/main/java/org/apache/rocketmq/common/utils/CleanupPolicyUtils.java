@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DeletePolicyUtils {
+public class CleanupPolicyUtils {
     public static boolean isCompaction(Optional<TopicConfig> topicConfig) {
         return Objects.equals(CleanupPolicy.COMPACTION, getDeletePolicy(topicConfig));
     }
