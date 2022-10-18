@@ -138,7 +138,13 @@ public class CompactionLog {
 
     public void load(boolean exitOk) throws IOException, RuntimeException {
         initLogAndCq(exitOk);
-        state.compareAndSet(State.INITIALIZING, State.NORMAL);
+        if (defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
+            && getLog().isMappedFilesEmpty()) {
+            log.info("{}:{} load compactionLog from remote master", topic, queueId);
+            loadFromRemoteAsync();
+        } else {
+            state.compareAndSet(State.INITIALIZING, State.NORMAL);
+        }
     }
 
     private void initLogAndCq(boolean exitOk) throws IOException, RuntimeException {
@@ -177,6 +183,85 @@ public class CompactionLog {
 
         return true;
 
+    }
+
+    private void pullMessageFromMaster() throws Exception {
+
+        if (StringUtils.isBlank(compactionStore.getMasterAddr())) {
+            compactionStore.getCompactionSchedule().schedule(() -> {
+                try {
+                    pullMessageFromMaster();
+                } catch (Exception e) {
+                    log.error("pullMessageFromMaster exception: ", e);
+                }
+            }, 5, TimeUnit.SECONDS);
+            return;
+        }
+
+        replicating = new TopicPartitionLog(this, REPLICATING_SUB_FOLDER);
+        try (MessageFetcher messageFetcher = new MessageFetcher()) {
+            messageFetcher.pullMessageFromMaster(topic, queueId, getCQ().getMinOffsetInQueue(),
+                compactionStore.getMasterAddr(), (currOffset, response) -> {
+                    if (currOffset < 0) {
+                        log.info("{}:{} current offset {}, stop pull...", topic, queueId, currOffset);
+                        return false;
+                    }
+                    return putMessageFromRemote(response.getBody());
+//                    positionMgr.setOffset(topic, queueId, currOffset);
+                });
+        }
+
+        // merge files
+        if (getLog().isMappedFilesEmpty()) {
+            replaceFiles(getLog().getMappedFiles(), current, replicating);
+        } else if (replicating.getLog().isMappedFilesEmpty()) {
+            log.info("replicating message is empty");   //break
+        } else {
+            List<MappedFile> newFiles = Lists.newArrayList();
+            List<MappedFile> toCompactFiles = Lists.newArrayList(replicating.getLog().getMappedFiles());
+            putMessageLock.lock();
+            try {
+                // combine current and replicating to mappedFileList
+                newFiles = Lists.newArrayList(getLog().getMappedFiles());
+                toCompactFiles.addAll(newFiles);  //all from current
+                current.roll(toCompactFiles.size() * compactionLogMappedFileSize);
+            } catch (Throwable e) {
+                log.error("roll log and cq exception: ", e);
+            } finally {
+                putMessageLock.unlock();
+            }
+
+            try {
+                // doCompaction with current and replicating
+                compactAndReplace(new ProcessFileList(toCompactFiles, newFiles));
+            } catch (Throwable e) {
+                log.error("do merge replicating and current exception: ", e);
+            }
+        }
+
+        // cleanReplicatingResource, force clean cq
+        replicating.clean(false, true);
+
+//        positionMgr.setOffset(topic, queueId, currentPullOffset);
+        state.compareAndSet(State.INITIALIZING, State.NORMAL);
+    }
+    private void loadFromRemoteAsync() {
+        compactionStore.getCompactionSchedule().submit(() -> {
+            try {
+                pullMessageFromMaster();
+            } catch (Exception e) {
+                log.error("fetch message from master exception: ", e);
+            }
+        });
+
+        // update (currentStatus) = LOADING
+
+        // request => get (start, end)
+        // pull message => current message offset > end
+        // done
+        // positionMgr.persist();
+
+        // update (currentStatus) = RUNNING
     }
 
     private long nextOffsetCorrection(long oldOffset, long newOffset) {

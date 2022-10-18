@@ -71,6 +71,7 @@ import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
+import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
@@ -267,6 +268,7 @@ public class MQAdminStartup {
         initCommand(new UpdateControllerConfigSubCommand());
         initCommand(new ReElectMasterSubCommand());
         initCommand(new CleanControllerBrokerDataSubCommand());
+        initCommand(new DumpCompactionLogCommand());
     }
 
     private static void initLogback() throws Exception {

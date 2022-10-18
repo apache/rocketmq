@@ -129,6 +129,10 @@ public class CompactionService extends ServiceThread {
         compactionStore.shutdown();
     }
 
+    public void updateMasterAddress(String addr) {
+        compactionStore.updateMasterAddress(addr);
+    }
+
     static class TopicPartitionOffset {
         String topic;
         int queueId;

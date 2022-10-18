@@ -151,6 +151,10 @@ public class CompactionStore {
         compactionLogTable.values().forEach(log -> log.flushCQ(flushLeastPages));
     }
 
+    public void updateMasterAddress(String addr) {
+        this.masterAddr = addr;
+    }
+
     public void shutdown() {
         positionMgr.persist();
         compactionSchedule.shutdown();
