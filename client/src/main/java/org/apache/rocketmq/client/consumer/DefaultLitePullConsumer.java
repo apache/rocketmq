@@ -382,7 +382,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public Collection<MessageQueueInfo> fetchMessageQueuesInfo(String topic) throws MQClientException {
-        return null;
+        return this.defaultLitePullConsumerImpl.fetchMessageQueuesInfo(withNamespace(topic));
     }
 
     @Override

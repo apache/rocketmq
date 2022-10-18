@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -1190,6 +1191,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return parseMessageQueues(result);
     }
 
+    public Set<MessageQueueInfo> fetchMessageQueuesInfo(String topic) throws MQClientException {
+        checkServiceState();
+        Set<MessageQueueInfo> result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueuesInfo(topic);
+        return parseMessageQueuesInfo(result);
+    }
+
     private synchronized void fetchTopicMessageQueuesAndCompare() throws MQClientException {
         for (Map.Entry<String, TopicMessageQueueChangeListener> entry : topicMessageQueueChangeListenerMap.entrySet()) {
             String topic = entry.getKey();
@@ -1251,6 +1258,24 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             String userTopic = NamespaceUtil.withoutNamespace(messageQueue.getTopic(),
                 this.defaultLitePullConsumer.getNamespace());
             resultQueues.add(new MessageQueue(userTopic, messageQueue.getBrokerName(), messageQueue.getQueueId()));
+        }
+        return resultQueues;
+    }
+
+    private Set<MessageQueueInfo> parseMessageQueuesInfo(Set<MessageQueueInfo> queueSet) {
+        Set<MessageQueueInfo> resultQueues = new HashSet<>();
+        for (MessageQueueInfo mqInfo : queueSet) {
+            String userTopic = NamespaceUtil.withoutNamespace(mqInfo.getTopic(),
+                    this.defaultLitePullConsumer.getNamespace());
+            resultQueues.add(
+                    new MessageQueueInfo(
+                            userTopic,
+                            mqInfo.getBrokerName(),
+                            mqInfo.getQueueId(),
+                            mqInfo.getLeader(),
+                            mqInfo.getFollowers()
+                    )
+            );
         }
         return resultQueues;
     }
