@@ -21,11 +21,11 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
+public class CheckTransactionStateRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private Long tranStateTableOffset;
     @CFNotNull

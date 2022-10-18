@@ -17,11 +17,11 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class PopMessageRequestHeader implements CommandCustomHeader {
+public class PopMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
@@ -102,17 +102,17 @@ public class PopMessageRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         if (queueId < 0) {
             return -1;
         }
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    @Override
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
-
 
     public int getMaxMsgNums() {
         return maxMsgNums;

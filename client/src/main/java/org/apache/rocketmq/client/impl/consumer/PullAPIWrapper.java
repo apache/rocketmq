@@ -379,6 +379,7 @@ public class PullAPIWrapper {
             requestHeader.setExpType(expressionType);
             requestHeader.setExp(expression);
             requestHeader.setOrder(order);
+            requestHeader.setBname(mq.getBrokerName());
             //give 1000 ms for server response
             if (poll) {
                 requestHeader.setPollTime(timeout);
