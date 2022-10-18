@@ -37,15 +37,16 @@ public class UpdateAccessConfigSubCommandTest {
         UpdateAccessConfigSubCommand cmd = new UpdateAccessConfigSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {
-            "-b 127.0.0.1:10911",
-            "-a RocketMQ",
-            "-s 12345678",
-            "-w 192.168.0.*",
-            "-i DENY",
-            "-u SUB",
-            "-t topicA=DENY;topicB=PUB|SUB",
-            "-g groupA=DENY;groupB=SUB",
-            "-m true"};
+            "-b","127.0.0.1:10911",
+            "-a","RocketMQ",
+            "-s","12345678",
+            "-w","192.168.0.*",
+            "-i","DENY",
+            "-u","SUB",
+            "-t","topicA=DENY;topicB=PUB|SUB",
+            "-g","groupA=DENY;groupB=SUB",
+            "-m","true"
+        };
         // Note: Posix parser is capable of handling values that contains '='.
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
