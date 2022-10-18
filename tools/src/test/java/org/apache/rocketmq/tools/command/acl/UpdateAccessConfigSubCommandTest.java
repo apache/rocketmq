@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Assert;
@@ -49,7 +50,7 @@ public class UpdateAccessConfigSubCommandTest {
         // Note: Posix parser is capable of handling values that contains '='.
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                cmd.buildCommandlineOptions(options), new DefaultParser());
+                cmd.buildCommandlineOptions(options), new PosixParser());
         assertThat(commandLine.getOptionValue('b').trim()).isEqualTo("127.0.0.1:10911");
         assertThat(commandLine.getOptionValue('a').trim()).isEqualTo("RocketMQ");
         assertThat(commandLine.getOptionValue('s').trim()).isEqualTo("12345678");
