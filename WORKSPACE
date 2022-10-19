@@ -93,6 +93,7 @@ maven_install(
         "com.squareup.okio:okio-jvm:3.0.0",
         "io.opentelemetry:opentelemetry-api:1.19.0",
         "io.opentelemetry:opentelemetry-sdk-metrics:1.19.0",
+        "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
     ],
     fetch_sources = True,
     repositories = [
