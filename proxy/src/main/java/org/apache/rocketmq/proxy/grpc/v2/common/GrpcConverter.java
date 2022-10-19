@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.DeadLetterQueue;
 import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
@@ -237,6 +238,15 @@ public class GrpcConverter {
             systemPropertiesBuilder.setTraceContext(traceContext);
         }
 
+        String dlqOriginTopic = messageExt.getProperty(MessageConst.PROPERTY_DLQ_ORIGIN_TOPIC);
+        String dlqOriginMessageId = messageExt.getProperty(MessageConst.PROPERTY_DLQ_ORIGIN_MESSAGE_ID);
+        if (dlqOriginTopic != null && dlqOriginMessageId != null) {
+            DeadLetterQueue dlq = DeadLetterQueue.newBuilder()
+                .setTopic(dlqOriginTopic)
+                .setMessageId(dlqOriginMessageId)
+                .build();
+            systemPropertiesBuilder.setDeadLetterQueue(dlq);
+        }
         return systemPropertiesBuilder.build();
     }
 
