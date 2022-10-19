@@ -63,6 +63,7 @@ import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
 import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -262,6 +263,7 @@ public class BrokerController {
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
     private long lastSyncTimeMs = System.currentTimeMillis();
+    private BrokerMetricsManager brokerMetricsManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -774,6 +776,8 @@ public class BrokerController {
                 result = result && brokerAttachedPlugin.load();
             }
         }
+
+        this.brokerMetricsManager = new BrokerMetricsManager(this);
 
         if (result) {
 
