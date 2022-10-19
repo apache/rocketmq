@@ -85,6 +85,8 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         writeIfNotNull(out, "subVersion", subVersion);
         writeIfNotNull(out, "expressionType", expressionType);
         writeIfNotNull(out, "maxMsgBytes", maxMsgBytes);
+        writeIfNotNull(out, "requestSource", requestSource);
+        writeIfNotNull(out, "proxyFrowardClientId", proxyFrowardClientId);
         writeIfNotNull(out, "lo", lo);
         writeIfNotNull(out, "ns", ns);
         writeIfNotNull(out, "nsd", nsd);
@@ -152,6 +154,16 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         str = fields.get("maxMsgBytes");
         if (str != null) {
             this.maxMsgBytes = Integer.parseInt(str);
+        }
+
+        str = fields.get("requestSource");
+        if (str != null) {
+            this.requestSource = Integer.parseInt(str);
+        }
+
+        str = fields.get("proxyFrowardClientId");
+        if (str != null) {
+            this.proxyFrowardClientId = str;
         }
 
         str = fields.get("lo");
