@@ -233,7 +233,7 @@ public class CompactionLog {
 
             try {
                 // doCompaction with current and replicating
-                compactAndReplace(new ProcessFileList(toCompactFiles, newFiles));
+                compactAndReplace(new ProcessFileList(toCompactFiles, toCompactFiles));
             } catch (Throwable e) {
                 log.error("do merge replicating and current exception: ", e);
             }
