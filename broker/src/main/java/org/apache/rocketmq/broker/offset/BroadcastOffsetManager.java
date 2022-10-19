@@ -56,7 +56,7 @@ public class BroadcastOffsetManager extends ServiceThread {
                 broadcastTimedOffsetStore = new BroadcastTimedOffsetStore(fromProxy);
             }
 
-            broadcastTimedOffsetStore.timeStamp = System.currentTimeMillis();
+            broadcastTimedOffsetStore.timestamp = System.currentTimeMillis();
             broadcastTimedOffsetStore.fromProxy = fromProxy;
             broadcastTimedOffsetStore.offsetStore.updateOffset(queueId, offset, true);
             return broadcastTimedOffsetStore;
@@ -142,7 +142,7 @@ public class BroadcastOffsetManager extends ServiceThread {
             for (String clientId : broadcastOffsetData.clientOffsetStore.keySet()) {
                 broadcastOffsetData.clientOffsetStore
                     .computeIfPresent(clientId, (clientIdKey, broadcastTimedOffsetStore) -> {
-                        long interval = System.currentTimeMillis() - broadcastTimedOffsetStore.timeStamp;
+                        long interval = System.currentTimeMillis() - broadcastTimedOffsetStore.timestamp;
                         boolean clientIsOnline = brokerController.getConsumerManager().findChannel(broadcastOffsetData.group, clientId) != null;
                         if (clientIsOnline || interval < Duration.ofSeconds(brokerConfig.getBroadcastOffsetExpireSecond()).toMillis()) {
                             Set<Integer> queueSet = broadcastTimedOffsetStore.offsetStore.queueList();
@@ -169,11 +169,9 @@ public class BroadcastOffsetManager extends ServiceThread {
                 return broadcastOffsetDataVal;
             });
 
-            queueMinOffset.forEach((queueId, offset) -> {
+            queueMinOffset.forEach((queueId, offset) ->
                 this.brokerController.getConsumerOffsetManager().commitOffset("BroadcastOffset",
-                    broadcastGroupId(broadcastOffsetData.group), broadcastOffsetData.topic,
-                    queueId, offset);
-            });
+                broadcastGroupId(broadcastOffsetData.group), broadcastOffsetData.topic, queueId, offset));
         }
     }
 
@@ -219,21 +217,24 @@ public class BroadcastOffsetManager extends ServiceThread {
     }
 
     public static class BroadcastTimedOffsetStore {
+
         /**
          * the timeStamp of last update occurred
          */
-        private volatile long timeStamp;
+        private volatile long timestamp;
+
         /**
          * mark the offset of this client is updated by proxy or not
          */
         private volatile boolean fromProxy;
+
         /**
          * the pulled offset of each queue
          */
         private final BroadcastOffsetStore offsetStore;
 
         public BroadcastTimedOffsetStore(boolean fromProxy) {
-            this.timeStamp = System.currentTimeMillis();
+            this.timestamp = System.currentTimeMillis();
             this.fromProxy = fromProxy;
             this.offsetStore = new BroadcastOffsetStore();
         }
