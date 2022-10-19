@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.common.admin;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
@@ -30,14 +28,17 @@ public class ConsumeStats extends RemotingSerializable {
 
     public long computeTotalDiff() {
         long diffTotal = 0L;
-
-        Iterator<Entry<MessageQueue, OffsetWrapper>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<MessageQueue, OffsetWrapper> next = it.next();
-            long diff = next.getValue().getBrokerOffset() - next.getValue().getConsumerOffset();
-            diffTotal += diff;
+        for (Entry<MessageQueue, OffsetWrapper> entry : this.offsetTable.entrySet()) {
+            diffTotal += entry.getValue().getBrokerOffset() - entry.getValue().getConsumerOffset();
         }
+        return diffTotal;
+    }
 
+    public long computeInflightTotalDiff() {
+        long diffTotal = 0L;
+        for (Entry<MessageQueue, OffsetWrapper> entry : this.offsetTable.entrySet()) {
+            diffTotal += entry.getValue().getPullOffset() - entry.getValue().getConsumerOffset();
+        }
         return diffTotal;
     }
 

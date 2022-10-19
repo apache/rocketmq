@@ -48,6 +48,9 @@ public class ConsumerOffsetManager extends ConfigManager {
     private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
         new ConcurrentHashMap<>(512);
 
+    private final ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
+        new ConcurrentHashMap<>(512);
+
     protected transient BrokerController brokerController;
 
     private final transient AtomicLong versionChangeCounter = new AtomicLong(0);
@@ -205,6 +208,23 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    public void commitPullOffset(final String clientHost, final String group, final String topic, final int queueId,
+        final long offset) {
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = this.pullOffsetTable.computeIfAbsent(
+            key, k -> new ConcurrentHashMap<>(32));
+        map.put(queueId, offset);
+    }
+
+    /**
+     * If the target queue has temporary reset offset, return the reset-offset.
+     * Otherwise, return the current consume offset in the offset store.
+     * @param group Consumer group
+     * @param topic Topic
+     * @param queueId Queue ID
+     * @return current consume offset or reset offset if there were one.
+     */
     public long queryOffset(final String group, final String topic, final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
@@ -224,7 +244,31 @@ public class ConsumerOffsetManager extends ConfigManager {
             }
         }
 
-        return -1;
+        return -1L;
+    }
+
+    /**
+     * Query pull offset in pullOffsetTable
+     * @param group Consumer group
+     * @param topic Topic
+     * @param queueId Queue ID
+     * @return latest pull offset of consumer group
+     */
+    public long queryPullOffset(final String group, final String topic, final int queueId) {
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        Long offset = null;
+
+        ConcurrentMap<Integer, Long> map = this.pullOffsetTable.get(key);
+        if (null != map) {
+            offset = map.get(queueId);
+        }
+
+        if (offset == null) {
+            offset = queryOffset(group, topic, queueId);
+        }
+
+        return offset;
     }
 
     @Override

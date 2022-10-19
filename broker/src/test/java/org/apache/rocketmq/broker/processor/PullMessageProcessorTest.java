@@ -18,6 +18,11 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.lang.reflect.Method;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -226,6 +231,19 @@ public class PullMessageProcessorTest {
         ConsumerGroupInfo consumerGroupInfo3 = new ConsumerGroupInfo("GID-3",
             ConsumeType.CONSUME_PASSIVELY, MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         Assert.assertTrue((Boolean) method.invoke(pullMessageProcessor, false, consumerGroupInfo3));
+    }
+
+    @Test
+    public void testCommitPullOffset() throws RemotingCommandException {
+        GetMessageResult getMessageResult = createGetMessageResult();
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+
+        final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(this.brokerController.getConsumerOffsetManager().queryPullOffset(group, topic, 1))
+            .isEqualTo(getMessageResult.getNextBeginOffset());
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {
