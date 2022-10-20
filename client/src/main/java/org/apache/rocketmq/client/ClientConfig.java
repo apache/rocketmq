@@ -59,6 +59,44 @@ public class ClientConfig {
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
     private long pullTimeDelayMillsWhenException = 1000;
+    
+    private int fetchNameServerAddrDelayTime = 1000 * 10 ;
+    private int fetchNameServerAddrPeriod = 1000 * 60 * 2;
+    private int persistAllConsumerOffsetDelayTIme = 1000 * 10;
+    private int updateTopicRouteInfoFromNameServerDelayTime = 1;
+    
+    public int getFetchNameServerAddrDelayTime() {
+        return fetchNameServerAddrDelayTime;
+    }
+    
+    public int getFetchNameServerAddrPeriod() {
+        return fetchNameServerAddrPeriod;
+    }
+    
+    public int getPersistAllConsumerOffsetDelayTIme() {
+        return persistAllConsumerOffsetDelayTIme;
+    }
+    
+    public int getUpdateTopicRouteInfoFromNameServerDelayTime() {
+        return updateTopicRouteInfoFromNameServerDelayTime;
+    }
+    
+    public int getUpdateTopicRouteInfoFromNameServerPeriod() {
+        return updateTopicRouteInfoFromNameServerPeriod;
+    }
+    
+    public int getUpdateTopicRouteInfoDelayTime() {
+        return updateTopicRouteInfoDelayTime;
+    }
+    
+    public int getHeartbeatBrokerDelayTime() {
+        return heartbeatBrokerDelayTime;
+    }
+    
+    private int updateTopicRouteInfoFromNameServerPeriod = 1;
+    private int updateTopicRouteInfoDelayTime = 10;
+    private int heartbeatBrokerDelayTime = 1000;
+    
     private boolean unitMode = false;
     private String unitName;
     private boolean decodeReadBody = Boolean.parseBoolean(System.getProperty(DECODE_READ_BODY, "true"));
@@ -171,6 +209,13 @@ public class ClientConfig {
         this.pollNameServerInterval = cc.pollNameServerInterval;
         this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
         this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
+        this.fetchNameServerAddrDelayTime = cc.fetchNameServerAddrDelayTime ;
+        this.fetchNameServerAddrPeriod = cc.fetchNameServerAddrPeriod;
+        this.persistAllConsumerOffsetDelayTIme = cc.persistAllConsumerOffsetDelayTIme;
+        this.updateTopicRouteInfoFromNameServerDelayTime = cc.updateTopicRouteInfoFromNameServerDelayTime;
+        this.updateTopicRouteInfoFromNameServerPeriod = cc.updateTopicRouteInfoFromNameServerPeriod;
+        this.updateTopicRouteInfoDelayTime = cc.updateTopicRouteInfoDelayTime;
+        this.heartbeatBrokerDelayTime = cc.heartbeatBrokerDelayTime;
         this.pullTimeDelayMillsWhenException = cc.pullTimeDelayMillsWhenException;
         this.unitMode = cc.unitMode;
         this.unitName = cc.unitName;
@@ -206,6 +251,13 @@ public class ClientConfig {
         cc.decodeReadBody = decodeReadBody;
         cc.decodeDecompressBody = decodeDecompressBody;
         cc.enableStreamRequestType = enableStreamRequestType;
+        cc.fetchNameServerAddrDelayTime = fetchNameServerAddrDelayTime ;
+        cc.fetchNameServerAddrPeriod = fetchNameServerAddrPeriod;
+        cc.persistAllConsumerOffsetDelayTIme = persistAllConsumerOffsetDelayTIme;
+        cc.updateTopicRouteInfoFromNameServerDelayTime = updateTopicRouteInfoFromNameServerDelayTime;
+        cc.updateTopicRouteInfoFromNameServerPeriod = updateTopicRouteInfoFromNameServerPeriod;
+        cc.updateTopicRouteInfoDelayTime = updateTopicRouteInfoDelayTime;
+        cc.heartbeatBrokerDelayTime = heartbeatBrokerDelayTime;
         return cc;
     }
 
