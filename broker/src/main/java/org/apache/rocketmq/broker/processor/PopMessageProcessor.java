@@ -522,12 +522,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     getMessageTmpResult.getBufferTotalSize());
 
                 if (isOrder) {
-                    int count = brokerController.getConsumerOrderInfoManager().update(topic,
+                    this.brokerController.getConsumerOrderInfoManager().update(isRetry, topic,
                         requestHeader.getConsumerGroup(),
-                        queueId, getMessageTmpResult.getMessageQueueOffset());
+                        queueId, popTime, requestHeader.getInvisibleTime(), getMessageTmpResult.getMessageQueueOffset(),
+                        orderCountInfo);
                     this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                         requestHeader.getConsumerGroup(), topic, queueId, offset);
-                    ExtraInfoUtil.buildOrderCountInfo(orderCountInfo, isRetry, queueId, count);
                 } else {
                     appendCheckPoint(requestHeader, topic, reviveQid, queueId, offset, getMessageTmpResult, popTime, this.brokerController.getBrokerConfig().getBrokerName());
                 }
@@ -901,6 +901,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     public class QueueLockManager extends ServiceThread {
         private ConcurrentHashMap<String, TimedLock> expiredLocalCache = new ConcurrentHashMap<>(100000);
 
+        public String buildLockKey(String topic, String consumerGroup, int queueId) {
+            return topic + PopAckConstants.SPLIT + consumerGroup + PopAckConstants.SPLIT + queueId;
+        }
+
+        public boolean tryLock(String topic, String consumerGroup, int queueId) {
+            return tryLock(buildLockKey(topic, consumerGroup, queueId));
+        }
+
         public boolean tryLock(String key) {
             TimedLock timedLock = expiredLocalCache.get(key);
 
@@ -944,6 +952,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
 
             return total;
+        }
+
+        public void unLock(String topic, String consumerGroup, int queueId) {
+            unLock(buildLockKey(topic, consumerGroup, queueId));
         }
 
         public void unLock(String key) {
