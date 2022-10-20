@@ -107,16 +107,16 @@ public class PlainPermissionManagerTest {
 
         plainAccess.setAccessKey("RocketMQ");
         plainAccess.setSecretKey("12345678");
-        plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
+        plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccess), new RemoteAddressStrategyFactory());
         Assert.assertEquals(plainAccessResource.getAccessKey(), "RocketMQ");
         Assert.assertEquals(plainAccessResource.getSecretKey(), "12345678");
 
         plainAccess.setWhiteRemoteAddress("127.0.0.1");
-        plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
+        plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccess), new RemoteAddressStrategyFactory());
         Assert.assertEquals(plainAccessResource.getWhiteRemoteAddress(), "127.0.0.1");
 
         plainAccess.setAdmin(true);
-        plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
+        plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccess), new RemoteAddressStrategyFactory());
         Assert.assertEquals(plainAccessResource.isAdmin(), true);
 
         List<String> groups = new ArrayList<>();
@@ -124,7 +124,7 @@ public class PlainPermissionManagerTest {
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
         plainAccess.setGroupPerms(groups);
-        plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
+        plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccess), new RemoteAddressStrategyFactory());
         Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
         Assert.assertEquals(resourcePermMap.size(), 3);
 
@@ -137,7 +137,7 @@ public class PlainPermissionManagerTest {
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
         plainAccess.setTopicPerms(topics);
-        plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
+        plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccess), new RemoteAddressStrategyFactory());
         resourcePermMap = plainAccessResource.getResourcePermMap();
         Assert.assertEquals(resourcePermMap.size(), 6);
 
@@ -155,7 +155,6 @@ public class PlainPermissionManagerTest {
 
     @Test
     public void checkPerm() {
-
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
         plainPermissionManager.checkPerm(plainAccessResource, pubPlainAccessResource);
@@ -167,12 +166,10 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.checkPerm(plainAccessResource, subPlainAccessResource);
         plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
         plainPermissionManager.checkPerm(plainAccessResource, anyPlainAccessResource);
-
     }
 
     @Test(expected = AclException.class)
     public void checkErrorPermDefaultValueNotMatch() {
-
         plainAccessResource = new PlainAccessResource();
         plainAccessResource.addResourceAndPerm("topicF", Permission.PUB);
         plainPermissionManager.checkPerm(plainAccessResource, subPlainAccessResource);
@@ -181,25 +178,25 @@ public class PlainPermissionManagerTest {
     @Test(expected = AclException.class)
     public void accountNullTest() {
         plainAccessConfig.setAccessKey(null);
-        plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
+        PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccessConfig), new RemoteAddressStrategyFactory());
     }
 
     @Test(expected = AclException.class)
     public void accountThanTest() {
         plainAccessConfig.setAccessKey("123");
-        plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
+        PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccessConfig), new RemoteAddressStrategyFactory());
     }
 
     @Test(expected = AclException.class)
     public void passWordtNullTest() {
         plainAccessConfig.setAccessKey(null);
-        plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
+        PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccessConfig), new RemoteAddressStrategyFactory());
     }
 
     @Test(expected = AclException.class)
     public void passWordThanTest() {
         plainAccessConfig.setSecretKey("123");
-        plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
+        PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(plainPermissionManager.createAclAccessConfigMap(null, plainAccessConfig), new RemoteAddressStrategyFactory());
     }
 
     @SuppressWarnings("unchecked")
@@ -216,7 +213,6 @@ public class PlainPermissionManagerTest {
 
     @Test
     public void isWatchStartTest() {
-
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());
     }

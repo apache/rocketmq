@@ -237,41 +237,41 @@ sh mqadmin updateAclAccount --namesrv 127.0.0.1:9876 --brokerAddr 127.0.0.1:1091
 (1) 新增topicA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation ADD --resource topicA --type TOPIC --namespace namespace1
 --perm SUB
 
 (2) 修改topicA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation UPDATE --resource topicA --type TOPIC --namespace namespace1
 --perm PUB|SUB
 
 (3) 删除topicA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation DELETE --resource topicA --type TOPIC --namespace namespace1
 
 (4) 新增groupA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation ADD --resource groupA --type GROUP --namespace namespace1
 --perm PUB
 
 (5) 修改groupA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation UPDATE --resource groupA --type GROUP --namespace namespace1
 --perm PUB|SUB
 
 (6) 删除groupA的权限
 
 sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation DELETE --resource groupA --type GROUP --namespace namespace1
 
 | 参数 | 取值 | 含义 |
@@ -279,7 +279,8 @@ sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876
 | namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
 | clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
 | brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-| accessKey | eg:RocketMQ | Access Key值(必填) |
+| accessKey | eg:RocketMQ | AccessKey值(必填) |
+| secretKey | eg:1234567890 | SecretKey值(必填) |
 | operation | eg:ADD;UPDATE;DELETE | 对resourcePerms的操作类型（必填） |
 | resource | eg:topic1;group1 | 指定topic名称或者ConsumerGroup名称（必填） |
 | type | eg:TOPIC;GROUP | 当操作对象是resource时，指定是topic还是ConsumerGroup（必填） |
@@ -292,39 +293,39 @@ sh mqadmin updateAclResourcePerms --namesrv 127.0.0.1:9876
 (1) 新增namespace1的权限
 
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation ADD --namespace namespace1 --topicPerm SUB --groupPerm PUB
 
 (2) 修改namespace1的权限
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation UPDATE --namespace namespace1 --topicPerm DENY 
 --groupPerm PUB
 
 (3) 删除namespace1的权限
 
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation DELETE --namespace namespace1
 
 (4) 批量增加(新增namespace2和namespace3的权限，其topicPerm均为SUB，groupPerm均为PUB)
 
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation ADD --namespace namespace2，namespace3 --topicPerm SUB 
 --groupPerm PUB
 
 (5) 批量修改(将namespace2和namespace3的topicPerm和groupPerm修改为DENY)
 
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation UPDATE --namespace namespace2，namespace3 --topicPerm DENY 
 --groupPerm DENY
 
 (6) 批量删除
 
 sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876 
---brokerAddr 127.0.0.1:10911 --accessKey RocketMQ
+--brokerAddr 127.0.0.1:10911 --accessKey RocketMQ --secretKey 1234567890
 --operation DELETE --namespace namespace2，namespace3
 
 | 参数 | 取值 | 含义 |
@@ -332,7 +333,8 @@ sh mqadmin updateAclNamespacePerms --namesrv 127.0.0.1:9876
 | namesrv | eg:127.0.0.1:9876 | namesrv地址(必填) |
 | clusterName | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
 | brokerAddr | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-| accessKey | eg:RocketMQ | Access Key值(必填) |
+| accessKey | eg:RocketMQ | AccessKey值(必填) |
+| secretKey | eg:1234567890 | SecretKey值(必填) |
 | operation | eg:ADD;UPDATE;DELETE | 对namespacePerms的操作类型（必填） |
 | namespace | eg:namespace1 | 指定namespace名称（必填），如果是批量操作则使用逗号分割 |
 | topicPerm | eg:DENY;PUB;SUB;PUB\|SUB | topicPerm，各个namespace默认的topic权限（可选） |

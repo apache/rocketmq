@@ -462,13 +462,14 @@ public class PlainAccessNamespaceTest {
         Thread.sleep(1000);
 
         String accesskey = "rocketmqx";
+        String secreteKey = "12345678";
         ResourceAndPerm resourceAndPerm = new ResourceAndPerm();
         resourceAndPerm.setResource("topicB");
         resourceAndPerm.setType(ResourceType.TOPIC);
         resourceAndPerm.setNamespace("namespace1");
         resourceAndPerm.setPerm("PUB");
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        plainAccessValidator.updateAclResourcePerms(accesskey, resourceAndPerm, OperationType.ADD);
+        plainAccessValidator.updateAclResourcePerms(accesskey, secreteKey, resourceAndPerm, OperationType.ADD);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
                 List<ResourceAndPerm> resourceAndPerms = plainAccessConfig.getResourcePerms();
@@ -484,7 +485,7 @@ public class PlainAccessNamespaceTest {
             }
         }
         resourceAndPerm.setPerm("PUB|SUB");
-        plainAccessValidator.updateAclResourcePerms(accesskey, resourceAndPerm, OperationType.UPDATE);
+        plainAccessValidator.updateAclResourcePerms(accesskey, secreteKey, resourceAndPerm, OperationType.UPDATE);
         Thread.sleep(1000);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
@@ -500,7 +501,7 @@ public class PlainAccessNamespaceTest {
                 break;
             }
         }
-        plainAccessValidator.updateAclResourcePerms(accesskey, resourceAndPerm, OperationType.DELETE);
+        plainAccessValidator.updateAclResourcePerms(accesskey, secreteKey, resourceAndPerm, OperationType.DELETE);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
                 Assert.assertEquals(plainAccessConfig.getResourcePerms().size(), 1);
@@ -543,6 +544,7 @@ public class PlainAccessNamespaceTest {
         Thread.sleep(1000);
 
         String accesskey = "rocketmqx";
+        String secretKey = "12345678";
         List<NamespaceAndPerm> namespaceAndPermList = new ArrayList<>();
         NamespaceAndPerm namespaceAndPerm = new NamespaceAndPerm();
         namespaceAndPerm.setNamespace("namespace2");
@@ -550,7 +552,7 @@ public class PlainAccessNamespaceTest {
         namespaceAndPerm.setGroupPerm("DENY");
         namespaceAndPermList.add(namespaceAndPerm);
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        plainAccessValidator.updateAclNamespacePerms(accesskey, namespaceAndPermList, OperationType.ADD);
+        plainAccessValidator.updateAclNamespacePerms(accesskey, secretKey, namespaceAndPermList, OperationType.ADD);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
                 Assert.assertEquals(plainAccessConfig.getNamespacePerms().size(), 2);
@@ -574,7 +576,7 @@ public class PlainAccessNamespaceTest {
         }
         namespaceAndPerm.setTopicPerm("PUB");
         namespaceAndPermList.add(namespaceAndPerm);
-        plainAccessValidator.updateAclNamespacePerms(accesskey, namespaceAndPermList, OperationType.UPDATE);
+        plainAccessValidator.updateAclNamespacePerms(accesskey, secretKey, namespaceAndPermList, OperationType.UPDATE);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
                 Assert.assertEquals(plainAccessConfig.getNamespacePerms().size(), 2);
@@ -588,7 +590,7 @@ public class PlainAccessNamespaceTest {
                 break;
             }
         }
-        plainAccessValidator.updateAclNamespacePerms(accesskey, namespaceAndPermList, OperationType.DELETE);
+        plainAccessValidator.updateAclNamespacePerms(accesskey, secretKey, namespaceAndPermList, OperationType.DELETE);
         for (PlainAccessConfig plainAccessConfig : plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()) {
             if (plainAccessConfig.getAccessKey().equals("rocketmqx")) {
                 Assert.assertEquals(plainAccessConfig.getNamespacePerms().size(), 1);

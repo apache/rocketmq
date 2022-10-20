@@ -63,6 +63,10 @@ public class UpdateAclResourcePermsSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("s", "secretKey", true, "set secretKey in acl config file");
+        opt.setRequired(true);
+        options.addOption(opt);
+
         opt = new Option("o", "operation", true, "set operation type on resourcePerms");
         opt.setRequired(true);
         options.addOption(opt);
@@ -100,6 +104,7 @@ public class UpdateAclResourcePermsSubCommand implements SubCommand {
             PlainAccessConfig accessConfig = new PlainAccessConfig();
             //accessKey
             accessConfig.setAccessKey(commandLine.getOptionValue('a').trim());
+            accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
 
             //Operation
             if (commandLine.getOptionValue('o').trim().equalsIgnoreCase(OperationType.ADD.toString())) {

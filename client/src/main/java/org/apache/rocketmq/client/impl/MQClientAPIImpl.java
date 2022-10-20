@@ -469,6 +469,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throws RemotingException, InterruptedException, MQClientException {
         UpdateAclResourcePermsRequestHeader requestHeader = new UpdateAclResourcePermsRequestHeader();
         requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
         requestHeader.setOperation(operation);
         requestHeader.setResource(plainAccessConfig.getResourcePerms().get(0).getResource());
         if (plainAccessConfig.getResourcePerms().get(0).getType() == ResourceType.GROUP) {
@@ -504,6 +505,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throws RemotingException, InterruptedException, MQClientException {
         UpdateAclNamespacePermsRequestHeader requestHeader = new UpdateAclNamespacePermsRequestHeader();
         requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
         requestHeader.setOperation(operation);
         List<NamespaceAndPerm> namespaceAndPerms = plainAccessConfig.getNamespacePerms();
         requestHeader.setTopicPerm(namespaceAndPerms.get(0).getTopicPerm());

@@ -163,7 +163,7 @@ public class PlainPermissionManager {
             if (accounts != null && !accounts.isEmpty()) {
                 List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
                 for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
-                    PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                    PlainAccessResource plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory);
                     //AccessKey can not be defined in multiple ACL files
                     if (accessKeyTable.get(plainAccessResource.getAccessKey()) == null) {
                         plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
@@ -245,7 +245,7 @@ public class PlainPermissionManager {
         if (accounts != null && !accounts.isEmpty()) {
             List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
             for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
-                PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                PlainAccessResource plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory);
                 //AccessKey can not be defined in multiple ACL files
                 String oldPath = this.accessKeyTable.get(plainAccessResource.getAccessKey());
                 if (oldPath == null || aclFilePath.equals(oldPath)) {
@@ -336,13 +336,13 @@ public class PlainPermissionManager {
             Map<String, PlainAccessResource> accountMap = aclPlainAccessResourceMap.get(aclFileName);
             if (accountMap == null) {
                 accountMap = new HashMap<>(1);
-                accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                accountMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory));
             } else if (accountMap.size() == 0) {
-                accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                accountMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory));
             } else {
                 for (Map.Entry<String, PlainAccessResource> entry : accountMap.entrySet()) {
                     if (entry.getValue().getAccessKey().equals(plainAccessConfig.getAccessKey())) {
-                        PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                        PlainAccessResource plainAccessResource = PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory);
                         accountMap.put(entry.getKey(), plainAccessResource);
                         break;
                     }
@@ -378,11 +378,11 @@ public class PlainPermissionManager {
             accessKeyTable.put(plainAccessConfig.getAccessKey(), fileName);
             if (aclPlainAccessResourceMap.get(fileName) == null) {
                 Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>(1);
-                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             } else {
                 Map<String, PlainAccessResource> plainAccessResourceMap = aclPlainAccessResourceMap.get(fileName);
-                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(createAclAccessConfigMap(null, plainAccessConfig), remoteAddressStrategyFactory));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             }
             return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(defaultAclFile, aclAccessConfigMap));
@@ -459,26 +459,27 @@ public class PlainPermissionManager {
             if (null == accounts) {
                 accounts = new ArrayList<>();
             }
-            accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
+            Map<String, Object> accessConfigMap = createAclAccessConfigMap(null, plainAccessConfig);
+            accounts.add(accessConfigMap);
             aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             accessKeyTable.put(plainAccessConfig.getAccessKey(), fileName);
             if (aclPlainAccessResourceMap.get(fileName) == null) {
                 Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>(1);
-                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(accessConfigMap, remoteAddressStrategyFactory));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             } else {
                 Map<String, PlainAccessResource> plainAccessResourceMap = aclPlainAccessResourceMap.get(fileName);
-                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+                plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), PlainAccessResource.buildPlainAccessResourceByAccessConfigMap(accessConfigMap, remoteAddressStrategyFactory));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             }
             return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(defaultAclFile, aclAccessConfigMap));
         }
     }
 
-    public boolean updateAclResourcePerms(String accesskey, ResourceAndPerm resourceAndPerm, OperationType operationType) {
-        if (accesskey == null || resourceAndPerm == null || operationType == null) {
-            log.error("Parameter: accesskey or resourceAndPerm or operationType is null, Please check your parameter");
-            throw new AclException("The parameter of updateAclResourcePerms command: accesskey or resourceAndPerm or operationType is null, Please check your parameter");
+    public boolean updateAclResourcePerms(String accesskey, String secretKey, ResourceAndPerm resourceAndPerm, OperationType operationType) {
+        if (accesskey == null || secretKey == null || resourceAndPerm == null || operationType == null) {
+            log.error("Parameter: accesskey or secretKey or resourceAndPerm or operationType is null, Please check your parameter");
+            throw new AclException("The parameter of updateAclResourcePerms command: accesskey or secretKey or resourceAndPerm or operationType is null, Please check your parameter");
         }
         if (operationType == OperationType.ADD || operationType == OperationType.UPDATE) {
             checkResourceAndPerm(resourceAndPerm);
@@ -491,7 +492,7 @@ public class PlainPermissionManager {
             List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
             if (null != accounts) {
                 for (Map<String, Object> account : accounts) {
-                    if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
+                    if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey) && account.get(AclConstants.CONFIG_SECRET_KEY).toString().equals(secretKey)) {
                         // Update acl access config elements
                         accounts.remove(account);
                         updateAccountMap = updateAclAccessConfigMap(account, resourceAndPerm, operationType);
@@ -505,6 +506,7 @@ public class PlainPermissionManager {
                 accounts = new LinkedList<>();
                 updateAccountMap = updateAclAccessConfigMap(null, resourceAndPerm, operationType);
                 updateAccountMap.put(AclConstants.CONFIG_ACCESS_KEY, accesskey);
+                updateAccountMap.put(AclConstants.CONFIG_SECRET_KEY, secretKey);
                 accounts.add(updateAccountMap);
                 aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             }
@@ -575,10 +577,10 @@ public class PlainPermissionManager {
         return newAccountsMap;
     }
 
-    public boolean updateAclNamespacePerms(String accesskey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType) {
-        if (accesskey == null || operationType == null || namespaceAndPerms == null) {
-            log.error("Parameter: accesskey or operationType is null, Please check your parameter");
-            throw new AclException("The parameter of updateAclResourcePerms command: accesskey or operationType is null, Please check your parameter");
+    public boolean updateAclNamespacePerms(String accesskey, String secretKey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType) {
+        if (accesskey == null || secretKey == null || operationType == null || namespaceAndPerms == null) {
+            log.error("Parameter: accesskey or secretKey or operationType or namespaceAndPerms is null, Please check your parameter");
+            throw new AclException("The parameter of updateAclNamespacePerms command: accesskey or secretKey or operationType or namespaceAndPerms is null, Please check your parameter");
         }
         if (accessKeyTable.containsKey(accesskey)) {
             Map<String, Object> updateAccountMap = null;
@@ -587,7 +589,7 @@ public class PlainPermissionManager {
             List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
             if (null != accounts) {
                 for (Map<String, Object> account : accounts) {
-                    if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
+                    if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey) && account.get(AclConstants.CONFIG_SECRET_KEY).toString().equals(secretKey)) {
                         // Update acl access config elements
                         accounts.remove(account);
                         updateAccountMap = updateAclAccessConfigMap(account, namespaceAndPerms, operationType);
@@ -601,6 +603,7 @@ public class PlainPermissionManager {
                 accounts = new LinkedList<>();
                 updateAccountMap = updateAclAccessConfigMap(null, namespaceAndPerms, operationType);
                 updateAccountMap.put(AclConstants.CONFIG_ACCESS_KEY, accesskey);
+                updateAccountMap.put(AclConstants.CONFIG_SECRET_KEY, secretKey);
                 accounts.add(updateAccountMap);
                 aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             }
@@ -736,10 +739,27 @@ public class PlainPermissionManager {
             newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, plainAccessConfig.getGroupPerms());
         }
         if (plainAccessConfig.getResourcePerms() != null) {
-            newAccountsMap.put(AclConstants.CONFIG_RESOURCE_PERMS, plainAccessConfig.getResourcePerms());
+            List<LinkedHashMap<String, Object>> resourceAndPermList = new ArrayList<>();
+            for (ResourceAndPerm resourceAndPerm : plainAccessConfig.getResourcePerms()) {
+                LinkedHashMap<String, Object> resourceAndPerm1 = new LinkedHashMap<>();
+                resourceAndPerm1.put(AclConstants.CONFIG_RESOURCE, resourceAndPerm.getResource());
+                resourceAndPerm1.put(AclConstants.CONFIG_NAMESPACE, resourceAndPerm.getNamespace());
+                resourceAndPerm1.put(AclConstants.CONFIG_TYPE, resourceAndPerm.getType());
+                resourceAndPerm1.put(AclConstants.CONFIG_PERM, resourceAndPerm.getPerm());
+                resourceAndPermList.add(resourceAndPerm1);
+            }
+            newAccountsMap.put(AclConstants.CONFIG_RESOURCE_PERMS, resourceAndPermList);
         }
         if (plainAccessConfig.getNamespacePerms() != null) {
-            newAccountsMap.put(AclConstants.CONFIG_NAMESPACE_PERMS, plainAccessConfig.getNamespacePerms());
+            List<LinkedHashMap<String, String>> namespaceAndPermList = new ArrayList<>();
+            for (NamespaceAndPerm namespaceAndPerm : plainAccessConfig.getNamespacePerms()) {
+                LinkedHashMap<String, String> namespaceAndPerm1 = new LinkedHashMap<>();
+                namespaceAndPerm1.put(AclConstants.CONFIG_NAMESPACE, namespaceAndPerm.getNamespace());
+                namespaceAndPerm1.put(AclConstants.CONFIG_TOPIC_PERM, namespaceAndPerm.getTopicPerm());
+                namespaceAndPerm1.put(AclConstants.CONFIG_GROUP_PERM, namespaceAndPerm.getGroupPerm());
+                namespaceAndPermList.add(namespaceAndPerm1);
+            }
+            newAccountsMap.put(AclConstants.CONFIG_NAMESPACE_PERMS, namespaceAndPermList);
         }
         return newAccountsMap;
     }
@@ -902,12 +922,6 @@ public class PlainPermissionManager {
                 "The resource=%s type=%s and perm=%s cannot be null",
                 resourceAndPerm.getResource(), resourceAndPerm.getType(), resourceAndPerm.getPerm()));
         }
-    }
-
-    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
-        checkPlainAccessConfig(plainAccessConfig);
-        return PlainAccessResource.build(plainAccessConfig, remoteAddressStrategyFactory.
-            getRemoteAddressStrategy(plainAccessConfig.getWhiteRemoteAddress()));
     }
 
     public void validate(PlainAccessResource plainAccessResource) {

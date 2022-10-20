@@ -72,21 +72,23 @@ public interface AccessValidator {
 
     /**
      * update the accessKey's resourcePerms
-      * @param accesskey
+     * @param accesskey
+     * @param secretKey
      * @param resourceAndPerm
      * @param operationType
      * @return
      */
-    boolean updateAclResourcePerms(String accesskey, ResourceAndPerm resourceAndPerm, OperationType operationType);
+    boolean updateAclResourcePerms(String accesskey, String secretKey, ResourceAndPerm resourceAndPerm, OperationType operationType);
 
     /**
      * update the accessKey's namespacePerms
      * @param accesskey
+     * @param secretKey
      * @param namespaceAndPerms
      * @param operationType
      * @return
      */
-    boolean updateAclNamespacePerms(String accesskey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType);
+    boolean updateAclNamespacePerms(String accesskey, String secretKey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType);
 
     /**
      * get the accessKey's config

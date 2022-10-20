@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -24,6 +25,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 public class UpdateAclNamespacePermsRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String accessKey;
+
+    @CFNotNull
+    private String secretKey;
 
     @CFNotNull
     private String operation;
@@ -44,6 +48,14 @@ public class UpdateAclNamespacePermsRequestHeader implements CommandCustomHeader
 
     public void setAccessKey(String accessKey) {
         this.accessKey = accessKey;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
     public String getOperation() {
@@ -76,5 +88,17 @@ public class UpdateAclNamespacePermsRequestHeader implements CommandCustomHeader
 
     public void setNamespaceStr(String namespaceStr) {
         this.namespaceStr = namespaceStr;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("accessKey", accessKey)
+            .add("secretKey", secretKey)
+            .add("operation", operation)
+            .add("topicPerm", topicPerm)
+            .add("groupPerm", groupPerm)
+            .add("namespaceStr", namespaceStr)
+            .toString();
     }
 }

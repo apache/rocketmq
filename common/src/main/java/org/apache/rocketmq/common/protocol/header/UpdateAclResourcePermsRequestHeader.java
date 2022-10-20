@@ -27,6 +27,9 @@ public class UpdateAclResourcePermsRequestHeader implements CommandCustomHeader 
     private String accessKey;
 
     @CFNotNull
+    private String secretKey;
+
+    @CFNotNull
     private String operation;
 
     @CFNotNull
@@ -49,6 +52,14 @@ public class UpdateAclResourcePermsRequestHeader implements CommandCustomHeader 
 
     public void setAccessKey(String accessKey) {
         this.accessKey = accessKey;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
     public String getOperation() {
@@ -95,6 +106,7 @@ public class UpdateAclResourcePermsRequestHeader implements CommandCustomHeader 
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("accessKey", accessKey)
+            .add("secretKey", secretKey)
             .add("operation", operation)
             .add("resource", resource)
             .add("type", type)

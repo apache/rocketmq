@@ -45,7 +45,6 @@ import org.apache.rocketmq.acl.common.AuthorizationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -272,38 +271,36 @@ public class PlainAccessResource implements AccessResource {
         addResourceAndPerm(resourceName, permission);
     }
 
-    public static PlainAccessResource build(PlainAccessConfig plainAccessConfig, RemoteAddressStrategy remoteAddressStrategy) {
-        PlainAccessResource plainAccessResource = new PlainAccessResource();
-        plainAccessResource.setAccessKey(plainAccessConfig.getAccessKey());
-        plainAccessResource.setSecretKey(plainAccessConfig.getSecretKey());
-        plainAccessResource.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
-
-        plainAccessResource.setAdmin(plainAccessConfig.isAdmin());
-
-        plainAccessResource.setDefaultGroupPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultGroupPerm()));
-        plainAccessResource.setDefaultTopicPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultTopicPerm()));
-
-        Permission.parseResourcePerms(plainAccessResource, false, plainAccessConfig.getGroupPerms());
-        Permission.parseResourcePerms(plainAccessResource, true, plainAccessConfig.getTopicPerms());
-
-        Permission.parseResourcePermsAndNamespacePerms(plainAccessResource, plainAccessConfig);
-
-        plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategy);
-        return plainAccessResource;
-    }
-
     public static PlainAccessResource buildPlainAccessResourceByAccessConfigMap(Map<String, Object> accessConfigMap,
         RemoteAddressStrategyFactory remoteAddressStrategyFactory) {
         PlainAccessResource updatePlainAccessResource = new PlainAccessResource();
         if (accessConfigMap.containsKey(AclConstants.CONFIG_ACCESS_KEY)) {
+            String accessKey = accessConfigMap.get(AclConstants.CONFIG_ACCESS_KEY).toString();
+            if (accessKey.isEmpty() || accessKey.length() <= AclConstants.ACCESS_KEY_MIN_LENGTH) {
+                throw new AclException(String.format(
+                    "The accessKey=%s cannot be null and length should longer than 6", accessKey));
+            }
             updatePlainAccessResource.setAccessKey(accessConfigMap.get(AclConstants.CONFIG_ACCESS_KEY).toString());
+        } else {
+            throw new AclException(String.format("The accessKey cannot be null and length should longer than 6"));
         }
         if (accessConfigMap.containsKey(AclConstants.CONFIG_SECRET_KEY)) {
+            String secretKey = accessConfigMap.get(AclConstants.CONFIG_SECRET_KEY).toString();
+            if (secretKey.isEmpty() || secretKey.length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
+                throw new AclException(String.format(
+                    "The secretKey=%s cannot be null and length should longer than 6", secretKey));
+            }
             updatePlainAccessResource.setSecretKey(accessConfigMap.get(AclConstants.CONFIG_SECRET_KEY).toString());
+        } else {
+            throw new AclException(String.format("The secretKey cannot be null and length should longer than 6"));
         }
         if (accessConfigMap.containsKey(AclConstants.CONFIG_WHITE_ADDR)) {
             updatePlainAccessResource.setRemoteAddressStrategy(remoteAddressStrategyFactory.
                 getRemoteAddressStrategy(accessConfigMap.get(AclConstants.CONFIG_WHITE_ADDR).toString()));
+            updatePlainAccessResource.setWhiteRemoteAddress(accessConfigMap.get(AclConstants.CONFIG_WHITE_ADDR).toString());
+        } else {
+            updatePlainAccessResource.setRemoteAddressStrategy(remoteAddressStrategyFactory.
+                getRemoteAddressStrategy(""));
         }
         if (accessConfigMap.containsKey(AclConstants.CONFIG_ADMIN_ROLE)) {
             updatePlainAccessResource.setAdmin(Boolean.parseBoolean(accessConfigMap.get(AclConstants.CONFIG_ADMIN_ROLE).toString()));
@@ -315,6 +312,12 @@ public class PlainAccessResource implements AccessResource {
         if (accessConfigMap.containsKey(AclConstants.CONFIG_DEFAULT_GROUP_PERM)) {
             updatePlainAccessResource.setDefaultGroupPerm(Permission.
                 parsePermFromString(accessConfigMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM).toString()));
+        }
+        if (accessConfigMap.containsKey(AclConstants.CONFIG_TOPIC_PERMS)) {
+            Permission.parseResourcePerms(updatePlainAccessResource, true, (List<String>)accessConfigMap.get(AclConstants.CONFIG_TOPIC_PERMS));
+        }
+        if (accessConfigMap.containsKey(AclConstants.CONFIG_GROUP_PERMS)) {
+            Permission.parseResourcePerms(updatePlainAccessResource, false, (List<String>)accessConfigMap.get(AclConstants.CONFIG_GROUP_PERMS));
         }
         Permission.parseResourcePermsAndNamespacePerms(updatePlainAccessResource, accessConfigMap);
         return updatePlainAccessResource;

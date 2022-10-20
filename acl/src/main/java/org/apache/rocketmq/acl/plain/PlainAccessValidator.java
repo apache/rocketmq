@@ -64,13 +64,13 @@ public class PlainAccessValidator implements AccessValidator {
     }
 
     @Override
-    public boolean updateAclResourcePerms(String accesskey, ResourceAndPerm resourceAndPerm, OperationType operationType) {
-        return aclPlugEngine.updateAclResourcePerms(accesskey, resourceAndPerm, operationType);
+    public boolean updateAclResourcePerms(String accesskey, String secretKey, ResourceAndPerm resourceAndPerm, OperationType operationType) {
+        return aclPlugEngine.updateAclResourcePerms(accesskey, secretKey, resourceAndPerm, operationType);
     }
 
     @Override
-    public boolean updateAclNamespacePerms(String accesskey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType) {
-        return aclPlugEngine.updateAclNamespacePerms(accesskey, namespaceAndPerms, operationType);
+    public boolean updateAclNamespacePerms(String accesskey, String secretKey, List<NamespaceAndPerm> namespaceAndPerms, OperationType operationType) {
+        return aclPlugEngine.updateAclNamespacePerms(accesskey, secretKey, namespaceAndPerms, operationType);
     }
 
     @Override

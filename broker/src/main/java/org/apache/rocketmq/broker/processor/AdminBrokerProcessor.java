@@ -618,6 +618,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             (UpdateAclResourcePermsRequestHeader)request.decodeCommandCustomHeader(UpdateAclResourcePermsRequestHeader.class);
 
         String accessKey = requestHeader.getAccessKey();
+        String secretKey = requestHeader.getSecretKey();
         String operation = requestHeader.getOperation();
         OperationType operationType = OperationType.ADD;
         if (operation.equalsIgnoreCase(OperationType.ADD.toString())) {
@@ -643,7 +644,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
         try {
-            if (accessValidator.updateAclResourcePerms(accessKey, resourceAndPerm, operationType)) {
+            if (accessValidator.updateAclResourcePerms(accessKey, secretKey, resourceAndPerm, operationType)) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
@@ -674,6 +675,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             (UpdateAclNamespacePermsRequestHeader)request.decodeCommandCustomHeader(UpdateAclNamespacePermsRequestHeader.class);
 
         String accessKey = requestHeader.getAccessKey();
+        String secretKey = requestHeader.getSecretKey();
         String operation = requestHeader.getOperation();
         OperationType operationType = OperationType.ADD;
         if (operation.equalsIgnoreCase(OperationType.ADD.toString())) {
@@ -710,7 +712,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
         try {
-            if (accessValidator.updateAclNamespacePerms(accessKey, namespaceAndPerms, operationType)) {
+            if (accessValidator.updateAclNamespacePerms(accessKey, secretKey, namespaceAndPerms, operationType)) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
