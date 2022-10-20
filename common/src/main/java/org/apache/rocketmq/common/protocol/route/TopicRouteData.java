@@ -40,15 +40,15 @@ public class TopicRouteData extends RemotingSerializable {
     private Map<String/*brokerName*/, TopicQueueMappingInfo> topicQueueMappingByBroker;
 
     public TopicRouteData() {
-        queueDatas = new ArrayList<QueueData>();
-        brokerDatas = new ArrayList<BrokerData>();
-        filterServerTable = new HashMap<String, List<String>>();
+        queueDatas = new ArrayList<>();
+        brokerDatas = new ArrayList<>();
+        filterServerTable = new HashMap<>();
     }
 
     public TopicRouteData(TopicRouteData topicRouteData) {
-        this.queueDatas = new ArrayList<QueueData>();
-        this.brokerDatas = new ArrayList<BrokerData>();
-        this.filterServerTable = new HashMap<String, List<String>>();
+        this.queueDatas = new ArrayList<>();
+        this.brokerDatas = new ArrayList<>();
+        this.filterServerTable = new HashMap<>();
         this.orderTopicConf = topicRouteData.orderTopicConf;
 
         if (topicRouteData.queueDatas != null) {
@@ -64,7 +64,7 @@ public class TopicRouteData extends RemotingSerializable {
         }
 
         if (topicRouteData.topicQueueMappingByBroker != null) {
-            this.topicQueueMappingByBroker = new HashMap<String, TopicQueueMappingInfo>(topicRouteData.topicQueueMappingByBroker);
+            this.topicQueueMappingByBroker = new HashMap<>(topicRouteData.topicQueueMappingByBroker);
         }
     }
 
@@ -100,7 +100,7 @@ public class TopicRouteData extends RemotingSerializable {
 
         for (final Map.Entry<String, List<String>> listEntry : this.filterServerTable.entrySet()) {
             topicRouteData.getFilterServerTable().put(listEntry.getKey(),
-                new ArrayList<String>(listEntry.getValue()));
+                new ArrayList<>(listEntry.getValue()));
         }
         if (this.topicQueueMappingByBroker != null) {
             Map<String, TopicQueueMappingInfo> cloneMap = new HashMap<>(this.topicQueueMappingByBroker.size());
@@ -108,7 +108,7 @@ public class TopicRouteData extends RemotingSerializable {
                 TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(entry.getValue().getTopic(), entry.getValue().getTotalQueues(), entry.getValue().getBname(), entry.getValue().getEpoch());
                 topicQueueMappingInfo.setDirty(entry.getValue().isDirty());
                 topicQueueMappingInfo.setScope(entry.getValue().getScope());
-                ConcurrentMap<Integer, Integer> concurrentMap = new ConcurrentHashMap<Integer, Integer>(entry.getValue().getCurrIdMap());
+                ConcurrentMap<Integer, Integer> concurrentMap = new ConcurrentHashMap<>(entry.getValue().getCurrIdMap());
                 topicQueueMappingInfo.setCurrIdMap(concurrentMap);
                 cloneMap.put(entry.getKey(), topicQueueMappingInfo);
             }

@@ -55,7 +55,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
     private final BrokerController brokerController;
 
-    private final ConcurrentHashMap<String, AllocateMessageQueueStrategy> name2LoadStrategy = new ConcurrentHashMap<String, AllocateMessageQueueStrategy>();
+    private final ConcurrentHashMap<String, AllocateMessageQueueStrategy> name2LoadStrategy = new ConcurrentHashMap<>();
 
     private MessageRequestModeManager messageRequestModeManager;
 
@@ -130,7 +130,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
         Set<MessageQueueAssignment> assignments = null;
         if (messageQueues != null) {
-            assignments = new HashSet<MessageQueueAssignment>();
+            assignments = new HashSet<>();
             for (MessageQueue messageQueue : messageQueues) {
                 MessageQueueAssignment messageQueueAssignment = new MessageQueueAssignment();
                 messageQueueAssignment.setMessageQueue(messageQueue);
@@ -196,7 +196,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return null;
                 }
 
-                List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                List<MessageQueue> mqAll = new ArrayList<>();
                 mqAll.addAll(mqSet);
                 Collections.sort(mqAll);
                 Collections.sort(cidAll);
@@ -221,7 +221,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return null;
                 }
 
-                assignedQueueSet = new HashSet<MessageQueue>();
+                assignedQueueSet = new HashSet<>();
                 if (allocateResult != null) {
                     assignedQueueSet.addAll(allocateResult);
                 }
@@ -282,7 +282,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,

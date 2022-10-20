@@ -30,7 +30,7 @@ public class MessageRequestModeSerializeWrapperTest {
     public void testFromJson() {
         MessageRequestModeSerializeWrapper  messageRequestModeSerializeWrapper = new MessageRequestModeSerializeWrapper();
         ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>
-                messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
+                messageRequestModeMap = new ConcurrentHashMap<>();
         String topic = "TopicTest";
         String group = "Consumer";
         MessageRequestMode requestMode = MessageRequestMode.POP;

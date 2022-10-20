@@ -119,7 +119,7 @@ public class PlainPermissionManagerTest {
         plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.isAdmin(), true);
 
-        List<String> groups = new ArrayList<String>();
+        List<String> groups = new ArrayList<>();
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
@@ -132,7 +132,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
-        List<String> topics = new ArrayList<String>();
+        List<String> topics = new ArrayList<>();
         topics.add("topicA=DENY");
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");

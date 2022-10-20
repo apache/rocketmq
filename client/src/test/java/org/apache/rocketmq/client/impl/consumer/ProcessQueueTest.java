@@ -95,7 +95,7 @@ public class ProcessQueueTest {
     }
 
     private List<MessageExt> createMessageList(int count) {
-        List<MessageExt> messageExtList = new ArrayList<MessageExt>();
+        List<MessageExt> messageExtList = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             MessageExt messageExt = new MessageExt();
             messageExt.setQueueOffset(i);

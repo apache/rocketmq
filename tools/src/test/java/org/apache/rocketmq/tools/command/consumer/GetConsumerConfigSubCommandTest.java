@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
@@ -29,10 +32,6 @@ import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 
@@ -62,7 +61,7 @@ public class GetConsumerConfigSubCommandTest {
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options),
-                new PosixParser());
+                new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -86,7 +85,7 @@ public class GetConsumerConfigSubCommandTest {
         clusterInfo.setClusterAddrTable(clusterAddressTable);
 
         // start name server
-        return ServerResponseMocker.startServer(0, clusterInfo.encode());
+        return ServerResponseMocker.startServer(clusterInfo.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -96,6 +95,6 @@ public class GetConsumerConfigSubCommandTest {
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
-        return ServerResponseMocker.startServer(0, consumerConnection.encode());
+        return ServerResponseMocker.startServer(consumerConnection.encode());
     }
 }

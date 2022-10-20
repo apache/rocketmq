@@ -23,12 +23,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class FutureHolder<T> {
-    private ConcurrentMap<T, BlockingQueue<Future>> futureMap = new ConcurrentHashMap<T, BlockingQueue<Future>>(8);
+    private ConcurrentMap<T, BlockingQueue<Future>> futureMap = new ConcurrentHashMap<>(8);
 
     public void addFuture(T t, Future future) {
         BlockingQueue<Future> list = futureMap.get(t);
         if (list == null) {
-            list = new LinkedBlockingQueue<Future>();
+            list = new LinkedBlockingQueue<>();
             BlockingQueue<Future> old = futureMap.putIfAbsent(t, list);
             if (old != null) {
                 list = old;

@@ -18,13 +18,16 @@ package org.apache.rocketmq.broker.processor;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.MQVersion;
@@ -48,6 +51,7 @@ import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.DeletePolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -245,6 +249,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         MessageAccessor.setProperties(msgInner, oriProps);
+
+        CleanupPolicy cleanupPolicy = DeletePolicyUtils.getDeletePolicy(Optional.of(topicConfig));
+        if (Objects.equals(cleanupPolicy, CleanupPolicy.COMPACTION)) {
+            if (StringUtils.isBlank(msgInner.getKeys())) {
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark("Required message key is missing");
+                return response;
+            }
+        }
+
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(), msgInner.getTags()));
         msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
         msgInner.setBornHost(ctx.channel().remoteAddress());

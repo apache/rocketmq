@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class NettyClientConfigTest {
 
     @Test
-    public void testChangeConfigBySystemProperty() throws NoSuchFieldException, IllegalAccessException {
+    public void testChangeConfigBySystemProperty() {
 
 
         System.setProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_CLIENT_WORKER_SIZE, "1");
@@ -36,6 +36,7 @@ public class NettyClientConfigTest {
         System.setProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE, "16383");
         System.setProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_RCVBUF_SIZE, "16384");
         System.setProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_CLIENT_CLOSE_SOCKET_IF_TIMEOUT, "false");
+        System.setProperty(TlsSystemConfig.TLS_ENABLE, "true");
 
 
         NettySystemConfig.socketSndbufSize =
@@ -60,5 +61,6 @@ public class NettyClientConfigTest {
         assertThat(changedConfig.getClientSocketSndBufSize()).isEqualTo(16383);
         assertThat(changedConfig.getClientSocketRcvBufSize()).isEqualTo(16384);
         assertThat(changedConfig.isClientCloseSocketIfTimeout()).isEqualTo(false);
+        assertThat(changedConfig.isUseTLS()).isEqualTo(true);
     }
 }

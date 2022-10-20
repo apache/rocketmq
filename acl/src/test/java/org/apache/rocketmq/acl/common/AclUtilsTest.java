@@ -227,16 +227,16 @@ public class AclUtilsTest {
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
-        Map<String, Object> aclYamlMap = new HashMap<String, Object>();
+        Map<String, Object> aclYamlMap = new HashMap<>();
 
         // For globalWhiteRemoteAddrs element in acl yaml config file
-        List<String> globalWhiteRemoteAddrs = new ArrayList<String>();
+        List<String> globalWhiteRemoteAddrs = new ArrayList<>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
         aclYamlMap.put("globalWhiteRemoteAddrs", globalWhiteRemoteAddrs);
 
         // For accounts element in acl yaml config file
-        List<Map<String, Object>> accounts = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> accounts = new ArrayList<>();
         Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
             {
                 put("accessKey", "RocketMQ");
@@ -257,10 +257,10 @@ public class AclUtilsTest {
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
-        Map<String, Object> aclYamlMap = new HashMap<String, Object>();
+        Map<String, Object> aclYamlMap = new HashMap<>();
 
         // For globalWhiteRemoteAddrs element in acl yaml config file
-        List<String> globalWhiteRemoteAddrs = new ArrayList<String>();
+        List<String> globalWhiteRemoteAddrs = new ArrayList<>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
         aclYamlMap.put("globalWhiteRemoteAddrs", globalWhiteRemoteAddrs);

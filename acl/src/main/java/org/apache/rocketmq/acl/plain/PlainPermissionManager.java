@@ -290,8 +290,8 @@ public class PlainPermissionManager {
             }
         }
         dataVersion.nextVersion();
-        List<Map<String, Object>> versionElement = new ArrayList<Map<String, Object>>();
-        Map<String, Object> accountsMap = new LinkedHashMap<String, Object>();
+        List<Map<String, Object>> versionElement = new ArrayList<>();
+        Map<String, Object> accountsMap = new LinkedHashMap<>();
         accountsMap.put(AclConstants.CONFIG_COUNTER, dataVersion.getCounter().longValue());
         accountsMap.put(AclConstants.CONFIG_TIME_STAMP, dataVersion.getTimestamp());
 
@@ -339,7 +339,7 @@ public class PlainPermissionManager {
             }
             Map<String, PlainAccessResource> accountMap = aclPlainAccessResourceMap.get(aclFileName);
             if (accountMap == null) {
-                accountMap = new HashMap<String, PlainAccessResource>(1);
+                accountMap = new HashMap<>(1);
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
             } else if (accountMap.size() == 0) {
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
@@ -398,7 +398,7 @@ public class PlainPermissionManager {
 
         Map<String, Object> newAccountsMap = null;
         if (existedAccountMap == null) {
-            newAccountsMap = new LinkedHashMap<String, Object>();
+            newAccountsMap = new LinkedHashMap<>();
         } else {
             newAccountsMap = existedAccountMap;
         }

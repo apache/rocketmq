@@ -44,7 +44,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class AclClient {
 
-    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
+    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<>();
 
     private static final String ACL_ACCESS_KEY = "RocketMQ";
 

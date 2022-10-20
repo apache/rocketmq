@@ -31,7 +31,7 @@ public class ResetOffsetBodyTest {
     @Test
     public void testFromJson() throws Exception {
         ResetOffsetBody rob = new ResetOffsetBody();
-        Map<MessageQueue, Long> offsetMap = new HashMap<MessageQueue, Long>();
+        Map<MessageQueue, Long> offsetMap = new HashMap<>();
         MessageQueue queue = new MessageQueue();
         queue.setQueueId(1);
         queue.setBrokerName("brokerName");

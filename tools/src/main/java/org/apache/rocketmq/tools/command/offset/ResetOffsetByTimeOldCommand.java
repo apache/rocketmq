@@ -33,12 +33,16 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ResetOffsetByTimeOldCommand implements SubCommand {
+
     public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic,
-        long timestamp, boolean force,
-        String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
-        System.out.printf(
-            "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+        long timestamp, boolean force, String timeStampStr)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        List<RollbackStats> rollbackStatsList =
+            defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
+
+        System.out.printf("reset consumer offset by specified " +
+                "consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
             consumerGroup, topic, force, timeStampStr, timestamp);
 
         System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",
@@ -47,7 +51,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             "#brokerOffset",
             "#consumerOffset",
             "#timestampOffset",
-            "#rollbackOffset"
+            "#resetOffset"
         );
 
         for (RollbackStats rollbackStats : rollbackStatsList) {
@@ -115,7 +119,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
 
                 boolean force = true;
                 if (commandLine.hasOption('f')) {
-                    force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                    force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
                 }
 
                 defaultMQAdminExt.start();

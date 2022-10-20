@@ -87,7 +87,7 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
         }
 
         if (!isCleanLivingBroker && StringUtils.isEmpty(clusterName)) {
-            throw new IllegalArgumentException("cleanLivingBroker option is false,clusterName option can not be empty.");
+            throw new IllegalArgumentException("cleanLivingBroker option is false, clusterName option can not be empty.");
         }
 
         try {
