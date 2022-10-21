@@ -202,6 +202,12 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableNetWorkFlowControl = false;
 
+    private boolean enableBroadcastOffsetStore = true;
+
+    private long broadcastOffsetExpireSecond = 2 * 60;
+
+    private long broadcastOffsetExpireMaxSecond = 5 * 60;
+
     private int popPollingSize = 1024;
     private int popPollingMapSize = 100000;
     // 20w cost 200M heap memory.
@@ -1419,6 +1425,30 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUseServerSideResetOffset(boolean useServerSideResetOffset) {
         this.useServerSideResetOffset = useServerSideResetOffset;
+    }
+
+    public boolean isEnableBroadcastOffsetStore() {
+        return enableBroadcastOffsetStore;
+    }
+
+    public void setEnableBroadcastOffsetStore(boolean enableBroadcastOffsetStore) {
+        this.enableBroadcastOffsetStore = enableBroadcastOffsetStore;
+    }
+
+    public long getBroadcastOffsetExpireSecond() {
+        return broadcastOffsetExpireSecond;
+    }
+
+    public void setBroadcastOffsetExpireSecond(long broadcastOffsetExpireSecond) {
+        this.broadcastOffsetExpireSecond = broadcastOffsetExpireSecond;
+    }
+
+    public long getBroadcastOffsetExpireMaxSecond() {
+        return broadcastOffsetExpireMaxSecond;
+    }
+
+    public void setBroadcastOffsetExpireMaxSecond(long broadcastOffsetExpireMaxSecond) {
+        this.broadcastOffsetExpireMaxSecond = broadcastOffsetExpireMaxSecond;
     }
 
     public MetricsExporterType getMetricsExporterType() {

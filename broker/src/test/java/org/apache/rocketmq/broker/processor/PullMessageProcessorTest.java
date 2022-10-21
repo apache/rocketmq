@@ -18,8 +18,10 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.lang.reflect.Method;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -42,6 +44,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -204,6 +207,25 @@ public class PullMessageProcessorTest {
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, remotingCommand);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testIfBroadcast() throws Exception {
+        Class<? extends PullMessageProcessor> clazz = pullMessageProcessor.getClass();
+        Method method = clazz.getDeclaredMethod("isBroadcast", boolean.class, ConsumerGroupInfo.class);
+        method.setAccessible(true);
+
+        ConsumerGroupInfo consumerGroupInfo = new ConsumerGroupInfo("GID-1",
+            ConsumeType.CONSUME_PASSIVELY, MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        Assert.assertTrue((Boolean) method.invoke(pullMessageProcessor, true, consumerGroupInfo));
+
+        ConsumerGroupInfo consumerGroupInfo2 = new ConsumerGroupInfo("GID-2",
+            ConsumeType.CONSUME_ACTIVELY, MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        Assert.assertFalse((Boolean) method.invoke(pullMessageProcessor, false, consumerGroupInfo2));
+
+        ConsumerGroupInfo consumerGroupInfo3 = new ConsumerGroupInfo("GID-3",
+            ConsumeType.CONSUME_PASSIVELY, MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        Assert.assertTrue((Boolean) method.invoke(pullMessageProcessor, false, consumerGroupInfo3));
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {

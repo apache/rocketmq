@@ -66,6 +66,7 @@ import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
@@ -168,6 +169,7 @@ public class BrokerController {
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
     protected final ConsumerOffsetManager consumerOffsetManager;
+    protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
     protected final ConsumerFilterManager consumerFilterManager;
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
@@ -296,6 +298,7 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        this.broadcastOffsetManager = new BroadcastOffsetManager(this);
         this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
@@ -1170,6 +1173,10 @@ public class BrokerController {
         return consumerOffsetManager;
     }
 
+    public BroadcastOffsetManager getBroadcastOffsetManager() {
+        return broadcastOffsetManager;
+    }
+
     public MessageStoreConfig getMessageStoreConfig() {
         return messageStoreConfig;
     }
@@ -1275,6 +1282,10 @@ public class BrokerController {
         }
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
+        }
+
+        if (this.broadcastOffsetManager != null) {
+            this.broadcastOffsetManager.shutdown();
         }
 
         if (this.messageStore != null) {
@@ -1501,6 +1512,10 @@ public class BrokerController {
 
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
+        }
+
+        if (this.broadcastOffsetManager != null) {
+            this.broadcastOffsetManager.start();
         }
 
         if (this.escapeBridge != null) {

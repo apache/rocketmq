@@ -71,6 +71,10 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                                   final MessageFilter messageFilter,
                                   RemotingCommand response) {
 
+        PullMessageProcessor processor = brokerController.getPullMessageProcessor();
+        processor.updateBroadcastPulledOffset(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
+            requestHeader.getQueueId(), requestHeader, channel, response, getMessageResult.getNextBeginOffset());
+
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
 
         switch (response.getCode()) {
