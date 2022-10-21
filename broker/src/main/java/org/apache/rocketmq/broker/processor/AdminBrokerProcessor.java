@@ -1522,7 +1522,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
                 offsetWrapper.setBrokerOffset(brokerOffset);
                 offsetWrapper.setConsumerOffset(consumerOffset);
-                offsetWrapper.setPullOffset(pullOffset >= 0 ? pullOffset : 0);
+                offsetWrapper.setPullOffset(Math.max(consumerOffset, pullOffset));
 
                 long timeOffset = consumerOffset - 1;
                 if (timeOffset >= 0) {
