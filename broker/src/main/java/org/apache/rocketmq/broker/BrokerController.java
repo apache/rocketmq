@@ -1354,9 +1354,6 @@ public class BrokerController {
             this.consumerManageExecutor.shutdown();
         }
 
-        if (this.fileWatchService != null) {
-            this.fileWatchService.shutdown();
-        }
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
         }
