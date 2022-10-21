@@ -251,7 +251,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case WHEEL_TIMER_MSG_ILLEGAL:
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark(String.format("timer message illegal, the delay time should not be bigger than the max delay %dms; or if set del msg, the delay time should be bigger than the current time",
-                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000));
+                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L));
                     break;
                 case WHEEL_TIMER_FLOW_CONTROL:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
