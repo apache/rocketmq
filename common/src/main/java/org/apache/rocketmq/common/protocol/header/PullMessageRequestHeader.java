@@ -20,17 +20,15 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
-
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
-import io.netty.buffer.ByteBuf;
-
-public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesHeader {
+public class PullMessageRequestHeader extends RpcRequestHeader implements FastCodesHeader {
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
@@ -51,6 +49,7 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
     private String subscription;
     @CFNotNull
     private Long subVersion;
+    @CFNullable
     private String expressionType;
 
     @Override
@@ -70,6 +69,7 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
         writeIfNotNull(out, "subscription", subscription);
         writeIfNotNull(out, "subVersion", subVersion);
         writeIfNotNull(out, "expressionType", expressionType);
+        writeIfNotNull(out, "bname", bname);
     }
 
     @Override
@@ -127,6 +127,11 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
         str = fields.get("expressionType");
         if (str != null) {
             this.expressionType = str;
+        }
+
+        str = fields.get("bname");
+        if (str != null) {
+            this.bname = str;
         }
     }
 
