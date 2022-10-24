@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -56,6 +57,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private static final int PULL_MSG_RETRY_NUMBER = 1;
 
     private static final int MAX_PROCESS_TIME_LIMIT = 60000;
+    private static final int MAX_RETRY_TIMES_FOR_ESCAPE = 10;
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
@@ -177,6 +179,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long i = halfOffset;
                 long nextOpOffset = pullResult.getNextBeginOffset();
                 int putInQueueCount = 0;
+                int escapeFailCnt = 0;
+
                 while (true) {
                     if (System.currentTimeMillis() - startTime > MAX_PROCESS_TIME_LIMIT) {
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
@@ -208,6 +212,35 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 newOffset = i;
                                 continue;
                             }
+                        }
+
+                        if (this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
+                            && this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
+                            == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId()
+                            && BrokerRole.SLAVE.equals(this.transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getBrokerRole())
+                        ) {
+                            final MessageExtBrokerInner msgInner = this.transactionalMessageBridge.renewHalfMessageInner(msgExt);
+                            final boolean isSuccess = this.transactionalMessageBridge.escapeMessage(msgInner);
+
+                            if (isSuccess) {
+                                escapeFailCnt = 0;
+                                newOffset = i + 1;
+                                i++;
+                            } else {
+                                log.warn("Escaping transactional message failed {} times! msgId(offsetId)={}, UNIQ_KEY(transactionId)={}",
+                                    escapeFailCnt + 1,
+                                    msgExt.getMsgId(),
+                                    msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+                                if (escapeFailCnt < MAX_RETRY_TIMES_FOR_ESCAPE) {
+                                    escapeFailCnt++;
+                                    Thread.sleep(100L * (2 ^ escapeFailCnt));
+                                } else {
+                                    escapeFailCnt = 0;
+                                    newOffset = i + 1;
+                                    i++;
+                                }
+                            }
+                            continue;
                         }
 
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
