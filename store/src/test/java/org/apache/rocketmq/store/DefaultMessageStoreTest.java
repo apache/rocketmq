@@ -812,7 +812,7 @@ public class DefaultMessageStoreTest {
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
-        CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
+        MessageExtEncoder.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
 
         //body size, topic size, properties size exactly equal to max size
         messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);

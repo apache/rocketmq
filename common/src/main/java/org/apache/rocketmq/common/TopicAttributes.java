@@ -31,8 +31,8 @@ public class TopicAttributes {
         newHashSet("BatchCQ", "SimpleCQ"),
         "SimpleCQ"
     );
-    public static final EnumAttribute DELETE_POLICY_ATTRIBUTE = new EnumAttribute(
-        "delete.policy",
+    public static final EnumAttribute CLEANUP_POLICY_ATTRIBUTE = new EnumAttribute(
+        "cleanup.policy",
         false,
         newHashSet("DELETE", "COMPACTION"),
         "DELETE"
@@ -49,7 +49,7 @@ public class TopicAttributes {
     static {
         ALL = new HashMap<>();
         ALL.put(QUEUE_TYPE_ATTRIBUTE.getName(), QUEUE_TYPE_ATTRIBUTE);
-        ALL.put(DELETE_POLICY_ATTRIBUTE.getName(), DELETE_POLICY_ATTRIBUTE);
+        ALL.put(CLEANUP_POLICY_ATTRIBUTE.getName(), CLEANUP_POLICY_ATTRIBUTE);
         ALL.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TOPIC_MESSAGE_TYPE_ATTRIBUTE);
     }
 }
