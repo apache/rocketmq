@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,6 +46,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
     private ConcurrentHashMap<String/* topic@group*/, ConcurrentHashMap<Integer/*queueId*/, OrderInfo>> table =
         new ConcurrentHashMap<>(128);
 
+    private transient ConsumerOrderInfoLockManager consumerOrderInfoLockManager;
     private transient BrokerController brokerController;
 
     public ConsumerOrderInfoManager() {
@@ -52,6 +54,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
 
     public ConsumerOrderInfoManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+        this.consumerOrderInfoLockManager = new ConsumerOrderInfoLockManager(brokerController);
     }
 
     public ConcurrentHashMap<String, ConcurrentHashMap<Integer, OrderInfo>> getTable() {
@@ -68,6 +71,12 @@ public class ConsumerOrderInfoManager extends ConfigManager {
 
     protected static String[] decodeKey(String key) {
         return key.split(TOPIC_GROUP_SEPARATOR);
+    }
+
+    private void updateLockFreeTimestamp(String topic, String group, int queueId, OrderInfo orderInfo) {
+        if (consumerOrderInfoLockManager != null) {
+            consumerOrderInfoLockManager.updateLockFreeTimestamp(topic, group, queueId, orderInfo);
+        }
     }
 
     /**
@@ -128,6 +137,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
         // for compatibility
         // the old pop sdk use queueId to get consumedTimes from orderCountInfo
         ExtraInfoUtil.buildQueueIdOrderCountInfo(orderInfoBuilder, isRetry, queueId, minConsumedTimes);
+        updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
     public boolean checkBlock(String topic, String group, int queueId, long invisibleTime) {
@@ -204,6 +214,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
         orderInfo.setCommitOffsetBit(orderInfo.commitOffsetBit | (1L << i));
         long nextOffset = orderInfo.getNextOffset();
 
+        updateLockFreeTimestamp(topic, group, queueId, orderInfo);
         return nextOffset;
     }
 
@@ -235,6 +246,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
         }
 
         orderInfo.updateOffsetNextVisibleTime(queueOffset, nextVisibleTime);
+        updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
     protected void autoClean() {
@@ -312,6 +324,9 @@ public class ConsumerOrderInfoManager extends ConfigManager {
             ConsumerOrderInfoManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOrderInfoManager.class);
             if (obj != null) {
                 this.table = obj.table;
+                if (this.consumerOrderInfoLockManager != null) {
+                    this.consumerOrderInfoLockManager.recover(this.table);
+                }
             }
         }
     }
@@ -320,6 +335,17 @@ public class ConsumerOrderInfoManager extends ConfigManager {
     public String encode(boolean prettyFormat) {
         this.autoClean();
         return RemotingSerializable.toJson(this, prettyFormat);
+    }
+
+    public void shutdown() {
+        if (this.consumerOrderInfoLockManager != null) {
+            this.consumerOrderInfoLockManager.shutdown();
+        }
+    }
+
+    @VisibleForTesting
+    protected ConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
+        return consumerOrderInfoLockManager;
     }
 
     public static class OrderInfo {
