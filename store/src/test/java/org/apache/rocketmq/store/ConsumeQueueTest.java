@@ -250,7 +250,11 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsg(messageStore);
             }
-            Thread.sleep(5);
+
+            // Wait consume queue build finish.
+            while (messageStore.dispatchBehindBytes() > 0) {
+                Thread.sleep(5);
+            }
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
@@ -292,7 +296,11 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsgMultiQueue(messageStore);
             }
-            Thread.sleep(5);
+
+            // Wait consume queue build finish.
+            while (messageStore.dispatchBehindBytes() > 0) {
+                Thread.sleep(5);
+            }
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
             Method method = ((ConsumeQueue) cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
@@ -340,7 +348,11 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsgMultiQueue(messageStore);
             }
-            Thread.sleep(5);
+
+            // Wait consume queue build finish.
+            while (messageStore.dispatchBehindBytes() > 0) {
+                Thread.sleep(5);
+            }
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
 
