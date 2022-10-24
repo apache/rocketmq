@@ -266,6 +266,13 @@ public class BrokerConfig extends BrokerIdentity {
     private long transactionCheckInterval = 60 * 1000;
 
     /**
+     * transaction batch op message
+     */
+    private int transactionOpMsgMaxSize = 4096;
+
+    private int transactionOpBatchInterval = 3000;
+
+    /**
      * Acl feature switch
      */
     @ImportantField
@@ -1553,5 +1560,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricsPromExporterHost(String metricsPromExporterHost) {
         this.metricsPromExporterHost = metricsPromExporterHost;
+    }
+    
+    public int getTransactionOpMsgMaxSize() {
+        return transactionOpMsgMaxSize;
+    }
+
+    public void setTransactionOpMsgMaxSize(int transactionOpMsgMaxSize) {
+        this.transactionOpMsgMaxSize = transactionOpMsgMaxSize;
+    }
+
+    public int getTransactionOpBatchInterval() {
+        return transactionOpBatchInterval;
+    }
+
+    public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
+        this.transactionOpBatchInterval = transactionOpBatchInterval;
     }
 }
