@@ -23,8 +23,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -150,7 +150,7 @@ public class MQAdminStartup {
                         Options options = ServerUtil.buildCommandlineOptions(new Options());
                         final CommandLine commandLine =
                             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
-                                new PosixParser());
+                                new DefaultParser());
                         if (null == commandLine) {
                             return;
                         }

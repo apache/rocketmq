@@ -26,13 +26,13 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -71,7 +71,7 @@ public class ControllerStartup {
 
     public static ControllerManager createControllerManager(String[] args) throws IOException, JoranException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        commandLine = ServerUtil.parseCmdLine("mqcontroller", args, buildCommandlineOptions(options), new PosixParser());
+        commandLine = ServerUtil.parseCmdLine("mqcontroller", args, buildCommandlineOptions(options), new DefaultParser());
         if (null == commandLine) {
             System.exit(-1);
             return null;

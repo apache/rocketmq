@@ -1101,19 +1101,23 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         }
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, map.get(key) + MessageConst.KEY_SEPARATOR + messageExt.getQueueOffset());
                     } else {
-                        String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
-                        int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
-                        Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
+                        String queueIdKey = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                        String queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(messageExt.getTopic(), messageExt.getQueueId(), messageExt.getQueueOffset());
+                        int index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
+                        Long msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
                         if (msgQueueOffset != messageExt.getQueueOffset()) {
                             log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
                         }
 
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                            ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key).longValue(), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                                responseHeader.getReviveQid(), messageExt.getTopic(), brokerName, messageExt.getQueueId(), msgQueueOffset.longValue())
+                            ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(queueIdKey), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                responseHeader.getReviveQid(), messageExt.getTopic(), brokerName, messageExt.getQueueId(), msgQueueOffset)
                         );
                         if (((PopMessageRequestHeader) requestHeader).isOrder() && orderCountInfo != null) {
-                            Integer count = orderCountInfo.get(key);
+                            Integer count = orderCountInfo.get(queueOffsetKey);
+                            if (count == null) {
+                                count = orderCountInfo.get(queueIdKey);
+                            }
                             if (count != null && count > 0) {
                                 messageExt.setReconsumeTimes(count);
                             }

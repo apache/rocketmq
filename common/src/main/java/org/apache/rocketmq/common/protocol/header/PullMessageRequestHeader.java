@@ -31,6 +31,7 @@ import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 import io.netty.buffer.ByteBuf;
 
 public class PullMessageRequestHeader extends TopicQueueRequestHeader implements FastCodesHeader {
+
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
@@ -56,6 +57,16 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
     @CFNullable
     private Integer maxMsgBytes;
 
+    /**
+     * mark the source of this pull request
+     */
+    private Integer requestSource;
+
+    /**
+     * the real clientId when request from proxy
+     */
+    private String proxyFrowardClientId;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -74,6 +85,8 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         writeIfNotNull(out, "subVersion", subVersion);
         writeIfNotNull(out, "expressionType", expressionType);
         writeIfNotNull(out, "maxMsgBytes", maxMsgBytes);
+        writeIfNotNull(out, "requestSource", requestSource);
+        writeIfNotNull(out, "proxyFrowardClientId", proxyFrowardClientId);
         writeIfNotNull(out, "lo", lo);
         writeIfNotNull(out, "ns", ns);
         writeIfNotNull(out, "nsd", nsd);
@@ -141,6 +154,16 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         str = fields.get("maxMsgBytes");
         if (str != null) {
             this.maxMsgBytes = Integer.parseInt(str);
+        }
+
+        str = fields.get("requestSource");
+        if (str != null) {
+            this.requestSource = Integer.parseInt(str);
+        }
+
+        str = fields.get("proxyFrowardClientId");
+        if (str != null) {
+            this.proxyFrowardClientId = str;
         }
 
         str = fields.get("lo");
@@ -269,6 +292,22 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         this.maxMsgBytes = maxMsgBytes;
     }
 
+    public Integer getRequestSource() {
+        return requestSource;
+    }
+
+    public void setRequestSource(Integer requestSource) {
+        this.requestSource = requestSource;
+    }
+
+    public String getProxyFrowardClientId() {
+        return proxyFrowardClientId;
+    }
+
+    public void setProxyFrowardClientId(String proxyFrowardClientId) {
+        this.proxyFrowardClientId = proxyFrowardClientId;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -284,6 +323,8 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
             .add("subscription", subscription)
             .add("subVersion", subVersion)
             .add("expressionType", expressionType)
+            .add("requestSource", requestSource)
+            .add("proxyFrowardClientId", proxyFrowardClientId)
             .toString();
     }
 }
