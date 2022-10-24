@@ -22,6 +22,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
@@ -147,7 +148,8 @@ public class NamesrvStartup {
 
         NamesrvController controller = createNamesrvController();
         start(controller);
-        String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+        NettyServerConfig serverConfig = controller.getNettyServerConfig();
+        String tip = MessageFormat.format("The Name Server boot success. serializeType={0}, address {1}:{2}", RemotingCommand.getSerializeTypeConfigInThisServer(), serverConfig.getBindAddress(), serverConfig.getListenPort());
         log.info(tip);
         System.out.printf("%s%n", tip);
         return controller;
