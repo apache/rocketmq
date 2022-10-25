@@ -86,8 +86,8 @@ public class TransactionalMessageServiceImplTest {
     @Test
     public void testPrepareMessage() {
         MessageExtBrokerInner inner = createMessageBrokerInner();
-        when(bridge.putHalfMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
-            (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(bridge.putHalfMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         PutMessageResult result = queueTransactionMsgService.prepareMessage(inner);
         assert result.isOk();
     }
@@ -112,6 +112,7 @@ public class TransactionalMessageServiceImplTest {
         when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createDiscardPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hellp", 1));
         when(bridge.getHalfMessage(0, 1, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 6, "hellp", 0));
         when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createOpPulResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "10", 1));
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
         long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
         int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
         final AtomicInteger checkMessage = new AtomicInteger(0);
@@ -134,8 +135,8 @@ public class TransactionalMessageServiceImplTest {
         when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "5", 0));
         when(bridge.getBrokerController()).thenReturn(this.brokerController);
         when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class))).thenReturn(createMessageBrokerInner());
-        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
-            (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
         final int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
         final AtomicInteger checkMessage = new AtomicInteger(0);

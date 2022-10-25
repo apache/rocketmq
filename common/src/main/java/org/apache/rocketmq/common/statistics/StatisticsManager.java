@@ -42,7 +42,7 @@ public class StatisticsManager {
      * Statistics
      */
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> statsTable
-        = new ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>>();
+        = new ConcurrentHashMap<>();
 
     private static final int MAX_IDLE_TIME = 10 * 60 * 1000;
     private final ScheduledExecutorService executor = ThreadUtils.newSingleThreadScheduledExecutor(
@@ -51,7 +51,7 @@ public class StatisticsManager {
     private StatisticsItemStateGetter statisticsItemStateGetter;
 
     public StatisticsManager() {
-        kindMetaMap = new HashMap<String, StatisticsKindMeta>();
+        kindMetaMap = new HashMap<>();
         start();
     }
 
@@ -62,7 +62,7 @@ public class StatisticsManager {
 
     public void addStatisticsKindMeta(StatisticsKindMeta kindMeta) {
         kindMetaMap.put(kindMeta.getName(), kindMeta);
-        statsTable.putIfAbsent(kindMeta.getName(), new ConcurrentHashMap<String, StatisticsItem>(16));
+        statsTable.putIfAbsent(kindMeta.getName(), new ConcurrentHashMap<>(16));
     }
 
     public void setBriefMeta(Pair<String, long[][]>[] briefMetas) {
@@ -85,7 +85,7 @@ public class StatisticsManager {
                         continue;
                     }
 
-                    HashMap<String, StatisticsItem> tmpItemMap = new HashMap<String, StatisticsItem>(itemMap);
+                    HashMap<String, StatisticsItem> tmpItemMap = new HashMap<>(itemMap);
                     for (StatisticsItem item : tmpItemMap.values()) {
                         // remove when expired
                         if (System.currentTimeMillis() - item.getLastTimeStamp().get() > MAX_IDLE_TIME

@@ -51,7 +51,6 @@ public class DefaultTopAddressing implements TopAddressing {
         this.topAddressingList = loadCustomTopAddressing();
     }
 
-
     public DefaultTopAddressing(final String unitName, final Map<String, String> para, final String wsAddr) {
         this.wsAddr = wsAddr;
         this.unitName = unitName;
@@ -77,7 +76,7 @@ public class DefaultTopAddressing implements TopAddressing {
     private List<TopAddressing> loadCustomTopAddressing() {
         ServiceLoader<TopAddressing> serviceLoader = ServiceLoader.load(TopAddressing.class);
         Iterator<TopAddressing> iterator = serviceLoader.iterator();
-        List<TopAddressing> topAddressingList = new ArrayList<TopAddressing>();
+        List<TopAddressing> topAddressingList = new ArrayList<>();
         if (iterator.hasNext()) {
             topAddressingList.add(iterator.next());
         }

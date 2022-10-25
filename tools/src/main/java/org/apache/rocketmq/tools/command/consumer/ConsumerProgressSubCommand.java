@@ -118,7 +118,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 } else {
                     consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup, topicName);
                 }
-                List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+                List<MessageQueue> mqList = new LinkedList<>();
                 mqList.addAll(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
 

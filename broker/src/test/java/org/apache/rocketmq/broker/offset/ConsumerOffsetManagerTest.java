@@ -17,39 +17,68 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumerOffsetManagerTest {
 
+    private static final String KEY = "FooBar@FooBarGroup";
+
+    private BrokerController brokerController;
+
     private ConsumerOffsetManager consumerOffsetManager;
 
-    private static final String key = "FooBar@FooBarGroup";
     @Before
-    public void init(){
-        consumerOffsetManager = new ConsumerOffsetManager();
-        ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
-        offsetTable.put(key,new ConcurrentHashMap<Integer, Long>(){{
-            put(1,2L);
-            put(2,3L);
-        }});
+    public void init() {
+        brokerController = Mockito.mock(BrokerController.class);
+        consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
+        offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
+                put(1,2L);
+                put(2,3L);
+            }});
         consumerOffsetManager.setOffsetTable(offsetTable);
     }
 
     @Test
-    public void cleanOffsetByTopic_NotExist(){
+    public void cleanOffsetByTopic_NotExist() {
         consumerOffsetManager.cleanOffsetByTopic("InvalidTopic");
-        assertThat(consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
+        assertThat(consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
     }
 
     @Test
-    public void cleanOffsetByTopic_Exist(){
+    public void cleanOffsetByTopic_Exist() {
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
-        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(key)).isTrue();
+        assertThat(!consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
+    }
+
+    @Test
+    public void testOffsetPersistInMemory() {
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = consumerOffsetManager.getOffsetTable();
+        ConcurrentMap<Integer, Long> table = new ConcurrentHashMap<>();
+        table.put(0, 1L);
+        table.put(1, 3L);
+        String group = "G1";
+        offsetTable.put(group, table);
+
+        consumerOffsetManager.persist();
+        ConsumerOffsetManager manager = new ConsumerOffsetManager(brokerController);
+        manager.load();
+
+        ConcurrentMap<Integer, Long> offsetTableLoaded = manager.getOffsetTable().get(group);
+        Assert.assertEquals(table, offsetTableLoaded);
     }
 }

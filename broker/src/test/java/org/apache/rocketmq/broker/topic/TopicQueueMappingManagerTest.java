@@ -44,12 +44,12 @@ import static org.mockito.Mockito.when;
 public class TopicQueueMappingManagerTest {
     @Mock
     private BrokerController brokerController;
-    private static final String broker1Name = "broker1";
+    private static final String BROKER1_NAME = "broker1";
 
     @Before
     public void before() {
         BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setBrokerName(broker1Name);
+        brokerConfig.setBrokerName(BROKER1_NAME);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -73,8 +73,8 @@ public class TopicQueueMappingManagerTest {
     public void testEncodeDecode() throws Exception {
         Map<String, TopicQueueMappingDetail> mappingDetailMap = new HashMap<>();
         TopicQueueMappingManager topicQueueMappingManager = null;
-        Set<String> brokers = new HashSet<String>();
-        brokers.add(broker1Name);
+        Set<String> brokers = new HashSet<>();
+        brokers.add(BROKER1_NAME);
         {
             for (int i = 0; i < 10; i++) {
                 String topic = UUID.randomUUID().toString();

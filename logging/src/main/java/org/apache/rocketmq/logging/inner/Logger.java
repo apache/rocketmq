@@ -276,7 +276,7 @@ public class Logger implements Appender.AppenderPipeline {
 
     public static class DefaultLoggerRepository implements LoggerRepository {
 
-        final Hashtable<CategoryKey,Object> ht = new Hashtable<CategoryKey,Object>();
+        final Hashtable<CategoryKey,Object> ht = new Hashtable<>();
         Logger root;
 
         int logLevelInt;
@@ -348,7 +348,7 @@ public class Logger implements Appender.AppenderPipeline {
         }
 
         public Enumeration getCurrentLoggers() {
-            Vector<Logger> loggers = new Vector<Logger>(ht.size());
+            Vector<Logger> loggers = new Vector<>(ht.size());
 
             Enumeration elems = ht.elements();
             while (elems.hasMoreElements()) {

@@ -45,7 +45,7 @@ public class RpcClientImpl implements RpcClient {
 
     private RemotingClient remotingClient;
 
-    private List<RpcClientHook> clientHookList = new ArrayList<RpcClientHook>();
+    private List<RpcClientHook> clientHookList = new ArrayList<>();
 
     public RpcClientImpl(ClientMetadata clientMetadata, RemotingClient remotingClient) {
         this.clientMetadata = clientMetadata;

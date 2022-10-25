@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 
 public class LockManager {
-    private static ExpiredLocalCache<String, AtomicBoolean> expiredLocalCache = new ExpiredLocalCache<String, AtomicBoolean>(100000);
+    private static ExpiredLocalCache<String, AtomicBoolean> expiredLocalCache = new ExpiredLocalCache<>(100000);
 
     public static boolean tryLock(String key, long lockTime) {
         AtomicBoolean v = expiredLocalCache.get(key);

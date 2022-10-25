@@ -63,7 +63,7 @@ public class TimerProducer {
     private final ExecutorService sendThreadPool;
 
     private final StatsBenchmarkProducer statsBenchmark = new StatsBenchmarkProducer();
-    private final LinkedList<Long[]> snapshotList = new LinkedList<Long[]>();
+    private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
     private final DefaultMQProducer producer;
 
@@ -90,7 +90,7 @@ public class TimerProducer {
                 threadCount,
                 0L,
                 TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(),
+            new LinkedBlockingQueue<>(),
                 new ThreadFactoryImpl("ProducerSendMessageThread_"));
 
         producer = new DefaultMQProducer("benchmark_producer");
@@ -138,7 +138,7 @@ public class TimerProducer {
     public void start() throws MQClientException {
         producer.start();
         System.out.printf("Start sending messages%n");
-        List<Long> delayList = new ArrayList<Long>();
+        List<Long> delayList = new ArrayList<>();
         final long startDelayTime = System.currentTimeMillis() / precisionMs * precisionMs + 2 * 60 * 1000 + 10;
         for (int slotCnt = 0; slotCnt < slotsTotal; slotCnt++) {
             for (int msgCnt = 0; msgCnt < msgsTotalPerSlotThread; msgCnt++) {

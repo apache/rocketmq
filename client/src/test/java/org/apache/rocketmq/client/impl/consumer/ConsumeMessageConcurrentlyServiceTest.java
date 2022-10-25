@@ -155,7 +155,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
 
         doReturn(new FindBrokerResult("127.0.0.1:10912", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
         doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
         pushConsumer.start();
@@ -164,7 +164,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
     @Test
     public void testPullMessage_ConsumeSuccess() throws InterruptedException, RemotingException, MQBrokerException, NoSuchFieldException,Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
 
         ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
@@ -235,7 +235,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
     @Test
     public void testConsumeThreadName() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<String> consumeThreadName = new AtomicReference<String>();
+        final AtomicReference<String> consumeThreadName = new AtomicReference<>();
 
         StringBuilder consumeGroup2 = new StringBuilder();
         for (int i = 0; i < 101; i++) {
@@ -256,7 +256,6 @@ public class ConsumeMessageConcurrentlyServiceTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
-        System.out.println(consumeThreadName.get());
         if (consumeGroup2.length() <= 100) {
             assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2 + "_");
         } else {

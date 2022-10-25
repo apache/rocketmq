@@ -45,16 +45,16 @@ public class ConsumerRunningInfoTest {
         consumerRunningInfo = new ConsumerRunningInfo();
         consumerRunningInfo.setJstack("test");
 
-        TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
+        TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<>();
         messageQueue = new MessageQueue("topicA","broker", 1);
         mqTable.put(messageQueue, new ProcessQueueInfo());
         consumerRunningInfo.setMqTable(mqTable);
 
-        TreeMap<String, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
+        TreeMap<String, ConsumeStatus> statusTable = new TreeMap<>();
         statusTable.put("topicA", new ConsumeStatus());
         consumerRunningInfo.setStatusTable(statusTable);
 
-        TreeSet<SubscriptionData> subscriptionSet = new TreeSet<SubscriptionData>();
+        TreeSet<SubscriptionData> subscriptionSet = new TreeSet<>();
         subscriptionSet.add(new SubscriptionData());
         consumerRunningInfo.setSubscriptionSet(subscriptionSet);
 
@@ -63,7 +63,7 @@ public class ConsumerRunningInfoTest {
         properties.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, System.currentTimeMillis());
         consumerRunningInfo.setProperties(properties);
 
-        criTable = new TreeMap<String, ConsumerRunningInfo>();
+        criTable = new TreeMap<>();
         criTable.put("client_id", consumerRunningInfo);
     }
 
@@ -86,20 +86,20 @@ public class ConsumerRunningInfoTest {
     }
 
     @Test
-    public void testAnalyzeRebalance(){
+    public void testAnalyzeRebalance() {
         boolean result = ConsumerRunningInfo.analyzeRebalance(criTable);
         assertThat(result).isTrue();
     }
 
     @Test
-    public void testAnalyzeProcessQueue(){
+    public void testAnalyzeProcessQueue() {
         String result = ConsumerRunningInfo.analyzeProcessQueue("client_id", consumerRunningInfo);
         assertThat(result).isEmpty();
 
     }
 
     @Test
-    public void testAnalyzeSubscription(){
+    public void testAnalyzeSubscription() {
         boolean result = ConsumerRunningInfo.analyzeSubscription(criTable);
         assertThat(result).isTrue();
     }

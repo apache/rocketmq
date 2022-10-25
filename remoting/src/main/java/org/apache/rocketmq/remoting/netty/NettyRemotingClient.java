@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -32,21 +34,25 @@ import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -61,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -74,6 +81,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
 
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
@@ -84,13 +92,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
-    private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
+    private final Map<String /* cidr */, SocksProxyConfig /* proxy */> proxyMap = new HashMap<>();
+    private final ConcurrentHashMap<String /* cidr */, Bootstrap> bootstrapMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<>();
 
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
-    private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
-    private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<String, Boolean>();
-    private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
+    private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<>();
+    private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<>();
+    private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock namesrvChannelLock = new ReentrantLock();
 
@@ -121,6 +131,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
 
+        this.loadSocksProxyJson();
+
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
@@ -136,7 +148,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         });
 
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(32), new ThreadFactory() {
+            new ArrayBlockingQueue<>(32), new ThreadFactory() {
                 private final AtomicInteger threadIndex = new AtomicInteger(0);
 
                 @Override
@@ -176,6 +188,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private static int initValueIndex() {
         Random r = new Random();
         return r.nextInt(999);
+    }
+
+    private void loadSocksProxyJson() {
+        Map<String, SocksProxyConfig> sockProxyMap = JSON.parseObject(
+            nettyClientConfig.getSocksProxyConfig(), new TypeReference<Map<String, SocksProxyConfig>>() {
+            });
+        if (sockProxyMap != null) {
+            proxyMap.putAll(sockProxyMap);
+        }
     }
 
     @Override
@@ -269,6 +290,95 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         }, 0, this.nettyClientConfig.getConnectTimeoutMillis());
 
+    }
+
+    private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
+        if (StringUtils.isBlank(addr) || !addr.contains(":")) {
+            return null;
+        }
+        String[] hostAndPort = this.getHostAndPort(addr);
+        for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
+            String cidr = entry.getKey();
+            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private Bootstrap fetchBootstrap(String addr) {
+        Map.Entry<String, SocksProxyConfig> proxyEntry = getProxy(addr);
+        if (proxyEntry == null) {
+            return bootstrap;
+        }
+
+        String cidr = proxyEntry.getKey();
+        SocksProxyConfig socksProxyConfig = proxyEntry.getValue();
+
+        LOGGER.info("Netty fetch bootstrap, addr: {}, cidr: {}, proxy: {}",
+            addr, cidr, socksProxyConfig != null ? socksProxyConfig.getAddr() : "");
+
+        Bootstrap bootstrapWithProxy = bootstrapMap.get(cidr);
+        if (bootstrapWithProxy == null) {
+            bootstrapWithProxy = createBootstrap(socksProxyConfig);
+            Bootstrap old = bootstrapMap.putIfAbsent(cidr, bootstrapWithProxy);
+            if (old != null) {
+                bootstrapWithProxy = old;
+            }
+        }
+        return bootstrapWithProxy;
+    }
+
+    private Bootstrap createBootstrap(final SocksProxyConfig proxy) {
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_KEEPALIVE, false)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
+            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
+            .handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) {
+                    ChannelPipeline pipeline = ch.pipeline();
+                    if (nettyClientConfig.isUseTLS()) {
+                        if (null != sslContext) {
+                            pipeline.addFirst(defaultEventExecutorGroup,
+                                "sslHandler", sslContext.newHandler(ch.alloc()));
+                            LOGGER.info("Prepend SSL handler");
+                        } else {
+                            LOGGER.warn("Connections are insecure as SSLContext is null!");
+                        }
+                    }
+
+                    // Netty Socks5 Proxy
+                    if (proxy != null) {
+                        String[] hostAndPort = getHostAndPort(proxy.getAddr());
+                        pipeline.addFirst(new Socks5ProxyHandler(
+                            new InetSocketAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])),
+                            proxy.getUsername(), proxy.getPassword()));
+                    }
+
+                    pipeline.addLast(
+                        nettyClientConfig.isDisableNettyWorkerGroup() ? null : defaultEventExecutorGroup,
+                        new NettyEncoder(),
+                        new NettyDecoder(),
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        new NettyConnectManageHandler(),
+                        new NettyClientHandler());
+                }
+            });
+
+        // Support Netty Socks5 Proxy
+        if (proxy != null) {
+            bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
+        }
+        return bootstrap;
+    }
+
+    // Do not use RemotingUtil, it will directly resolve the domain
+    private String[] getHostAndPort(String address) {
+        return address.split(":");
     }
 
     @Override
@@ -483,7 +593,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
             this.closeChannel(addr, cw.getChannel());
         }
-        interruptPullRequests(new HashSet<String>(addrList));
+        interruptPullRequests(new HashSet<>(addrList));
     }
 
     private void interruptPullRequests(Set<String> brokerAddrSet) {
@@ -602,7 +712,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
-                    ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
+                    String[] hostAndPort = getHostAndPort(addr);
+                    ChannelFuture channelFuture = fetchBootstrap(addr)
+                        .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
                     LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
                     this.channelTables.put(addr, cw);
@@ -685,7 +797,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             executorThis = this.publicExecutor;
         }
 
-        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
@@ -705,7 +817,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public List<String> getAvailableNameSrvList() {
-        return new ArrayList<String>(this.availableNamesrvAddrMap.keySet());
+        return new ArrayList<>(this.availableNamesrvAddrMap.keySet());
     }
 
     @Override

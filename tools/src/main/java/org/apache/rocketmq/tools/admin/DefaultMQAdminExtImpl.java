@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.admin;
 
+import com.alibaba.fastjson.JSON;
 import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -118,7 +119,8 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
-    private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
+    private static final String SOCKS_PROXY_JSON = "socksProxyJson";
+    private static final Set<String> SYSTEM_GROUP_SET = new HashSet<>();
 
     static {
         SYSTEM_GROUP_SET.add(MixAll.DEFAULT_CONSUMER_GROUP);
@@ -166,6 +168,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 this.defaultMQAdminExt.changeInstanceNameToPID();
 
+                String proxyConfig = System.getenv(SOCKS_PROXY_JSON);
+                this.defaultMQAdminExt.setSocksProxyConfig(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
+
                 this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQAdminExt, rpcHook);
 
                 boolean registerOK = mqClientInstance.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
@@ -182,7 +187,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 int theadPoolCoreSize = Integer.parseInt(System.getProperty("rocketmq.admin.threadpool.coresize", "20"));
 
-                this.threadPoolExecutor = new ThreadPoolExecutor(theadPoolCoreSize, 100, 5, TimeUnit.MINUTES, new LinkedBlockingQueue<Runnable>(), new ThreadFactoryImpl("DefaultMQAdminExtImpl_"));
+                this.threadPoolExecutor = new ThreadPoolExecutor(theadPoolCoreSize, 100, 5, TimeUnit.MINUTES, new LinkedBlockingQueue<>(), new ThreadFactoryImpl("DefaultMQAdminExtImpl_"));
 
                 break;
             case RUNNING:
@@ -692,7 +697,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         Set<String> brokerAddressSet = CommandUtil.fetchMasterAndSlaveAddrByClusterName(this.defaultMQAdminExt, clusterName);
         this.deleteTopicInBroker(brokerAddressSet, topicName);
         List<String> nameServerList = this.getNameServerAddressList();
-        Set<String> nameServerSet = new HashSet<String>(nameServerList);
+        Set<String> nameServerSet = new HashSet<>(nameServerList);
         this.deleteTopicInNameServer(nameServerSet, topicName);
         for (String namespace : this.kvNamespaceToDeleteList) {
             this.deleteKvConfig(namespace, topicName);
@@ -780,8 +785,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
         boolean force) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
-        Map<String, QueueData> topicRouteMap = new HashMap<String, QueueData>();
+        List<RollbackStats> rollbackStatsList = new ArrayList<>();
+        Map<String, QueueData> topicRouteMap = new HashMap<>();
         for (QueueData queueData : topicRouteData.getQueueDatas()) {
             topicRouteMap.put(queueData.getBrokerName(), queueData);
         }
@@ -797,7 +802,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private List<RollbackStats> resetOffsetByTimestampOld(String brokerAddr, QueueData queueData, String consumerGroup,
         String topic, long timestamp,
         boolean force) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
+        List<RollbackStats> rollbackStatsList = new ArrayList<>();
         ConsumeStats consumeStats = this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(brokerAddr, consumerGroup, timeoutMillis);
 
         boolean hasConsumed = false;
@@ -856,7 +861,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
                 }
-                final Map<String, QueueData> topicRouteMap = new HashMap<String, QueueData>();
+                final Map<String, QueueData> topicRouteMap = new HashMap<>();
                 for (QueueData queueData : topicRouteData.getQueueDatas()) {
                     topicRouteMap.put(queueData.getBrokerName(), queueData);
                 }
@@ -920,7 +925,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         boolean isC) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
-        Map<MessageQueue, Long> allOffsetTable = new HashMap<MessageQueue, Long>();
+        Map<MessageQueue, Long> allOffsetTable = new HashMap<>();
         if (brokerDatas != null) {
             for (BrokerData brokerData : brokerDatas) {
                 String addr = brokerData.selectBrokerAddr();
@@ -994,7 +999,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 e.printStackTrace();
             }
 
-            Map<String, String> orderConfMap = new HashMap<String, String>();
+            Map<String, String> orderConfMap = new HashMap<>();
             if (!UtilAll.isBlank(oldOrderConfs)) {
                 String[] oldOrderConfArr = oldOrderConfs.split(";");
                 for (String oldOrderConf : oldOrderConfArr) {
@@ -1103,7 +1108,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public List<QueueTimeSpan> queryConsumeTimeSpan(final String topic,
         final String group) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
+        List<QueueTimeSpan> spanSet = new ArrayList<>();
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
@@ -1312,7 +1317,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public List<MessageTrack> messageTrackDetail(
         MessageExt msg) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-        List<MessageTrack> result = new ArrayList<MessageTrack>();
+        List<MessageTrack> result = new ArrayList<>();
 
         GroupList groupList = this.queryTopicConsumeByWho(msg.getTopic());
 
@@ -1399,7 +1404,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public List<MessageTrack> messageTrackDetailConcurrent(
         final MessageExt msg) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-        final List<MessageTrack> result = new ArrayList<MessageTrack>();
+        final List<MessageTrack> result = new ArrayList<>();
 
         GroupList groupList = this.queryTopicConsumeByWho(msg.getTopic());
 
@@ -1586,7 +1591,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public Set<String> getTopicClusterList(
         final String topic) throws InterruptedException, MQBrokerException, MQClientException, RemotingException {
-        Set<String> clusterSet = new HashSet<String>();
+        Set<String> clusterSet = new HashSet<>();
         ClusterInfo clusterInfo = examineBrokerClusterInfo();
         TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
         BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);
@@ -1776,6 +1781,18 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         requestHeader.setQueueId(queueId);
         requestHeader.setCommitOffset(resetOffset);
         this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
+        try {
+            Map<MessageQueue, Long> result = mqClientInstance.getMQClientAPIImpl()
+                .invokeBrokerToResetOffset(brokerAddr, topicName, consumeGroup, 0, queueId, resetOffset, timeoutMillis);
+            if (null != result) {
+                for (Map.Entry<MessageQueue, Long> entry : result.entrySet()) {
+                    log.info("Reset single message queue {} offset from {} to {}",
+                        JSON.toJSONString(entry.getKey()), entry.getValue(), resetOffset);
+                }
+            }
+        } catch (MQClientException e) {
+            throw new MQBrokerException(e.getResponseCode(), e.getMessage());
+        }
     }
 
     @Override

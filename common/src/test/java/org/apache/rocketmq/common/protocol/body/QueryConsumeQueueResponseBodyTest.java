@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class QueryConsumeQueueResponseBodyTest {
 
     @Test
-    public void test(){
+    public void test() {
         QueryConsumeQueueResponseBody body = new QueryConsumeQueueResponseBody();
 
         SubscriptionData subscriptionData = new SubscriptionData();
@@ -40,7 +40,7 @@ public class QueryConsumeQueueResponseBodyTest {
         data.setPhysicOffset(10L);
         data.setPhysicSize(1);
         data.setTagsCode(1L);
-        List<ConsumeQueueData> list = new ArrayList<ConsumeQueueData>();
+        List<ConsumeQueueData> list = new ArrayList<>();
         list.add(data);
 
         body.setQueueData(list);
@@ -51,7 +51,6 @@ public class QueryConsumeQueueResponseBodyTest {
 
         String json = RemotingSerializable.toJson(body, true);
         QueryConsumeQueueResponseBody fromJson = RemotingSerializable.fromJson(json, QueryConsumeQueueResponseBody.class);
-        System.out.println(json);
         //test ConsumeQueue
         ConsumeQueueData jsonData = fromJson.getQueueData().get(0);
         assertThat(jsonData.getMsg()).isEqualTo("this is default msg");

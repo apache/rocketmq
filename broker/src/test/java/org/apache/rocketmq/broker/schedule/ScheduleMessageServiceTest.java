@@ -57,7 +57,8 @@ import static org.apache.rocketmq.common.stats.Stats.BROKER_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class ScheduleMessageServiceTest {
 
@@ -73,10 +74,10 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 3;
 
-    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "schedule_test#" + UUID.randomUUID();
-    private static final int commitLogFileSize = 1024;
-    private static final int cqFileSize = 10;
-    private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
+    private static final String STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "schedule_test#" + UUID.randomUUID();
+    private static final int COMMIT_LOG_FILE_SIZE = 1024;
+    private static final int CQ_FILE_SIZE = 10;
+    private static final int CQ_EXT_FILE_SIZE = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
 
     private static SocketAddress bornHost;
     private static SocketAddress storeHost;
@@ -106,13 +107,13 @@ public class ScheduleMessageServiceTest {
     public void setUp() throws Exception {
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel(testMessageDelayLevel);
-        messageStoreConfig.setMappedFileSizeCommitLog(commitLogFileSize);
-        messageStoreConfig.setMappedFileSizeConsumeQueue(cqFileSize);
-        messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
+        messageStoreConfig.setMappedFileSizeCommitLog(COMMIT_LOG_FILE_SIZE);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(CQ_FILE_SIZE);
+        messageStoreConfig.setMappedFileSizeConsumeQueueExt(CQ_EXT_FILE_SIZE);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(true);
-        messageStoreConfig.setStorePathRootDir(storePath);
-        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+        messageStoreConfig.setStorePathRootDir(STORE_PATH);
+        messageStoreConfig.setStorePathCommitLog(STORE_PATH + File.separator + "commitlog");
         // Let OS pick an available port
         messageStoreConfig.setHaListenPort(0);
 
@@ -218,7 +219,7 @@ public class ScheduleMessageServiceTest {
         // timer run maybe delay, then consumer message again
         // and wait offsetTable
         TimeUnit.SECONDS.sleep(15);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>());
+        scheduleMessageService.buildRunningStats(new HashMap<>());
 
         messageResult = getMessage(realQueueId, offset);
         // now,found the message

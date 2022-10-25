@@ -246,8 +246,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public ClientChannelInfo findConsumerChannel(ProxyContext ctx, String consumerGroup, String clientId) {
-        return this.clientProcessor.findConsumerChannel(ctx, consumerGroup, clientId);
+    public ClientChannelInfo findConsumerChannel(ProxyContext ctx, String consumerGroup, Channel channel) {
+        return this.clientProcessor.findConsumerChannel(ctx, consumerGroup, channel);
     }
 
     @Override

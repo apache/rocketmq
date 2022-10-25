@@ -21,7 +21,7 @@ import java.util.HashSet;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ProducerConnection extends RemotingSerializable {
-    private HashSet<Connection> connectionSet = new HashSet<Connection>();
+    private HashSet<Connection> connectionSet = new HashSet<>();
 
     public HashSet<Connection> getConnectionSet() {
         return connectionSet;

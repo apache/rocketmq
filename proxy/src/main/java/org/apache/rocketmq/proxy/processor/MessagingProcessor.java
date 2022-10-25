@@ -266,7 +266,7 @@ public interface MessagingProcessor extends StartAndShutdown {
     ClientChannelInfo findConsumerChannel(
         ProxyContext ctx,
         String consumerGroup,
-        String clientId
+        Channel channel
     );
 
     void unRegisterConsumer(

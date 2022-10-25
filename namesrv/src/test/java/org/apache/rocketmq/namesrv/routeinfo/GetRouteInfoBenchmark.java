@@ -117,7 +117,7 @@ public class GetRouteInfoBenchmark {
                             Channel channel = mock(Channel.class);
 
                             routeInfoManager.registerBroker(clusterName, brokerAddr, brokerName, 0, brokerAddr, "",
-                                null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+                                null, topicConfigSerializeWrapper, new ArrayList<>(), channel);
                         }
                     }
                 });

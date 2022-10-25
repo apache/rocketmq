@@ -93,6 +93,7 @@ public class ProxyStartup {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("try to shutdown server");
                 try {
+                    PROXY_START_AND_SHUTDOWN.preShutdown();
                     PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
                     log.error("err when shutdown rocketmq-proxy", e);

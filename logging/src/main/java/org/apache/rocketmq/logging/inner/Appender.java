@@ -131,7 +131,7 @@ public abstract class Appender {
             }
 
             if (appenderList == null) {
-                appenderList = new Vector<Appender>(1);
+                appenderList = new Vector<>(1);
             }
             if (!appenderList.contains(newAppender)) {
                 appenderList.addElement(newAppender);

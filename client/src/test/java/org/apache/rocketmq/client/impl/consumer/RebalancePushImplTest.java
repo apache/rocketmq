@@ -78,7 +78,7 @@ public class RebalancePushImplTest {
 
         // Just set pullThresholdForQueue
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdForQueue(1024);
-        Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> allocateResultSet = new HashSet<>();
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 1));
         doRebalanceForcibly(rebalancePush, allocateResultSet);
@@ -119,7 +119,7 @@ public class RebalancePushImplTest {
 
         // Just set pullThresholdSizeForQueue
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(1024);
-        Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> allocateResultSet = new HashSet<>();
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 1));
         doRebalanceForcibly(rebalancePush, allocateResultSet);
@@ -144,7 +144,7 @@ public class RebalancePushImplTest {
 
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(1024);
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdForQueue(1024);
-        Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> allocateResultSet = new HashSet<>();
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
         allocateResultSet.add(new MessageQueue(topic, "BrokerA", 1));
         doRebalanceForcibly(rebalancePush, allocateResultSet);
@@ -175,9 +175,9 @@ public class RebalancePushImplTest {
     @Test
     public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException {
         for (ConsumeFromWhere where : new ConsumeFromWhere[]{
-                ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
-                ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
-                ConsumeFromWhere.CONSUME_FROM_TIMESTAMP}) {
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
+            ConsumeFromWhere.CONSUME_FROM_TIMESTAMP}) {
             consumer.setConsumeFromWhere(where);
 
             when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(0L);

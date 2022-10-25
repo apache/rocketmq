@@ -18,6 +18,8 @@
 package org.apache.rocketmq.acl.plain;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.UUID;
+import java.util.Iterator;
 import org.junit.Assert;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -36,11 +39,12 @@ public final class AclTestHelper {
     private static void copyTo(String path, InputStream src, File dstDir, String flag, boolean into)
         throws IOException {
         Preconditions.checkNotNull(flag);
-        String[] folders = path.split(File.separator);
+        Iterator<String> iterator = Splitter.on(File.separatorChar).split(path).iterator();
         boolean found = false;
         File dir = dstDir;
-        for (int i = 0; i < folders.length; i++) {
-            if (!found && flag.equals(folders[i])) {
+        while (iterator.hasNext()) {
+            String current = iterator.next();
+            if (!found && flag.equals(current)) {
                 found = true;
                 if (into) {
                     dir = new File(dir, flag);
@@ -52,10 +56,10 @@ public final class AclTestHelper {
             }
 
             if (found) {
-                if (i == folders.length - 1) {
-                    dir = new File(dir, folders[i]);
+                if (!iterator.hasNext()) {
+                    dir = new File(dir, current);
                 } else {
-                    dir = new File(dir, folders[i]);
+                    dir = new File(dir, current);
                     if (!dir.exists()) {
                         Assert.assertTrue(dir.mkdir());
                     }
@@ -76,16 +80,16 @@ public final class AclTestHelper {
 
     public static void recursiveDelete(File file) {
         if (file.isFile()) {
-            Assert.assertTrue(file.delete());
-            return;
-        }
-        File[] files = file.listFiles();
-        if (null != files) {
-            for (File f : files) {
-                recursiveDelete(f);
+            file.delete();
+        } else {
+            File[] files = file.listFiles();
+            if (null != files) {
+                for (File f : files) {
+                    recursiveDelete(f);
+                }
             }
+            file.delete();
         }
-        Assert.assertTrue(file.delete());
     }
 
     public static File copyResources(String folder) throws IOException {

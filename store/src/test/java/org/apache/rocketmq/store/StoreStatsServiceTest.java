@@ -101,8 +101,6 @@ public class StoreStatsServiceTest {
         Method method = StoreStatsService.class.getDeclaredMethod("resetPutMessageTimeBuckets");
         method.setAccessible(true);
         method.invoke(storeStatsService);
-        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.99));
-        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.999));
     }
 
 }

@@ -45,10 +45,10 @@ import org.junit.Test;
 public class PlainPermissionManagerTest {
 
     PlainPermissionManager plainPermissionManager;
-    PlainAccessResource PUBPlainAccessResource;
-    PlainAccessResource SUBPlainAccessResource;
-    PlainAccessResource ANYPlainAccessResource;
-    PlainAccessResource DENYPlainAccessResource;
+    PlainAccessResource pubPlainAccessResource;
+    PlainAccessResource subPlainAccessResource;
+    PlainAccessResource anyPlainAccessResource;
+    PlainAccessResource denyPlainAccessResource;
     PlainAccessResource plainAccessResource = new PlainAccessResource();
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
@@ -70,10 +70,10 @@ public class PlainPermissionManagerTest {
         // DELETE_SUBSCRIPTIONGROUP
         adminCode.add(207);
 
-        PUBPlainAccessResource = clonePlainAccessResource(Permission.PUB);
-        SUBPlainAccessResource = clonePlainAccessResource(Permission.SUB);
-        ANYPlainAccessResource = clonePlainAccessResource(Permission.ANY);
-        DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
+        pubPlainAccessResource = clonePlainAccessResource(Permission.PUB);
+        subPlainAccessResource = clonePlainAccessResource(Permission.SUB);
+        anyPlainAccessResource = clonePlainAccessResource(Permission.ANY);
+        denyPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
         String folder = "conf";
         confHome = AclTestHelper.copyResources(folder, true);
@@ -119,7 +119,7 @@ public class PlainPermissionManagerTest {
         plainAccessResource = plainPermissionManager.buildPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.isAdmin(), true);
 
-        List<String> groups = new ArrayList<String>();
+        List<String> groups = new ArrayList<>();
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
@@ -132,7 +132,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
-        List<String> topics = new ArrayList<String>();
+        List<String> topics = new ArrayList<>();
         topics.add("topicA=DENY");
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
@@ -150,7 +150,7 @@ public class PlainPermissionManagerTest {
     public void checkPermAdmin() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setRequestCode(17);
-        plainPermissionManager.checkPerm(plainAccessResource, PUBPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, pubPlainAccessResource);
     }
 
     @Test
@@ -158,15 +158,15 @@ public class PlainPermissionManagerTest {
 
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
-        plainPermissionManager.checkPerm(plainAccessResource, PUBPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, pubPlainAccessResource);
         plainAccessResource.addResourceAndPerm("topicB", Permission.SUB);
-        plainPermissionManager.checkPerm(plainAccessResource, ANYPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, anyPlainAccessResource);
 
         plainAccessResource = new PlainAccessResource();
         plainAccessResource.addResourceAndPerm("topicB", Permission.SUB);
-        plainPermissionManager.checkPerm(plainAccessResource, SUBPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, subPlainAccessResource);
         plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
-        plainPermissionManager.checkPerm(plainAccessResource, ANYPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, anyPlainAccessResource);
 
     }
 
@@ -175,7 +175,7 @@ public class PlainPermissionManagerTest {
 
         plainAccessResource = new PlainAccessResource();
         plainAccessResource.addResourceAndPerm("topicF", Permission.PUB);
-        plainPermissionManager.checkPerm(plainAccessResource, SUBPlainAccessResource);
+        plainPermissionManager.checkPerm(plainAccessResource, subPlainAccessResource);
     }
 
     @Test(expected = AclException.class)
@@ -358,7 +358,7 @@ public class PlainPermissionManagerTest {
     public void deleteAccessConfigTest() throws InterruptedException {
         // delete not exist accessConfig
         final boolean flag1 = plainPermissionManager.deleteAccessConfig("test_delete");
-        assert flag1 == false;
+        assert !flag1;
 
         plainAccessConfig.setAccessKey("test_delete");
         plainAccessConfig.setSecretKey("12345678");
@@ -371,14 +371,14 @@ public class PlainPermissionManagerTest {
 
         //delete existed accessConfig
         final boolean flag2 = plainPermissionManager.deleteAccessConfig("test_delete");
-        assert flag2 == true;
+        assert flag2;
 
     }
 
     @Test
     public void updateGlobalWhiteAddrsConfigTest() {
         final boolean flag = plainPermissionManager.updateGlobalWhiteAddrsConfig(Lists.newArrayList("192.168.1.2"));
-        assert flag == true;
+        assert flag;
         final AclConfig config = plainPermissionManager.getAllAclConfig();
         Assert.assertEquals(true, config.getGlobalWhiteAddrs().contains("192.168.1.2"));
     }

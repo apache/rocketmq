@@ -27,7 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TLS_Mix2_IT extends BaseConf {
+public class TlsIT extends BaseConf {
 
     private RMQNormalProducer producer;
     private RMQNormalConsumer consumer;
@@ -37,11 +37,10 @@ public class TLS_Mix2_IT extends BaseConf {
     @Before
     public void setUp() {
         topic = initTopic();
-        // send message via TLS
-        producer = getProducer(nsAddr, topic, true);
-
-        // Receive message without TLS.
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener(), false);
+        // Send messages via TLS
+        producer = getProducer(NAMESRV_ADDR, topic, true);
+        // Receive messages via TLS
+        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener(), true);
     }
 
     @After
@@ -54,7 +53,7 @@ public class TLS_Mix2_IT extends BaseConf {
         int numberOfMessagesToSend = 16;
         producer.send(numberOfMessagesToSend);
 
-        boolean consumedAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer.getListener());
+        boolean consumedAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer.getListener());
         Assertions.assertThat(consumedAll).isEqualTo(true);
     }
 

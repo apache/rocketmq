@@ -30,7 +30,7 @@ public class AssignedMessageQueue {
     private RebalanceImpl rebalanceImpl;
 
     public AssignedMessageQueue() {
-        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueState>();
+        assignedMessageQueueState = new ConcurrentHashMap<>();
     }
 
     public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {

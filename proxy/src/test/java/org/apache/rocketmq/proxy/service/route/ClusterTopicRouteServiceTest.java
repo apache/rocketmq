@@ -17,14 +17,24 @@
 
 package org.apache.rocketmq.proxy.service.route;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.net.HostAndPort;
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.assertj.core.util.Lists;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -66,5 +76,44 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
 
         assertEquals(1, proxyTopicRouteData.getBrokerDatas().size());
         assertEquals(addressList, proxyTopicRouteData.getBrokerDatas().get(0).getBrokerAddrs().get(MixAll.MASTER_ID));
+    }
+
+    @Test
+    public void testTopicRouteCaffeineCache() throws InterruptedException {
+        String key = "abc";
+        String value = key;
+        final AtomicBoolean throwException = new AtomicBoolean();
+        ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+            10, 10, 30L, TimeUnit.SECONDS, "test", 10);
+        LoadingCache<String /* topicName */, String> topicCache = Caffeine.newBuilder().maximumSize(30).
+            refreshAfterWrite(2, TimeUnit.SECONDS).executor(cacheRefreshExecutor).build(new CacheLoader<String, String>() {
+                @Override public @Nullable String load(@NonNull String key) throws Exception {
+                    try {
+                        if (throwException.get()) {
+                            throw new RuntimeException();
+                        } else {
+                            throwException.set(true);
+                            return value;
+                        }
+                    } catch (Exception e) {
+                        if (TopicRouteHelper.isTopicNotExistError(e)) {
+                            return "";
+                        }
+                        throw e;
+                    }
+                }
+
+                @Override
+                public @Nullable String reload(@NonNull String key, @NonNull String oldValue) throws Exception {
+                    try {
+                        return load(key);
+                    } catch (Exception e) {
+                        return oldValue;
+                    }
+                }
+            });
+        assertThat(value).isEqualTo(topicCache.get(key));
+        TimeUnit.SECONDS.sleep(5);
+        assertThat(value).isEqualTo(topicCache.get(key));
     }
 }

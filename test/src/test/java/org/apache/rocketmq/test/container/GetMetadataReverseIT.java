@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.container;
 
-import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Random;
@@ -49,9 +48,9 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
 
     private static final int MESSAGE_COUNT = 32;
 
-    private final static Random random = new Random();
+    private final Random random = new Random();
 
-    public GetMetadataReverseIT() throws UnsupportedEncodingException {
+    public GetMetadataReverseIT() {
 
     }
 
@@ -87,15 +86,12 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         }
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
-        System.out.printf("send success%n");
 
         isolateBroker(master1With3Replicas);
         brokerContainer1.removeBroker(new BrokerIdentity(
             master1With3Replicas.getBrokerConfig().getBrokerClusterName(),
             master1With3Replicas.getBrokerConfig().getBrokerName(),
             master1With3Replicas.getBrokerConfig().getBrokerId()));
-
-        System.out.printf("Remove master%n");
 
         DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUMER_GROUP);
         pushConsumer.subscribe(topic, "*");
@@ -133,7 +129,6 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("Add back master%n");
 
         awaitUntilSlaveOK();
 
@@ -186,7 +181,6 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         }
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
-        System.out.printf("send success%n");
 
         isolateBroker(master1With3Replicas);
         brokerContainer1.removeBroker(new BrokerIdentity(
@@ -194,16 +188,14 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
             master1With3Replicas.getBrokerConfig().getBrokerName(),
             master1With3Replicas.getBrokerConfig().getBrokerId()));
 
-        System.out.printf("Remove master%n");
-
         await().atMost(Duration.ofMinutes(1)).until(() -> receivedMsgCount.get() >= MESSAGE_COUNT);
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             pushConsumer.getDefaultMQPushConsumerImpl().persistConsumerOffset();
-            Map<Integer, Long> OffsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
-            if (OffsetTable != null) {
+            Map<Integer, Long> offsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
+            if (offsetTable != null) {
                 long totalOffset = 0;
-                for (final Long offset : OffsetTable.values()) {
+                for (final Long offset : offsetTable.values()) {
                     totalOffset += offset;
                 }
                 return totalOffset >= MESSAGE_COUNT;
@@ -216,13 +208,11 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("Add back master%n");
 
         awaitUntilSlaveOK();
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             Map<Integer, Long> offsetTable = master1With3Replicas.getScheduleMessageService().getOffsetTable();
-            System.out.println("" + offsetTable.get(delayLevel));
             return offsetTable.get(delayLevel) >= MESSAGE_COUNT;
         });
 
@@ -263,7 +253,6 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         }
         final int finalSendSuccess = sendSuccess;
         await().atMost(Duration.ofMinutes(1)).until(() -> finalSendSuccess >= MESSAGE_COUNT);
-        System.out.printf("send success%n");
 
         isolateBroker(master1With3Replicas);
         brokerContainer1.removeBroker(new BrokerIdentity(
@@ -271,16 +260,14 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
             master1With3Replicas.getBrokerConfig().getBrokerName(),
             master1With3Replicas.getBrokerConfig().getBrokerId()));
 
-        System.out.printf("Remove master%n");
-
         await().atMost(Duration.ofMinutes(1)).until(() -> receivedMsgCount.get() >= MESSAGE_COUNT);
 
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             pushConsumer.getDefaultMQPushConsumerImpl().persistConsumerOffset();
-            Map<Integer, Long> OffsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
-            if (OffsetTable != null) {
+            Map<Integer, Long> offsetTable = master2With3Replicas.getConsumerOffsetManager().queryOffset(CONSUMER_GROUP, topic);
+            if (offsetTable != null) {
                 long totalOffset = 0;
-                for (final Long offset : OffsetTable.values()) {
+                for (final Long offset : offsetTable.values()) {
                     totalOffset += offset;
                 }
                 return totalOffset >= MESSAGE_COUNT;
@@ -292,7 +279,6 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
-        System.out.printf("Add back master%n");
 
         awaitUntilSlaveOK();
 

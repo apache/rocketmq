@@ -19,13 +19,14 @@ package org.apache.rocketmq.tools.command.message;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -51,7 +52,7 @@ import static org.mockito.Mockito.when;
 public class ConsumeMessageCommandTest {
     private static ConsumeMessageCommand consumeMessageCommand;
 
-    private static PullResult PULL_RESULT = mockPullResult();
+    private static final PullResult PULL_RESULT = mockPullResult();
 
     private static PullResult mockPullResult() {
         MessageExt msg = new MessageExt();
@@ -113,11 +114,11 @@ public class ConsumeMessageCommandTest {
         String[] subargs = new String[] {"-t mytopic", "-n localhost:9876"};
         assignPullResult();
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(),
-            subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
+            subargs, consumeMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         consumeMessageCommand.execute(commandLine, options, null);
 
         System.setOut(out);
-        String s = new String(bos.toByteArray());
+        String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertTrue(s.contains("Consume ok"));
     }
 
@@ -129,11 +130,12 @@ public class ConsumeMessageCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         String[] subargs = new String[] {"-t mytopic", "-b localhost", "-i 0", "-n localhost:9876"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(), subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(),
+            subargs, consumeMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         assignPullResult();
         consumeMessageCommand.execute(commandLine, options, null);
         System.setOut(out);
-        String s = new String(bos.toByteArray());
+        String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertTrue(s.contains("Consume ok"));
     }
 
@@ -151,12 +153,12 @@ public class ConsumeMessageCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-t topic-not-existu", "-n localhost:9876"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(),
-            subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
+            subargs, consumeMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         consumeMessageCommand.execute(commandLine, options, null);
 
         System.setOut(out);
-        String s = new String(bos.toByteArray());
-        Assert.assertTrue(!s.contains("Consume ok"));
+        String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
+        Assert.assertFalse(s.contains("Consume ok"));
     }
 
     @Test
@@ -173,11 +175,12 @@ public class ConsumeMessageCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         String[] subargs = new String[] {"-t mytopic", "-b localhost", "-i 0", "-n localhost:9876"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(), subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(),
+            subargs, consumeMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         consumeMessageCommand.execute(commandLine, options, null);
 
         System.setOut(out);
-        String s = new String(bos.toByteArray());
-        Assert.assertTrue(!s.contains("Consume ok"));
+        String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
+        Assert.assertFalse(s.contains("Consume ok"));
     }
 }
