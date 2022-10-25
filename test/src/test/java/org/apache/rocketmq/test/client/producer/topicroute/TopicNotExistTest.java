@@ -31,6 +31,7 @@ import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +64,7 @@ public class TopicNotExistTest {
     }
 
 
-    @Before
+    @After
     public void after() {
         clusterShutDown();
     }
