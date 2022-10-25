@@ -49,7 +49,7 @@ import static org.junit.Assert.assertTrue;
  * test when topic route changed
  */
 public class TopicRouteUpdateTest extends BaseConf {
-    private static final Logger logger = Logger.getLogger(TopicRouteUpdateTest.class);
+    private static final Logger log = Logger.getLogger(TopicRouteUpdateTest.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -61,10 +61,10 @@ public class TopicRouteUpdateTest extends BaseConf {
     private void resetProducerAndTopic() {
         if (topic == null) {
             topic = initTopic();
-            logger.info(String.format("topic is %s", topic));
+            log.info(String.format("topic is %s", topic));
         }
         if (producer == null) {
-            producer = getProducer(nsAddr, topic, 30000);
+            producer = getProducer(NAMESRV_ADDR, topic, 30000);
         }
     }
 
@@ -72,7 +72,7 @@ public class TopicRouteUpdateTest extends BaseConf {
     public void modifyTopicQueueNumAndCheck() throws Exception {
         // if busy, then skip this test case
         if (isCurrentSystemBusy()) {
-            logger.warn("system busy, skip TopicRouteUpdateTest test");
+            log.warn("system busy, skip TopicRouteUpdateTest test");
             return;
         }
 
@@ -101,19 +101,19 @@ public class TopicRouteUpdateTest extends BaseConf {
         shutdownBrokerAndCheck(brokerController1);
         shutdownBrokerAndCheck(brokerController2);
 
-        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(nsAddr));
-        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(nsAddr));
+        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR));
+        addNewBrokerAndCheck(IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR));
     }
 
     private void addNewBrokerAndCheck(BrokerController newBrokerController) throws Exception {
         String brokerName = newBrokerController.getBrokerConfig().getBrokerName();
         TopicPublishInfo topicPublishInfo = queryTopicPublishInfo();
         Set<String> allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
-        System.out.println(String.format("addNewBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
+        log.info(String.format("addNewBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
         assertFalse(allBrokerNameSet.contains(brokerName));
 
         int newQueueNum = RandomUtil.getIntegerBetween(1, 100);
-        MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
+        MQAdminTestUtils.createTopic(NAMESRV_ADDR, CLUSTER_NAME, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
         // wait notify client
         Thread.sleep(3000);
 
@@ -121,7 +121,7 @@ public class TopicRouteUpdateTest extends BaseConf {
         assertThat(topicPublishInfo).isNotNull();
         allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
         assertTrue(allBrokerNameSet.contains(brokerName));
-        System.out.println(String.format("addNewBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
+        log.info(String.format("addNewBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
     }
 
 
@@ -129,7 +129,7 @@ public class TopicRouteUpdateTest extends BaseConf {
         String brokerName = brokerController.getBrokerConfig().getBrokerName();
         TopicPublishInfo topicPublishInfo = queryTopicPublishInfo();
         Set<String> allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
-        System.out.println(String.format("shutdownBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
+        log.info(String.format("shutdownBrokerAndCheck before allBrokerNameSet %s", allBrokerNameSet));
         assertTrue(allBrokerNameSet.contains(brokerName));
 
         // update topic route info
@@ -141,7 +141,7 @@ public class TopicRouteUpdateTest extends BaseConf {
         assertThat(topicPublishInfo).isNotNull();
         allBrokerNameSet = topicPublishInfo.getMessageQueueList().stream().map(MessageQueue::getBrokerName).collect(Collectors.toSet());
         assertFalse(allBrokerNameSet.contains(brokerName));
-        System.out.println(String.format("shutdownBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
+        log.info(String.format("shutdownBrokerAndCheck after allBrokerNameSet %s", allBrokerNameSet));
     }
 
     /**
@@ -153,7 +153,7 @@ public class TopicRouteUpdateTest extends BaseConf {
      */
     private void modifyQueueNumAndCheck(int newQueueNum) throws Exception {
         // update topic route info
-        MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
+        MQAdminTestUtils.createTopic(NAMESRV_ADDR, CLUSTER_NAME, topic, newQueueNum, Maps.newHashMap(), 30 * 1000);
         // wait notify client
         Thread.sleep(3000);
 

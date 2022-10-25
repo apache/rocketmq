@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -74,8 +75,13 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             }
         }
 
-        TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager()
-                .pickupTopicRouteData(requestHeader.getTopic(), ctx.channel());
+        TopicRouteData topicRouteData;
+        RouteInfoManager routeInfoManager = this.namesrvController.getRouteInfoManager();
+        if (ctx != null && ctx.channel() != null) {
+            topicRouteData = routeInfoManager.pickupTopicRouteData(requestHeader.getTopic(), ctx.channel());
+        } else {
+            topicRouteData = routeInfoManager.pickupTopicRouteData(requestHeader.getTopic());
+        }
 
         if (topicRouteData != null) {
             //topic route info register success ,so disable namesrvReady check

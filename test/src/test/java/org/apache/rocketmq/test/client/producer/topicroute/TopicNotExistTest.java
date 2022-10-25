@@ -33,7 +33,6 @@ import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -50,9 +49,9 @@ import static org.junit.Assert.assertTrue;
  * test topic not exist case
  */
 public class TopicNotExistTest {
-    private static final Logger logger = Logger.getLogger(TopicNotExistTest.class);
+    private static final Logger log = Logger.getLogger(TopicNotExistTest.class);
 
-    private static String nsAddr;
+    private static String nameServerAddr;
     private static String clusterName;
     private static List<BrokerController> brokerControllers = new ArrayList<>();
     private static RMQNormalProducer producer;
@@ -73,7 +72,7 @@ public class TopicNotExistTest {
     public void test() throws Exception {
         String topic = "topic_not_exist";
         int pollNameServerInterval = 8000;
-        producer = new RMQNormalProducer(nsAddr, topic, false, pollNameServerInterval);
+        producer = new RMQNormalProducer(nameServerAddr, topic, false, pollNameServerInterval);
         DefaultMQProducerImpl defaultMQProducerImpl = producer.getProducer().getDefaultMQProducerImpl();
         ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = defaultMQProducerImpl.getTopicPublishInfoTable();
 
@@ -89,7 +88,7 @@ public class TopicNotExistTest {
         }
 
         // create topic
-        MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, 8, Maps.newHashMap(), 30 * 1000);
+        MQAdminTestUtils.createTopic(nameServerAddr, clusterName, topic, 8, Maps.newHashMap(), 30 * 1000);
         // wait latest config
         Thread.sleep(pollNameServerInterval + 1000);
 
@@ -120,11 +119,11 @@ public class TopicNotExistTest {
         clusterName = "test_test_cluster_name";
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         namesrvController = IntegrationTestBase.createAndStartNamesrv();
-        nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
+        nameServerAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
 
-        BrokerController brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr, clusterName, false);
-        BrokerController brokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr, clusterName,false);
-        BrokerController brokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr, clusterName,false);
+        BrokerController brokerController1 = IntegrationTestBase.createAndStartBroker(nameServerAddr, clusterName, false);
+        BrokerController brokerController2 = IntegrationTestBase.createAndStartBroker(nameServerAddr, clusterName,false);
+        BrokerController brokerController3 = IntegrationTestBase.createAndStartBroker(nameServerAddr, clusterName,false);
 
         brokerControllers.add(brokerController1);
         brokerControllers.add(brokerController2);
@@ -136,7 +135,7 @@ public class TopicNotExistTest {
 
     private void waitBrokerRegistered() {
         final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
-        mqAdminExt.setNamesrvAddr(nsAddr);
+        mqAdminExt.setNamesrvAddr(nameServerAddr);
         try {
             mqAdminExt.start();
             await().atMost(30, TimeUnit.SECONDS).until(() -> {
@@ -152,7 +151,7 @@ public class TopicNotExistTest {
                 brokerController.getBrokerOuterAPI().refreshMetadata();
             }
         } catch (Exception e) {
-            logger.error("init failed, please check BaseConf", e);
+            log.error("init failed, please check BaseConf", e);
             Assert.fail(e.getMessage());
         }
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);

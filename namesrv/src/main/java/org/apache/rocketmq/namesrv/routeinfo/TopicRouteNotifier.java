@@ -82,7 +82,7 @@ public class TopicRouteNotifier {
             String topic = entry.getKey();
             Set<Channel> channelSet = entry.getValue();
             for (Channel channel : channelSet) {
-                Set<String> topicSet = channelAndTopicMap.computeIfAbsent(channel, (k) -> new HashSet<>());
+                Set<String> topicSet = channelAndTopicMap.computeIfAbsent(channel, k -> new HashSet<>());
                 topicSet.add(topic);
             }
         }

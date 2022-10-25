@@ -35,15 +35,15 @@ import java.util.concurrent.ConcurrentMap;
  * test for auto delete expired topic
  */
 public class AutoRemoveExpiredTopicTest extends BaseConf {
-    private static final Logger logger = Logger.getLogger(AutoRemoveExpiredTopicTest.class);
+    private final static Logger log = Logger.getLogger(AutoRemoveExpiredTopicTest.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
     @Before
     public void before() {
         topic = initTopic();
-        logger.info(String.format("topic is %s", topic));
-        producer = getProducer(nsAddr, topic, 200);
+        log.info(String.format("topic is %s", topic));
+        producer = getProducer(NAMESRV_ADDR, topic, 200);
     }
 
     @After
