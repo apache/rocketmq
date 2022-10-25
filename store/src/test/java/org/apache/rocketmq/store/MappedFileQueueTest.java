@@ -18,18 +18,24 @@
 package org.apache.rocketmq.store;
 
 import java.util.concurrent.CountDownLatch;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -381,6 +387,91 @@ public class MappedFileQueueTest {
 
         downLatch.await(10, TimeUnit.SECONDS);
         assertThat(hasException.get()).isFalse();
+    }
+
+    @Test
+    public void testMappedFile_Rename() throws IOException, InterruptedException {
+        final String fixedMsg = RandomStringUtils.randomAlphanumeric(128);
+        final byte[] msgByteArr = fixedMsg.getBytes(StandardCharsets.UTF_8);
+        final int mappedFileSize = 5 * 1024 * 1024;
+
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store", mappedFileSize, null);
+
+        int currentSize = 0;
+        while (currentSize <= 2 * mappedFileSize) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            mappedFile.appendMessage(msgByteArr);
+            currentSize += fixedMsg.length();
+        }
+
+        assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(3);
+
+        ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+        ses.scheduleWithFixedDelay(() -> {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            mappedFile.appendMessage(msgByteArr);
+        }, 1,1, TimeUnit.MILLISECONDS);
+
+        List<MappedFile> mappedFileList = Lists.newArrayList(mappedFileQueue.getMappedFiles());
+        mappedFileList.remove(mappedFileList.size() - 1);
+
+        MappedFileQueue compactingMappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/compacting", mappedFileSize, null);
+
+        currentSize = 0;
+        while (currentSize < (2 * mappedFileSize - mappedFileSize / 2)) {
+            MappedFile mappedFile = compactingMappedFileQueue.getLastMappedFile(0);
+            mappedFile.appendMessage(msgByteArr);
+            currentSize += fixedMsg.length();
+        }
+
+
+        mappedFileList.forEach(MappedFile::renameToDelete);
+        assertThat(mappedFileQueue.getFirstMappedFile().getFileName()).endsWith(".delete");
+        assertThat(mappedFileQueue.findMappedFileByOffset(mappedFileSize + fixedMsg.length()).getFileName()).endsWith(".delete");
+
+        SelectMappedBufferResult sbr = mappedFileList.get(mappedFileList.size() - 1).selectMappedBuffer(0, msgByteArr.length);
+        assertThat(sbr).isNotNull();
+        try {
+            assertThat(sbr.getMappedFile().getFileName().endsWith(".delete")).isTrue();
+            if (sbr.getByteBuffer().hasArray()) {
+                assertThat(sbr.getByteBuffer().array()).isEqualTo(msgByteArr);
+            } else {
+                for (int i = 0; i < msgByteArr.length; i++) {
+                    assertThat(sbr.getByteBuffer().get(i)).isEqualTo(msgByteArr[i]);
+                }
+            }
+        } finally {
+            sbr.release();
+        }
+
+
+        compactingMappedFileQueue.getMappedFiles().forEach(mappedFile -> {
+            try {
+                mappedFile.moveToParent();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        mappedFileQueue.getMappedFiles().stream()
+            .filter(m -> !mappedFileList.contains(m))
+            .forEach(m -> compactingMappedFileQueue.getMappedFiles().add(m));
+
+        int wrotePosition = mappedFileQueue.getLastMappedFile().getWrotePosition();
+
+        mappedFileList.forEach(mappedFile -> {
+            mappedFile.destroy(1000);
+        });
+
+        TimeUnit.SECONDS.sleep(3);
+        ses.shutdown();
+
+        mappedFileQueue.getMappedFiles().clear();
+        mappedFileQueue.getMappedFiles().addAll(compactingMappedFileQueue.getMappedFiles());
+
+        TimeUnit.SECONDS.sleep(3);
     }
 
     @After

@@ -25,11 +25,17 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -40,6 +46,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -187,6 +194,23 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public FileChannel getFileChannel() {
         return fileChannel;
+    }
+
+    public AppendMessageResult appendMessage(final ByteBuffer byteBufferMsg, final CompactionAppendMsgCallback cb) {
+        assert byteBufferMsg != null;
+        assert cb != null;
+
+        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        if (currentPos < this.fileSize) {
+            ByteBuffer byteBuffer = appendMessageBuffer().slice();
+            byteBuffer.position(currentPos);
+            AppendMessageResult result = cb.doAppend(byteBuffer, this.fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
+            WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
+            this.storeTimestamp = result.getStoreTimestamp();
+            return result;
+        }
+        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
+        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
     @Override
@@ -694,8 +718,88 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
+    public void renameToDelete() {
+        //use Files.move
+        if (!fileName.endsWith(".delete")) {
+            String newFileName = this.fileName + ".delete";
+            try {
+                Files.move(Paths.get(fileName), Paths.get(newFileName), StandardCopyOption.ATOMIC_MOVE);
+                this.fileName = newFileName;
+                this.file = new File(newFileName);
+            } catch (IOException e) {
+                log.warn("atomic move file {} failed", fileName, e);
+                try {
+                    Files.move(Paths.get(fileName), Paths.get(newFileName), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e1) {
+                    log.error("move file {} failed", fileName, e1);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void moveToParent() throws IOException {
+        Path currentPath = Paths.get(fileName);
+        String baseName = currentPath.getFileName().toString();
+        Path parentPath = currentPath.getParent().getParent().resolve(baseName);
+        Files.move(currentPath, parentPath, StandardCopyOption.ATOMIC_MOVE);
+        this.file = parentPath.toFile();
+        this.fileName = parentPath.toString();
+    }
+
+    @Override
     public String toString() {
         return this.fileName;
+    }
+
+    public Iterator<SelectMappedBufferResult> iterator(int startPos) {
+        return new Itr(startPos);
+    }
+
+    private class Itr implements Iterator<SelectMappedBufferResult> {
+        private int start;
+        private int current;
+        private ByteBuffer buf;
+
+        public Itr(int pos) {
+            this.start = pos;
+            this.current = pos;
+            this.buf = mappedByteBuffer.slice();
+            this.buf.position(start);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current < getReadPosition();
+        }
+
+        @Override
+        public SelectMappedBufferResult next() {
+            int readPosition = getReadPosition();
+            if (current < readPosition && current >= 0) {
+                if (hold()) {
+                    ByteBuffer byteBuffer = buf.slice();
+                    byteBuffer.position(current);
+                    int size = byteBuffer.getInt(current);
+                    ByteBuffer bufferResult = byteBuffer.slice();
+                    bufferResult.limit(size);
+                    current += size;
+                    return new SelectMappedBufferResult(fileFromOffset + current, bufferResult, size,
+                        DefaultMappedFile.this);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super SelectMappedBufferResult> action) {
+            Iterator.super.forEachRemaining(action);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 
 }
