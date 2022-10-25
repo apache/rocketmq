@@ -357,7 +357,7 @@ public class ConsumeQueueTest {
 
             // Wait consume queue build finish.
             final MessageStore store = messageStore;
-            Awaitility.with().pollInterval(100, TimeUnit.MILLISECONDS).await().until(() -> {
+            Awaitility.with().pollInterval(100, TimeUnit.MILLISECONDS).await().timeout(2, TimeUnit.MINUTES).until(() -> {
                 return store.dispatchBehindBytes() == 0;
             });
 
