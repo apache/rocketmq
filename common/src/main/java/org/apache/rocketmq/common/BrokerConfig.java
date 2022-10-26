@@ -375,9 +375,9 @@ public class BrokerConfig extends BrokerIdentity {
     private String metricsPromExporterHost = "";
 
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
-    private String brokerMetricsLabel = "";
+    private String metricsLabel = "";
 
-    private boolean brokerMetricsPreferDelta = true;
+    private boolean metricsPreferDelta = true;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1523,20 +1523,20 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
     }
 
-    public String getBrokerMetricsLabel() {
-        return brokerMetricsLabel;
+    public String getMetricsLabel() {
+        return metricsLabel;
     }
 
-    public void setBrokerMetricsLabel(String brokerMetricsLabel) {
-        this.brokerMetricsLabel = brokerMetricsLabel;
+    public void setMetricsLabel(String metricsLabel) {
+        this.metricsLabel = metricsLabel;
     }
 
-    public boolean isBrokerMetricsPreferDelta() {
-        return brokerMetricsPreferDelta;
+    public boolean isMetricsPreferDelta() {
+        return metricsPreferDelta;
     }
 
-    public void setBrokerMetricsPreferDelta(boolean brokerMetricsPreferDelta) {
-        this.brokerMetricsPreferDelta = brokerMetricsPreferDelta;
+    public void setMetricsPreferDelta(boolean metricsPreferDelta) {
+        this.metricsPreferDelta = metricsPreferDelta;
     }
 
     public int getMetricsPromExporterPort() {
