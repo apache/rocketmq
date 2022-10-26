@@ -103,7 +103,7 @@
 
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.10</logback.version>
-        <commons-cli.version>1.4</commons-cli.version>
+        <commons-cli.version>1.5.0</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.69_noneautotype</fastjson.version>
@@ -126,8 +126,8 @@
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.0</rocketmq-proto.version>
-        <grpc.version>1.45.0</grpc.version>
+        <rocketmq-proto.version>2.0.1</rocketmq-proto.version>
+        <grpc.version>1.50.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
@@ -757,6 +757,17 @@
             </dependency>
             <dependency>
                 <groupId>io.jaegertracing</groupId>
+                <artifactId>jaeger-thrift</artifactId>
+                <version>${jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.squareup.okhttp3</groupId>
+                        <artifactId>okhttp</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.jaegertracing</groupId>
                 <artifactId>jaeger-client</artifactId>
                 <version>${jaeger.version}</version>
                 <exclusions>
@@ -857,6 +868,10 @@
                         <groupId>com.google.errorprone</groupId>
                         <artifactId>error_prone_annotations</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.code.gson</groupId>
+                        <artifactId>gson</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -868,6 +883,12 @@
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -875,6 +896,39 @@
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>3.0.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-otlp</artifactId>
+                <version>1.19.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.squareup.okio</groupId>
+                        <artifactId>okio-jvm</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-prometheus</artifactId>
+                <version>1.19.0-alpha</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-sdk</artifactId>
+                <version>1.19.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

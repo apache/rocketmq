@@ -25,6 +25,10 @@ java_library(
         "@maven//:com_alibaba_fastjson",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:com_squareup_okio_okio_jvm",
     ],
 )
 
@@ -35,10 +39,14 @@ java_library(
     deps = [
         ":remoting",
         "//:test_deps",
-        "@maven//:io_netty_netty_all",     
-        "@maven//:com_google_code_gson_gson",   
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_code_gson_gson",
         "@maven//:com_alibaba_fastjson",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:com_squareup_okio_okio_jvm",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

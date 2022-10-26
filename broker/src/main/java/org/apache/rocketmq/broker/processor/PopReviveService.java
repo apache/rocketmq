@@ -159,7 +159,9 @@ public class PopReviveService extends ServiceThread {
             return null;
         }
         if (reachTail(pullResult, offset)) {
-            POP_LOGGER.info("reviveQueueId={}, reach tail,offset {}", queueId, offset);
+            if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
+                POP_LOGGER.info("reviveQueueId={}, reach tail,offset {}", queueId, offset);
+            }
         } else if (pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL || pullResult.getPullStatus() == PullStatus.NO_MATCHED_MSG) {
             POP_LOGGER.error("reviveQueueId={}, OFFSET_ILLEGAL {}, result is {}", queueId, offset, pullResult);
             if (!shouldRunPopRevive) {
@@ -209,11 +211,14 @@ public class PopReviveService extends ServiceThread {
                 case NO_MATCHED_LOGIC_QUEUE:
                 case OFFSET_FOUND_NULL:
                 case OFFSET_OVERFLOW_BADLY:
-                case OFFSET_OVERFLOW_ONE:
                 case OFFSET_TOO_SMALL:
                     pullStatus = PullStatus.OFFSET_ILLEGAL;
                     POP_LOGGER.warn("offset illegal. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
+                    break;
+                case OFFSET_OVERFLOW_ONE:
+                    // no need to print WARN, because we use "offset + 1" to get the next message
+                    pullStatus = PullStatus.OFFSET_ILLEGAL;
                     break;
                 default:
                     assert false;
@@ -286,8 +291,10 @@ public class PopReviveService extends ServiceThread {
                 if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
                     endTime = System.currentTimeMillis();
                 }
-                POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
-                    queueId, offset, old, endTime);
+                if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
+                    POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
+                        queueId, offset, old, endTime);
+                }
                 if (endTime - firstRt > PopAckConstants.ackTimeInterval + PopAckConstants.SECOND) {
                     break;
                 }

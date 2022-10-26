@@ -63,8 +63,10 @@ import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
 import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
@@ -167,6 +169,7 @@ public class BrokerController {
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
     protected final ConsumerOffsetManager consumerOffsetManager;
+    protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
     protected final ConsumerFilterManager consumerFilterManager;
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
@@ -262,6 +265,7 @@ public class BrokerController {
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
     private long lastSyncTimeMs = System.currentTimeMillis();
+    private BrokerMetricsManager brokerMetricsManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -294,6 +298,7 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        this.broadcastOffsetManager = new BroadcastOffsetManager(this);
         this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
@@ -775,6 +780,8 @@ public class BrokerController {
             }
         }
 
+        this.brokerMetricsManager = new BrokerMetricsManager(this);
+
         if (result) {
 
             initializeRemotingServer();
@@ -1166,6 +1173,10 @@ public class BrokerController {
         return consumerOffsetManager;
     }
 
+    public BroadcastOffsetManager getBroadcastOffsetManager() {
+        return broadcastOffsetManager;
+    }
+
     public MessageStoreConfig getMessageStoreConfig() {
         return messageStoreConfig;
     }
@@ -1273,6 +1284,10 @@ public class BrokerController {
             this.fileWatchService.shutdown();
         }
 
+        if (this.broadcastOffsetManager != null) {
+            this.broadcastOffsetManager.shutdown();
+        }
+
         if (this.messageStore != null) {
             this.messageStore.shutdown();
         }
@@ -1350,9 +1365,6 @@ public class BrokerController {
             this.consumerManageExecutor.shutdown();
         }
 
-        if (this.fileWatchService != null) {
-            this.fileWatchService.shutdown();
-        }
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
         }
@@ -1497,6 +1509,10 @@ public class BrokerController {
 
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
+        }
+
+        if (this.broadcastOffsetManager != null) {
+            this.broadcastOffsetManager.start();
         }
 
         if (this.escapeBridge != null) {
@@ -1772,6 +1788,7 @@ public class BrokerController {
             if (registerBrokerResult != null) {
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                    this.messageStore.updateMasterAddress(registerBrokerResult.getMasterAddr());
                 }
 
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());

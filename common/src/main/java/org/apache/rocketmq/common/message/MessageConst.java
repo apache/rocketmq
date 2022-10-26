@@ -98,6 +98,12 @@ public class MessageConst {
     public static final String PROPERTY_TIMER_DELAY_LEVEL = "TIMER_DELAY_LEVEL";
     public static final String PROPERTY_TIMER_DELAY_MS = "TIMER_DELAY_MS";
 
+    /**
+     * properties for DLQ
+     */
+    public static final String PROPERTY_DLQ_ORIGIN_TOPIC = "DLQ_ORIGIN_TOPIC";
+    public static final String PROPERTY_DLQ_ORIGIN_MESSAGE_ID = "DLQ_ORIGIN_MESSAGE_ID";
+
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);
         STRING_HASH_SET.add(PROPERTY_MSG_REGION);
@@ -147,5 +153,7 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_TIMER_DELAY_LEVEL);
         STRING_HASH_SET.add(PROPERTY_BORN_HOST);
         STRING_HASH_SET.add(PROPERTY_BORN_TIMESTAMP);
+        STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_TOPIC);
+        STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_MESSAGE_ID);
     }
 }
