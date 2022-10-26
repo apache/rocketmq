@@ -1517,8 +1517,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     }
                 }
 
+                long pullOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(
+                    requestHeader.getConsumerGroup(), topic, i);
+
                 offsetWrapper.setBrokerOffset(brokerOffset);
                 offsetWrapper.setConsumerOffset(consumerOffset);
+                offsetWrapper.setPullOffset(Math.max(consumerOffset, pullOffset));
 
                 long timeOffset = consumerOffset - 1;
                 if (timeOffset >= 0) {
@@ -2121,7 +2125,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             new ArrayList<>();
 
         long totalDiff = 0L;
-
+        long totalInflightDiff = 0L;
         for (String group : subscriptionGroups.keySet()) {
             Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<>();
             Set<String> topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group);
@@ -2185,6 +2189,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 consumeTps += consumeStats.getConsumeTps();
                 consumeStats.setConsumeTps(consumeTps);
                 totalDiff += consumeStats.computeTotalDiff();
+                totalInflightDiff += consumeStats.computeInflightTotalDiff();
                 consumeStatsList.add(consumeStats);
             }
             subscripTopicConsumeMap.put(group, consumeStatsList);
@@ -2194,6 +2199,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         consumeStats.setBrokerAddr(brokerController.getBrokerAddr());
         consumeStats.setConsumeStatsList(brokerConsumeStatsList);
         consumeStats.setTotalDiff(totalDiff);
+        consumeStats.setTotalInflightDiff(totalInflightDiff);
         response.setBody(consumeStats.encode());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
