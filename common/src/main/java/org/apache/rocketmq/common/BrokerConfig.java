@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -216,6 +217,8 @@ public class BrokerConfig extends BrokerIdentity {
     private long reviveInterval = 1000;
     private long reviveMaxSlow = 3;
     private long reviveScanTime = 10000;
+    private boolean enableSkipLongAwaitingAck = false;
+    private long reviveAckWaitMs = TimeUnit.MINUTES.toMillis(3);
     private boolean enablePopLog = false;
     private boolean enablePopBufferMerge = false;
     private int popCkStayBufferTime = 10 * 1000;
@@ -480,6 +483,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
         this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnableSkipLongAwaitingAck() {
+        return enableSkipLongAwaitingAck;
+    }
+
+    public void setEnableSkipLongAwaitingAck(boolean enableSkipLongAwaitingAck) {
+        this.enableSkipLongAwaitingAck = enableSkipLongAwaitingAck;
+    }
+
+    public long getReviveAckWaitMs() {
+        return reviveAckWaitMs;
+    }
+
+    public void setReviveAckWaitMs(long reviveAckWaitMs) {
+        this.reviveAckWaitMs = reviveAckWaitMs;
     }
 
     public boolean isEnablePopLog() {

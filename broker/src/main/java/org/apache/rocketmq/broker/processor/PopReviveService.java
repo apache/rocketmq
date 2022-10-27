@@ -269,6 +269,7 @@ public class PopReviveService extends ServiceThread {
 
     protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
+        HashMap<String, PopCheckPoint> mockPointMap = new HashMap<>();
         long startScanTime = System.currentTimeMillis();
         long endTime = 0;
         long oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId);
@@ -338,15 +339,32 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.info("reviveQueueId={},find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
-                    PopCheckPoint point = map.get(ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime());
+                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime();
+                    PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
-                        continue;
-                    }
-                    int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
-                    if (indexOfAck > -1) {
-                        point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
+                        if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
+                            continue;
+                        }
+                        long ackWaitTime = System.currentTimeMillis() - messageExt.getDeliverTimeMs();
+                        long reviveAckWaitMs = brokerController.getBrokerConfig().getReviveAckWaitMs();
+                        if (ackWaitTime > reviveAckWaitMs) {
+                            // will use the reviveOffset of popCheckPoint to commit offset in mergeAndRevive
+                            PopCheckPoint mockPoint = createMockCkForAck(ackMsg, messageExt.getQueueOffset());
+                            POP_LOGGER.warn(
+                                "ack wait for {}ms cannot find ck, skip this ack. mergeKey:{}, ack:{}, mockCk:{}",
+                                reviveAckWaitMs, mergeKey, ackMsg, mockPoint);
+                            mockPointMap.put(mergeKey, mockPoint);
+                            if (firstRt == 0) {
+                                firstRt = mockPoint.getReviveTime();
+                            }
+                        }
                     } else {
-                        POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
+                        int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
+                        if (indexOfAck > -1) {
+                            point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
+                        } else {
+                            POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
+                        }
                     }
                 }
                 long deliverTime = messageExt.getDeliverTimeMs();
@@ -356,7 +374,22 @@ public class PopReviveService extends ServiceThread {
             }
             offset = offset + messageExts.size();
         }
+        consumeReviveObj.map.putAll(mockPointMap);
         consumeReviveObj.endTime = endTime;
+    }
+
+    private PopCheckPoint createMockCkForAck(AckMsg ackMsg, long reviveOffset) {
+        PopCheckPoint point = new PopCheckPoint();
+        point.setStartOffset(ackMsg.getStartOffset());
+        point.setPopTime(ackMsg.getPopTime());
+        point.setQueueId((byte) ackMsg.getQueueId());
+        point.setCId(ackMsg.getConsumerGroup());
+        point.setTopic(ackMsg.getTopic());
+        point.setNum((byte) 0);
+        point.setBitMap(0);
+        point.setReviveOffset(reviveOffset);
+        point.setBrokerName(ackMsg.getBrokerName());
+        return point;
     }
 
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
