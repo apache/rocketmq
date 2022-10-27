@@ -60,6 +60,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     protected ConsumerProcessor consumerProcessor;
     protected TransactionProcessor transactionProcessor;
     protected ClientProcessor clientProcessor;
+    protected RequestBrokerProcessor requestBrokerProcessor;
 
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
@@ -88,6 +89,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.consumerProcessor = new ConsumerProcessor(this, serviceManager, this.consumerProcessorExecutor);
         this.transactionProcessor = new TransactionProcessor(this, serviceManager);
         this.clientProcessor = new ClientProcessor(this, serviceManager);
+        this.requestBrokerProcessor = new RequestBrokerProcessor(this, serviceManager);
 
         this.init();
     }
@@ -216,6 +218,18 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<Long> getMinOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
         return this.consumerProcessor.getMinOffset(ctx, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        return this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        return this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis);
     }
 
     @Override

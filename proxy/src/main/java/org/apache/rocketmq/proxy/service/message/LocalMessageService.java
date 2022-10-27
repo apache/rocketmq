@@ -402,4 +402,16 @@ public class LocalMessageService implements MessageService {
         GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("getMinOffset is not implemented in LocalMessageService");
     }
+
+    @Override
+    public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        throw new NotImplementedException("request is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        throw new NotImplementedException("requestOneway is not implemented in LocalMessageService");
+    }
 }

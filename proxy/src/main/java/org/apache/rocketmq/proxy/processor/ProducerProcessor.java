@@ -73,7 +73,7 @@ public class ProducerProcessor extends AbstractProcessor {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
                         TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
-                        TopicMessageType messageType = parseFromMessageExt(message);
+                        TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(message.getProperties());
                         topicMessageTypeValidator.validate(topicMessageType, messageType);
                     }
                 }

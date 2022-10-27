@@ -63,13 +63,13 @@ public class ClusterMessageService implements MessageService {
         CompletableFuture<List<SendResult>> future;
         if (msgList.size() == 1) {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                messageQueue.getBrokerAddr(),
-                messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
+                    messageQueue.getBrokerAddr(),
+                    messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
                 .thenApply(Lists::newArrayList);
         } else {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                messageQueue.getBrokerAddr(),
-                messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
+                    messageQueue.getBrokerAddr(),
+                    messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
                 .thenApply(Lists::newArrayList);
         }
         return future;
@@ -86,7 +86,8 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName,
+        EndTransactionRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
@@ -203,6 +204,32 @@ public class ClusterMessageService implements MessageService {
             requestHeader,
             timeoutMillis
         );
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        try {
+            String brokerAddress = topicRouteService.getBrokerAddr(brokerName);
+            return mqClientAPIFactory.getClient().invoke(brokerAddress, request, timeoutMillis);
+        } catch (Exception e) {
+            CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
+    }
+
+    @Override
+    public CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        try {
+            String brokerAddress = topicRouteService.getBrokerAddr(brokerName);
+            return mqClientAPIFactory.getClient().invokeOneway(brokerAddress, request, timeoutMillis);
+        } catch (Exception e) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
     }
 
     protected String resolveBrokerAddrInReceiptHandle(ReceiptHandle handle) {

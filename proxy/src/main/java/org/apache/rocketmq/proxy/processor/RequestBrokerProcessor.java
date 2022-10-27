@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.proxy.processor;
 
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
-import org.apache.rocketmq.proxy.common.ProxyException;
-import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public abstract class AbstractProcessor extends AbstractStartAndShutdown {
+public class RequestBrokerProcessor extends AbstractProcessor {
 
-    protected MessagingProcessor messagingProcessor;
-    protected ServiceManager serviceManager;
-
-    public AbstractProcessor(MessagingProcessor messagingProcessor,
+    public RequestBrokerProcessor(MessagingProcessor messagingProcessor,
         ServiceManager serviceManager) {
-        this.messagingProcessor = messagingProcessor;
-        this.serviceManager = serviceManager;
+        super(messagingProcessor, serviceManager);
     }
 
-    protected void validateReceiptHandle(ReceiptHandle handle) {
-        if (handle.isExpired()) {
-            throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired");
-        }
+    CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request, long timeoutMillis) {
+        return serviceManager.getMessageService().request(ctx, brokerName, request, timeoutMillis);
+    }
+
+    CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request, long timeoutMillis) {
+        return serviceManager.getMessageService().requestOneway(ctx, brokerName, request, timeoutMillis);
     }
 }
