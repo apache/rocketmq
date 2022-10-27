@@ -21,7 +21,9 @@ import org.apache.rocketmq.broker.transaction.OperationResult;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -38,10 +40,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.store.config.BrokerRole;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
@@ -56,11 +61,22 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
-    public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
-        this.transactionalMessageBridge = transactionBridge;
-    }
+    private static final int OP_MSG_PULL_NUMS = 32;
+
+    private static final int SLEEP_WHILE_NO_OP = 1000;
+
+    private final ConcurrentHashMap<Integer, MessageQueueOpContext> deleteContext = new ConcurrentHashMap<>();
+
+    private ServiceThread transactionalOpBatchService;
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
+
+    public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
+        this.transactionalMessageBridge = transactionBridge;
+        transactionalOpBatchService = new TransactionalOpBatchService(transactionalMessageBridge.getBrokerController(), this);
+        transactionalOpBatchService.start();
+    }
+
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPrepareMessage(MessageExtBrokerInner messageInner) {
@@ -150,7 +166,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
                 List<Long> doneOpOffset = new ArrayList<>();
                 HashMap<Long, Long> removeMap = new HashMap<>();
-                PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, doneOpOffset);
+                HashMap<Long, HashSet<Long>> opMsgMap = new HashMap<Long, HashSet<Long>>();
+                PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, opMsgMap, doneOpOffset);
                 if (null == pullResult) {
                     log.error("The queue={} check msgOffset={} with opOffset={} failed, pullResult is null",
                         messageQueue, halfOffset, opOffset);
@@ -160,7 +177,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 int getMessageNullCount = 1;
                 long newOffset = halfOffset;
                 long i = halfOffset;
+                long nextOpOffset = pullResult.getNextBeginOffset();
+                int putInQueueCount = 0;
                 int escapeFailCnt = 0;
+
                 while (true) {
                     if (System.currentTimeMillis() - startTime > MAX_PROCESS_TIME_LIMIT) {
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
@@ -169,7 +189,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     if (removeMap.containsKey(i)) {
                         log.debug("Half offset {} has been committed/rolled back", i);
                         Long removedOpOffset = removeMap.remove(i);
-                        doneOpOffset.add(removedOpOffset);
+                        opMsgMap.get(removedOpOffset).remove(i);
+                        if (opMsgMap.get(removedOpOffset).size() == 0) {
+                            opMsgMap.remove(removedOpOffset);
+                            doneOpOffset.add(removedOpOffset);
+                        }
                     } else {
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
@@ -237,7 +261,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         if (null != checkImmunityTimeStr) {
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
                             if (valueOfCurrentMinusBorn < checkImmunityTime) {
-                                if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt)) {
+                                if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTimeStr)) {
                                     newOffset = i + 1;
                                     i++;
                                     continue;
@@ -250,20 +274,39 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 break;
                             }
                         }
-                        List<MessageExt> opMsg = pullResult.getMsgFoundList();
+                        List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
                         boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
                             || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
                             || valueOfCurrentMinusBorn <= -1;
 
                         if (isNeedCheck) {
+
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
+                            putInQueueCount++;
+                            log.info("Check transaction. real_topic={},uniqKey={},offset={},commitLogOffset={}",
+                                    msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
+                                    msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
+                                    msgExt.getQueueOffset(), msgExt.getCommitLogOffset());
                             listener.resolveHalfMsg(msgExt);
                         } else {
-                            pullResult = fillOpRemoveMap(removeMap, opQueue, pullResult.getNextBeginOffset(), halfOffset, doneOpOffset);
-                            log.debug("The miss offset:{} in messageQueue:{} need to get more opMsg, result is:{}", i,
-                                messageQueue, pullResult);
+                            nextOpOffset = pullResult != null ? pullResult.getNextBeginOffset() : nextOpOffset;
+                            pullResult = fillOpRemoveMap(removeMap, opQueue, nextOpOffset,
+                                    halfOffset, opMsgMap, doneOpOffset);
+                            if (pullResult == null || pullResult.getPullStatus() == PullStatus.NO_NEW_MSG
+                                    || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL
+                                    || pullResult.getPullStatus() == PullStatus.NO_MATCHED_MSG) {
+
+                                try {
+                                    Thread.sleep(SLEEP_WHILE_NO_OP);
+                                } catch (Throwable ignored) {
+                                }
+
+                            } else {
+                                log.info("The miss message offset:{}, pullOffsetOfOp:{}, miniOffset:{} get more opMsg.", i, nextOpOffset, halfOffset);
+                            }
+
                             continue;
                         }
                     }
@@ -277,6 +320,15 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 if (newOpOffset != opOffset) {
                     transactionalMessageBridge.updateConsumeOffset(opQueue, newOpOffset);
                 }
+                GetResult getResult = getHalfMsg(messageQueue, newOffset);
+                pullResult = pullOpMsg(opQueue, newOpOffset, 1);
+                long maxMsgOffset = getResult.getPullResult() == null ? newOffset : getResult.getPullResult().getMaxOffset();
+                long maxOpOffset = pullResult == null ? newOpOffset : pullResult.getMaxOffset();
+                long msgTime = getResult.getMsg() == null ? System.currentTimeMillis() : getResult.getMsg().getStoreTimestamp();
+
+                log.info("After check, {} opOffset={} opOffsetDiff={} msgOffset={} msgOffsetDiff={} msgTime={} msgTimeDelayInMs={} putInQueueCount={}",
+                        messageQueue, newOpOffset, maxOpOffset - newOpOffset, newOffset, maxMsgOffset - newOffset, new Date(msgTime),
+                        System.currentTimeMillis() - msgTime, putInQueueCount);
             }
         } catch (Throwable e) {
             log.error("Check error", e);
@@ -303,12 +355,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      * @param opQueue Op message queue.
      * @param pullOffsetOfOp The begin offset of op message queue.
      * @param miniOffset The current minimum offset of half message queue.
+     * @param opMsgMap Half message offset in op message
      * @param doneOpOffset Stored op messages that have been processed.
      * @return Op message result.
      */
-    private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap,
-        MessageQueue opQueue, long pullOffsetOfOp, long miniOffset, List<Long> doneOpOffset) {
-        PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, 32);
+    private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap, MessageQueue opQueue,
+                                       long pullOffsetOfOp, long miniOffset, Map<Long, HashSet<Long>> opMsgMap, List<Long> doneOpOffset) {
+        PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, OP_MSG_PULL_NUMS);
         if (null == pullResult) {
             return null;
         }
@@ -329,21 +382,42 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             return pullResult;
         }
         for (MessageExt opMessageExt : opMsg) {
-            Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET));
+            if (opMessageExt.getBody() == null) {
+                log.error("op message body is null. queueId={}, offset={}", opMessageExt.getQueueId(),
+                        opMessageExt.getQueueOffset());
+                doneOpOffset.add(opMessageExt.getQueueOffset());
+                continue;
+            }
+            HashSet<Long> set = new HashSet<Long>();
+            String queueOffsetBody = new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET);
+
             log.debug("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
-                opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffset);
-            if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {
-                if (queueOffset < miniOffset) {
-                    doneOpOffset.add(opMessageExt.getQueueOffset());
-                } else {
-                    removeMap.put(queueOffset, opMessageExt.getQueueOffset());
+                    opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffsetBody);
+            if (TransactionalMessageUtil.REMOVE_TAG.equals(opMessageExt.getTags())) {
+                String[] offsetArray = queueOffsetBody.split(TransactionalMessageUtil.OFFSET_SEPARATOR);
+                for (String offset : offsetArray) {
+                    Long offsetValue = getLong(offset);
+                    if (offsetValue < miniOffset) {
+                        continue;
+                    }
+
+                    removeMap.put(offsetValue, opMessageExt.getQueueOffset());
+                    set.add(offsetValue);
                 }
             } else {
                 log.error("Found a illegal tag in opMessageExt= {} ", opMessageExt);
             }
+
+            if (set.size() > 0) {
+                opMsgMap.put(opMessageExt.getQueueOffset(), set);
+            } else {
+                doneOpOffset.add(opMessageExt.getQueueOffset());
+            }
         }
+
         log.debug("Remove map: {}", removeMap);
         log.debug("Done op list: {}", doneOpOffset);
+        log.debug("opMsg map: {}", opMsgMap);
         return pullResult;
     }
 
@@ -356,7 +430,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      * @return Return true if put success, otherwise return false.
      */
     private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset,
-        MessageExt msgExt) {
+        MessageExt msgExt, String checkImmunityTimeStr) {
         String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         if (null == prepareQueueOffsetStr) {
             return putImmunityMsgBackToHalfQueue(msgExt);
@@ -368,6 +442,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 if (removeMap.containsKey(prepareQueueOffset)) {
                     long tmpOpOffset = removeMap.remove(prepareQueueOffset);
                     doneOpOffset.add(tmpOpOffset);
+                    log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
+                            msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
+                            msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
+                            checkImmunityTimeStr,
+                            msgExt.getQueueOffset());
                     return true;
                 } else {
                     return putImmunityMsgBackToHalfQueue(msgExt);
@@ -496,12 +575,38 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     @Override
-    public boolean deletePrepareMessage(MessageExt msgExt) {
-        if (this.transactionalMessageBridge.putOpMessage(msgExt, TransactionalMessageUtil.REMOVETAG)) {
-            log.debug("Transaction op message write successfully. messageId={}, queueId={} msgExt:{}", msgExt.getMsgId(), msgExt.getQueueId(), msgExt);
+    public boolean deletePrepareMessage(MessageExt messageExt) {
+        Integer queueId = messageExt.getQueueId();
+        MessageQueueOpContext mqContext = deleteContext.get(queueId);
+        if (mqContext == null) {
+            mqContext = new MessageQueueOpContext(System.currentTimeMillis(), 20000);
+            MessageQueueOpContext old = deleteContext.putIfAbsent(queueId, mqContext);
+            if (old != null) {
+                mqContext = old;
+            }
+        }
+
+        String data = messageExt.getQueueOffset() + TransactionalMessageUtil.OFFSET_SEPARATOR;
+        try {
+            boolean res = mqContext.getContextQueue().offer(data, 100, TimeUnit.MILLISECONDS);
+            if (res) {
+                int totalSize = mqContext.getTotalSize().addAndGet(data.length());
+                if (totalSize > transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize()) {
+                    this.transactionalOpBatchService.wakeup();
+                }
+                return true;
+            } else {
+                this.transactionalOpBatchService.wakeup();
+            }
+        } catch (InterruptedException ignore) {
+        }
+
+        Message msg = getOpMessage(queueId, data);
+        if (this.transactionalMessageBridge.writeOp(queueId, msg)) {
+            log.warn("Force add remove op data. queueId={}", queueId);
             return true;
         } else {
-            log.error("Transaction op message write failed. messageId is {}, queueId is {}", msgExt.getMsgId(), msgExt.getQueueId());
+            log.error("Transaction op message write failed. messageId is {}, queueId is {}", messageExt.getMsgId(), messageExt.getQueueId());
             return false;
         }
     }
@@ -526,4 +631,105 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     }
 
+    public Message getOpMessage(int queueId, String moreData) {
+        String opTopic = TransactionalMessageUtil.buildOpTopic();
+        MessageQueueOpContext mqContext = deleteContext.get(queueId);
+
+        int moreDataLength = moreData != null ? moreData.length() : 0;
+        int length = moreDataLength;
+        int maxSize = transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize();
+        if (length < maxSize) {
+            int sz = mqContext.getTotalSize().get();
+            if (sz > maxSize || length + sz > maxSize) {
+                length = maxSize + 100;
+            } else {
+                length += sz;
+            }
+        }
+
+        StringBuilder sb = new StringBuilder(length);
+
+        if (moreData != null) {
+            sb.append(moreData);
+        }
+
+        while (!mqContext.getContextQueue().isEmpty()) {
+            if (sb.length() >= maxSize) {
+                break;
+            }
+            String data = mqContext.getContextQueue().poll();
+            if (data != null) {
+                sb.append(data);
+            }
+        }
+
+        if (sb.length() == 0) {
+            return null;
+        }
+
+        int l = sb.length() - moreDataLength;
+        mqContext.getTotalSize().addAndGet(-l);
+        mqContext.setLastWriteTimestamp(System.currentTimeMillis());
+        return new Message(opTopic, TransactionalMessageUtil.REMOVE_TAG,
+                sb.toString().getBytes(TransactionalMessageUtil.CHARSET));
+    }
+    public long batchSendOpMessage() {
+        long startTime = System.currentTimeMillis();
+        try {
+            long firstTimestamp = startTime;
+            Map<Integer, Message> sendMap = null;
+            long interval = transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpBatchInterval();
+            int maxSize = transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize();
+            boolean overSize = false;
+            for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
+                MessageQueueOpContext mqContext = entry.getValue();
+                //no msg in contextQueue
+                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
+                        // wait for the interval
+                        mqContext.getTotalSize().get() < maxSize &&
+                                startTime - mqContext.getLastWriteTimestamp() < interval) {
+                    continue;
+                }
+
+                if (sendMap == null) {
+                    sendMap = new HashMap<>();
+                }
+
+                Message opMsg = getOpMessage(entry.getKey(), null);
+                if (opMsg == null) {
+                    continue;
+                }
+                sendMap.put(entry.getKey(), opMsg);
+                firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
+                if (mqContext.getTotalSize().get() >= maxSize) {
+                    overSize = true;
+                }
+            }
+
+            if (sendMap != null) {
+                for (Map.Entry<Integer, Message> entry : sendMap.entrySet()) {
+                    if (!this.transactionalMessageBridge.writeOp(entry.getKey(), entry.getValue())) {
+                        log.error("Transaction batch op message write failed. body is {}, queueId is {}",
+                                new String(entry.getValue().getBody(), TransactionalMessageUtil.CHARSET), entry.getKey());
+                    }
+                }
+            }
+
+            log.debug("Send op message queueIds={}", sendMap == null ? null : sendMap.keySet());
+
+            //wait for next batch remove
+            long wakeupTimestamp = firstTimestamp + interval;
+            if (!overSize && wakeupTimestamp > startTime) {
+                return wakeupTimestamp;
+            }
+        } catch (Throwable t) {
+            log.error("batchSendOp error.", t);
+        }
+
+        return 0L;
+    }
+
+    public Map<Integer, MessageQueueOpContext> getDeleteContext() {
+        return this.deleteContext;
+    }
 }

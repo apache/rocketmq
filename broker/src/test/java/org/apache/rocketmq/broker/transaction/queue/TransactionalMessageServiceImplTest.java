@@ -23,6 +23,7 @@ import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -57,8 +58,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -78,9 +80,9 @@ public class TransactionalMessageServiceImplTest {
 
     @Before
     public void init() {
+        when(bridge.getBrokerController()).thenReturn(brokerController);
         listener.setBrokerController(brokerController);
         queueTransactionMsgService = new TransactionalMessageServiceImpl(bridge);
-        brokerController.getMessageStoreConfig().setFileReservedTime(3);
     }
 
     @Test
@@ -152,10 +154,24 @@ public class TransactionalMessageServiceImplTest {
     }
 
     @Test
-    public void testDeletePrepareMessage() {
-        when(bridge.putOpMessage(any(MessageExt.class), anyString())).thenReturn(true);
+    public void testDeletePrepareMessage_queueFull() throws InterruptedException {
+        ((TransactionalMessageServiceImpl)queueTransactionMsgService).getDeleteContext().put(0, new MessageQueueOpContext(0, 1));
         boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner());
         assertThat(res).isTrue();
+        when(bridge.writeOp(any(Integer.class), any(Message.class))).thenReturn(false);
+        res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner());
+        assertThat(res).isFalse();
+    }
+
+    @Test
+    public void testDeletePrepareMessage_maxSize() throws InterruptedException {
+        brokerController.getBrokerConfig().setTransactionOpMsgMaxSize(1);
+        brokerController.getBrokerConfig().setTransactionOpBatchInterval(3000);
+        queueTransactionMsgService.open();
+        boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner(1000, "test", "testHello"));
+        assertThat(res).isTrue();
+        verify(bridge, timeout(50)).writeOp(any(Integer.class), any(Message.class));
+        queueTransactionMsgService.close();
     }
 
     @Test
@@ -190,7 +206,7 @@ public class TransactionalMessageServiceImplTest {
         PullResult result = createPullResult(topic, queueOffset, body, size);
         List<MessageExt> msgs = result.getMsgFoundList();
         for (MessageExt msg : msgs) {
-            msg.setTags(TransactionalMessageUtil.REMOVETAG);
+            msg.setTags(TransactionalMessageUtil.REMOVE_TAG);
         }
         return result;
     }

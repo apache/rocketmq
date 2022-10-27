@@ -30,8 +30,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class TransactionalMessageUtil {
-    public static final String REMOVETAG = "d";
+    public static final String REMOVE_TAG = "d";
     public static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final String OFFSET_SEPARATOR = ",";
+    public static final String TRANSACTION_ID = "__transactionId__";
 
     public static String buildOpTopic() {
         return TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC;
