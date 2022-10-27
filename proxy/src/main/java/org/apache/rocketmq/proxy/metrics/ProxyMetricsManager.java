@@ -51,10 +51,6 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLU
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.SLS_OTEL_AK_ID_KEY;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.SLS_OTEL_AK_SECRET_KEY;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.SLS_OTEL_INSTANCE_ID_KEY;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.SLS_OTEL_PROJECT_HEADER_KEY;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
@@ -121,13 +117,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
         switch (exporterType) {
             case OTLP_GRPC:
-                return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcCollectorEndpoint());
-            case OTLP_GRPC_SLS:
-                return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcCollectorEndpoint()) &&
-                    StringUtils.isNotBlank(proxyConfig.getMetricsSlsProjectName()) &&
-                    StringUtils.isNotBlank(proxyConfig.getMetricsSlsInstanceName()) &&
-                    StringUtils.isNotBlank(proxyConfig.getMetricsSlsAccessKey()) &&
-                    StringUtils.isNotBlank(proxyConfig.getMetricsSlsSecretKey());
+                return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcExporterTarget());
             case PROM:
                 return true;
         }
@@ -147,13 +137,13 @@ public class ProxyMetricsManager implements StartAndShutdown {
             for (String item : kvPairs) {
                 String[] split = item.split(":");
                 if (split.length != 2) {
-                    log.warn("metricsLabel is not valid: {}", proxyConfig.getMetricsLabel());
+                    log.warn("metricsLabel is not valid: {}", labels);
                     continue;
                 }
                 LABEL_MAP.put(split[0], split[1]);
             }
         }
-        if (proxyConfig.isMetricsPreferDelta()) {
+        if (proxyConfig.isMetricsInDelta()) {
             LABEL_MAP.put(LABEL_AGGREGATION, AGGREGATION_DELTA);
         }
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
@@ -164,28 +154,35 @@ public class ProxyMetricsManager implements StartAndShutdown {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC ||
-            proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC_SLS) {
-            String endpoint = proxyConfig.getMetricsGrpcCollectorEndpoint();
-            if (!endpoint.startsWith("https://")) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+            String endpoint = proxyConfig.getMetricsGrpcExporterTarget();
+            if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
             }
             OtlpGrpcMetricExporterBuilder metricExporterBuilder = OtlpGrpcMetricExporter.builder()
                 .setEndpoint(endpoint)
                 .setTimeout(proxyConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
                 .setAggregationTemporalitySelector(type -> {
-                    if (proxyConfig.isMetricsPreferDelta() &&
+                    if (proxyConfig.isMetricsInDelta() &&
                         (type == InstrumentType.COUNTER || type == InstrumentType.OBSERVABLE_COUNTER || type == InstrumentType.HISTOGRAM)) {
                         return AggregationTemporality.DELTA;
                     }
                     return AggregationTemporality.CUMULATIVE;
                 });
 
-            if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC_SLS) {
-                metricExporterBuilder.addHeader(SLS_OTEL_PROJECT_HEADER_KEY, proxyConfig.getMetricsSlsProjectName())
-                    .addHeader(SLS_OTEL_INSTANCE_ID_KEY, proxyConfig.getMetricsSlsInstanceName())
-                    .addHeader(SLS_OTEL_AK_ID_KEY, proxyConfig.getMetricsSlsAccessKey())
-                    .addHeader(SLS_OTEL_AK_SECRET_KEY, proxyConfig.getMetricsSlsSecretKey());
+            String headers = proxyConfig.getMetricsGrpcExporterHeader();
+            if (StringUtils.isNotBlank(headers)) {
+                Map<String, String> headerMap = new HashMap<>();
+                List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(headers);
+                for (String item : kvPairs) {
+                    String[] split = item.split(":");
+                    if (split.length != 2) {
+                        log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        continue;
+                    }
+                    headerMap.put(split[0], split[1]);
+                }
+                headerMap.forEach(metricExporterBuilder::addHeader);
             }
 
             metricExporter = metricExporterBuilder.build();
@@ -219,8 +216,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC ||
-            proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC_SLS) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();

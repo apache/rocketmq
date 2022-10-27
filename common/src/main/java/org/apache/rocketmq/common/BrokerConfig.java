@@ -328,8 +328,7 @@ public class BrokerConfig extends BrokerIdentity {
     public enum MetricsExporterType {
         DISABLE(0),
         OTLP_GRPC(1),
-        OTLP_GRPC_SLS(2),
-        PROM(3);
+        PROM(2);
 
         private final int value;
 
@@ -346,8 +345,6 @@ public class BrokerConfig extends BrokerIdentity {
                 case 1:
                     return OTLP_GRPC;
                 case 2:
-                    return OTLP_GRPC_SLS;
-                case 3:
                     return PROM;
                 default:
                     return DISABLE;
@@ -361,23 +358,18 @@ public class BrokerConfig extends BrokerIdentity {
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
-    private String metricsGrpcCollectorEndpoint = "";
-
-    private String metricsSlsProjectName = "";
-    private String metricsSlsInstanceName = "";
-    private String metricsSlsAccessKey = "";
-    private String metricsSlsSecretKey = "";
-
+    private String metricsGrpcExporterTarget = "";
+    private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
 
-    private int metricsPromExporterPort = 8080;
+    private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
 
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
     private String metricsLabel = "";
 
-    private boolean metricsPreferDelta = true;
+    private boolean metricsInDelta = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1467,44 +1459,20 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
-    public String getMetricsGrpcCollectorEndpoint() {
-        return metricsGrpcCollectorEndpoint;
+    public String getMetricsGrpcExporterTarget() {
+        return metricsGrpcExporterTarget;
     }
 
-    public void setMetricsGrpcCollectorEndpoint(String metricsGrpcCollectorEndpoint) {
-        this.metricsGrpcCollectorEndpoint = metricsGrpcCollectorEndpoint;
+    public void setMetricsGrpcExporterTarget(String metricsGrpcExporterTarget) {
+        this.metricsGrpcExporterTarget = metricsGrpcExporterTarget;
     }
 
-    public String getMetricsSlsProjectName() {
-        return metricsSlsProjectName;
+    public String getMetricsGrpcExporterHeader() {
+        return metricsGrpcExporterHeader;
     }
 
-    public void setMetricsSlsProjectName(String metricsSlsProjectName) {
-        this.metricsSlsProjectName = metricsSlsProjectName;
-    }
-
-    public String getMetricsSlsInstanceName() {
-        return metricsSlsInstanceName;
-    }
-
-    public void setMetricsSlsInstanceName(String metricsSlsInstanceName) {
-        this.metricsSlsInstanceName = metricsSlsInstanceName;
-    }
-
-    public String getMetricsSlsAccessKey() {
-        return metricsSlsAccessKey;
-    }
-
-    public void setMetricsSlsAccessKey(String metricsSlsAccessKey) {
-        this.metricsSlsAccessKey = metricsSlsAccessKey;
-    }
-
-    public String getMetricsSlsSecretKey() {
-        return metricsSlsSecretKey;
-    }
-
-    public void setMetricsSlsSecretKey(String metricsSlsSecretKey) {
-        this.metricsSlsSecretKey = metricsSlsSecretKey;
+    public void setMetricsGrpcExporterHeader(String metricsGrpcExporterHeader) {
+        this.metricsGrpcExporterHeader = metricsGrpcExporterHeader;
     }
 
     public long getMetricGrpcExporterTimeOutInMills() {
@@ -1531,12 +1499,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricsLabel = metricsLabel;
     }
 
-    public boolean isMetricsPreferDelta() {
-        return metricsPreferDelta;
+    public boolean isMetricsInDelta() {
+        return metricsInDelta;
     }
 
-    public void setMetricsPreferDelta(boolean metricsPreferDelta) {
-        this.metricsPreferDelta = metricsPreferDelta;
+    public void setMetricsInDelta(boolean metricsInDelta) {
+        this.metricsInDelta = metricsInDelta;
     }
 
     public int getMetricsPromExporterPort() {

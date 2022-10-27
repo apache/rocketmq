@@ -180,23 +180,18 @@ public class ProxyConfig implements ConfigFile {
 
     private BrokerConfig.MetricsExporterType metricsExporterType = BrokerConfig.MetricsExporterType.DISABLE;
 
-    private String metricsGrpcCollectorEndpoint = "";
-
-    private String metricsSlsProjectName = "";
-    private String metricsSlsInstanceName = "";
-    private String metricsSlsAccessKey = "";
-    private String metricsSlsSecretKey = "";
-
+    private String metricsGrpcExporterTarget = "";
+    private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
 
-    private int metricsPromExporterPort = 8080;
+    private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
 
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
     private String metricsLabel = "";
 
-    private boolean metricsPreferDelta = true;
+    private boolean metricsInDelta = false;
 
     @Override
     public void initData() {
@@ -972,44 +967,28 @@ public class ProxyConfig implements ConfigFile {
         this.metricsExporterType = metricsExporterType;
     }
 
-    public String getMetricsGrpcCollectorEndpoint() {
-        return metricsGrpcCollectorEndpoint;
+    public void setMetricsExporterType(int metricsExporterType) {
+        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
     }
 
-    public void setMetricsGrpcCollectorEndpoint(String metricsGrpcCollectorEndpoint) {
-        this.metricsGrpcCollectorEndpoint = metricsGrpcCollectorEndpoint;
+    public void setMetricsExporterType(String metricsExporterType) {
+        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
     }
 
-    public String getMetricsSlsProjectName() {
-        return metricsSlsProjectName;
+    public String getMetricsGrpcExporterTarget() {
+        return metricsGrpcExporterTarget;
     }
 
-    public void setMetricsSlsProjectName(String metricsSlsProjectName) {
-        this.metricsSlsProjectName = metricsSlsProjectName;
+    public void setMetricsGrpcExporterTarget(String metricsGrpcExporterTarget) {
+        this.metricsGrpcExporterTarget = metricsGrpcExporterTarget;
     }
 
-    public String getMetricsSlsInstanceName() {
-        return metricsSlsInstanceName;
+    public String getMetricsGrpcExporterHeader() {
+        return metricsGrpcExporterHeader;
     }
 
-    public void setMetricsSlsInstanceName(String metricsSlsInstanceName) {
-        this.metricsSlsInstanceName = metricsSlsInstanceName;
-    }
-
-    public String getMetricsSlsAccessKey() {
-        return metricsSlsAccessKey;
-    }
-
-    public void setMetricsSlsAccessKey(String metricsSlsAccessKey) {
-        this.metricsSlsAccessKey = metricsSlsAccessKey;
-    }
-
-    public String getMetricsSlsSecretKey() {
-        return metricsSlsSecretKey;
-    }
-
-    public void setMetricsSlsSecretKey(String metricsSlsSecretKey) {
-        this.metricsSlsSecretKey = metricsSlsSecretKey;
+    public void setMetricsGrpcExporterHeader(String metricsGrpcExporterHeader) {
+        this.metricsGrpcExporterHeader = metricsGrpcExporterHeader;
     }
 
     public long getMetricGrpcExporterTimeOutInMills() {
@@ -1052,11 +1031,11 @@ public class ProxyConfig implements ConfigFile {
         this.metricsLabel = metricsLabel;
     }
 
-    public boolean isMetricsPreferDelta() {
-        return metricsPreferDelta;
+    public boolean isMetricsInDelta() {
+        return metricsInDelta;
     }
 
-    public void setMetricsPreferDelta(boolean metricsPreferDelta) {
-        this.metricsPreferDelta = metricsPreferDelta;
+    public void setMetricsInDelta(boolean metricsInDelta) {
+        this.metricsInDelta = metricsInDelta;
     }
 }
