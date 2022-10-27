@@ -175,6 +175,11 @@ public class SimpleChannel extends AbstractChannel {
         return promise;
     }
 
+    @Override
+    public boolean isWritable() {
+        return true;
+    }
+
     public void updateLastAccessTime() {
         this.lastAccessTime = System.currentTimeMillis();
     }
