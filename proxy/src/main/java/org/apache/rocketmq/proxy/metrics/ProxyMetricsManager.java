@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.metrics;
+package org.apache.rocketmq.proxy.metrics;
 
 import com.google.common.base.Splitter;
 import io.opentelemetry.api.common.Attributes;
@@ -35,124 +35,149 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.NODE_TYPE_BROKER;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_BROKER_PERMISSION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
-public class BrokerMetricsManager {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+public class ProxyMetricsManager implements StartAndShutdown {
+    private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final BrokerConfig brokerConfig;
-    private final MessageStore messageStore;
-    private final BrokerController brokerController;
+    private static ProxyConfig proxyConfig;
     private final static Map<String, String> LABEL_MAP = new HashMap<>();
+    public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
-    private Meter brokerMeter;
 
-    public static ObservableLongGauge brokerPermission = null;
+    public static ObservableLongGauge proxyUp = null;
 
-    public BrokerMetricsManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
-        brokerConfig = brokerController.getBrokerConfig();
-        this.messageStore = brokerController.getMessageStore();
-        init();
+    public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
+        ProxyMetricsManager.proxyConfig = proxyConfig;
+        LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
+        LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
+        LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
+        initMetrics(brokerMetricsManager.getBrokerMeter(), BrokerMetricsManager::newAttributesBuilder);
+    }
+
+    public static ProxyMetricsManager initClusterMode(ProxyConfig proxyConfig) {
+        ProxyMetricsManager.proxyConfig = proxyConfig;
+        return new ProxyMetricsManager();
     }
 
     public static AttributesBuilder newAttributesBuilder() {
-        AttributesBuilder attributesBuilder = Attributes.builder();
+        AttributesBuilder attributesBuilder;
+        if (attributesBuilderSupplier == null) {
+            attributesBuilder = Attributes.builder();
+            LABEL_MAP.forEach(attributesBuilder::put);
+            return attributesBuilder;
+        }
+        attributesBuilder = attributesBuilderSupplier.get();
         LABEL_MAP.forEach(attributesBuilder::put);
         return attributesBuilder;
     }
 
-    public Meter getBrokerMeter() {
-        return brokerMeter;
+    private static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        ProxyMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
+
+        proxyUp = meter.gaugeBuilder(GAUGE_PROXY_UP)
+            .setDescription("proxy status")
+            .ofLongs()
+            .buildWithCallback(measurement -> measurement.record(1, newAttributesBuilder().build()));
+    }
+
+    public ProxyMetricsManager() {
     }
 
     private boolean checkConfig() {
-        if (brokerConfig == null) {
+        if (proxyConfig == null) {
             return false;
         }
-        BrokerConfig.MetricsExporterType exporterType = brokerConfig.getMetricsExporterType();
+        BrokerConfig.MetricsExporterType exporterType = proxyConfig.getMetricsExporterType();
         if (!exporterType.isEnable()) {
             return false;
         }
 
         switch (exporterType) {
             case OTLP_GRPC:
-                return StringUtils.isNotBlank(brokerConfig.getMetricsGrpcExporterTarget());
+                return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcExporterTarget());
             case PROM:
                 return true;
         }
         return false;
     }
 
-    private void init() {
+    @Override
+    public void start() throws Exception {
         if (!checkConfig()) {
-            LOGGER.error("check metrics config failed, will not export metrics");
+            log.error("check metrics config failed, will not export metrics");
             return;
         }
 
-        String labels = brokerConfig.getMetricsLabel();
+        String labels = proxyConfig.getMetricsLabel();
         if (StringUtils.isNotBlank(labels)) {
             List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(labels);
             for (String item : kvPairs) {
                 String[] split = item.split(":");
                 if (split.length != 2) {
-                    LOGGER.warn("metricsLabel is not valid: {}", labels);
+                    log.warn("metricsLabel is not valid: {}", labels);
                     continue;
                 }
                 LABEL_MAP.put(split[0], split[1]);
             }
         }
-        if (brokerConfig.isMetricsInDelta()) {
+        if (proxyConfig.isMetricsInDelta()) {
             LABEL_MAP.put(LABEL_AGGREGATION, AGGREGATION_DELTA);
         }
-        LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_BROKER);
-        LABEL_MAP.put(LABEL_CLUSTER_NAME, brokerConfig.getBrokerClusterName());
-        LABEL_MAP.put(LABEL_NODE_ID, brokerConfig.getBrokerName());
+        LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
+        LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
+        LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
 
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
-            String endpoint = brokerConfig.getMetricsGrpcExporterTarget();
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+            String endpoint = proxyConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
             }
             OtlpGrpcMetricExporterBuilder metricExporterBuilder = OtlpGrpcMetricExporter.builder()
                 .setEndpoint(endpoint)
-                .setTimeout(brokerConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
+                .setTimeout(proxyConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
                 .setAggregationTemporalitySelector(type -> {
-                    if (brokerConfig.isMetricsInDelta() &&
+                    if (proxyConfig.isMetricsInDelta() &&
                         (type == InstrumentType.COUNTER || type == InstrumentType.OBSERVABLE_COUNTER || type == InstrumentType.HISTOGRAM)) {
                         return AggregationTemporality.DELTA;
                     }
                     return AggregationTemporality.CUMULATIVE;
                 });
 
-            String headers = brokerConfig.getMetricsGrpcExporterHeader();
+            String headers = proxyConfig.getMetricsGrpcExporterHeader();
             if (StringUtils.isNotBlank(headers)) {
                 Map<String, String> headerMap = new HashMap<>();
                 List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(headers);
                 for (String item : kvPairs) {
                     String[] split = item.split(":");
                     if (split.length != 2) {
-                        LOGGER.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
                         continue;
                     }
                     headerMap.put(split[0], split[1]);
@@ -163,46 +188,40 @@ public class BrokerMetricsManager {
             metricExporter = metricExporterBuilder.build();
 
             periodicMetricReader = PeriodicMetricReader.builder(metricExporter)
-                .setInterval(brokerConfig.getMetricGrpcExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .setInterval(proxyConfig.getMetricGrpcExporterIntervalInMills(), TimeUnit.MILLISECONDS)
                 .build();
 
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
-            String promExporterHost = brokerConfig.getMetricsPromExporterHost();
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+            String promExporterHost = proxyConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
-                promExporterHost = brokerConfig.getBrokerIP1();
+                promExporterHost = "0.0.0.0";
             }
             prometheusHttpServer = PrometheusHttpServer.builder()
                 .setHost(promExporterHost)
-                .setPort(brokerConfig.getMetricsPromExporterPort())
+                .setPort(proxyConfig.getMetricsPromExporterPort())
                 .build();
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
-        brokerMeter = OpenTelemetrySdk.builder()
+        Meter proxyMeter = OpenTelemetrySdk.builder()
             .setMeterProvider(providerBuilder.build())
             .build()
             .getMeter(OPEN_TELEMETRY_METER_NAME);
 
-        initStatsMetrics();
+        initMetrics(proxyMeter, null);
     }
 
-    private void initStatsMetrics() {
-        brokerPermission = brokerMeter.gaugeBuilder(GAUGE_BROKER_PERMISSION)
-            .setDescription("Broker permission")
-            .ofLongs()
-            .buildWithCallback(measurement -> measurement.record(brokerConfig.getBrokerPermission(), newAttributesBuilder().build()));
-    }
-
-    public void shutdown() {
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+    @Override
+    public void shutdown() throws Exception {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();
         }
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
         }
