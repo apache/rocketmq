@@ -313,24 +313,19 @@ public class TransactionalMessageBridge {
         writeOp(message, messageQueue);
         return true;
     }
-
+    
     private void writeOp(Message message, MessageQueue mq) {
         MessageQueue opQueue;
-        if (opQueueMap.containsKey(mq)) {
-            opQueue = opQueueMap.get(mq);
-        } else {
+        if ((opQueue = opQueueMap.get(mq)) == null) {
             opQueue = getOpQueueByHalf(mq);
             MessageQueue oldQueue = opQueueMap.putIfAbsent(mq, opQueue);
             if (oldQueue != null) {
                 opQueue = oldQueue;
             }
         }
-        if (opQueue == null) {
-            opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), mq.getBrokerName(), mq.getQueueId());
-        }
         putMessage(makeOpMessageInner(message, opQueue));
     }
-
+    
     private MessageQueue getOpQueueByHalf(MessageQueue halfMQ) {
         MessageQueue opQueue = new MessageQueue();
         opQueue.setTopic(TransactionalMessageUtil.buildOpTopic());
