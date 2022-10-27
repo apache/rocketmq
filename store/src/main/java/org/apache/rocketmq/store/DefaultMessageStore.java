@@ -348,12 +348,7 @@ public class DefaultMessageStore implements MessageStore {
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
         lockFile.getChannel().force(true);
 
-        if (this.getMessageStoreConfig().isDuplicationEnable()) {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
-        } else {
-            // It is [recover]'s responsibility to fully dispatch the commit log data before the max offset of commit log.
-            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
-        }
+        this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
         this.reputMessageService.start();
 
         // Checking is not necessary, as long as the dLedger's implementation exactly follows the definition of Recover,
