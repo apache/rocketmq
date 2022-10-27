@@ -25,6 +25,8 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -35,6 +37,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -250,7 +253,13 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsg(messageStore);
             }
-            Thread.sleep(5);
+
+
+            // Wait consume queue build finish.
+            final MessageStore store = messageStore;
+            Awaitility.with().pollInterval(100, TimeUnit.MILLISECONDS).await().timeout(1, TimeUnit.MINUTES).until(() -> {
+                return store.dispatchBehindBytes() == 0;
+            });
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
@@ -292,7 +301,12 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsgMultiQueue(messageStore);
             }
-            Thread.sleep(5);
+
+            // Wait consume queue build finish.
+            final MessageStore store = messageStore;
+            Awaitility.with().pollInterval(100, TimeUnit.MILLISECONDS).await().timeout(1, TimeUnit.MINUTES).until(() -> {
+                return store.dispatchBehindBytes() == 0;
+            });
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
             Method method = ((ConsumeQueue) cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
@@ -340,7 +354,12 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsgMultiQueue(messageStore);
             }
-            Thread.sleep(5);
+
+            // Wait consume queue build finish.
+            final MessageStore store = messageStore;
+            Awaitility.with().pollInterval(100, TimeUnit.MILLISECONDS).await().timeout(1, TimeUnit.MINUTES).until(() -> {
+                return store.dispatchBehindBytes() == 0;
+            });
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(TOPIC).get(QUEUE_ID);
 
