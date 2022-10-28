@@ -181,9 +181,9 @@ public class MQAdminImpl {
                 Set<MessageQueue> mqList = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 if (!mqList.isEmpty()) {
                     Set<MessageQueueInfo> mqInfoList = new HashSet<>(mqList.size());
-
+                    Map<String, Map<Long, String>> brokerAddrsInfo = new HashMap<>();
                     for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-
+                        brokerAddrsInfo.computeIfAbsent(brokerData.getBrokerName(), brokerName -> brokerData.getBrokerAddrs());
                     }
                     for (MessageQueue messageQueue : mqList) {
 

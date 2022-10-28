@@ -43,6 +43,26 @@ public class MessageQueueInfo implements Serializable {
         this.followers = followers;
     }
 
+    public String getTopic() {
+        return topic;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public int getQueueId() {
+        return queueId;
+    }
+
+    public BrokerAddrInfo getLeader() {
+        return leader;
+    }
+
+    public BrokerAddrInfo[] getFollowers() {
+        return followers;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
