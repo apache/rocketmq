@@ -31,7 +31,11 @@ public class MessageQueueInfo implements Serializable {
     private final BrokerAddrInfo leader;
     private final BrokerAddrInfo[] followers;
 
-    public MessageQueueInfo(String topic, String brokerName, int queueId, BrokerAddrInfo leader, BrokerAddrInfo[] followers) {
+    public MessageQueueInfo(String topic,
+                            String brokerName,
+                            int queueId,
+                            BrokerAddrInfo leader,
+                            BrokerAddrInfo[] followers) {
         this.topic = topic;
         this.brokerName = brokerName;
         this.queueId = queueId;
@@ -72,6 +76,26 @@ public class MessageQueueInfo implements Serializable {
 
         return Objects.equals(leader, other.leader) &&
                 Objects.equals(followers, other.followers);
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public int getQueueId() {
+        return queueId;
+    }
+
+    public BrokerAddrInfo getLeader() {
+        return leader;
+    }
+
+    public BrokerAddrInfo[] getFollowers() {
+        return followers;
     }
 
     @Override

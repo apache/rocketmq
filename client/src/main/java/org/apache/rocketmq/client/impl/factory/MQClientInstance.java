@@ -249,26 +249,6 @@ public class MQClientInstance {
         return mqList;
     }
 
-    public static Set<MessageQueueInfo> topicRouteData2TopicSubscribeDetailInfo(final String topic, final TopicRouteData route) {
-        Set<MessageQueueInfo> mqList = new HashSet<>();
-        if (route.getTopicQueueMappingByBroker() != null
-                && !route.getTopicQueueMappingByBroker().isEmpty()) {
-            ConcurrentMap<MessageQueueInfo, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
-            return mqEndPoints.keySet();
-        }
-        List<QueueData> qds = route.getQueueDatas();
-        for (QueueData qd : qds) {
-            if (PermName.isReadable(qd.getPerm())) {
-                for (int i = 0; i < qd.getReadQueueNums(); i++) {
-                    MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
-                    mqList.add(mq);
-                }
-            }
-        }
-
-        return mqList;
-    }
-
     public void start() throws MQClientException {
 
         synchronized (this) {

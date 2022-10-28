@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -1190,6 +1191,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return parseMessageQueues(result);
     }
 
+    public Set<MessageQueueInfo> fetchMessageQueuesInfo(String topic) throws MQClientException {
+        checkServiceState();
+        Set<MessageQueueInfo> result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueuesInfo(topic);
+        return parseMessageQueuesInfo(result);
+    }
+
     private synchronized void fetchTopicMessageQueuesAndCompare() throws MQClientException {
         for (Map.Entry<String, TopicMessageQueueChangeListener> entry : topicMessageQueueChangeListenerMap.entrySet()) {
             String topic = entry.getKey();
@@ -1253,6 +1260,24 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             resultQueues.add(new MessageQueue(userTopic, messageQueue.getBrokerName(), messageQueue.getQueueId()));
         }
         return resultQueues;
+    }
+
+    private Set<MessageQueueInfo> parseMessageQueuesInfo(Set<MessageQueueInfo> queueSet) {
+        Set<MessageQueueInfo> resultQueuesInfo = new HashSet<>();
+        for (MessageQueueInfo messageQueueInfo : queueSet) {
+            String userTopic = NamespaceUtil.withoutNamespace(messageQueueInfo.getTopic(),
+                    this.defaultLitePullConsumer.getNamespace());
+              resultQueuesInfo.add(
+                  new MessageQueueInfo(
+                      userTopic,
+                      messageQueueInfo.getBrokerName(),
+                      messageQueueInfo.getQueueId(),
+                      messageQueueInfo.getLeader(),
+                      messageQueueInfo.getFollowers()
+                  )
+              );
+        }
+        return resultQueuesInfo;
     }
 
     public class ConsumeRequest {
