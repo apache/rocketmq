@@ -48,7 +48,7 @@ public class ConsumerFilterManager extends ConfigManager {
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
     private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
-        filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);
+        filterDataByTopic = new ConcurrentHashMap<>(256);
 
     private transient BrokerController brokerController;
     private transient BloomFilter bloomFilter;
@@ -176,7 +176,7 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public Collection<ConsumerFilterData> getByGroup(final String consumerGroup) {
-        Collection<ConsumerFilterData> ret = new HashSet<ConsumerFilterData>();
+        Collection<ConsumerFilterData> ret = new HashSet<>();
 
         Iterator<FilterDataMapByTopic> topicIterator = this.filterDataByTopic.values().iterator();
         while (topicIterator.hasNext()) {
@@ -324,7 +324,7 @@ public class ConsumerFilterManager extends ConfigManager {
     public static class FilterDataMapByTopic {
 
         private ConcurrentMap<String/*consumer group*/, ConsumerFilterData>
-            groupFilterData = new ConcurrentHashMap<String, ConsumerFilterData>();
+            groupFilterData = new ConcurrentHashMap<>();
 
         private String topic;
 

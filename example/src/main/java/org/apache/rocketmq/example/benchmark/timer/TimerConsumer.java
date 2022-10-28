@@ -45,7 +45,7 @@ public class TimerConsumer {
     private final ScheduledExecutorService scheduledExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("ConsumerScheduleThread_"));
 
     private final StatsBenchmarkConsumer statsBenchmark = new StatsBenchmarkConsumer();
-    private final LinkedList<Long[]> snapshotList = new LinkedList<Long[]>();
+    private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
     private final DefaultMQPushConsumer consumer;
 

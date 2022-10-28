@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import java.time.Duration;
@@ -49,7 +48,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-public class RouteInfoManager_NewTest {
+public class RouteInfoManagerNewTest {
     private RouteInfoManager routeInfoManager;
     private static final String DEFAULT_CLUSTER = "Default_Cluster";
     private static final String DEFAULT_BROKER = "Default_Broker";
@@ -188,8 +187,6 @@ public class RouteInfoManager_NewTest {
         registerBrokerWithNormalTopic(BrokerBasicInfo.slaveBroker(), "TestTopic");
 
         registerBrokerWithNormalTopic(BrokerBasicInfo.defaultBroker(), "TestTopic", "TestTopic1");
-
-        System.out.println(JSON.toJSONString(routeInfoManager.pickupTopicRouteData("TestTopic1")));
 
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic1").getBrokerDatas().get(0).getBrokerAddrs()).containsKeys(0L, 1L);
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic1").getBrokerDatas().get(0).getBrokerAddrs())
@@ -710,7 +707,7 @@ public class RouteInfoManager_NewTest {
             "",
             null,
             brokerInfo.enableActingMaster,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
         return registerBrokerResult;
     }
 

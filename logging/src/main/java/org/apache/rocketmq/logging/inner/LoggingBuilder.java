@@ -145,9 +145,9 @@ public class LoggingBuilder {
 
         public static final int DEFAULT_BUFFER_SIZE = 128;
 
-        private final List<LoggingEvent> buffer = new ArrayList<LoggingEvent>();
+        private final List<LoggingEvent> buffer = new ArrayList<>();
 
-        private final Map<String, DiscardSummary> discardMap = new HashMap<String, DiscardSummary>();
+        private final Map<String, DiscardSummary> discardMap = new HashMap<>();
 
         private int bufferSize = DEFAULT_BUFFER_SIZE;
 

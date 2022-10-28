@@ -26,7 +26,7 @@ case $1 in
     pid=`ps ax | grep -i 'org.apache.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqbroker running."
-            exit -1;
+            exit 1;
     fi
 
     echo "The mqbroker(${pid}) is running..."
@@ -40,7 +40,7 @@ case $1 in
     pid=`ps ax | grep -i 'org.apache.rocketmq.container.BrokerContainerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No broker container running."
-            exit -1;
+            exit 1;
     fi
 
     echo "The broker container(${pid}) is running..."
@@ -54,7 +54,7 @@ case $1 in
     pid=`ps ax | grep -i 'org.apache.rocketmq.namesrv.NamesrvStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqnamesrv running."
-            exit -1;
+            exit 1;
     fi
 
     echo "The mqnamesrv(${pid}) is running..."
@@ -68,7 +68,7 @@ case $1 in
     pid=`ps ax | grep -i 'org.apache.rocketmq.controller.ControllerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqcontroller running."
-            exit -1;
+            exit 1;
     fi
 
     echo "The mqcontroller(${pid}) is running..."
@@ -82,7 +82,7 @@ case $1 in
     pid=`ps ax | grep -i 'org.apache.rocketmq.proxy.ProxyStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqproxy running."
-            exit -1;
+            exit 1;
     fi
 
     echo "The mqproxy(${pid}) is running..."

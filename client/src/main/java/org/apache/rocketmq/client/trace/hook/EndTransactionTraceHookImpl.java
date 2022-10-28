@@ -53,7 +53,7 @@ public class EndTransactionTraceHookImpl implements EndTransactionHook {
         Message msg = context.getMessage();
         //build the context content of TuxeTraceContext
         TraceContext tuxeContext = new TraceContext();
-        tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        tuxeContext.setTraceBeans(new ArrayList<>(1));
         tuxeContext.setTraceType(TraceType.EndTransaction);
         tuxeContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
         //build the data bean object of message trace

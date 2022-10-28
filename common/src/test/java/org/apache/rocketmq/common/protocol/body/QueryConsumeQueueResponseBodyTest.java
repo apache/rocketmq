@@ -40,7 +40,7 @@ public class QueryConsumeQueueResponseBodyTest {
         data.setPhysicOffset(10L);
         data.setPhysicSize(1);
         data.setTagsCode(1L);
-        List<ConsumeQueueData> list = new ArrayList<ConsumeQueueData>();
+        List<ConsumeQueueData> list = new ArrayList<>();
         list.add(data);
 
         body.setQueueData(list);

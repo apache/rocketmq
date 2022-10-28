@@ -452,10 +452,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
 
-            // mark the current position so that we can peek the first byte to determine if the content is starting with
-            // TLS handshake
-            msg.markReaderIndex();
-
+            // Peek the first byte to determine if the content is starting with TLS handshake
             byte b = msg.getByte(0);
 
             if (b == HANDSHAKE_MAGIC_CODE) {
@@ -485,9 +482,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 ctx.close();
                 log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
             }
-
-            // reset the reader index so that handshake negotiation may proceed as normal.
-            msg.resetReaderIndex();
 
             try {
                 // Remove this handler

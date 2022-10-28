@@ -17,9 +17,10 @@
 package org.apache.rocketmq.store.logfile;
 
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Iterator;
 
 public interface MappedFile {
     /**
@@ -88,6 +90,8 @@ public interface MappedFile {
      * @return the append result
      */
     AppendMessageResult appendMessages(MessageExtBatch message, AppendMessageCallback messageCallback, PutMessageContext putMessageContext);
+
+    AppendMessageResult appendMessage(final ByteBuffer byteBufferMsg, final CompactionAppendMsgCallback cb);
 
     /**
      * Appends a raw message data represents by a byte array to the current {@code MappedFile}.
@@ -324,6 +328,17 @@ public interface MappedFile {
     File getFile();
 
     /**
+     * rename file to add ".delete" suffix
+     */
+    void renameToDelete();
+
+    /**
+     * move the file to the parent directory
+     * @throws IOException
+     */
+    void moveToParent() throws IOException;
+
+    /**
      * Get the last flush time
      * @return
      */
@@ -337,4 +352,6 @@ public interface MappedFile {
      * @throws IOException
      */
     void init(String fileName, int fileSize, TransientStorePool transientStorePool) throws IOException;
+
+    Iterator<SelectMappedBufferResult> iterator(int pos);
 }

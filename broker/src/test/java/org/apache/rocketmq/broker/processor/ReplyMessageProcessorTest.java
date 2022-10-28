@@ -96,7 +96,7 @@ public class ReplyMessageProcessorTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         brokerController.getProducerManager().registerProducer(group, clientInfo);
         final RemotingCommand request = createSendMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE);
-        when(brokerController.getBroker2Client().callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
+        when(brokerController.getBroker2Client().callClient(any(), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
         RemotingCommand responseToReturn = replyMessageProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
@@ -121,7 +121,7 @@ public class ReplyMessageProcessorTest {
         requestHeader.setBornTimestamp(System.currentTimeMillis());
         requestHeader.setFlag(124);
         requestHeader.setReconsumeTimes(0);
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
         requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
         return requestHeader;

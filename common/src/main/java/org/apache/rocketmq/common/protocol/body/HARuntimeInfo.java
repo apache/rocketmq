@@ -27,7 +27,7 @@ public class HARuntimeInfo extends RemotingSerializable {
     private boolean master;
     private long masterCommitLogMaxOffset;
     private int inSyncSlaveNums;
-    private List<HAConnectionRuntimeInfo> haConnectionInfo = new ArrayList<HARuntimeInfo.HAConnectionRuntimeInfo>();
+    private List<HAConnectionRuntimeInfo> haConnectionInfo = new ArrayList<>();
     private HAClientRuntimeInfo haClientRuntimeInfo = new HAClientRuntimeInfo();
 
     public boolean isMaster() {

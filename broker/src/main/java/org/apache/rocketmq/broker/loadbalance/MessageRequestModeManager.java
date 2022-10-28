@@ -28,7 +28,7 @@ public class MessageRequestModeManager extends ConfigManager {
     private transient BrokerController brokerController;
 
     private ConcurrentHashMap<String/*topic*/, ConcurrentHashMap<String/*consumerGroup*/, SetMessageRequestModeRequestBody>>
-        messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
+        messageRequestModeMap = new ConcurrentHashMap<>();
 
     public MessageRequestModeManager() {
         // empty construct for decode
@@ -41,7 +41,7 @@ public class MessageRequestModeManager extends ConfigManager {
     public void setMessageRequestMode(String topic, String consumerGroup, SetMessageRequestModeRequestBody requestBody) {
         ConcurrentHashMap<String, SetMessageRequestModeRequestBody> consumerGroup2ModeMap = messageRequestModeMap.get(topic);
         if (consumerGroup2ModeMap == null) {
-            consumerGroup2ModeMap = new ConcurrentHashMap<String, SetMessageRequestModeRequestBody>();
+            consumerGroup2ModeMap = new ConcurrentHashMap<>();
             ConcurrentHashMap<String, SetMessageRequestModeRequestBody> pre =
                 messageRequestModeMap.putIfAbsent(topic, consumerGroup2ModeMap);
             if (pre != null) {

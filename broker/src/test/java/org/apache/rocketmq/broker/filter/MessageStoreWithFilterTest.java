@@ -180,7 +180,7 @@ public class MessageStoreWithFilterTest {
 
     protected List<MessageExtBrokerInner> putMsg(DefaultMessageStore master, int topicCount,
                                                  int msgCountPerTopic) throws Exception {
-        List<MessageExtBrokerInner> msgs = new ArrayList<MessageExtBrokerInner>();
+        List<MessageExtBrokerInner> msgs = new ArrayList<>();
         for (int i = 0; i < topicCount; i++) {
             String realTopic = TOPIC + i;
             for (int j = 0; j < msgCountPerTopic; j++) {
@@ -201,7 +201,7 @@ public class MessageStoreWithFilterTest {
     }
 
     protected List<MessageExtBrokerInner> filtered(List<MessageExtBrokerInner> msgs, ConsumerFilterData filterData) {
-        List<MessageExtBrokerInner> filteredMsgs = new ArrayList<MessageExtBrokerInner>();
+        List<MessageExtBrokerInner> filteredMsgs = new ArrayList<>();
 
         for (MessageExtBrokerInner messageExtBrokerInner : msgs) {
 

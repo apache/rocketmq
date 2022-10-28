@@ -53,7 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TransactionalMessageBridge {
     private static final InternalLogger LOGGER = InnerLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
-    private final ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
     private final BrokerController brokerController;
     private final MessageStore store;
     private final SocketAddress storeHost;
@@ -201,6 +201,10 @@ public class TransactionalMessageBridge {
     }
 
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        String uniqId = msgInner.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        if (uniqId != null && !uniqId.isEmpty()) {
+            MessageAccessor.putProperty(msgInner, TransactionalMessageUtil.TRANSACTION_ID, uniqId);
+        }
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
@@ -212,18 +216,16 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
-    public boolean putOpMessage(MessageExt messageExt, String opType) {
-        MessageQueue messageQueue = new MessageQueue(messageExt.getTopic(),
-            this.brokerController.getBrokerConfig().getBrokerName(), messageExt.getQueueId());
-        if (TransactionalMessageUtil.REMOVETAG.equals(opType)) {
-            return addRemoveTagInTransactionOp(messageExt, messageQueue);
-        }
-        return true;
-    }
-
     public PutMessageResult putMessageReturnResult(MessageExtBrokerInner messageInner) {
         LOGGER.debug("[BUG-TO-FIX] Thread:{} msgID:{}", Thread.currentThread().getName(), messageInner.getMsgId());
-        return store.putMessage(messageInner);
+        PutMessageResult result = store.putMessage(messageInner);
+        if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+            this.brokerController.getBrokerStatsManager().incTopicPutNums(messageInner.getTopic());
+            this.brokerController.getBrokerStatsManager().incTopicPutSize(messageInner.getTopic(),
+                    result.getAppendMessageResult().getWroteBytes());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums();
+        }
+        return result;
     }
 
     public boolean putMessage(MessageExtBrokerInner messageInner) {
@@ -243,7 +245,7 @@ public class TransactionalMessageBridge {
         String queueOffsetFromPrepare = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         if (null != queueOffsetFromPrepare) {
             MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET,
-                String.valueOf(queueOffsetFromPrepare));
+                    queueOffsetFromPrepare);
         } else {
             MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET,
                 String.valueOf(msgExt.getQueueOffset()));
@@ -299,43 +301,35 @@ public class TransactionalMessageBridge {
         return topicConfig;
     }
 
-    /**
-     * Use this function while transaction msg is committed or rollback write a flag 'd' to operation queue for the
-     * msg's offset
-     *
-     * @param prepareMessage Half message
-     * @param messageQueue Half message queue
-     * @return This method will always return true.
-     */
-    private boolean addRemoveTagInTransactionOp(MessageExt prepareMessage, MessageQueue messageQueue) {
-        Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
-            String.valueOf(prepareMessage.getQueueOffset()).getBytes(TransactionalMessageUtil.CHARSET));
-        writeOp(message, messageQueue);
-        return true;
-    }
-
-    private void writeOp(Message message, MessageQueue mq) {
+    public boolean writeOp(Integer queueId,Message message) {
         MessageQueue opQueue;
-        if (opQueueMap.containsKey(mq)) {
-            opQueue = opQueueMap.get(mq);
+        if (opQueueMap.containsKey(queueId)) {
+            opQueue = opQueueMap.get(queueId);
         } else {
-            opQueue = getOpQueueByHalf(mq);
-            MessageQueue oldQueue = opQueueMap.putIfAbsent(mq, opQueue);
+            opQueue = getOpQueueByHalf(queueId, this.brokerController.getBrokerConfig().getBrokerName());
+            MessageQueue oldQueue = opQueueMap.putIfAbsent(queueId, opQueue);
             if (oldQueue != null) {
                 opQueue = oldQueue;
             }
         }
-        if (opQueue == null) {
-            opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), mq.getBrokerName(), mq.getQueueId());
+
+        PutMessageResult result = putMessageReturnResult(makeOpMessageInner(message, opQueue));
+        if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+            this.brokerController.getBrokerStatsManager().incTopicPutNums(message.getTopic());
+            this.brokerController.getBrokerStatsManager().incTopicPutSize(message.getTopic(),
+                    result.getAppendMessageResult().getWroteBytes());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums();
+            return true;
         }
-        putMessage(makeOpMessageInner(message, opQueue));
+
+        return false;
     }
 
-    private MessageQueue getOpQueueByHalf(MessageQueue halfMQ) {
+    private MessageQueue getOpQueueByHalf(Integer queueId, String brokerName) {
         MessageQueue opQueue = new MessageQueue();
         opQueue.setTopic(TransactionalMessageUtil.buildOpTopic());
-        opQueue.setBrokerName(halfMQ.getBrokerName());
-        opQueue.setQueueId(halfMQ.getQueueId());
+        opQueue.setBrokerName(brokerName);
+        opQueue.setQueueId(queueId);
         return opQueue;
     }
 
@@ -345,5 +339,16 @@ public class TransactionalMessageBridge {
 
     public BrokerController getBrokerController() {
         return brokerController;
+    }
+
+    public boolean escapeMessage(MessageExtBrokerInner messageInner) {
+        PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessage(messageInner);
+        if (putMessageResult != null && putMessageResult.isOk()) {
+            return true;
+        } else {
+            LOGGER.error("Escaping message failed, topic: {}, queueId: {}, msgId: {}",
+                messageInner.getTopic(), messageInner.getQueueId(), messageInner.getMsgId());
+            return false;
+        }
     }
 }

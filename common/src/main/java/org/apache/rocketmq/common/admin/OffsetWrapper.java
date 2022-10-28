@@ -19,7 +19,7 @@ package org.apache.rocketmq.common.admin;
 public class OffsetWrapper {
     private long brokerOffset;
     private long consumerOffset;
-
+    private long pullOffset;
     private long lastTimestamp;
 
     public long getBrokerOffset() {
@@ -36,6 +36,14 @@ public class OffsetWrapper {
 
     public void setConsumerOffset(long consumerOffset) {
         this.consumerOffset = consumerOffset;
+    }
+
+    public long getPullOffset() {
+        return pullOffset;
+    }
+
+    public void setPullOffset(long pullOffset) {
+        this.pullOffset = pullOffset;
     }
 
     public long getLastTimestamp() {

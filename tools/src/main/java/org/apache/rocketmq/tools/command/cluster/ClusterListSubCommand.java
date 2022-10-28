@@ -109,7 +109,7 @@ public class ClusterListSubCommand implements SubCommand {
         if (StringUtils.isEmpty(clusterName)) {
             return clusterInfo.getClusterAddrTable().keySet();
         } else {
-            Set<String> clusterNames = new TreeSet<String>();
+            Set<String> clusterNames = new TreeSet<>();
             clusterNames.add(clusterName);
             return clusterNames;
         }
@@ -128,7 +128,7 @@ public class ClusterListSubCommand implements SubCommand {
         );
 
         for (String clusterName : clusterNames) {
-            TreeSet<String> brokerNameTreeSet = new TreeSet<String>();
+            TreeSet<String> brokerNameTreeSet = new TreeSet<>();
             Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
             if (brokerNameSet != null && !brokerNameSet.isEmpty()) {
                 brokerNameTreeSet.addAll(brokerNameSet);
@@ -196,7 +196,7 @@ public class ClusterListSubCommand implements SubCommand {
         );
 
         for (String clusterName : clusterNames) {
-            TreeSet<String> brokerNameTreeSet = new TreeSet<String>();
+            TreeSet<String> brokerNameTreeSet = new TreeSet<>();
             Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
             if (brokerNameSet != null && !brokerNameSet.isEmpty()) {
                 brokerNameTreeSet.addAll(brokerNameSet);

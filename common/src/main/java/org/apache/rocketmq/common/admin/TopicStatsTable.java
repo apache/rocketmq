@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicStatsTable extends RemotingSerializable {
-    private Map<MessageQueue, TopicOffset> offsetTable = new ConcurrentHashMap<MessageQueue, TopicOffset>();
+    private Map<MessageQueue, TopicOffset> offsetTable = new ConcurrentHashMap<>();
 
     public Map<MessageQueue, TopicOffset> getOffsetTable() {
         return offsetTable;

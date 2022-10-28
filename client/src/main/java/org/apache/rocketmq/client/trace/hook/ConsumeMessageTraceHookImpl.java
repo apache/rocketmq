@@ -54,7 +54,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.SubBefore);//
         traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getConsumerGroup()));//
-        List<TraceBean> beans = new ArrayList<TraceBean>();
+        List<TraceBean> beans = new ArrayList<>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;

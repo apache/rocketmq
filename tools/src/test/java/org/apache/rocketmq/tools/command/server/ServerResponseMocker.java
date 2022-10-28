@@ -29,6 +29,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
@@ -36,10 +39,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
-
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
 import org.junit.BeforeClass;
 
 /**
@@ -73,8 +72,6 @@ public abstract class ServerResponseMocker {
             e.printStackTrace();
         }
     }
-
-    protected abstract int getPort();
 
     public int listenPort() {
         return listenPort;
@@ -110,7 +107,7 @@ public abstract class ServerResponseMocker {
                     }
                 });
         try {
-            ChannelFuture sync = serverBootstrap.bind(getPort()).sync();
+            ChannelFuture sync = serverBootstrap.bind(0).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             this.listenPort = addr.getPort();
         } catch (InterruptedException e1) {
@@ -141,18 +138,13 @@ public abstract class ServerResponseMocker {
         }
     }
 
-    public static ServerResponseMocker startServer(int port, byte[] body) {
-        return startServer(port, body, null);
+    public static ServerResponseMocker startServer(byte[] body) {
+        return startServer(body, null);
     }
 
 
-    public static ServerResponseMocker startServer(int port, byte[] body, HashMap<String, String> extMap) {
+    public static ServerResponseMocker startServer(byte[] body, HashMap<String, String> extMap) {
         ServerResponseMocker mocker = new ServerResponseMocker() {
-            @Override
-            protected int getPort() {
-                return port;
-            }
-
             @Override
             protected byte[] getBody() {
                 return body;

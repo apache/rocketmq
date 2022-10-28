@@ -23,9 +23,10 @@ import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumeStatsList extends RemotingSerializable {
-    private List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> consumeStatsList = new ArrayList<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>>();
+    private List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> consumeStatsList = new ArrayList<>();
     private String brokerAddr;
     private long totalDiff;
+    private long totalInflightDiff;
 
     public List<Map<String, List<ConsumeStats>>> getConsumeStatsList() {
         return consumeStatsList;
@@ -49,5 +50,13 @@ public class ConsumeStatsList extends RemotingSerializable {
 
     public void setTotalDiff(long totalDiff) {
         this.totalDiff = totalDiff;
+    }
+
+    public long getTotalInflightDiff() {
+        return totalInflightDiff;
+    }
+
+    public void setTotalInflightDiff(long totalInflightDiff) {
+        this.totalInflightDiff = totalInflightDiff;
     }
 }

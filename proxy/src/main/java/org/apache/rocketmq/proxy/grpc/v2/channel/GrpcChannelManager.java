@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -38,7 +36,7 @@ import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 
 public class GrpcChannelManager implements StartAndShutdown {
     private final ProxyRelayService proxyRelayService;
-    protected final ConcurrentMap<String /* group */, Map<String, GrpcClientChannel>/* clientId */> groupClientIdChannelMap = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String, GrpcClientChannel> clientIdChannelMap = new ConcurrentHashMap<>();
 
     protected final AtomicLong nonceIdGenerator = new AtomicLong(0);
     protected final ConcurrentMap<String /* nonce */, ResultFuture> resultNonceFutureMap = new ConcurrentHashMap<>();
@@ -58,35 +56,17 @@ public class GrpcChannelManager implements StartAndShutdown {
         );
     }
 
-    public GrpcClientChannel createChannel(ProxyContext ctx, String group, String clientId) {
-        this.groupClientIdChannelMap.compute(group, (groupKey, clientIdMap) -> {
-            if (clientIdMap == null) {
-                clientIdMap = new ConcurrentHashMap<>();
-            }
-            clientIdMap.computeIfAbsent(clientId, clientIdKey -> new GrpcClientChannel(proxyRelayService, this, ctx, group, clientId));
-            return clientIdMap;
-        });
-        return getChannel(group, clientId);
+    public GrpcClientChannel createChannel(ProxyContext ctx, String clientId) {
+        return this.clientIdChannelMap.computeIfAbsent(clientId,
+            k -> new GrpcClientChannel(proxyRelayService, this, ctx, clientId));
     }
 
-    public GrpcClientChannel getChannel(String group, String clientId) {
-        Map<String, GrpcClientChannel> clientIdChannelMap = this.groupClientIdChannelMap.get(group);
-        if (clientIdChannelMap == null) {
-            return null;
-        }
+    public GrpcClientChannel getChannel(String clientId) {
         return clientIdChannelMap.get(clientId);
     }
 
-    public GrpcClientChannel removeChannel(String group, String clientId) {
-        AtomicReference<GrpcClientChannel> channelRef = new AtomicReference<>();
-        this.groupClientIdChannelMap.computeIfPresent(group, (groupKey, clientIdMap) -> {
-            channelRef.set(clientIdMap.remove(clientId));
-            if (clientIdMap.isEmpty()) {
-                return null;
-            }
-            return clientIdMap;
-        });
-        return channelRef.get();
+    public GrpcClientChannel removeChannel(String clientId) {
+        return this.clientIdChannelMap.remove(clientId);
     }
 
     public <T> String addResponseFuture(CompletableFuture<ProxyRelayResult<T>> responseFuture) {

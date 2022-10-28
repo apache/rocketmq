@@ -164,7 +164,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 }
                 long nextOffset = brokerController.getConsumerOrderInfoManager().commitAndNext(
                     requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                    requestHeader.getQueueId(), requestHeader.getOffset());
+                    requestHeader.getQueueId(), requestHeader.getOffset(),
+                    ExtraInfoUtil.getPopTime(extraInfo));
                 if (nextOffset > -1) {
                     this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(),

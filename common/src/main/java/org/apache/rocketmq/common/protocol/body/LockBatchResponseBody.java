@@ -24,7 +24,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class LockBatchResponseBody extends RemotingSerializable {
 
-    private Set<MessageQueue> lockOKMQSet = new HashSet<MessageQueue>();
+    private Set<MessageQueue> lockOKMQSet = new HashSet<>();
 
     public Set<MessageQueue> getLockOKMQSet() {
         return lockOKMQSet;

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -202,6 +203,12 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableNetWorkFlowControl = false;
 
+    private boolean enableBroadcastOffsetStore = true;
+
+    private long broadcastOffsetExpireSecond = 2 * 60;
+
+    private long broadcastOffsetExpireMaxSecond = 5 * 60;
+
     private int popPollingSize = 1024;
     private int popPollingMapSize = 100000;
     // 20w cost 200M heap memory.
@@ -210,6 +217,8 @@ public class BrokerConfig extends BrokerIdentity {
     private long reviveInterval = 1000;
     private long reviveMaxSlow = 3;
     private long reviveScanTime = 10000;
+    private boolean enableSkipLongAwaitingAck = false;
+    private long reviveAckWaitMs = TimeUnit.MINUTES.toMillis(3);
     private boolean enablePopLog = false;
     private boolean enablePopBufferMerge = false;
     private int popCkStayBufferTime = 10 * 1000;
@@ -260,6 +269,13 @@ public class BrokerConfig extends BrokerIdentity {
     private long transactionCheckInterval = 60 * 1000;
 
     /**
+     * transaction batch op message
+     */
+    private int transactionOpMsgMaxSize = 4096;
+
+    private int transactionOpBatchInterval = 3000;
+
+    /**
      * Acl feature switch
      */
     @ImportantField
@@ -291,6 +307,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean asyncSendEnable = true;
 
+    private boolean useServerSideResetOffset = false;
+
     private long consumerOffsetUpdateVersionStep = 500;
 
     private long delayOffsetUpdateVersionStep = 200;
@@ -316,6 +334,52 @@ public class BrokerConfig extends BrokerIdentity {
     private long checkSyncStateSetPeriod = 5 * 1000;
 
     private long syncControllerMetadataPeriod = 10 * 1000;
+
+    public enum MetricsExporterType {
+        DISABLE(0),
+        OTLP_GRPC(1),
+        PROM(2);
+
+        private final int value;
+
+        MetricsExporterType(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public static MetricsExporterType valueOf(int value) {
+            switch (value) {
+                case 1:
+                    return OTLP_GRPC;
+                case 2:
+                    return PROM;
+                default:
+                    return DISABLE;
+            }
+        }
+
+        public boolean isEnable() {
+            return this.value > 0;
+        }
+    }
+
+    private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
+
+    private String metricsGrpcExporterTarget = "";
+    private String metricsGrpcExporterHeader = "";
+    private long metricGrpcExporterTimeOutInMills = 3 * 1000;
+    private long metricGrpcExporterIntervalInMills = 60 * 1000;
+
+    private int metricsPromExporterPort = 5557;
+    private String metricsPromExporterHost = "";
+
+    // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
+    private String metricsLabel = "";
+
+    private boolean metricsInDelta = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -411,6 +475,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
         this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnableSkipLongAwaitingAck() {
+        return enableSkipLongAwaitingAck;
+    }
+
+    public void setEnableSkipLongAwaitingAck(boolean enableSkipLongAwaitingAck) {
+        this.enableSkipLongAwaitingAck = enableSkipLongAwaitingAck;
+    }
+
+    public long getReviveAckWaitMs() {
+        return reviveAckWaitMs;
+    }
+
+    public void setReviveAckWaitMs(long reviveAckWaitMs) {
+        this.reviveAckWaitMs = reviveAckWaitMs;
     }
 
     public boolean isEnablePopLog() {
@@ -1355,5 +1435,133 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
         this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
+    }
+
+    public boolean isUseServerSideResetOffset() {
+        return useServerSideResetOffset;
+    }
+
+    public void setUseServerSideResetOffset(boolean useServerSideResetOffset) {
+        this.useServerSideResetOffset = useServerSideResetOffset;
+    }
+
+    public boolean isEnableBroadcastOffsetStore() {
+        return enableBroadcastOffsetStore;
+    }
+
+    public void setEnableBroadcastOffsetStore(boolean enableBroadcastOffsetStore) {
+        this.enableBroadcastOffsetStore = enableBroadcastOffsetStore;
+    }
+
+    public long getBroadcastOffsetExpireSecond() {
+        return broadcastOffsetExpireSecond;
+    }
+
+    public void setBroadcastOffsetExpireSecond(long broadcastOffsetExpireSecond) {
+        this.broadcastOffsetExpireSecond = broadcastOffsetExpireSecond;
+    }
+
+    public long getBroadcastOffsetExpireMaxSecond() {
+        return broadcastOffsetExpireMaxSecond;
+    }
+
+    public void setBroadcastOffsetExpireMaxSecond(long broadcastOffsetExpireMaxSecond) {
+        this.broadcastOffsetExpireMaxSecond = broadcastOffsetExpireMaxSecond;
+    }
+
+    public MetricsExporterType getMetricsExporterType() {
+        return metricsExporterType;
+    }
+
+    public void setMetricsExporterType(MetricsExporterType metricsExporterType) {
+        this.metricsExporterType = metricsExporterType;
+    }
+
+    public void setMetricsExporterType(int metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public void setMetricsExporterType(String metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public String getMetricsGrpcExporterTarget() {
+        return metricsGrpcExporterTarget;
+    }
+
+    public void setMetricsGrpcExporterTarget(String metricsGrpcExporterTarget) {
+        this.metricsGrpcExporterTarget = metricsGrpcExporterTarget;
+    }
+
+    public String getMetricsGrpcExporterHeader() {
+        return metricsGrpcExporterHeader;
+    }
+
+    public void setMetricsGrpcExporterHeader(String metricsGrpcExporterHeader) {
+        this.metricsGrpcExporterHeader = metricsGrpcExporterHeader;
+    }
+
+    public long getMetricGrpcExporterTimeOutInMills() {
+        return metricGrpcExporterTimeOutInMills;
+    }
+
+    public void setMetricGrpcExporterTimeOutInMills(long metricGrpcExporterTimeOutInMills) {
+        this.metricGrpcExporterTimeOutInMills = metricGrpcExporterTimeOutInMills;
+    }
+
+    public long getMetricGrpcExporterIntervalInMills() {
+        return metricGrpcExporterIntervalInMills;
+    }
+
+    public void setMetricGrpcExporterIntervalInMills(long metricGrpcExporterIntervalInMills) {
+        this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
+    }
+
+    public String getMetricsLabel() {
+        return metricsLabel;
+    }
+
+    public void setMetricsLabel(String metricsLabel) {
+        this.metricsLabel = metricsLabel;
+    }
+
+    public boolean isMetricsInDelta() {
+        return metricsInDelta;
+    }
+
+    public void setMetricsInDelta(boolean metricsInDelta) {
+        this.metricsInDelta = metricsInDelta;
+    }
+
+    public int getMetricsPromExporterPort() {
+        return metricsPromExporterPort;
+    }
+
+    public void setMetricsPromExporterPort(int metricsPromExporterPort) {
+        this.metricsPromExporterPort = metricsPromExporterPort;
+    }
+
+    public String getMetricsPromExporterHost() {
+        return metricsPromExporterHost;
+    }
+
+    public void setMetricsPromExporterHost(String metricsPromExporterHost) {
+        this.metricsPromExporterHost = metricsPromExporterHost;
+    }
+    
+    public int getTransactionOpMsgMaxSize() {
+        return transactionOpMsgMaxSize;
+    }
+
+    public void setTransactionOpMsgMaxSize(int transactionOpMsgMaxSize) {
+        this.transactionOpMsgMaxSize = transactionOpMsgMaxSize;
+    }
+
+    public int getTransactionOpBatchInterval() {
+        return transactionOpBatchInterval;
+    }
+
+    public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
+        this.transactionOpBatchInterval = transactionOpBatchInterval;
     }
 }

@@ -38,9 +38,9 @@ public abstract class InternalLoggerFactory {
 
     private static String loggerType = null;
 
-    public static final ThreadLocal<String> BROKER_IDENTITY = new ThreadLocal<String>();
+    public static final ThreadLocal<String> BROKER_IDENTITY = new ThreadLocal<>();
 
-    private static ConcurrentHashMap<String, InternalLoggerFactory> loggerFactoryCache = new ConcurrentHashMap<String, InternalLoggerFactory>();
+    private static ConcurrentHashMap<String, InternalLoggerFactory> loggerFactoryCache = new ConcurrentHashMap<>();
 
     public static InternalLogger getLogger(Class clazz) {
         return getLogger(clazz.getName());
