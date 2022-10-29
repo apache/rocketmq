@@ -201,7 +201,7 @@ public abstract class NettyRemotingAbstract {
 
         Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
 
-        if (pair.getObject1().rejectRequest()) {
+        if (pair.getLeft().rejectRequest()) {
             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
                     "[REJECTREQUEST]system busy, start flow control for a while");
             response.setOpaque(opaque);
@@ -212,12 +212,12 @@ public abstract class NettyRemotingAbstract {
         try {
             final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
             //async execute task, current thread return directly
-            pair.getObject2().submit(requestTask);
+            pair.getRight().submit(requestTask);
         } catch (RejectedExecutionException e) {
             if ((System.currentTimeMillis() % 10000) == 0) {
                 log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
                         + ", too many requests and system thread pool busy, RejectedExecutionException "
-                        + pair.getObject2().toString()
+                        + pair.getRight().toString()
                         + " request code: " + cmd.getCode());
             }
 
@@ -244,7 +244,7 @@ public abstract class NettyRemotingAbstract {
                 }
 
                 if (exception == null) {
-                    response = pair.getObject1().processRequest(ctx, cmd);
+                    response = pair.getLeft().processRequest(ctx, cmd);
                 } else {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, null);
                 }

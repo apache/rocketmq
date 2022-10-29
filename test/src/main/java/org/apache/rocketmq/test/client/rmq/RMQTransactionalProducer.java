@@ -69,7 +69,7 @@ public class RMQTransactionalProducer extends AbstractMQProducer {
 
     @Override
     public ResultWrapper send(Object msg, Object arg) {
-        boolean commitMsg = ((Pair<Boolean, LocalTransactionState>) arg).getObject2() == LocalTransactionState.COMMIT_MESSAGE;
+        boolean commitMsg = ((Pair<Boolean, LocalTransactionState>) arg).getRight() == LocalTransactionState.COMMIT_MESSAGE;
         org.apache.rocketmq.client.producer.SendResult metaqResult = null;
         Message message = (Message) msg;
         try {

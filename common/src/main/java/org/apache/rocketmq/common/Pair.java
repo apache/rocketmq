@@ -16,28 +16,28 @@
  */
 package org.apache.rocketmq.common;
 
-public class Pair<T1, T2> {
-    private T1 object1;
-    private T2 object2;
+public class Pair<L, R> {
+    private L left;
+    private R right;
 
-    public Pair(T1 object1, T2 object2) {
-        this.object1 = object1;
-        this.object2 = object2;
+    public Pair(L left, R right) {
+        this.left = left;
+        this.right = right;
     }
 
-    public T1 getObject1() {
-        return object1;
+    public L getLeft() {
+        return left;
     }
 
-    public void setObject1(T1 object1) {
-        this.object1 = object1;
+    public void setLeft(L left) {
+        this.left = left;
     }
 
-    public T2 getObject2() {
-        return object2;
+    public R getRight() {
+        return right;
     }
 
-    public void setObject2(T2 object2) {
-        this.object2 = object2;
+    public void setRight(R right) {
+        this.right = right;
     }
 }

@@ -320,8 +320,8 @@ public class ReplicasManager {
         this.scheduledService.scheduleAtFixedRate(() -> {
             try {
                 final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.localAddress);
-                final GetReplicaInfoResponseHeader info = result.getObject1();
-                final SyncStateSet syncStateSet = result.getObject2();
+                final GetReplicaInfoResponseHeader info = result.getLeft();
+                final SyncStateSet syncStateSet = result.getRight();
                 final String newMasterAddress = info.getMasterAddress();
                 final int newMasterEpoch = info.getMasterEpoch();
                 final long brokerId = info.getBrokerId();

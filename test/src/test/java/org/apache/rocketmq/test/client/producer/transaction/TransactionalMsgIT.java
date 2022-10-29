@@ -95,10 +95,10 @@ public class TransactionalMsgIT extends BaseConf {
         @Override
         public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
             Pair<Boolean, LocalTransactionState> transactionHandle = (Pair<Boolean,LocalTransactionState>) arg;
-            if (transactionHandle.getObject1()) {
-                return transactionHandle.getObject2();
+            if (transactionHandle.getLeft()) {
+                return transactionHandle.getRight();
             } else {
-                checkStatus.put(msg.getTransactionId(), transactionHandle.getObject2());
+                checkStatus.put(msg.getTransactionId(), transactionHandle.getRight());
                 return LocalTransactionState.UNKNOW;
             }
         }

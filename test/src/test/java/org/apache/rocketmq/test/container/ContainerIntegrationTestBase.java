@@ -295,7 +295,7 @@ public class ContainerIntegrationTestBase {
                     // return response with SYSTEM_ERROR
                     return RemotingCommand.createResponseCommand(null);
                 }
-                return namesrvController.getRemotingServer().getDefaultProcessorPair().getObject1().processRequest(ctx, request);
+                return namesrvController.getRemotingServer().getDefaultProcessorPair().getLeft().processRequest(ctx, request);
             }
 
             @Override
