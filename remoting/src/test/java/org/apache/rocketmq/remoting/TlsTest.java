@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.UUID;
 import java.io.InputStream;
 import java.io.BufferedInputStream;
@@ -152,7 +153,9 @@ public class TlsTest {
         remotingServer = RemotingServerTest.createRemotingServer();
         remotingClient = RemotingServerTest.createRemotingClient(clientConfig);
 
-        await().atMost(200, TimeUnit.MILLISECONDS).until(() -> isHostConnectable(getServerAddress()));
+        await()
+            .pollDelay(Duration.ZERO)
+            .atMost(200, TimeUnit.MILLISECONDS).until(() -> isHostConnectable(getServerAddress()));
     }
 
     @After
