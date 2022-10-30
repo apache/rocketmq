@@ -17,7 +17,15 @@
 package org.apache.rocketmq.client.impl;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -30,10 +38,16 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.message.*;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueInfo;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -181,12 +195,31 @@ public class MQAdminImpl {
                 Set<MessageQueue> mqList = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 if (!mqList.isEmpty()) {
                     Set<MessageQueueInfo> mqInfoList = new HashSet<>(mqList.size());
-                    Map<String, Map<Long, String>> brokerAddrsInfo = new HashMap<>();
+                    Map<String, BrokerData> brokerAddrsInfo = new HashMap<>();
                     for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-                        brokerAddrsInfo.computeIfAbsent(brokerData.getBrokerName(), brokerName -> brokerData.getBrokerAddrs());
+                        brokerAddrsInfo.putIfAbsent(brokerData.getBrokerName(), brokerData);
                     }
                     for (MessageQueue messageQueue : mqList) {
-
+                        BrokerData currentBrokerData = brokerAddrsInfo.get(messageQueue.getBrokerName());
+                        if (currentBrokerData == null) {
+                            continue;
+                        }
+                        BrokerAddrInfo leader = null;
+                        List<BrokerAddrInfo> followers = new ArrayList<>(currentBrokerData.getBrokerAddrs().size() - 1);
+                        for (Map.Entry<Long, String> brokerAddr : currentBrokerData.getBrokerAddrs().entrySet()) {
+                            if (brokerAddr.getKey().equals(0L)) {
+                                leader = new BrokerAddrInfo(currentBrokerData.getCluster(), brokerAddr.getValue());
+                            } else {
+                                followers.add(new BrokerAddrInfo(currentBrokerData.getCluster(), brokerAddr.getValue()));
+                            }
+                        }
+                        new MessageQueueInfo(
+                                messageQueue.getTopic(),
+                                messageQueue.getBrokerName(),
+                                messageQueue.getQueueId(),
+                                leader,
+                                followers.toArray(new BrokerAddrInfo[0])
+                        );
                     }
                     return mqInfoList;
                 } else {

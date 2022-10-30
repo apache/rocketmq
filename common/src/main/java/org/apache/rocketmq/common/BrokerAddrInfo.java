@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.common;
 
-public class BrokerAddrInfo {
+import java.io.Serializable;
+
+public class BrokerAddrInfo implements Serializable {
+    private static final long serialVersionUID = -7065164197533893894L;
+
     private final String clusterName;
     private final String brokerAddr;
 

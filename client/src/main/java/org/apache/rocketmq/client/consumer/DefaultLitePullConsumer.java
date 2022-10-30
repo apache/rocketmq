@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.*;
-
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -37,6 +35,12 @@ import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 

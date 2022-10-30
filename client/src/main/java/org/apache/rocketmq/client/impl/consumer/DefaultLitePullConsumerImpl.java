@@ -1267,15 +1267,15 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         for (MessageQueueInfo messageQueueInfo : queueSet) {
             String userTopic = NamespaceUtil.withoutNamespace(messageQueueInfo.getTopic(),
                     this.defaultLitePullConsumer.getNamespace());
-              resultQueuesInfo.add(
-                  new MessageQueueInfo(
-                      userTopic,
-                      messageQueueInfo.getBrokerName(),
-                      messageQueueInfo.getQueueId(),
-                      messageQueueInfo.getLeader(),
-                      messageQueueInfo.getFollowers()
-                  )
-              );
+            resultQueuesInfo.add(
+                new MessageQueueInfo(
+                    userTopic,
+                    messageQueueInfo.getBrokerName(),
+                    messageQueueInfo.getQueueId(),
+                    messageQueueInfo.getLeader(),
+                    messageQueueInfo.getFollowers()
+                )
+            );
         }
         return resultQueuesInfo;
     }
