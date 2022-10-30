@@ -550,14 +550,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private GetResult getHalfMsg(MessageQueue messageQueue, long offset) {
         GetResult getResult = new GetResult();
-
+    
         PullResult result = pullHalfMsg(messageQueue, offset, PULL_MSG_RETRY_NUMBER);
-        getResult.setPullResult(result);
-        List<MessageExt> messageExts = result.getMsgFoundList();
-        if (messageExts == null) {
-            return getResult;
+        if (result != null) {
+            getResult.setPullResult(result);
+            List<MessageExt> messageExts = result.getMsgFoundList();
+            if (messageExts == null || messageExts.size() == 0) {
+                return getResult;
+            }
+            getResult.setMsg(messageExts.get(0));
         }
-        getResult.setMsg(messageExts.get(0));
         return getResult;
     }
 
