@@ -24,27 +24,27 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DeletePolicyUtils {
+public class CleanupPolicyUtils {
     public static boolean isCompaction(Optional<TopicConfig> topicConfig) {
         return Objects.equals(CleanupPolicy.COMPACTION, getDeletePolicy(topicConfig));
     }
 
     public static CleanupPolicy getDeletePolicy(Optional<TopicConfig> topicConfig) {
         if (!topicConfig.isPresent()) {
-            return CleanupPolicy.valueOf(TopicAttributes.DELETE_POLICY_ATTRIBUTE.getDefaultValue());
+            return CleanupPolicy.valueOf(TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getDefaultValue());
         }
 
-        String attributeName = TopicAttributes.DELETE_POLICY_ATTRIBUTE.getName();
+        String attributeName = TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getName();
 
         Map<String, String> attributes = topicConfig.get().getAttributes();
         if (attributes == null || attributes.size() == 0) {
-            return CleanupPolicy.valueOf(TopicAttributes.DELETE_POLICY_ATTRIBUTE.getDefaultValue());
+            return CleanupPolicy.valueOf(TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getDefaultValue());
         }
 
         if (attributes.containsKey(attributeName)) {
             return CleanupPolicy.valueOf(attributes.get(attributeName));
         } else {
-            return CleanupPolicy.valueOf(TopicAttributes.DELETE_POLICY_ATTRIBUTE.getDefaultValue());
+            return CleanupPolicy.valueOf(TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getDefaultValue());
         }
     }
 }

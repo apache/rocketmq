@@ -171,4 +171,26 @@ public class OffsetResetIT extends BaseConf {
             return receive >= expect;
         });
     }
+
+    @Test
+    public void testPullOffsetTotal() throws Exception {
+        int msgSize = 100;
+        List<MessageQueue> mqs = producer.getMessageQueue();
+        MessageQueueMsg messageQueueMsg = new MessageQueueMsg(mqs, msgSize);
+
+        producer.send(messageQueueMsg.getMsgsWithMQ());
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+
+        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
+            () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
+
+        long expectInflight = 0L;
+        for (BrokerController controller : brokerControllerList) {
+            ConsumeStats consumeStats = defaultMQAdminExt.getDefaultMQAdminExtImpl().getMqClientInstance()
+                .getMQClientAPIImpl().getConsumeStats(controller.getBrokerAddr(),
+                    consumer.getConsumerGroup(), consumer.getTopic(), 3 * 1000);
+            expectInflight += consumeStats.computeInflightTotalDiff();
+        }
+        Assert.assertEquals(0L, expectInflight);
+    }
 }

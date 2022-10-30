@@ -22,7 +22,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Objects;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -42,9 +44,11 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.ForbiddenType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.RequestSource;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.rpc.RpcClientUtils;
@@ -480,8 +484,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             getMessageResult.setMaxOffset(messageStore.getMaxOffsetInQueue(topic, queueId));
             getMessageResult.setSuggestPullingFromSlave(false);
         } else {
-            getMessageResult = messageStore.getMessage(
-                group, topic, queueId, requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
+            long broadcastInitOffset = queryBroadcastPullInitOffset(topic, group, queueId, requestHeader, channel);
+            if (broadcastInitOffset >= 0) {
+                getMessageResult = new GetMessageResult();
+                getMessageResult.setStatus(GetMessageStatus.OFFSET_RESET);
+                getMessageResult.setNextBeginOffset(broadcastInitOffset);
+            } else {
+                getMessageResult = messageStore.getMessage(
+                    group, topic, queueId, requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
+            }
         }
 
         if (getMessageResult != null) {
@@ -668,6 +679,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             response.setRemark("store getMessage return null");
         }
 
+        if (getMessageResult != null) {
+            this.brokerController.getConsumerOffsetManager().commitPullOffset(RemotingHelper.parseChannelRemoteAddr(channel),
+                requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(), getMessageResult.getNextBeginOffset());
+        }
+
         boolean storeOffsetEnable = brokerAllowSuspend;
         storeOffsetEnable = storeOffsetEnable && hasCommitOffsetFlag;
         if (storeOffsetEnable) {
@@ -735,5 +751,75 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
     public void setPullMessageResultHandler(PullMessageResultHandler pullMessageResultHandler) {
         this.pullMessageResultHandler = pullMessageResultHandler;
+    }
+
+    private boolean isBroadcast(boolean proxyPullBroadcast, ConsumerGroupInfo consumerGroupInfo) {
+        return proxyPullBroadcast ||
+            consumerGroupInfo != null
+                && MessageModel.BROADCASTING.equals(consumerGroupInfo.getMessageModel())
+                && ConsumeType.CONSUME_PASSIVELY.equals(consumerGroupInfo.getConsumeType());
+    }
+
+    protected void updateBroadcastPulledOffset(String topic, String group, int queueId,
+        PullMessageRequestHeader requestHeader, Channel channel, RemotingCommand response, long nextBeginOffset) {
+
+        if (response == null || !this.brokerController.getBrokerConfig().isEnableBroadcastOffsetStore()) {
+            return;
+        }
+
+        boolean proxyPullBroadcast = Objects.equals(
+            RequestSource.PROXY_FOR_BROADCAST.getValue(), requestHeader.getRequestSource());
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
+
+        if (isBroadcast(proxyPullBroadcast, consumerGroupInfo)) {
+            long offset = requestHeader.getQueueOffset();
+            if (ResponseCode.PULL_OFFSET_MOVED == response.getCode()) {
+                offset = nextBeginOffset;
+            }
+            String clientId;
+            if (proxyPullBroadcast) {
+                clientId = requestHeader.getProxyFrowardClientId();
+            } else {
+                ClientChannelInfo clientChannelInfo = consumerGroupInfo.findChannel(channel);
+                if (clientChannelInfo == null) {
+                    return;
+                }
+                clientId = clientChannelInfo.getClientId();
+            }
+            this.brokerController.getBroadcastOffsetManager()
+                .updateOffset(topic, group, queueId, offset, clientId, proxyPullBroadcast);
+        }
+    }
+
+    /**
+     * When pull request is not broadcast or not return -1
+     */
+    protected long queryBroadcastPullInitOffset(String topic, String group, int queueId,
+        PullMessageRequestHeader requestHeader, Channel channel) {
+
+        if (!this.brokerController.getBrokerConfig().isEnableBroadcastOffsetStore()) {
+            return -1L;
+        }
+
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        boolean proxyPullBroadcast = Objects.equals(
+            RequestSource.PROXY_FOR_BROADCAST.getValue(), requestHeader.getRequestSource());
+
+        if (isBroadcast(proxyPullBroadcast, consumerGroupInfo)) {
+            String clientId;
+            if (proxyPullBroadcast) {
+                clientId = requestHeader.getProxyFrowardClientId();
+            } else {
+                ClientChannelInfo clientChannelInfo = consumerGroupInfo.findChannel(channel);
+                if (clientChannelInfo == null) {
+                    return -1;
+                }
+                clientId = clientChannelInfo.getClientId();
+            }
+
+            return this.brokerController.getBroadcastOffsetManager()
+                .queryInitOffset(topic, group, queueId, clientId, requestHeader.getQueueOffset(), proxyPullBroadcast);
+        }
+        return -1L;
     }
 }

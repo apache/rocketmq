@@ -44,6 +44,7 @@ import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQTransactionalProducer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
+import org.apache.rocketmq.test.clientinterface.MQConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
@@ -317,6 +318,8 @@ public class BaseConf {
                 ((MQPullConsumer) mqClient).shutdown();
             } else if (mqClient instanceof MQPushConsumer) {
                 ((MQPushConsumer) mqClient).shutdown();
+            } else if (mqClient instanceof MQConsumer) {
+                ((MQConsumer) mqClient).shutdown();
             }
         }));
     }

@@ -89,7 +89,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
@@ -105,7 +105,7 @@ public class DefaultMQConsumerWithTraceTest {
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
     private DefaultMQPushConsumer normalPushConsumer;
-    private DefaultMQPushConsumer customTraceTopicpushConsumer;
+    private DefaultMQPushConsumer customTraceTopicPushConsumer;
 
     private AsyncTraceDispatcher asyncTraceDispatcher;
     private MQClientInstance mQClientTraceFactory;
@@ -126,7 +126,7 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer = new DefaultMQPushConsumer(consumerGroup, true, "");
         consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
         normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal, false, "");
-        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
+        customTraceTopicPushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 

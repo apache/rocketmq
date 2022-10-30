@@ -59,6 +59,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
 
     @CFNullable
     private boolean m; //batch
+    @CFNullable
+    private String n; // brokerName
 
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
@@ -75,6 +77,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
+        v1.setBname(v2.n);
         return v1;
     }
 
@@ -93,6 +96,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
+        v2.n = v1.getBname();
         return v2;
     }
 
@@ -115,6 +119,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         writeIfNotNull(out, "k", k);
         writeIfNotNull(out, "l", l);
         writeIfNotNull(out, "m", m);
+        writeIfNotNull(out, "n", n);
     }
 
     @Override
@@ -183,6 +188,11 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         str = fields.get("m");
         if (str != null) {
             m = Boolean.parseBoolean(str);
+        }
+
+        str = fields.get("n");
+        if (str != null) {
+            n = str;
         }
     }
 
@@ -306,6 +316,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
             .add("k", k)
             .add("l", l)
             .add("m", m)
+            .add("n", n)
             .toString();
     }
 }

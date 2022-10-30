@@ -17,11 +17,11 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class AckMessageRequestHeader implements CommandCustomHeader {
+public class AckMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String consumerGroup;
     @CFNotNull

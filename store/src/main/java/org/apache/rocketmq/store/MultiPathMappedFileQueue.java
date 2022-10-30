@@ -77,7 +77,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     }
 
     @Override
-    protected MappedFile tryCreateMappedFile(long createOffset) {
+    public MappedFile tryCreateMappedFile(long createOffset) {
         long fileIdx = createOffset / this.mappedFileSize;
         Set<String> storePath = getPaths();
         Set<String> readonlyPathSet = getReadonlyPaths();

@@ -2,8 +2,8 @@
 
 ## 背景
 
-在RocketMQ 4.x版本中，一个进程只有一个broker，通常会以主备或者DLedger（Raft）的形式部署，但是一个进程中只有一个broker，而slave一般只承担冷备或热备的作用，节点之间角色的不对等导致slave节点资源没有充分被利用。
-因此在RocketMQ 5.x版本中，提供一种新的模式BrokerContainer，在一个BrokerContainer进程中可以加入多个Broker（Master Broker、Slave Broker、DLedger Broker），来提高单个节点的资源利用率，并且可以通过各种形式的交叉部署来实现节点之间的对等部署。
+在RocketMQ 4.x 版本中，一个进程只有一个broker，通常会以主备或者DLedger（Raft）的形式部署，但是一个进程中只有一个broker，而slave一般只承担冷备或热备的作用，节点之间角色的不对等导致slave节点资源没有充分被利用。
+因此在RocketMQ 5.x 版本中，提供一种新的模式BrokerContainer，在一个BrokerContainer进程中可以加入多个Broker（Master Broker、Slave Broker、DLedger Broker），来提高单个节点的资源利用率，并且可以通过各种形式的交叉部署来实现节点之间的对等部署。
 该特性的优点包括：
 
 1. 一个BrokerContainer进程中可以加入多个broker，通过进程内混部来提高单个节点的资源利用率
@@ -104,7 +104,7 @@ replicasPerDiskPartition表示同一磁盘分区上有多少个副本，即该br
 
 e.g. replicasPerDiskPartition==2且broker所在磁盘空间为1T时，则该broker磁盘配额为512G，该broker的逻辑磁盘空间利用率基于512G的空间进行计算。
 
-logicalDiskSpaceCleanForciblyThreshold，该值只在quotaPercentForDiskPartition小于1时生效，表示逻辑磁盘空间强制清理阈值，默认为0.80（80%）， 逻辑磁盘空间利用率为该broker在自身磁盘配额内的空间利用率，物理磁盘空间利用率为该磁盘分区总空间利用率。由于在BrokerContainer实现中，考虑计算效率的情况下，仅统计了commitLog+consumeQueue（+ BCQ）+indexFile作为broker的存储空间占用，其余文件如元数据、消费进度、磁盘脏数据等未统计在内，故在多个broker存储空间达到动态平衡时，各broker所占空间可能有相差，以一个BrokerContainer中有两个broker为例，两broker存储空间差异可表示为：
+logicalDiskSpaceCleanForciblyThreshold，该值只在replicasPerDiskPartition大于1时生效，表示逻辑磁盘空间强制清理阈值，默认为0.80（80%）， 逻辑磁盘空间利用率为该broker在自身磁盘配额内的空间利用率，物理磁盘空间利用率为该磁盘分区总空间利用率。由于在BrokerContainer实现中，考虑计算效率的情况下，仅统计了commitLog+consumeQueue（+ BCQ）+indexFile作为broker的存储空间占用，其余文件如元数据、消费进度、磁盘脏数据等未统计在内，故在多个broker存储空间达到动态平衡时，各broker所占空间可能有相差，以一个BrokerContainer中有两个broker为例，两broker存储空间差异可表示为：
 ![](https://s4.ax1x.com/2022/01/26/7L14v4.png)
 其中，R_logical为logicalDiskSpaceCleanForciblyThreshold，R_phy为diskSpaceCleanForciblyRatio，T为磁盘分区总空间，x为除上述计算的broker存储空间外的其他文件所占磁盘总空间比例，可见，当
 ![](https://s4.ax1x.com/2022/01/26/7L1TbR.png)
@@ -147,6 +147,5 @@ InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName())
 具体实现方式可以参考Slf4jLoggerFactory和BrokerLogbackConfigurator两个类。
 
 通过线程名和线程本地变量区分可以参考org.apache.rocketmq.common.AbstractBrokerRunnable、org.apache.rocketmq.common.ThreadFactoryImpl以及各个ServiceThread中getServiceName的实现。
-
 
 参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)

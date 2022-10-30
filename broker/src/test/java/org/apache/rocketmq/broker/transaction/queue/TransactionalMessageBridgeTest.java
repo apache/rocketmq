@@ -76,7 +76,9 @@ public class TransactionalMessageBridgeTest {
 
     @Test
     public void testPutOpMessage() {
-        boolean isSuccess = transactionBridge.putOpMessage(createMessageBrokerInner(), TransactionalMessageUtil.REMOVETAG);
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(
+                new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        boolean isSuccess = transactionBridge.writeOp(0, createMessageBrokerInner());
         assertThat(isSuccess).isTrue();
     }
 

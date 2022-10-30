@@ -164,6 +164,10 @@ public class MappedFileQueue implements Swappable {
         files.sort(Comparator.comparing(File::getName));
 
         for (File file : files) {
+            if (file.isDirectory()) {
+                continue;
+            }
+
             if (file.length() != this.mappedFileSize) {
                 log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
@@ -224,7 +228,29 @@ public class MappedFileQueue implements Swappable {
         return this.mappedFiles.isEmpty();
     }
 
-    protected MappedFile tryCreateMappedFile(long createOffset) {
+    public boolean isEmptyOrCurrentFileFull() {
+        MappedFile mappedFileLast = getLastMappedFile();
+        if (mappedFileLast == null) {
+            return true;
+        }
+        if (mappedFileLast.isFull()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean shouldRoll(final int msgSize) {
+        if (isEmptyOrCurrentFileFull()) {
+            return true;
+        }
+        MappedFile mappedFileLast = getLastMappedFile();
+        if (mappedFileLast.getWrotePosition() + msgSize > mappedFileLast.getFileSize()) {
+            return true;
+        }
+        return false;
+    }
+
+    public MappedFile tryCreateMappedFile(long createOffset) {
         String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
         String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
                 + this.mappedFileSize);
@@ -749,5 +775,9 @@ public class MappedFileQueue implements Swappable {
 
     public long getTotalFileSize() {
         return (long) mappedFileSize * mappedFiles.size();
+    }
+
+    public String getStorePath() {
+        return storePath;
     }
 }
