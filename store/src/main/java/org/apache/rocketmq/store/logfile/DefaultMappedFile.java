@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -723,16 +724,27 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (!fileName.endsWith(".delete")) {
             String newFileName = this.fileName + ".delete";
             try {
-                Files.move(Paths.get(fileName), Paths.get(newFileName), StandardCopyOption.ATOMIC_MOVE);
+                Path newFilePath = Paths.get(newFileName);
+                // https://bugs.openjdk.org/browse/JDK-4724038
+                // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
+                // Windows can't move the file when mmapped.
+                if (RemotingUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+                    long position = this.fileChannel.position();
+                    UtilAll.cleanBuffer(this.mappedByteBuffer);
+                    this.fileChannel.close();
+                    Files.move(Paths.get(fileName), newFilePath, StandardCopyOption.ATOMIC_MOVE);
+                    try (RandomAccessFile file = new RandomAccessFile(newFileName, "rw")) {
+                        this.fileChannel = file.getChannel();
+                        this.fileChannel.position(position);
+                        this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+                    }
+                } else {
+                    Files.move(Paths.get(fileName), newFilePath, StandardCopyOption.ATOMIC_MOVE);
+                }
                 this.fileName = newFileName;
                 this.file = new File(newFileName);
             } catch (IOException e) {
-                log.warn("atomic move file {} failed", fileName, e);
-                try {
-                    Files.move(Paths.get(fileName), Paths.get(newFileName), StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e1) {
-                    log.error("move file {} failed", fileName, e1);
-                }
+                log.error("move file {} failed", fileName, e);
             }
         }
     }
@@ -742,7 +754,22 @@ public class DefaultMappedFile extends AbstractMappedFile {
         Path currentPath = Paths.get(fileName);
         String baseName = currentPath.getFileName().toString();
         Path parentPath = currentPath.getParent().getParent().resolve(baseName);
-        Files.move(currentPath, parentPath, StandardCopyOption.ATOMIC_MOVE);
+        // https://bugs.openjdk.org/browse/JDK-4724038
+        // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
+        // Windows can't move the file when mmapped.
+        if (RemotingUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+            long position = this.fileChannel.position();
+            UtilAll.cleanBuffer(this.mappedByteBuffer);
+            this.fileChannel.close();
+            Files.move(Paths.get(fileName), parentPath, StandardCopyOption.ATOMIC_MOVE);
+            try (RandomAccessFile file = new RandomAccessFile(parentPath.toFile(), "rw")) {
+                this.fileChannel = file.getChannel();
+                this.fileChannel.position(position);
+                this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+            }
+        } else {
+            Files.move(Paths.get(fileName), parentPath, StandardCopyOption.ATOMIC_MOVE);
+        }
         this.file = parentPath.toFile();
         this.fileName = parentPath.toString();
     }
