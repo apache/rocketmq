@@ -635,19 +635,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+  private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
-        if (StringUtils.isNotBlank(content)) {
-            try {
-                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-            } catch (UnsupportedEncodingException e) {
-                log.error("getConfig error, ", e);
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UnsupportedEncodingException " + e);
-                return response;
-            }
+        if (getResponse(response, content)) {
+            return response;
         }
 
         response.setCode(ResponseCode.SUCCESS);
@@ -655,11 +648,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getClientConfigs(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final GetRemoteClientConfigBody body = GetRemoteClientConfigBody.decode(request.getBody(), GetRemoteClientConfigBody.class);
-
-        String content = this.namesrvController.getConfiguration().getClientConfigsFormatString(body.getKeys());
+    private boolean getResponse(RemotingCommand response, String content) {
         if (StringUtils.isNotBlank(content)) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
@@ -667,8 +656,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 log.error("getConfig error, ", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
-                return response;
+                return true;
             }
+        }
+        return false;
+    }
+
+    private RemotingCommand getClientConfigs(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetRemoteClientConfigBody body = GetRemoteClientConfigBody.decode(request.getBody(), GetRemoteClientConfigBody.class);
+
+        String content = this.namesrvController.getConfiguration().getClientConfigsFormatString(body.getKeys());
+        if (getResponse(response, content)) {
+            return response;
         }
 
         response.setCode(ResponseCode.SUCCESS);
