@@ -153,6 +153,24 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return pollingMap;
     }
 
+    public void notifyLongPollingRequestIfNeed(String topic, String group, int queueId) {
+        long popBufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService().getLatestOffset(topic, group, queueId);
+        long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
+        long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+        long offset = Math.max(popBufferOffset, consumerOffset);
+        if (maxOffset > offset) {
+            boolean notifySuccess = this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, group, -1);
+            if (!notifySuccess) {
+                // notify pop queue
+                notifySuccess = this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, group, queueId);
+            }
+            if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
+                POP_LOGGER.info("notify long polling request. topic:{}, group:{}, queueId:{}, success:{}",
+                    topic, group, queueId, notifySuccess);
+            }
+        }
+    }
+
     public void notifyMessageArriving(final String topic, final int queueId) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
         if (cids == null) {
@@ -166,10 +184,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void notifyMessageArriving(final String topic, final String cid, final int queueId) {
+    public boolean notifyMessageArriving(final String topic, final String cid, final int queueId) {
         ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.get(KeyBuilder.buildPollingKey(topic, cid, queueId));
         if (remotingCommands == null || remotingCommands.isEmpty()) {
-            return;
+            return false;
         }
         PopRequest popRequest = remotingCommands.pollFirst();
         //clean inactive channel
@@ -179,21 +197,21 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         if (popRequest == null) {
-            return;
+            return false;
         }
         totalPollingNum.decrementAndGet();
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("lock release , new msg arrive , wakeUp : {}", popRequest);
         }
-        wakeUp(popRequest);
+        return wakeUp(popRequest);
     }
 
-    private void wakeUp(final PopRequest request) {
+    private boolean wakeUp(final PopRequest request) {
         if (request == null || !request.complete()) {
-            return;
+            return false;
         }
         if (!request.getChannel().isActive()) {
-            return;
+            return false;
         }
         Runnable run = new Runnable() {
             @Override
@@ -227,6 +245,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
+        return true;
     }
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request)

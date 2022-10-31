@@ -225,6 +225,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkStayBufferTimeOut = 3 * 1000;
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
+    private boolean enableNotifyAfterPopOrderLockRelease = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -1251,6 +1252,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableNetWorkFlowControl(boolean enableNetWorkFlowControl) {
         this.enableNetWorkFlowControl = enableNetWorkFlowControl;
+    }
+
+    public boolean isEnableNotifyAfterPopOrderLockRelease() {
+        return enableNotifyAfterPopOrderLockRelease;
+    }
+
+    public void setEnableNotifyAfterPopOrderLockRelease(boolean enableNotifyAfterPopOrderLockRelease) {
+        this.enableNotifyAfterPopOrderLockRelease = enableNotifyAfterPopOrderLockRelease;
     }
 
     public boolean isRealTimeNotifyConsumerChange() {
