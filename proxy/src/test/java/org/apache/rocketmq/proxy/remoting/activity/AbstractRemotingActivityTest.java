@@ -21,17 +21,24 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.acl.common.AclException;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -39,7 +46,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +58,7 @@ public class AbstractRemotingActivityTest extends InitConfigAndLoggerTest {
     @Mock
     MessagingProcessor messagingProcessorMock;
     @Spy
-    ChannelHandlerContext ctx = new SimpleChannelHandlerContext(new SimpleChannel(null, "1", "2")) {
+    ChannelHandlerContext ctx = new SimpleChannelHandlerContext(new SimpleChannel(null, "0.0.0.0:0", "1.1.1.1:1")) {
         @Override
         public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
             return null;
@@ -69,16 +77,124 @@ public class AbstractRemotingActivityTest extends InitConfigAndLoggerTest {
     }
 
     @Test
-    public void request() throws Exception {
+    public void testCreateContext() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        ProxyContext context = remotingActivity.createContext(ctx, request);
+        assertThat(context.getLanguage()).isEqualTo(LanguageCode.JAVA.name());
+        assertThat(context.getAction()).isEqualTo("Remoting" + RequestCode.PULL_MESSAGE);
+    }
+
+    @Test
+    public void testRequest() throws Exception {
         String brokerName = "broker";
-        String remark = "success";
-        when(messagingProcessorMock.request(any(), anyString(), any(), anyLong())).thenReturn(CompletableFuture.completedFuture(
-            RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, remark)
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "remark");
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(CompletableFuture.completedFuture(
+            response
         ));
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
         request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
         RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
         assertThat(remotingCommand).isNull();
-        verify(ctx, times(1)).writeAndFlush(any());
+        verify(ctx, times(1)).writeAndFlush(response);
+    }
+
+    @Test
+    public void testRequestOneway() throws Exception {
+        String brokerName = "broker";
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.markOnewayRPC();
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(messagingProcessorMock, times(1)).requestOneway(any(), eq(brokerName), any(), anyLong());
+    }
+
+    @Test
+    public void testRequestInvalid() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField("test", "test");
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.VERSION_NOT_SUPPORTED);
+        verify(ctx, never()).writeAndFlush(any());
+    }
+
+    @Test
+    public void testRequestProxyException() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        String remark = "exception";
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        future.completeExceptionally(new ProxyException(ProxyExceptionCode.FORBIDDEN, remark));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(future);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testRequestClientException() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        String remark = "exception";
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        future.completeExceptionally(new MQClientException(remark, null));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(future);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(-1);
+    }
+
+    @Test
+    public void testRequestBrokerException() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        String remark = "exception";
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        future.completeExceptionally(new MQBrokerException(ResponseCode.FLUSH_DISK_TIMEOUT, remark));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(future);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.FLUSH_DISK_TIMEOUT);
+    }
+
+    @Test
+    public void testRequestAclException() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        String remark = "exception";
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        future.completeExceptionally(new AclException(remark, ResponseCode.MESSAGE_ILLEGAL));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(future);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testRequestDefaultException() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        String remark = "exception";
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        future.completeExceptionally(new Exception(remark));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong())).thenReturn(future);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+        assertThat(remotingCommand).isNull();
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
 }

@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.remoting.activity;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
@@ -39,10 +38,6 @@ public class PullMessageActivity extends AbstractRemotingActivity {
     @Override
     protected RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
-        if (request.getExtFields().get(BROKER_NAME_FIELD) == null) {
-            return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
-                "Request doesn't have field bname");
-        }
         PullMessageRequestHeader requestHeader = (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
         if (!PullSysFlag.hasSubscriptionFlag(requestHeader.getSysFlag())) {
             ConsumerGroupInfo consumerInfo = messagingProcessor.getConsumerGroupInfo(requestHeader.getConsumerGroup());
@@ -57,16 +52,10 @@ public class PullMessageActivity extends AbstractRemotingActivity {
             }
             requestHeader.setSubscription(subscriptionData.getSubString());
             requestHeader.setExpressionType(subscriptionData.getExpressionType());
+            request.writeCustomHeader(requestHeader);
             request.makeCustomHeaderToNet();
         }
-        String brokerName = requestHeader.getBname();
         long timeoutMillis = requestHeader.getSuspendTimeoutMillis() + Duration.ofSeconds(10).toMillis();
-        CompletableFuture<RemotingCommand> future = messagingProcessor.request(context, brokerName, request, timeoutMillis);
-        future.thenAccept(r -> writeResponse(ctx, context, request, r))
-            .exceptionally(t -> {
-                writeErrResponse(ctx, context, request, t);
-                return null;
-            });
-        return null;
+        return request(ctx, request, context, timeoutMillis);
     }
 }
