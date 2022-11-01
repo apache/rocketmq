@@ -67,6 +67,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         }
         String brokerName = request.getExtFields().get(BROKER_NAME_FIELD);
         if (request.isOnewayRPC()) {
+            messagingProcessor.requestOneway(context, brokerName, request, timeoutMillis);
             return null;
         }
         messagingProcessor.request(context, brokerName, request, timeoutMillis)
