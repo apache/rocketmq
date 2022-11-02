@@ -82,7 +82,7 @@ public class PopBigMessageIT extends BasePopNormally {
         });
 
         // no ack, msg will put into pop retry topic
-        await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
             PopResult retryPopResult = popMessageAsync(Duration.ofSeconds(3).toMillis(), 1, 5000).get();
             assertEquals(PopStatus.FOUND, retryPopResult.getPopStatus());
 
