@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.filter;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -171,7 +173,11 @@ public class MessageStoreWithFilterTest {
         });
         master.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(brokerConfig, filterManager));
 
-        assertThat(master.load()).isTrue();
+        if (MixAll.isWindows()) {
+            Assume.assumeTrue(master.load());
+        } else {
+            assertThat(master.load()).isTrue();
+        }
 
         master.start();
 
