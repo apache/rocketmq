@@ -263,8 +263,7 @@ public class DefaultMessageStore implements MessageStore {
                 this.delayLevelTable.put(level, delayTimeMillis);
             }
         } catch (Exception e) {
-            LOGGER.error("parseDelayLevel exception", e);
-            LOGGER.info("levelString String = {}", levelString);
+            LOGGER.error("parse message delay level failed. messageDelayLevel = {}", levelString, e);
             return false;
         }
 

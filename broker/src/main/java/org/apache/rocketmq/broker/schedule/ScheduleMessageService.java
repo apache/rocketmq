@@ -331,8 +331,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
         } catch (Exception e) {
-            log.error("parseDelayLevel exception", e);
-            log.info("levelString String = {}", levelString);
+            log.error("parse message delay level failed. messageDelayLevel = {}", levelString, e);
             return false;
         }
 
