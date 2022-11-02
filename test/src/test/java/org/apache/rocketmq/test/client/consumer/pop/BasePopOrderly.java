@@ -19,16 +19,25 @@ package org.apache.rocketmq.test.client.consumer.pop;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQPopClient;
+import org.apache.rocketmq.test.message.MessageQueueMsg;
 import org.apache.rocketmq.test.util.MQRandomUtils;
+import org.apache.rocketmq.test.util.VerifyUtils;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -37,7 +46,6 @@ import static org.junit.Assert.assertEquals;
 
 @Ignore
 public class BasePopOrderly extends BasePop {
-    protected static final long POP_TIMEOUT = 500;
     protected String topic;
     protected String group;
     protected RMQNormalProducer producer = null;
@@ -46,9 +54,11 @@ public class BasePopOrderly extends BasePop {
     protected MessageQueue messageQueue;
     protected final Map<String, List<MsgRcv>> msgRecv = new ConcurrentHashMap<>();
     protected final List<String> msgRecvSequence = new CopyOnWriteArrayList<>();
+    protected final List<Object> msgDataRecv = new CopyOnWriteArrayList<>();
 
     @Before
     public void setUp() {
+        brokerController1.getBrokerConfig().setEnableNotifyAfterPopOrderLockRelease(true);
         brokerAddr = brokerController1.getBrokerAddr();
         topic = MQRandomUtils.getRandomTopic();
         group = initConsumerGroup();
@@ -61,6 +71,15 @@ public class BasePopOrderly extends BasePop {
     @After
     public void tearDown() {
         shutdown();
+    }
+
+    protected void sendMessage(int num) {
+        MessageQueueMsg mqMsgs = new MessageQueueMsg(Lists.newArrayList(messageQueue), num);
+        producer.send(mqMsgs.getMsgsWithMQ());
+    }
+
+    protected void assertMessageRecvOrder() {
+        VerifyUtils.verifyOrderMsg(msgDataRecv);
     }
 
     protected void assertMsgRecv(int seqId, int expectNum) {
@@ -77,6 +96,7 @@ public class BasePopOrderly extends BasePop {
     }
 
     protected void onRecvNewMessage(MessageExt messageExt) {
+        msgDataRecv.add(new String(messageExt.getBody()));
         msgRecvSequence.add(messageExt.getMsgId());
         msgRecv.compute(messageExt.getMsgId(), (k, msgRcvList) -> {
             if (msgRcvList == null) {
@@ -85,5 +105,21 @@ public class BasePopOrderly extends BasePop {
             msgRcvList.add(new MsgRcv(System.currentTimeMillis(), messageExt));
             return msgRcvList;
         });
+    }
+
+    protected CompletableFuture<PopResult> popMessageOrderlyAsync(long invisibleTime, int maxNums, long timeout) {
+        return client.popMessageAsync(
+            brokerAddr, messageQueue, invisibleTime, maxNums, group, timeout, true,
+            ConsumeInitMode.MIN, true, ExpressionType.TAG, "*");
+    }
+
+    protected CompletableFuture<AckResult> ackMessageAsync(MessageExt messageExt) {
+        return client.ackMessageAsync(brokerAddr, topic, group, messageExt.getProperty(MessageConst.PROPERTY_POP_CK));
+    }
+
+    protected CompletableFuture<AckResult> changeInvisibleTimeAsync(MessageExt messageExt, long invisibleTime) {
+        return client.changeInvisibleTimeAsync(
+            brokerAddr, BROKER1_NAME, topic, group,
+            messageExt.getProperty(MessageConst.PROPERTY_POP_CK), invisibleTime);
     }
 }

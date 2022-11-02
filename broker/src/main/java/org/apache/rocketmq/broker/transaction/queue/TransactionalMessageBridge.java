@@ -302,23 +302,17 @@ public class TransactionalMessageBridge {
     }
 
     public boolean writeOp(Integer queueId,Message message) {
-        MessageQueue opQueue;
-        if (opQueueMap.containsKey(queueId)) {
-            opQueue = opQueueMap.get(queueId);
-        } else {
+        MessageQueue opQueue = opQueueMap.get(queueId);
+        if (opQueue == null) {
             opQueue = getOpQueueByHalf(queueId, this.brokerController.getBrokerConfig().getBrokerName());
             MessageQueue oldQueue = opQueueMap.putIfAbsent(queueId, opQueue);
             if (oldQueue != null) {
                 opQueue = oldQueue;
             }
         }
-
+    
         PutMessageResult result = putMessageReturnResult(makeOpMessageInner(message, opQueue));
         if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-            this.brokerController.getBrokerStatsManager().incTopicPutNums(message.getTopic());
-            this.brokerController.getBrokerStatsManager().incTopicPutSize(message.getTopic(),
-                    result.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums();
             return true;
         }
 
