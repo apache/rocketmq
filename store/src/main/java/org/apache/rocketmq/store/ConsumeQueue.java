@@ -220,7 +220,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {
-                            targetOffset = midOffset;
+                            //targetOffset = midOffset;
+                            targetOffset = getEarliestOffset(midOffset, byteBuffer, storeTime);
                             break;
                         } else if (storeTime > timestamp) {
                             high = midOffset - CQ_STORE_UNIT_SIZE;
@@ -1000,5 +1001,21 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
         mappedFileQueue.cleanSwappedMap(forceCleanSwapIntervalMs);
+    }
+
+    private int getEarliestOffset(int targetOffset, ByteBuffer byteBuffer, long currentStoreTime) {
+        if (targetOffset == 0) {
+            return targetOffset;
+        }
+        int preOffset = targetOffset - CQ_STORE_UNIT_SIZE;
+        byteBuffer.position(preOffset);
+        long prePhyOffset = byteBuffer.getLong();
+        int preSize = byteBuffer.getInt();
+        long preStoreTime =
+                this.messageStore.getCommitLog().pickupStoreTimestamp(prePhyOffset, preSize);
+        if (currentStoreTime == preStoreTime) {
+            targetOffset = getEarliestOffset(preOffset, byteBuffer, preStoreTime);
+        }
+        return targetOffset;
     }
 }
