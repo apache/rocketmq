@@ -14,33 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.broker.metrics;
 
-package org.apache.rocketmq.common.attribute;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.context.Context;
 
-import com.google.common.collect.Sets;
-import java.util.Set;
+public class NopLongCounter implements LongCounter {
+    @Override public void add(long l) {
 
-public enum TopicMessageType {
-    UNSPECIFIED("UNSPECIFIED"),
-    NORMAL("NORMAL"),
-    FIFO("FIFO"),
-    DELAY("DELAY"),
-    TRANSACTION("TRANSACTION");
-
-    private final String value;
-    TopicMessageType(String value) {
-        this.value = value;
     }
 
-    public static Set<String> topicMessageTypeSet() {
-        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value);
+    @Override public void add(long l, Attributes attributes) {
+
     }
 
-    public String getValue() {
-        return value;
-    }
+    @Override public void add(long l, Attributes attributes, Context context) {
 
-    public String getMetricsValue() {
-        return value.toLowerCase();
     }
 }
