@@ -2283,4 +2283,24 @@ public class BrokerController {
         return this.topicRouteInfoManager;
     }
 
+    public BlockingQueue<Runnable> getClientManagerThreadPoolQueue() {
+        return clientManagerThreadPoolQueue;
+    }
+
+    public BlockingQueue<Runnable> getConsumerManagerThreadPoolQueue() {
+        return consumerManagerThreadPoolQueue;
+    }
+
+    public BlockingQueue<Runnable> getAsyncPutThreadPoolQueue() {
+        return putThreadPoolQueue;
+    }
+
+    public BlockingQueue<Runnable> getReplyThreadPoolQueue() {
+        return replyThreadPoolQueue;
+    }
+
+    public BlockingQueue<Runnable> getAdminBrokerThreadPoolQueue() {
+        return adminBrokerThreadPoolQueue;
+    }
+
 }
