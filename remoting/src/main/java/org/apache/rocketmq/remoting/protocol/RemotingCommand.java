@@ -181,13 +181,13 @@ public class RemotingCommand {
 
     public static RemotingCommand decode(final ByteBuf byteBuffer) throws RemotingCommandException {
         int length = byteBuffer.readableBytes();
+        byte protocolTypeLen = byteBuffer.getByte(byteBuffer.readerIndex());
         int oriHeaderLen = byteBuffer.readInt();
         int headerLength = getHeaderLength(oriHeaderLen);
         if (headerLength > length - 4) {
             throw new RemotingCommandException("decode error, bad header length: " + headerLength);
         }
-
-        RemotingCommand cmd = headerDecode(byteBuffer, headerLength, getProtocolType(oriHeaderLen));
+        RemotingCommand cmd = headerDecode(byteBuffer, headerLength, getProtocolType(protocolTypeLen));
 
         int bodyLength = length - 4 - headerLength;
         byte[] bodyData = null;
@@ -224,8 +224,8 @@ public class RemotingCommand {
         return null;
     }
 
-    public static SerializeType getProtocolType(int source) {
-        return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
+    public static SerializeType getProtocolType(byte source) {
+        return SerializeType.valueOf(source);
     }
 
     public static int createNewRequestId() {

@@ -118,13 +118,13 @@ public class RemotingCommandTest {
     }
 
     @Test
-    public void testEncodeAndDecode_EmptyBody() {
+    public void testEncodeAndDecode_EmptyBody_JSON() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
-
+        cmd.setSerializeTypeCurrentRPC(SerializeType.JSON);
         ByteBuffer buffer = cmd.encode();
 
         //Simulate buffer being read in NettyDecoder
@@ -138,6 +138,35 @@ public class RemotingCommandTest {
             decodedCommand = RemotingCommand.decode(buffer);
 
             assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
+            assertThat(decodedCommand.getBody()).isNull();
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+            Assert.fail("Should not throw IOException");
+        }
+
+    }
+
+    @Test
+    public void testEncodeAndDecode_EmptyBody_RocketMQ() {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
+
+        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        CommandCustomHeader header = new SampleCommandCustomHeader();
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
+        cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
+        ByteBuffer buffer = cmd.encode();
+
+        //Simulate buffer being read in NettyDecoder
+        buffer.getInt();
+        byte[] bytes = new byte[buffer.limit() - 4];
+        buffer.get(bytes, 0, buffer.limit() - 4);
+        buffer = ByteBuffer.wrap(bytes);
+
+        RemotingCommand decodedCommand = null;
+        try {
+            decodedCommand = RemotingCommand.decode(buffer);
+
+            assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.ROCKETMQ);
             assertThat(decodedCommand.getBody()).isNull();
         } catch (RemotingCommandException e) {
             e.printStackTrace();
