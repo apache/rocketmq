@@ -247,7 +247,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             return futureList.get(count.getAndIncrement());
         }).when(messagingProcessor).changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
             Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
-        await().atMost(Duration.ofSeconds(1)).until(() -> {
+        await().pollDelay(Duration.ZERO).pollInterval(Duration.ofMillis(10)).atMost(Duration.ofSeconds(10)).until(() -> {
             receiptHandleProcessor.scheduleRenewTask();
             try {
                 ReceiptHandleGroup receiptHandleGroup = receiptHandleProcessor.receiptHandleGroupMap.values().stream().findFirst().get();
