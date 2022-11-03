@@ -19,12 +19,14 @@ package org.apache.rocketmq.store;
 
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.assertj.core.util.Lists;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.File;
@@ -391,6 +393,7 @@ public class MappedFileQueueTest {
 
     @Test
     public void testMappedFile_Rename() throws IOException, InterruptedException {
+        Assume.assumeFalse(MixAll.isWindows());
         final String fixedMsg = RandomStringUtils.randomAlphanumeric(128);
         final byte[] msgByteArr = fixedMsg.getBytes(StandardCharsets.UTF_8);
         final int mappedFileSize = 5 * 1024 * 1024;

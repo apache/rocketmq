@@ -109,6 +109,26 @@ public class MixAll {
     public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
     public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
+    private static final String OS = System.getProperty("os.name").toLowerCase();
+
+    public static boolean isWindows() {
+        return OS.indexOf("win") >= 0;
+    }
+
+    public static boolean isMac() {
+        return OS.indexOf("mac") >= 0;
+    }
+
+    public static boolean isUnix() {
+        return OS.indexOf("nix") >= 0
+                || OS.indexOf("nux") >= 0
+                || OS.indexOf("aix") > 0;
+    }
+
+    public static boolean isSolaris() {
+        return OS.indexOf("sunos") >= 0;
+    }
+
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
         String wsDomainSubgroup = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
