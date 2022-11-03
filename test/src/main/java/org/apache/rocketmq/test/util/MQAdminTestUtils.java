@@ -77,7 +77,7 @@ public class MQAdminTestUtils {
         return true;
     }
 
-    private static boolean checkTopicExist(DefaultMQAdminExt mqAdminExt, String topic) {
+    public static boolean checkTopicExist(DefaultMQAdminExt mqAdminExt, String topic) {
         boolean createResult = false;
         try {
             TopicStatsTable topicInfo = mqAdminExt.examineTopicStats(topic);

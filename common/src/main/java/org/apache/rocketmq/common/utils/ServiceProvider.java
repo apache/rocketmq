@@ -127,7 +127,7 @@ public class ServiceProvider {
                 serviceName = reader.readLine();
             }
         } catch (Exception e) {
-            LOG.error("Error occurred when looking for resource file " + name, e);
+            // LOG.error("Error occurred when looking for resource file " + name, e);
         }
         return services;
     }

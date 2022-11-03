@@ -134,6 +134,19 @@ public class CommandUtil {
         return brokerAddressSet;
     }
 
+    public static String fetchMasterAddrByBrokerName(final MQAdminExt adminExt,
+        final String brokerName) throws Exception {
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+        if (null != brokerData) {
+            String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (addr != null) {
+                return addr;
+            }
+        }
+        throw new Exception(String.format("No broker address for broker name %s.%n", brokerData));
+    }
+
     public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)
         throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
