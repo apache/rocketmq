@@ -43,6 +43,8 @@ github:
           - misspell-check
           - check-license
           - maven-compile (ubuntu-18.04, JDK-8)
+          - maven-compile (windows-2022, JDK-8)
+          - maven-compile (macos-11, JDK-8)
           - bazel-compile (ubuntu-20.04)
 notifications:
   commits:      commits@rocketmq.apache.org
