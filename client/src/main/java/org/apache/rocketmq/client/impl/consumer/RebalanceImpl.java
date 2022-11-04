@@ -374,6 +374,7 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
+                pq.setLocked(true);
 
                 long nextOffset = -1L;
                 try {
