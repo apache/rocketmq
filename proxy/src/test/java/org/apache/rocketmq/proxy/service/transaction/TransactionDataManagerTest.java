@@ -20,9 +20,11 @@ package org.apache.rocketmq.proxy.service.transaction;
 import java.time.Duration;
 import java.util.Random;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -98,6 +100,8 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testWaitTransactionDataClear() throws InterruptedException {
+        // Skip this test case on Mac as it's not stable enough.
+        Assume.assumeFalse(MixAll.isMac());
         String txId = MessageClientIDSetter.createUniqID();
         this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId,
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(100).toMillis()));
