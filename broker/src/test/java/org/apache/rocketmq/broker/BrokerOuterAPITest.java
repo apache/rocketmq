@@ -48,6 +48,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -183,6 +184,11 @@ public class BrokerOuterAPITest {
 
     @Test
     public void test_register_timeout() throws Exception {
+
+        // This case is flaky on Windows and Mac. Skip and fix it later.
+        Assume.assumeFalse(MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
+
         init();
         brokerOuterAPI.start();
 
