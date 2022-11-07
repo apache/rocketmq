@@ -498,12 +498,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         String lockKey =
             topic + PopAckConstants.SPLIT + requestHeader.getConsumerGroup() + PopAckConstants.SPLIT + queueId;
         boolean isOrder = requestHeader.isOrder();
-        long offset = getPopOffset(topic, requestHeader, queueId, false, lockKey);
+        long offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
+            false, lockKey, false);
         if (!queueLockManager.tryLock(lockKey)) {
             restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
             return restNum;
         }
-        offset = getPopOffset(topic, requestHeader, queueId, true, lockKey);
+        offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
+            true, lockKey, true);
+
         GetMessageResult getMessageTmpResult = null;
         try {
             if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(topic,
@@ -594,12 +597,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return restNum;
     }
 
-    private long getPopOffset(String topic, PopMessageRequestHeader requestHeader, int queueId, boolean init,
-        String lockKey) {
-        long offset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
-            topic, queueId);
+    private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
+        boolean checkResetOffset) {
+
+        long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
-            if (ConsumeInitMode.MIN == requestHeader.getInitMode()) {
+            if (ConsumeInitMode.MIN == initMode) {
                 offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
             } else {
                 // pop last one,then commit offset.
@@ -609,17 +612,24 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     offset = 0;
                 }
                 if (init) {
-                    this.brokerController.getConsumerOffsetManager().commitOffset("getPopOffset",
-                        requestHeader.getConsumerGroup(), topic,
-                        queueId, offset);
+                    this.brokerController.getConsumerOffsetManager().commitOffset(
+                        "getPopOffset", group, topic, queueId, offset);
                 }
             }
         }
+
+        if (checkResetOffset) {
+            Long resetOffset = resetPopOffset(topic, group, queueId);
+            if (resetOffset != null) {
+                return resetOffset;
+            }
+        }
+
         long bufferOffset = this.popBufferMergeService.getLatestOffset(lockKey);
         if (bufferOffset < 0) {
             return offset;
         } else {
-            return bufferOffset > offset ? bufferOffset : offset;
+            return Math.max(bufferOffset, offset);
         }
     }
 
@@ -732,6 +742,19 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         this.popBufferMergeService.addCkJustOffset(
             ck, reviveQid, -1, getMessageTmpResult.getNextBeginOffset()
         );
+    }
+
+    private Long resetPopOffset(String topic, String group, int queueId) {
+        String lockKey = topic + PopAckConstants.SPLIT + group + PopAckConstants.SPLIT + queueId;
+        Long resetOffset =
+            this.brokerController.getConsumerOffsetManager().queryThenEraseResetOffset(topic, group, queueId);
+        if (resetOffset != null) {
+            this.brokerController.getConsumerOrderInfoManager().clearBlock(topic, group, queueId);
+            this.getPopBufferMergeService().clearOffsetQueue(lockKey);
+            this.brokerController.getConsumerOffsetManager()
+                .commitOffset("ResetPopOffset", group, topic, queueId, resetOffset);
+        }
+        return resetOffset;
     }
 
     private byte[] readGetMessageResult(final GetMessageResult getMessageResult, final String group, final String topic,

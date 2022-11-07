@@ -64,11 +64,11 @@ public class ConsumerFactory {
         consumer.start();
         return consumer;
     }
+
     public static RMQPopConsumer getRMQPopConsumer(String nsAddr, String consumerGroup,
-        String topic, String subExpression,
-        AbstractListener listener) {
-        RMQPopConsumer consumer = new RMQPopConsumer(nsAddr, topic, subExpression,
-            consumerGroup, listener);
+        String topic, String subExpression, AbstractListener listener) {
+
+        RMQPopConsumer consumer = new RMQPopConsumer(nsAddr, topic, subExpression, consumerGroup, listener);
         consumer.create();
         consumer.start();
         return consumer;
