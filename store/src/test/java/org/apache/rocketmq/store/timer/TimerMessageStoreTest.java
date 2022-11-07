@@ -261,6 +261,7 @@ public class TimerMessageStoreTest {
     public void testPutExpiredTimerMessage() throws Exception {
         // Skip on Mac to make CI pass
         Assume.assumeFalse(MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
 
         String topic = "TimerTest_testPutExpiredTimerMessage";
 
