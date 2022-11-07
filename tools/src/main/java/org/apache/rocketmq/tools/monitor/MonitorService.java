@@ -109,10 +109,12 @@ public class MonitorService {
         }
     }
 
+    @Deprecated
     public static void main(String[] args) throws MQClientException {
         main0(args, null);
     }
 
+    @Deprecated
     public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
         final MonitorService monitorService =
             new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
@@ -146,6 +148,7 @@ public class MonitorService {
         this.startScheduleTask();
     }
 
+    @Deprecated
     public void shutdown() {
         this.defaultMQPullConsumer.shutdown();
         this.defaultMQAdminExt.shutdown();
