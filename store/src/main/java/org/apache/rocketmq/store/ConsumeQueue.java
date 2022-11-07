@@ -831,7 +831,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         private int relativePos = 0;
 
         public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
-            this.sbr =  sbr;
+            this.sbr = sbr;
             if (sbr != null && sbr.getByteBuffer() != null) {
                 relativePos = sbr.getByteBuffer().position();
             }
@@ -851,11 +851,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             if (!hasNext()) {
                 return null;
             }
-            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() - relativePos) / CQ_STORE_UNIT_SIZE;
             CqUnit cqUnit = new CqUnit(queueOffset,
-                    sbr.getByteBuffer().getLong(),
-                    sbr.getByteBuffer().getInt(),
-                    sbr.getByteBuffer().getLong());
+                sbr.getByteBuffer().getLong(),
+                sbr.getByteBuffer().getInt(),
+                sbr.getByteBuffer().getLong());
 
             if (isExtAddr(cqUnit.getTagsCode())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
@@ -866,7 +866,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 } else {
                     // can't find ext content.Client will filter messages by tag also.
                     log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
-                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                        cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
                 }
             }
             return cqUnit;
@@ -1004,18 +1004,17 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     private int getEarliestOffset(int targetOffset, ByteBuffer byteBuffer, long currentStoreTime) {
-        if (targetOffset == 0) {
-            return targetOffset;
-        }
-        int preOffset = targetOffset - CQ_STORE_UNIT_SIZE;
-        byteBuffer.position(preOffset);
-        long prePhyOffset = byteBuffer.getLong();
-        int preSize = byteBuffer.getInt();
-        long preStoreTime =
+        while (targetOffset > 0) {
+            targetOffset = targetOffset - CQ_STORE_UNIT_SIZE;
+            byteBuffer.position(targetOffset);
+            long prePhyOffset = byteBuffer.getLong();
+            int preSize = byteBuffer.getInt();
+            long preStoreTime =
                 this.messageStore.getCommitLog().pickupStoreTimestamp(prePhyOffset, preSize);
-        if (currentStoreTime == preStoreTime) {
-            targetOffset = getEarliestOffset(preOffset, byteBuffer, preStoreTime);
+            if (currentStoreTime != preStoreTime) {
+                break;
+            }
         }
-        return targetOffset;
+        return targetOffset == 0 ? 0 : targetOffset + CQ_STORE_UNIT_SIZE;
     }
 }
