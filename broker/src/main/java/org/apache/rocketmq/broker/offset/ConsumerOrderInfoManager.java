@@ -159,6 +159,13 @@ public class ConsumerOrderInfoManager extends ConfigManager {
         return orderInfo.needBlock(invisibleTime);
     }
 
+    public void clearBlock(String topic, String group, int queueId) {
+        table.computeIfPresent(buildKey(topic, group), (key, val) -> {
+            val.remove(queueId);
+            return val;
+        });
+    }
+
     /**
      * mark message is consumed finished. return the consumer offset
      *
