@@ -635,7 +635,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-   private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
