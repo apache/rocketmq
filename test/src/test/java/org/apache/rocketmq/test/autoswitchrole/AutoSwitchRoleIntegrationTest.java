@@ -60,8 +60,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     private BrokerController brokerController1;
     private BrokerController brokerController2;
     protected List<BrokerController> brokerControllerList;
-    
-    
+
     public void init(int mappedFileSize) throws Exception {
         super.initialize();
 
@@ -88,8 +87,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
         this.brokerController2 = startBroker(this.namesrvAddress, this.controllerAddress, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
         this.brokerControllerList = ImmutableList.of(brokerController1, brokerController2);
-    
-    
+
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
     }
@@ -97,7 +95,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     public void mockData() throws Exception {
         final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
-        Thread.sleep(3000);
         // Check slave message
         checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
@@ -126,15 +123,14 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final ReplicasManager replicasManager = brokerController1.getReplicasManager();
         SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(2, syncStateSet.getSyncStateSet().size());
-        
-        
+
         // Shutdown controller2
         ScheduledExecutorService singleThread = Executors.newSingleThreadScheduledExecutor();
         while (!singleThread.awaitTermination(6 * 1000, TimeUnit.MILLISECONDS)) {
             this.brokerController2.shutdown();
             singleThread.shutdown();
         }
-        
+
         syncStateSet = replicasManager.getSyncStateSet();
         shutdown();
         assertEquals(1, syncStateSet.getSyncStateSet().size());
@@ -165,9 +161,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final MessageStore messageStore = brokerController2.getMessageStore();
         putMessage(messageStore);
 
-        Thread.sleep(3000);
-
-        // Check slave message
+        //Check slave message
         checkMessage(brokerController1.getMessageStore(), 20, 0);
         shutdown();
     }
@@ -179,12 +173,10 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
         waitSlaveReady(broker3.getMessageStore());
-        Thread.sleep(3000);
 
         checkMessage(broker3.getMessageStore(), 10, 0);
 
         putMessage(this.brokerController1.getMessageStore());
-        Thread.sleep(3000);
         checkMessage(broker3.getMessageStore(), 20, 0);
         shutdown();
     }
@@ -195,7 +187,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         init(1700);
         // Step1: Put message
         putMessage(this.brokerController1.getMessageStore());
-        Thread.sleep(3000);
         checkMessage(this.brokerController2.getMessageStore(), 10, 0);
 
         // Step2: shutdown broker1, broker2 as master
@@ -209,13 +200,11 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Step3: add broker3
         BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker3.getMessageStore());
-        Thread.sleep(6000);
         checkMessage(broker3.getMessageStore(), 10, 0);
 
         // Step4: put another batch message
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
         putMessage(this.brokerController2.getMessageStore());
-        Thread.sleep(2000);
         checkMessage(broker3.getMessageStore(), 20, 0);
 
         // Step5: Check file position, each epoch will be stored on one file(Because fileSize = 1700, which equal to 10 msg size);
@@ -237,11 +226,10 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Step6, start broker4, link to broker2, it should sync msg from epoch2(offset = 1700).
         BrokerController broker4 = startBroker(this.namesrvAddress, this.controllerAddress, 4, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker4.getMessageStore());
-        Thread.sleep(6000);
         checkMessage(broker4.getMessageStore(), 10, 10);
         shutdown();
     }
-    
+
     public void shutdown() throws InterruptedException {
         for (BrokerController controller : this.brokerList) {
             controller.shutdown();
@@ -250,14 +238,17 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         if (this.namesrvController != null) {
             this.namesrvController.shutdown();
         }
+        if (this.controllerManager != null) {
+            this.controllerManager.shutdown();
+        }
         super.destroy();
     }
-    
+
     public boolean awaitDispatchMs(long timeMs) throws Exception {
         await().atMost(Duration.ofSeconds(timeMs)).until(
             () -> {
                 boolean allOk = true;
-                for (BrokerController brokerController: brokerControllerList) {
+                for (BrokerController brokerController : brokerControllerList) {
                     if (brokerController.getMessageStore() == null) {
                         allOk = false;
                         break;
@@ -271,5 +262,5 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         );
         return false;
     }
-    
+
 }

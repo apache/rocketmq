@@ -52,11 +52,9 @@ public class AutoSwitchRoleBase {
 
     private final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
-    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(35000);
     private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
     private static final String STORE_MESSAGE = "Once, there was a chance for me!";
     private static final byte[] MESSAGE_BODY = STORE_MESSAGE.getBytes();
-    private final AtomicInteger queueId = new AtomicInteger(0);
     protected List<BrokerController> brokerList;
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -165,8 +163,7 @@ public class AutoSwitchRoleBase {
         msg.setTags("TAG1");
         msg.setBody(MESSAGE_BODY);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        int queueTotal = 1;
-        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
+        msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
@@ -183,11 +180,12 @@ public class AutoSwitchRoleBase {
         Thread.sleep(1000);
     }
 
-    protected void checkMessage(final MessageStore messageStore, int totalMsgs, int startOffset) {
-        await().atMost(60, TimeUnit.SECONDS)
+    protected void checkMessage(final MessageStore messageStore, int totalNums, int startOffset) {
+        await().atMost(30, TimeUnit.SECONDS)
             .until(() -> {
                 GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset, 1024, null);
-                return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() == totalMsgs;
+                System.out.println(result);
+                return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() == totalNums;
             });
     }
 
