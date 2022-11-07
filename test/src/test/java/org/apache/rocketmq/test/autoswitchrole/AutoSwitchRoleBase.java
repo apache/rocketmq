@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -184,7 +183,7 @@ public class AutoSwitchRoleBase {
         await().atMost(30, TimeUnit.SECONDS)
             .until(() -> {
                 GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset, 1024, null);
-                System.out.println(result);
+                System.out.printf(result + "/n");
                 return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() == totalNums;
             });
     }
