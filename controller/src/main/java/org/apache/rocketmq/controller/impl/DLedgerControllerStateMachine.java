@@ -69,7 +69,13 @@ public class DLedgerControllerStateMachine implements StateMachine {
         return false;
     }
 
+
     @Override
     public void onShutdown() {
+    }
+
+    @Override
+    public String getBindDLedgerId() {
+        return dLedgerId;
     }
 }

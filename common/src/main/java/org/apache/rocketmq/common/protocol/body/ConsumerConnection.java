@@ -27,9 +27,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumerConnection extends RemotingSerializable {
-    private HashSet<Connection> connectionSet = new HashSet<Connection>();
+    private HashSet<Connection> connectionSet = new HashSet<>();
     private ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
-        new ConcurrentHashMap<String, SubscriptionData>();
+        new ConcurrentHashMap<>();
     private ConsumeType consumeType;
     private MessageModel messageModel;
     private ConsumeFromWhere consumeFromWhere;

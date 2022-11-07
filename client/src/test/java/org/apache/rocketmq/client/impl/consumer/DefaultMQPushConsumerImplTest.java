@@ -65,7 +65,6 @@ public class DefaultMQPushConsumerImplTest {
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
-                System.out.println(" Receive New Messages: " + msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });

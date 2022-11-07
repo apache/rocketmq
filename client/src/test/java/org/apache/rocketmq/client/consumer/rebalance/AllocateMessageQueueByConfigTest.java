@@ -32,7 +32,7 @@ public class AllocateMessageQueueByConfigTest extends TestCase {
         AllocateMessageQueueByConfig allocateStrategy = new AllocateMessageQueueByConfig();
         allocateStrategy.setMessageQueueList(messageQueueList);
 
-        Map<String, int[]> consumerAllocateQueue = new HashMap<String, int[]>(consumerIdList.size());
+        Map<String, int[]> consumerAllocateQueue = new HashMap<>(consumerIdList.size());
         for (String consumerId : consumerIdList) {
             List<MessageQueue> queues = allocateStrategy.allocate("", consumerId, messageQueueList, consumerIdList);
             int[] queueIds = new int[queues.size()];
@@ -46,7 +46,7 @@ public class AllocateMessageQueueByConfigTest extends TestCase {
     }
 
     private List<String> createConsumerIdList(int size) {
-        List<String> consumerIdList = new ArrayList<String>(size);
+        List<String> consumerIdList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             consumerIdList.add("CID_PREFIX" + i);
         }
@@ -54,7 +54,7 @@ public class AllocateMessageQueueByConfigTest extends TestCase {
     }
 
     private List<MessageQueue> createMessageQueueList(int size) {
-        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(size);
+        List<MessageQueue> messageQueueList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             MessageQueue mq = new MessageQueue("topic", "brokerName", i);
             messageQueueList.add(mq);

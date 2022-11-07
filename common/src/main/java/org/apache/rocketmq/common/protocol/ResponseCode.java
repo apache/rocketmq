@@ -115,4 +115,10 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int CONTROLLER_INVALID_CLEAN_BROKER_METADATA = 2009;
 
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2010;
+
+    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2011;
+
+    public static final int CONTROLLER_REGISTER_BROKER_FAILED = 2012;
+
 }

@@ -114,7 +114,7 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
     @Before
     public void setUp() throws Throwable {
         super.before();
-        ConfigurationManager.getProxyConfig().setNameSrvAddr("1.1.1.1");
+        ConfigurationManager.getProxyConfig().setNamesrvAddr("1.1.1.1");
         channelManager = new ChannelManager();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);

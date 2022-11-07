@@ -29,6 +29,9 @@ public class BrokerContainerConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
     @ImportantField
+    private boolean fetchNameSrvAddrByDnsLookup = false;
+
+    @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
 
     @ImportantField
@@ -50,6 +53,14 @@ public class BrokerContainerConfig {
 
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
+    }
+
+    public boolean isFetchNameSrvAddrByDnsLookup() {
+        return fetchNameSrvAddrByDnsLookup;
+    }
+
+    public void setFetchNameSrvAddrByDnsLookup(boolean fetchNameSrvAddrByDnsLookup) {
+        this.fetchNameSrvAddrByDnsLookup = fetchNameSrvAddrByDnsLookup;
     }
 
     public boolean isFetchNamesrvAddrByAddressServer() {

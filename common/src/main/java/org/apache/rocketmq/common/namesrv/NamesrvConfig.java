@@ -78,6 +78,9 @@ public class NamesrvConfig {
      */
     private boolean enableControllerInNamesrv = false;
 
+    private volatile boolean needWaitForService = false;
+
+    private int waitSecondsForService = 45;
 
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
@@ -221,5 +224,21 @@ public class NamesrvConfig {
 
     public void setEnableControllerInNamesrv(boolean enableControllerInNamesrv) {
         this.enableControllerInNamesrv = enableControllerInNamesrv;
+    }
+
+    public boolean isNeedWaitForService() {
+        return needWaitForService;
+    }
+
+    public void setNeedWaitForService(boolean needWaitForService) {
+        this.needWaitForService = needWaitForService;
+    }
+
+    public int getWaitSecondsForService() {
+        return waitSecondsForService;
+    }
+
+    public void setWaitSecondsForService(int waitSecondsForService) {
+        this.waitSecondsForService = waitSecondsForService;
     }
 }

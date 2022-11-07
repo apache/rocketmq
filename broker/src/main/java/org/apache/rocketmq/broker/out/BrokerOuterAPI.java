@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.out;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -183,9 +184,32 @@ public class BrokerOuterAPI {
         return nameSrvAddr;
     }
 
+    private List<String> lookupNameServerAddress(String domain) {
+        List<String> addressList = new ArrayList<>();
+        try {
+            java.security.Security.setProperty("networkaddress.cache.ttl" , "10");
+            int index = domain.indexOf(":");
+            String portStr = domain.substring(index);
+            String domainStr = domain.substring(0, index);
+            InetAddress[] addresses = InetAddress.getAllByName(domainStr);
+            for (InetAddress address : addresses) {
+                addressList.add(address.getHostAddress() + portStr);
+            }
+            LOGGER.info("dns lookup address by domain success, domain={}, result={}", domain, addressList);
+        } catch (Exception e) {
+            LOGGER.error("dns lookup address by domain error, domain={}", domain, e);
+        }
+        return addressList;
+    }
+
     public void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
-        List<String> lst = new ArrayList<String>(Arrays.asList(addrArray));
+        List<String> lst = new ArrayList<>(Arrays.asList(addrArray));
+        this.remotingClient.updateNameServerAddressList(lst);
+    }
+
+    public void updateNameServerAddressListByDnsLookup(final String domain) {
+        List<String> lst = this.lookupNameServerAddress(domain);
         this.remotingClient.updateNameServerAddressList(lst);
     }
 

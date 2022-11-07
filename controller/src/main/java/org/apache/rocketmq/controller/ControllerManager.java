@@ -86,7 +86,7 @@ public class ControllerManager {
                 new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
             @Override
             protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
-                return new FutureTaskExt<T>(runnable, value);
+                return new FutureTaskExt<>(runnable, value);
             }
         };
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);

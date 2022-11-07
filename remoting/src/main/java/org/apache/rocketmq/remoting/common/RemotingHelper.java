@@ -34,8 +34,10 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RemotingHelper {
+    public static final String ROCKETMQ_TRAFFIC = "RocketmqTraffic";
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
     public static final String DEFAULT_CHARSET = "UTF-8";
+    public static final String DEFAULT_CIDR_ALL = "0.0.0.0/0";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
     private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");

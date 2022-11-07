@@ -65,14 +65,14 @@ public class PopSubCheckIT extends BaseConf {
         String topic = initTopic();
         logger.info(String.format("use topic: %s; group: %s !", topic, group));
 
-        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         producer.getProducer().setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
         for (String brokerAddr : new String[]{brokerController1.getBrokerAddr(), brokerController2.getBrokerAddr()}) {
             defaultMQAdminExt.setMessageRequestMode(brokerAddr, topic, group, MessageRequestMode.POP, 8, 60_000);
         }
 
-        RMQPopConsumer consumer = ConsumerFactory.getRMQPopConsumer(nsAddr, group,
+        RMQPopConsumer consumer = ConsumerFactory.getRMQPopConsumer(NAMESRV_ADDR, group,
             topic, "*", new RMQNormalListener());
         mqClients.add(consumer);
 

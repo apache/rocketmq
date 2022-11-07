@@ -18,7 +18,6 @@ package org.apache.rocketmq.namesrv.kvconfig;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -36,7 +35,7 @@ public class KVConfigManager {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
-        new HashMap<String, HashMap<String, String>>();
+        new HashMap<>();
 
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
@@ -178,15 +177,10 @@ public class KVConfigManager {
 
                 {
                     log.info("configTable SIZE: {}", this.configTable.size());
-                    Iterator<Entry<String, HashMap<String, String>>> it =
-                        this.configTable.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<String, HashMap<String, String>> next = it.next();
-                        Iterator<Entry<String, String>> itSub = next.getValue().entrySet().iterator();
-                        while (itSub.hasNext()) {
-                            Entry<String, String> nextSub = itSub.next();
+                    for (Entry<String, HashMap<String, String>> next : this.configTable.entrySet()) {
+                        for (Entry<String, String> nextSub : next.getValue().entrySet()) {
                             log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
-                                nextSub.getValue());
+                                    nextSub.getValue());
                         }
                     }
                 }

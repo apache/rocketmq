@@ -201,13 +201,13 @@ public class TimerMessageStore {
             dequeuePutMessageServices[i] = new TimerDequeuePutMessageService();
         }
         if (storeConfig.isTimerEnableDisruptor()) {
-            enqueuePutQueue = new DisruptorBlockingQueue<TimerRequest>(1024);
-            dequeueGetQueue = new DisruptorBlockingQueue<List<TimerRequest>>(1024);
-            dequeuePutQueue = new DisruptorBlockingQueue<TimerRequest>(1024);
+            enqueuePutQueue = new DisruptorBlockingQueue<>(1024);
+            dequeueGetQueue = new DisruptorBlockingQueue<>(1024);
+            dequeuePutQueue = new DisruptorBlockingQueue<>(1024);
         } else {
-            enqueuePutQueue = new LinkedBlockingDeque<TimerRequest>(1024);
-            dequeueGetQueue = new LinkedBlockingDeque<List<TimerRequest>>(1024);
-            dequeuePutQueue = new LinkedBlockingDeque<TimerRequest>(1024);
+            enqueuePutQueue = new LinkedBlockingDeque<>(1024);
+            dequeueGetQueue = new LinkedBlockingDeque<>(1024);
+            dequeuePutQueue = new LinkedBlockingDeque<>(1024);
         }
         this.brokerStatsManager = brokerStatsManager;
     }
@@ -1062,7 +1062,7 @@ public class TimerMessageStore {
                     case CREATE_MAPPED_FILE_FAILED:
                     case FLUSH_DISK_TIMEOUT:
                     case FLUSH_SLAVE_TIMEOUT:
-                    case OS_PAGECACHE_BUSY:
+                    case OS_PAGE_CACHE_BUSY:
                     case SLAVE_NOT_AVAILABLE:
                     case UNKNOWN_ERROR:
                     default:
@@ -1628,7 +1628,7 @@ public class TimerMessageStore {
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
             return false;
         }
-        if (congestNum >= storeConfig.getTimerCongestNumEachSlot() * 2) {
+        if (congestNum >= storeConfig.getTimerCongestNumEachSlot() * 2L) {
             return true;
         }
         if (RANDOM.nextInt(1000) > 1000 * (congestNum - storeConfig.getTimerCongestNumEachSlot()) / (storeConfig.getTimerCongestNumEachSlot() + 0.1)) {

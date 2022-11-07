@@ -39,13 +39,14 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -767,7 +768,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
-            final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
+            final int msgLen = MessageExtEncoder.calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
 
             ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
@@ -870,7 +871,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 final int topicLength = topicData.length;
 
-                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
+                final int msgLen = MessageExtEncoder.calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
                 ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
                 totalMsgLen += msgLen;

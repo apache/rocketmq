@@ -140,7 +140,6 @@ public class SendMessageProcessorTest {
         sendMessageHookList.add(sendMessageHook);
         sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
         assertPutResult(ResponseCode.SUCCESS);
-        System.out.println(sendMessageContext[0]);
         assertThat(sendMessageContext[0]).isNotNull();
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
@@ -268,7 +267,6 @@ public class SendMessageProcessorTest {
         sendMessageHookList.add(sendMessageHook);
         sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
         assertPutResult(ResponseCode.FLOW_CONTROL);
-        System.out.println(sendMessageContext[0]);
         assertThat(sendMessageContext[0]).isNotNull();
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);

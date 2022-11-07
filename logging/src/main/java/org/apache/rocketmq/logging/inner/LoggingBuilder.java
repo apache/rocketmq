@@ -145,9 +145,9 @@ public class LoggingBuilder {
 
         public static final int DEFAULT_BUFFER_SIZE = 128;
 
-        private final List<LoggingEvent> buffer = new ArrayList<LoggingEvent>();
+        private final List<LoggingEvent> buffer = new ArrayList<>();
 
-        private final Map<String, DiscardSummary> discardMap = new HashMap<String, DiscardSummary>();
+        private final Map<String, DiscardSummary> discardMap = new HashMap<>();
 
         private int bufferSize = DEFAULT_BUFFER_SIZE;
 
@@ -175,7 +175,7 @@ public class LoggingBuilder {
         }
 
         public void append(final LoggingEvent event) {
-            if ((dispatcher == null) || !dispatcher.isAlive() || (bufferSize <= 0)) {
+            if (dispatcher == null || !dispatcher.isAlive() || bufferSize <= 0) {
                 synchronized (appenderPipeline) {
                     appenderPipeline.appendLoopOnAppenders(event);
                 }
@@ -383,7 +383,7 @@ public class LoggingBuilder {
                             int bufferSize = buffer.size();
                             isActive = !parent.closed;
 
-                            while ((bufferSize == 0) && isActive) {
+                            while (bufferSize == 0 && isActive) {
                                 buffer.wait();
                                 bufferSize = buffer.size();
                                 isActive = !parent.closed;

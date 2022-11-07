@@ -72,21 +72,10 @@ public class HookUtils {
         }
 
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-        final int topicLength = topicData == null ? 0 : topicData.length;
 
-        if (topicLength > brokerController.getMessageStoreConfig().getMaxTopicLength()) {
-            LOG.warn("putMessage message topic[{}] length too long {}", msg.getTopic(), topicLength);
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (topicLength > Byte.MAX_VALUE) {
+        if (topicData.length > Byte.MAX_VALUE) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
-                msg.getTopic(), topicLength);
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (msg.getBody() == null) {
-            LOG.warn("putMessage message topic[{}], but message body is null", msg.getTopic());
+                msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
@@ -123,26 +112,27 @@ public class HookUtils {
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             if (!isRolledTimerMessage(msg)) {
                 if (checkIfTimerMessage(msg)) {
                     if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }
-                    PutMessageResult tranformRes = transformTimerMessage(brokerController, msg);
-                    if (null != tranformRes) {
-                        return tranformRes;
+                    PutMessageResult transformRes = transformTimerMessage(brokerController, msg);
+                    if (null != transformRes) {
+                        return transformRes;
                     }
                 }
             }
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
-                transformDelayLevelMessage(brokerController,msg);
+                transformDelayLevelMessage(brokerController, msg);
             }
         }
         return null;
     }
+
     private static boolean isRolledTimerMessage(MessageExtBrokerInner msg) {
         return TimerMessageStore.TIMER_TOPIC.equals(msg.getTopic());
     }
@@ -155,6 +145,9 @@ public class HookUtils {
             if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) {
                 MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
             }
+            if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS)) {
+                MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_MS);
+            }
             return false;
             //return this.defaultMessageStore.getMessageStoreConfig().isTimerInterceptDelayLevel();
         }
@@ -164,7 +157,9 @@ public class HookUtils {
         }
         return null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
     }
-    private static PutMessageResult transformTimerMessage(BrokerController brokerController, MessageExtBrokerInner msg) {
+
+    private static PutMessageResult transformTimerMessage(BrokerController brokerController,
+        MessageExtBrokerInner msg) {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
         long deliverMs;
@@ -180,7 +175,7 @@ public class HookUtils {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
         if (deliverMs > System.currentTimeMillis()) {
-            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000) {
+            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 

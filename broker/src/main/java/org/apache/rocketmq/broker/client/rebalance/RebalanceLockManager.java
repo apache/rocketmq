@@ -34,7 +34,7 @@ public class RebalanceLockManager {
         "rocketmq.broker.rebalance.lockMaxLiveTime", "60000"));
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
-        new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
+        new ConcurrentHashMap<>(1024);
 
     public boolean isLockAllExpired(final String group) {
         final ConcurrentHashMap<MessageQueue, LockEntry> lockEntryMap = mqLockTable.get(group);
@@ -124,8 +124,8 @@ public class RebalanceLockManager {
 
     public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
         final String clientId) {
-        Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
-        Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
+        Set<MessageQueue> lockedMqs = new HashSet<>(mqs.size());
+        Set<MessageQueue> notLockedMqs = new HashSet<>(mqs.size());
 
         for (MessageQueue mq : mqs) {
             if (this.isLocked(group, mq, clientId)) {

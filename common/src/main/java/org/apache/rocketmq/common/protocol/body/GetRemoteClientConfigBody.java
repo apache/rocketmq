@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GetRemoteClientConfigBody extends RemotingSerializable {
-    private List<String> keys = new ArrayList<String>();
+    private List<String> keys = new ArrayList<>();
 
     public List<String> getKeys() {
         return keys;

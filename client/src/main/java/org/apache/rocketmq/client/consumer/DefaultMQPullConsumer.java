@@ -76,7 +76,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * Topic set you want to register
      */
-    private Set<String> registerTopics = new HashSet<String>();
+    private Set<String> registerTopics = new HashSet<>();
     /**
      * Queue allocation algorithm
      */

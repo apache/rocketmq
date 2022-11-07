@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.test.container;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,7 +31,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -44,19 +43,11 @@ import static org.awaitility.Awaitility.await;
 public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
 
     private static final String CONSUME_GROUP = ScheduleSlaveActingMasterIT.class.getSimpleName() + "_Consumer";
-    private final static int MESSAGE_COUNT = 32;
-    private final static Random random = new Random();
+    private static final int MESSAGE_COUNT = 32;
+    private final Random random = new Random();
     private static DefaultMQProducer producer;
-    private final static String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private static byte[] MESSAGE_BODY;
-
-    static {
-        try {
-            MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-    }
+    private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
+    private static final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(StandardCharsets.UTF_8);
 
     void createTopic(String topic) {
         createTopicTo(master1With3Replicas, topic, 1, 1);

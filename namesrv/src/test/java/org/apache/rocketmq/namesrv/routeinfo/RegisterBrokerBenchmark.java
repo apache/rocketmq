@@ -147,7 +147,7 @@ public class RegisterBrokerBenchmark {
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             "",
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
     }
 
     @Benchmark
@@ -170,7 +170,7 @@ public class RegisterBrokerBenchmark {
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             "",
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
     }
 
     public static void main(String[] args) throws Exception {

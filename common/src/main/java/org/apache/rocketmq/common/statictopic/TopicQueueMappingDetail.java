@@ -28,7 +28,7 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
     // make sure this value is not null
-    private ConcurrentMap<Integer/*global id*/, List<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, List<LogicQueueMappingItem>>();
+    private ConcurrentMap<Integer/*global id*/, List<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<>();
 
     //make sure there is a default constructor
     public TopicQueueMappingDetail() {
@@ -59,9 +59,9 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         assert level == LEVEL_0 ;
 
         if (mappingDetail.hostedQueues == null || mappingDetail.hostedQueues.isEmpty()) {
-            return new ConcurrentHashMap<Integer, Integer>();
+            return new ConcurrentHashMap<>();
         }
-        ConcurrentMap<Integer, Integer> tmpIdMap = new ConcurrentHashMap<Integer, Integer>();
+        ConcurrentMap<Integer, Integer> tmpIdMap = new ConcurrentHashMap<>();
         for (Map.Entry<Integer, List<LogicQueueMappingItem>> entry: mappingDetail.hostedQueues.entrySet()) {
             Integer globalId =  entry.getKey();
             List<LogicQueueMappingItem> items = entry.getValue();
@@ -97,8 +97,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     public static boolean checkIfAsPhysical(TopicQueueMappingDetail mappingDetail, Integer globalId) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(mappingDetail, globalId);
         return mappingItems == null
-                || (mappingItems.size() == 1
-                &&  mappingItems.get(0).getLogicOffset() == 0);
+                || mappingItems.size() == 1
+                &&  mappingItems.get(0).getLogicOffset() == 0;
     }
 
     public ConcurrentMap<Integer, List<LogicQueueMappingItem>> getHostedQueues() {

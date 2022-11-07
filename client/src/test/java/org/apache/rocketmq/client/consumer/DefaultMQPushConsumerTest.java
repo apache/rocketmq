@@ -96,7 +96,7 @@ public class DefaultMQPushConsumerTest {
     private PullAPIWrapper pullAPIWrapper;
     private RebalanceImpl rebalanceImpl;
     private static DefaultMQPushConsumer pushConsumer;
-    private AtomicLong queueOffset = new AtomicLong(1024);;
+    private AtomicLong queueOffset = new AtomicLong(1024);
 
     @Before
     public void init() throws Exception {
@@ -163,7 +163,7 @@ public class DefaultMQPushConsumerTest {
         field.setAccessible(true);
         field.set(null, true);
 
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
 
@@ -212,7 +212,7 @@ public class DefaultMQPushConsumerTest {
     @Test
     public void testPullMessage_Success() throws InterruptedException, RemotingException, MQBrokerException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -235,7 +235,7 @@ public class DefaultMQPushConsumerTest {
     @Test(timeout = 20000)
     public void testPullMessage_SuccessWithOrderlyService() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
 
         MessageListenerOrderly listenerOrderly = new MessageListenerOrderly() {
             @Override

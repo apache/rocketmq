@@ -49,7 +49,7 @@ public class ExpiredLocalCache<K, T> {
     }
 
     public T put(K key, T v, long exp) {
-        CacheObject<T> value = new CacheObject<T>(exp, v);
+        CacheObject<T> value = new CacheObject<>(exp, v);
         CacheObject<T> old = cache.put(key, value);
         if (old == null) {
             return null;
@@ -59,7 +59,7 @@ public class ExpiredLocalCache<K, T> {
     }
 
     public T putIfAbsent(K key, T v, long exp) {
-        CacheObject<T> value = new CacheObject<T>(exp, v);
+        CacheObject<T> value = new CacheObject<>(exp, v);
         CacheObject<T> old = cache.putIfAbsent(key, value);
         if (old == null) {
             return null;

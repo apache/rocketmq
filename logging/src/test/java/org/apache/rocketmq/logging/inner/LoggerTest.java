@@ -66,8 +66,6 @@ public class LoggerTest extends BasicLoggerTest {
 
         String result = new String(byteArrayOutputStream.toByteArray());
 
-        System.out.println(result);
-
         Assert.assertTrue(result.contains("info"));
         Assert.assertTrue(result.contains("RuntimeException"));
         Assert.assertTrue(result.contains("WATERMARK"));
@@ -100,8 +98,6 @@ public class LoggerTest extends BasicLoggerTest {
         myappender.close();
 
         String content = readFile(file);
-
-        System.out.println(content);
 
         Assert.assertTrue(content.contains("info"));
         Assert.assertTrue(content.contains("RuntimeException"));

@@ -160,7 +160,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
 
@@ -176,7 +176,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,

@@ -88,9 +88,9 @@ public class ClientProcessor extends AbstractProcessor {
     public ClientChannelInfo findConsumerChannel(
         ProxyContext ctx,
         String consumerGroup,
-        String clientId
+        Channel channel
     ) {
-        return this.serviceManager.getConsumerManager().findChannel(consumerGroup, clientId);
+        return this.serviceManager.getConsumerManager().findChannel(consumerGroup, channel);
     }
 
     public void unRegisterConsumer(

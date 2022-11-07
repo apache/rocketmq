@@ -70,7 +70,7 @@ consumer.setConsumeThreadMax(20);
 
 ### 1. If you start a producer or consumer failed and the error message is producer group or consumer repeat.
 
-Reason：Using the same Producer /Consumer Group to launch multiple instances of Producer/Consumer in the same JVM may cause the client fail to start.
+Reason: Using the same Producer /Consumer Group to launch multiple instances of Producer/Consumer in the same JVM may cause the client fail to start.
 
 Solution: Make sure that a JVM corresponding to one Producer /Consumer Group starts only with one Producer/Consumer instance.
 

@@ -49,9 +49,9 @@ maven_install(
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
-        "org.apache.commons:commons-lang3:3.4",
+        "org.apache.commons:commons-lang3:3.12.0",
         "org.hamcrest:hamcrest-core:1.3",
-      # "io.openmessaging.storage:dledger:0.2.4",
+        "io.openmessaging.storage:dledger:0.3.1",
         "net.java.dev.jna:jna:4.2.2",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
@@ -59,7 +59,7 @@ maven_install(
         "io.opentracing:opentracing-mock:0.33.0",
         "commons-collections:commons-collections:3.2.2",
         "org.awaitility:awaitility:4.1.0",
-        "commons-cli:commons-cli:1.4",
+        "commons-cli:commons-cli:1.5.0",
         "com.google.guava:guava:31.0.1-jre",
         "org.yaml:snakeyaml:1.30",
         "commons-codec:commons-codec:1.13",
@@ -69,7 +69,7 @@ maven_install(
         "org.bouncycastle:bcpkix-jdk15on:1.69",
         "com.google.code.gson:gson:2.8.9",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.0.0",
+        "org.apache.rocketmq:rocketmq-proto:2.0.1",
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
@@ -86,6 +86,14 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
+        "org.springframework:spring-core:5.3.23",
+        "io.opentelemetry:opentelemetry-exporter-otlp:1.19.0",
+        "io.opentelemetry:opentelemetry-exporter-prometheus:1.19.0-alpha",
+        "io.opentelemetry:opentelemetry-sdk:1.19.0",
+        "com.squareup.okio:okio-jvm:3.0.0",
+        "io.opentelemetry:opentelemetry-api:1.19.0",
+        "io.opentelemetry:opentelemetry-sdk-metrics:1.19.0",
+        "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
     ],
     fetch_sources = True,
     repositories = [
@@ -116,11 +124,12 @@ http_archive(
 )
 
 http_archive(
-	name = "bazel_toolchains",
-	urls = ["https://github.com/bazelbuild/bazel-toolchains/archive/dac71231098d891e5c4b74a2078fe9343feef510.tar.gz"],
-	strip_prefix = "bazel-toolchains-dac71231098d891e5c4b74a2078fe9343feef510",
-	sha256 = "56d5370eb99559b4c74f334f81bc8a298f728bd16d5a4333c865c2ad10fae3bc",
+    name = "bazel_toolchains",
+    sha256 = "56d5370eb99559b4c74f334f81bc8a298f728bd16d5a4333c865c2ad10fae3bc",
+    strip_prefix = "bazel-toolchains-dac71231098d891e5c4b74a2078fe9343feef510",
+    urls = ["https://github.com/bazelbuild/bazel-toolchains/archive/dac71231098d891e5c4b74a2078fe9343feef510.tar.gz"],
 )
 
 load("@bazel_toolchains//repositories:repositories.bzl", bazel_toolchains_repositories = "repositories")
+
 bazel_toolchains_repositories()

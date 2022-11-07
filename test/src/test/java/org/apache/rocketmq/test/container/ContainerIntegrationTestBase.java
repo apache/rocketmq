@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.container.BrokerContainer;
 import org.apache.rocketmq.container.InnerSalveBrokerController;
 import org.apache.rocketmq.broker.BrokerController;
@@ -87,8 +88,8 @@ public class ContainerIntegrationTestBase {
 
     protected static final String THREE_REPLICAS_TOPIC = "SEND_MESSAGE_TEST_TOPIC_THREE_REPLICAS";
 
-    protected static final List<BrokerContainer> brokerContainerList = new ArrayList<>();
-    protected static final List<NamesrvController> namesrvControllers = new ArrayList<>();
+    protected static List<BrokerContainer> brokerContainerList = new ArrayList<>();
+    protected static List<NamesrvController> namesrvControllers = new ArrayList<>();
 
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
     protected static final int COMMIT_LOG_SIZE = 128 * 1024;
@@ -186,7 +187,6 @@ public class ContainerIntegrationTestBase {
         try {
             TopicConfig topicConfig = new TopicConfig(topicName, rqn, wqn, 6, 0);
             defaultMQAdminExt.createAndUpdateTopicConfig(masterBroker.getBrokerAddr(), topicConfig);
-
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer1);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer2);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer3);
@@ -403,6 +403,15 @@ public class ContainerIntegrationTestBase {
         producer.setInstanceName(UUID.randomUUID().toString());
         producer.setNamesrvAddr(nsAddr);
         producer.setTransactionCheckListener(transactionCheckListener);
+        return producer;
+    }
+
+    protected static TransactionMQProducer createTransactionProducer(String producerGroup,
+        TransactionListener transactionListener) {
+        TransactionMQProducer producer = new TransactionMQProducer(producerGroup);
+        producer.setInstanceName(UUID.randomUUID().toString());
+        producer.setNamesrvAddr(nsAddr);
+        producer.setTransactionListener(transactionListener);
         return producer;
     }
 

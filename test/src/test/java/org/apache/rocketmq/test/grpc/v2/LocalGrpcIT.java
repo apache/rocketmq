@@ -67,7 +67,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
 
         QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
 
-        assertQueryAssignment(response, brokerNum);
+        assertQueryAssignment(response, BROKER_NUM);
     }
 
     @Test

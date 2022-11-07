@@ -37,7 +37,7 @@ public class FilterAPITest {
         assertThat(subscriptionData.getTopic()).isEqualTo(topic);
         assertThat(subscriptionData.getSubString()).isEqualTo(subString);
         String[] tags = subString.split("\\|\\|");
-        Set<String> tagSet = new HashSet<String>();
+        Set<String> tagSet = new HashSet<>();
         for (String tag : tags) {
             tagSet.add(tag.trim());
         }

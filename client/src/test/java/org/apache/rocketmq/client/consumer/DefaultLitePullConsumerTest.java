@@ -139,7 +139,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribeWithListener_PollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumerWithListener();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -147,7 +147,7 @@ public class DefaultLitePullConsumerTest {
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
             assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
 
-            Set<MessageQueue> assignment= litePullConsumer.assignment();
+            Set<MessageQueue> assignment = litePullConsumer.assignment();
             assertThat(assignment.stream().findFirst().get()).isEqualTo(messageQueueSet.stream().findFirst().get());
         } finally {
             litePullConsumer.shutdown();
@@ -184,7 +184,7 @@ public class DefaultLitePullConsumerTest {
         offsetStore.set(litePullConsumerImpl, store);
 
         MessageQueue messageQueue = createMessageQueue();
-        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        HashSet<MessageQueue> set = new HashSet<>();
         set.add(messageQueue);
 
         //mock assign and reset offset
@@ -204,7 +204,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribe_PollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumer();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -220,7 +220,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribe_BroadcastPollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createBroadcastLitePullConsumer();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -460,7 +460,7 @@ public class DefaultLitePullConsumerTest {
                 flag = true;
             }
         });
-        Set<MessageQueue> set = new HashSet<MessageQueue>();
+        Set<MessageQueue> set = new HashSet<>();
         set.add(createMessageQueue());
         doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
         Thread.sleep(11 * 1000);
@@ -633,7 +633,7 @@ public class DefaultLitePullConsumerTest {
         offsetStore.set(litePullConsumerImpl, store);
 
         MessageQueue messageQueue = createMessageQueue();
-        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        HashSet<MessageQueue> set = new HashSet<>();
         set.add(messageQueue);
 
         //mock assign and reset offset

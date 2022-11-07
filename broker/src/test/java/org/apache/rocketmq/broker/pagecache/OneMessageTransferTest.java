@@ -26,7 +26,7 @@ import org.junit.Test;
 public class OneMessageTransferTest {
 
     @Test
-    public void OneMessageTransferTest(){
+    public void OneMessageTransferTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());
@@ -34,7 +34,7 @@ public class OneMessageTransferTest {
     }
 
     @Test
-    public void OneMessageTransferCountTest(){
+    public void OneMessageTransferCountTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());
@@ -43,7 +43,7 @@ public class OneMessageTransferTest {
     }
 
     @Test
-    public void OneMessageTransferPosTest(){
+    public void OneMessageTransferPosTest() {
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
         SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());

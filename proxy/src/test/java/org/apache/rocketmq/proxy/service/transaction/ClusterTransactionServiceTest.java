@@ -109,17 +109,17 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
     @Test
     public void testScanProducerHeartBeat() throws Exception {
         Mockito.reset(this.topicRouteService);
-        String BROKER_NAME2 = "broker-2-01";
-        String CLUSTER_NAME2 = "broker-2";
-        String BROKER_ADDR2 = "127.0.0.2:10911";
+        String brokerName2 = "broker-2-01";
+        String clusterName2 = "broker-2";
+        String brokerAddr2 = "127.0.0.2:10911";
 
         BrokerData brokerData = new BrokerData();
         QueueData queueData = new QueueData();
-        queueData.setBrokerName(BROKER_NAME2);
-        brokerData.setCluster(CLUSTER_NAME2);
-        brokerData.setBrokerName(BROKER_NAME2);
+        queueData.setBrokerName(brokerName2);
+        brokerData.setCluster(clusterName2);
+        brokerData.setBrokerName(brokerName2);
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR2);
+        brokerAddrs.put(MixAll.MASTER_ID, brokerName2);
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.getQueueDatas().add(queueData);
         topicRouteData.getBrokerDatas().add(brokerData);
@@ -143,15 +143,15 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         QueueData clusterQueueData2 = new QueueData();
         BrokerData clusterBrokerData2 = new BrokerData();
 
-        clusterQueueData2.setBrokerName(BROKER_NAME2);
+        clusterQueueData2.setBrokerName(brokerName2);
         clusterTopicRouteData2.setQueueDatas(Lists.newArrayList(clusterQueueData2));
-        clusterBrokerData2.setCluster(CLUSTER_NAME2);
-        clusterBrokerData2.setBrokerName(BROKER_NAME2);
+        clusterBrokerData2.setCluster(clusterName2);
+        clusterBrokerData2.setBrokerName(brokerName2);
         brokerAddrs = new HashMap<>();
-        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR2);
+        brokerAddrs.put(MixAll.MASTER_ID, brokerAddr2);
         clusterBrokerData2.setBrokerAddrs(brokerAddrs);
         clusterTopicRouteData2.setBrokerDatas(Lists.newArrayList(clusterBrokerData2));
-        when(this.topicRouteService.getAllMessageQueueView(eq(CLUSTER_NAME2))).thenReturn(new MessageQueueView(CLUSTER_NAME2, clusterTopicRouteData2));
+        when(this.topicRouteService.getAllMessageQueueView(eq(clusterName2))).thenReturn(new MessageQueueView(clusterName2, clusterTopicRouteData2));
 
         ConfigurationManager.getProxyConfig().setTransactionHeartbeatBatchNum(2);
         this.clusterTransactionService.start();
@@ -174,7 +174,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
         await().atMost(Duration.ofSeconds(1)).until(() -> brokerAddrArgumentCaptor.getAllValues().size() == 4);
 
-        assertEquals(Lists.newArrayList(BROKER_ADDR, BROKER_ADDR, BROKER_ADDR2, BROKER_ADDR2),
+        assertEquals(Lists.newArrayList(BROKER_ADDR, BROKER_ADDR, brokerAddr2, brokerAddr2),
             brokerAddrArgumentCaptor.getAllValues().stream().sorted().collect(Collectors.toList()));
 
         List<HeartbeatData> heartbeatDataList = heartbeatDataArgumentCaptor.getAllValues();
@@ -186,7 +186,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         }
 
         assertTrue(groupSet.isEmpty());
-        assertEquals(BROKER_NAME2, this.clusterTransactionService.getBrokerNameByAddr(BROKER_ADDR2));
+        assertEquals(brokerName2, this.clusterTransactionService.getBrokerNameByAddr(brokerAddr2));
         assertEquals(BROKER_NAME, this.clusterTransactionService.getBrokerNameByAddr(BROKER_ADDR));
     }
 }

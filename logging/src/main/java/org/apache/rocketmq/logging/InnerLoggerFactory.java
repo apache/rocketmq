@@ -345,7 +345,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
 
         private static void objectArrayAppend(StringBuilder sbuf, Object[] a, Map<Object[], Object> seenMap) {
             if (seenMap == null) {
-                seenMap = new HashMap<Object[], Object>();
+                seenMap = new HashMap<>();
             }
             sbuf.append('[');
             if (!seenMap.containsKey(a)) {

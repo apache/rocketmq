@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
+import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -38,6 +40,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -47,6 +50,10 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 public class PopReviveService extends ServiceThread {
     private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -94,9 +101,10 @@ public class PopReviveService extends ServiceThread {
         if (messageExt.getTags() != null) {
             msgInner.setTags(messageExt.getTags());
         } else {
-            MessageAccessor.setProperties(msgInner, new HashMap<String, String>());
+            MessageAccessor.setProperties(msgInner, new HashMap<>());
         }
         msgInner.setBornTimestamp(messageExt.getBornTimestamp());
+        msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
         msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
@@ -154,12 +162,14 @@ public class PopReviveService extends ServiceThread {
     }
 
     protected List<MessageExt> getReviveMessage(long offset, int queueId) {
-        PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32);
+        PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32, true);
         if (pullResult == null) {
             return null;
         }
         if (reachTail(pullResult, offset)) {
-            POP_LOGGER.info("reviveQueueId={}, reach tail,offset {}", queueId, offset);
+            if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
+                POP_LOGGER.info("reviveQueueId={}, reach tail,offset {}", queueId, offset);
+            }
         } else if (pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL || pullResult.getPullStatus() == PullStatus.NO_MATCHED_MSG) {
             POP_LOGGER.error("reviveQueueId={}, OFFSET_ILLEGAL {}, result is {}", queueId, offset, pullResult);
             if (!shouldRunPopRevive) {
@@ -173,14 +183,14 @@ public class PopReviveService extends ServiceThread {
 
     private boolean reachTail(PullResult pullResult, long offset) {
         return pullResult.getPullStatus() == PullStatus.NO_NEW_MSG
-            || (pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset());
+            || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset();
     }
 
     private MessageExt getBizMessage(String topic, long offset, int queueId, String brokerName) {
-        return this.brokerController.getEscapeBridge().getMessage(topic, offset, queueId, brokerName);
+        return this.brokerController.getEscapeBridge().getMessage(topic, offset, queueId, brokerName, false);
     }
 
-    public PullResult getMessage(String group, String topic, int queueId, long offset, int nums) {
+    public PullResult getMessage(String group, String topic, int queueId, long offset, int nums, boolean deCompressBody) {
         GetMessageResult getMessageResult = this.brokerController.getMessageStore().getMessage(group, topic, queueId, offset, nums, null);
 
         if (getMessageResult != null) {
@@ -189,12 +199,21 @@ public class PopReviveService extends ServiceThread {
             switch (getMessageResult.getStatus()) {
                 case FOUND:
                     pullStatus = PullStatus.FOUND;
-                    foundList = decodeMsgList(getMessageResult);
+                    foundList = decodeMsgList(getMessageResult, deCompressBody);
                     brokerController.getBrokerStatsManager().incGroupGetNums(group, topic, getMessageResult.getMessageCount());
                     brokerController.getBrokerStatsManager().incGroupGetSize(group, topic, getMessageResult.getBufferTotalSize());
                     brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
                     brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId,
                         brokerController.getMessageStore().now() - foundList.get(foundList.size() - 1).getStoreTimestamp());
+
+                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                        .put(LABEL_TOPIC, topic)
+                        .put(LABEL_CONSUMER_GROUP, group)
+                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic) || MixAll.isSysConsumerGroup(group))
+                        .build();
+                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
+                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
@@ -209,11 +228,14 @@ public class PopReviveService extends ServiceThread {
                 case NO_MATCHED_LOGIC_QUEUE:
                 case OFFSET_FOUND_NULL:
                 case OFFSET_OVERFLOW_BADLY:
-                case OFFSET_OVERFLOW_ONE:
                 case OFFSET_TOO_SMALL:
                     pullStatus = PullStatus.OFFSET_ILLEGAL;
                     POP_LOGGER.warn("offset illegal. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
+                    break;
+                case OFFSET_OVERFLOW_ONE:
+                    // no need to print WARN, because we use "offset + 1" to get the next message
+                    pullStatus = PullStatus.OFFSET_ILLEGAL;
                     break;
                 default:
                     assert false;
@@ -233,7 +255,7 @@ public class PopReviveService extends ServiceThread {
         }
     }
 
-    private List<MessageExt> decodeMsgList(GetMessageResult getMessageResult) {
+    private List<MessageExt> decodeMsgList(GetMessageResult getMessageResult, boolean deCompressBody) {
         List<MessageExt> foundList = new ArrayList<>();
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
@@ -244,7 +266,7 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.error("bb is null {}", getMessageResult);
                         continue;
                     }
-                    MessageExt msgExt = MessageDecoder.decode(bb);
+                    MessageExt msgExt = MessageDecoder.decode(bb, true, deCompressBody);
                     if (msgExt == null) {
                         POP_LOGGER.error("decode msgExt is null {}", getMessageResult);
                         continue;
@@ -263,6 +285,7 @@ public class PopReviveService extends ServiceThread {
 
     protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
+        HashMap<String, PopCheckPoint> mockPointMap = new HashMap<>();
         long startScanTime = System.currentTimeMillis();
         long endTime = 0;
         long oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId);
@@ -286,8 +309,10 @@ public class PopReviveService extends ServiceThread {
                 if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
                     endTime = System.currentTimeMillis();
                 }
-                POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
-                    queueId, offset, old, endTime);
+                if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
+                    POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}",
+                        queueId, offset, old, endTime);
+                }
                 if (endTime - firstRt > PopAckConstants.ackTimeInterval + PopAckConstants.SECOND) {
                     break;
                 }
@@ -330,15 +355,32 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.info("reviveQueueId={},find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
-                    PopCheckPoint point = map.get(ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime());
+                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime();
+                    PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
-                        continue;
-                    }
-                    int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
-                    if (indexOfAck > -1) {
-                        point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
+                        if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
+                            continue;
+                        }
+                        long ackWaitTime = System.currentTimeMillis() - messageExt.getDeliverTimeMs();
+                        long reviveAckWaitMs = brokerController.getBrokerConfig().getReviveAckWaitMs();
+                        if (ackWaitTime > reviveAckWaitMs) {
+                            // will use the reviveOffset of popCheckPoint to commit offset in mergeAndRevive
+                            PopCheckPoint mockPoint = createMockCkForAck(ackMsg, messageExt.getQueueOffset());
+                            POP_LOGGER.warn(
+                                "ack wait for {}ms cannot find ck, skip this ack. mergeKey:{}, ack:{}, mockCk:{}",
+                                reviveAckWaitMs, mergeKey, ackMsg, mockPoint);
+                            mockPointMap.put(mergeKey, mockPoint);
+                            if (firstRt == 0) {
+                                firstRt = mockPoint.getReviveTime();
+                            }
+                        }
                     } else {
-                        POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
+                        int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
+                        if (indexOfAck > -1) {
+                            point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
+                        } else {
+                            POP_LOGGER.error("invalid ack index, {}, {}", ackMsg, point);
+                        }
                     }
                 }
                 long deliverTime = messageExt.getDeliverTimeMs();
@@ -348,7 +390,22 @@ public class PopReviveService extends ServiceThread {
             }
             offset = offset + messageExts.size();
         }
+        consumeReviveObj.map.putAll(mockPointMap);
         consumeReviveObj.endTime = endTime;
+    }
+
+    private PopCheckPoint createMockCkForAck(AckMsg ackMsg, long reviveOffset) {
+        PopCheckPoint point = new PopCheckPoint();
+        point.setStartOffset(ackMsg.getStartOffset());
+        point.setPopTime(ackMsg.getPopTime());
+        point.setQueueId((byte) ackMsg.getQueueId());
+        point.setCId(ackMsg.getConsumerGroup());
+        point.setTopic(ackMsg.getTopic());
+        point.setNum((byte) 0);
+        point.setBitMap(0);
+        point.setReviveOffset(reviveOffset);
+        point.setBrokerName(ackMsg.getBrokerName());
+        return point;
     }
 
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {

@@ -22,12 +22,13 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -57,34 +58,36 @@ public class NamesrvStartup {
         controllerManagerMain();
     }
 
-    public static void main0(String[] args) {
+    public static NamesrvController main0(String[] args) {
         try {
             parseCommandlineAndConfigFile(args);
-            createAndStartNamesrvController();
+            NamesrvController controller = createAndStartNamesrvController();
+            return controller;
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
 
+        return null;
     }
 
-    public static void controllerManagerMain() {
+    public static ControllerManager controllerManagerMain() {
         try {
             if (namesrvConfig.isEnableControllerInNamesrv()) {
-                createAndStartControllerManager();
+                return createAndStartControllerManager();
             }
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
+        return null;
     }
 
     public static void parseCommandlineAndConfigFile(String[] args) throws Exception {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-        //PackageConflictDetect.detectFastjson();
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new DefaultParser());
         if (null == commandLine) {
             System.exit(-1);
             return;
@@ -141,12 +144,15 @@ public class NamesrvStartup {
 
     }
 
-    public static void createAndStartNamesrvController() throws Exception {
+    public static NamesrvController createAndStartNamesrvController() throws Exception {
+
         NamesrvController controller = createNamesrvController();
         start(controller);
-        String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+        NettyServerConfig serverConfig = controller.getNettyServerConfig();
+        String tip = MessageFormat.format("The Name Server boot success. serializeType={0}, address {1}:{2}", RemotingCommand.getSerializeTypeConfigInThisServer(), serverConfig.getBindAddress(), serverConfig.getListenPort());
         log.info(tip);
         System.out.printf("%s%n", tip);
+        return controller;
     }
 
     public static NamesrvController createNamesrvController() {
@@ -179,12 +185,13 @@ public class NamesrvStartup {
         return controller;
     }
 
-    public static void createAndStartControllerManager() throws Exception {
+    public static ControllerManager createAndStartControllerManager() throws Exception {
         ControllerManager controllerManager = createControllerManager();
         start(controllerManager);
         String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
         log.info(tip);
         System.out.printf("%s%n", tip);
+        return controllerManager;
     }
 
     public static ControllerManager createControllerManager() throws Exception {

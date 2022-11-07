@@ -354,10 +354,9 @@ public class AutoSwitchHAService extends DefaultHAService {
             return -1;
         }
 
-        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
-
         boolean doNext = true;
-        while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext) {
+        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
+        do {
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
                 break;
@@ -369,10 +368,8 @@ public class AutoSwitchHAService extends DefaultHAService {
                 int readSize = 0;
                 while (readSize < result.getSize()) {
                     DispatchRequest dispatchRequest = this.defaultMessageStore.getCommitLog().checkMessageAndReturnSize(result.getByteBuffer(), false, false);
-
-                    int size = dispatchRequest.getMsgSize();
-
                     if (dispatchRequest.isSuccess()) {
+                        int size = dispatchRequest.getMsgSize();
                         if (size > 0) {
                             reputFromOffset += size;
                             readSize += size;
@@ -388,7 +385,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             } finally {
                 result.release();
             }
-        }
+        } while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
 
         LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);

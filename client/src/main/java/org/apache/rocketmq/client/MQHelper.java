@@ -60,7 +60,7 @@ public class MQHelper {
         try {
             mqs = consumer.fetchSubscribeMessageQueues(topic);
             if (mqs != null && !mqs.isEmpty()) {
-                TreeSet<MessageQueue> mqsNew = new TreeSet<MessageQueue>(mqs);
+                TreeSet<MessageQueue> mqsNew = new TreeSet<>(mqs);
                 for (MessageQueue mq : mqsNew) {
                     long offset = consumer.searchOffset(mq, timestamp);
                     if (offset >= 0) {

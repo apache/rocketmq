@@ -96,8 +96,8 @@ public class RemotingUtil {
         try {
             // Traversal Network interface to get the first non-loopback and non-private address
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
-            ArrayList<String> ipv4Result = new ArrayList<String>();
-            ArrayList<String> ipv6Result = new ArrayList<String>();
+            ArrayList<String> ipv4Result = new ArrayList<>();
+            ArrayList<String> ipv6Result = new ArrayList<>();
             while (enumeration.hasMoreElements()) {
                 final NetworkInterface networkInterface = enumeration.nextElement();
                 if (isBridge(networkInterface)) {

@@ -80,7 +80,7 @@ public class ConsumerSubCommand implements SubCommand {
                 int i = 1;
                 long now = System.currentTimeMillis();
                 final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable =
-                    new TreeMap<String, ConsumerRunningInfo>();
+                    new TreeMap<>();
                 for (Connection conn : cc.getConnectionSet()) {
                     try {
                         ConsumerRunningInfo consumerRunningInfo =
