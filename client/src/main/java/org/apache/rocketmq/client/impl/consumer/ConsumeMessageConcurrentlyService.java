@@ -284,6 +284,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 List<MessageExt> msgBackFailed = new ArrayList<>(consumeRequest.getMsgs().size());
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
+                    // Maybe message is expired and cleaned, just ignore it.
+                    if (!consumeRequest.getProcessQueue().hasMessage(msg)) {
+                        log.info("Message does not exist in process queue, skip to send it back, topic={}, "
+                                + "brokerName={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getBrokerName(),
+                            msg.getQueueId(), msg.getQueueOffset());
+                        continue;
+                    }
                     boolean result = this.sendMessageBack(msg, context);
                     if (!result) {
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
