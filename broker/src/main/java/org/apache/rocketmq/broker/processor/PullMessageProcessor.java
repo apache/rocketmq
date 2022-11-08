@@ -16,12 +16,9 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import java.util.List;
-
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.List;
 import java.util.Objects;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -64,6 +61,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -309,7 +307,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark(String.format("the broker[%s] pulling message is forbidden",
-                    this.brokerController.getBrokerConfig().getBrokerIP1()));
+                this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
         }
 
@@ -708,38 +706,30 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void executeRequestWhenWakeup(final Channel channel,
-        final RemotingCommand request) throws RemotingCommandException {
-        Runnable run = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
+    public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) {
+        Runnable run = () -> {
+            try {
+                final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
-                    if (response != null) {
-                        response.setOpaque(request.getOpaque());
-                        response.markResponseType();
-                        try {
-                            channel.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                                @Override
-                                public void operationComplete(ChannelFuture future) throws Exception {
-                                    if (!future.isSuccess()) {
-                                        LOGGER.error("processRequestWrapper response to {} failed",
-                                            future.channel().remoteAddress(), future.cause());
-                                        LOGGER.error(request.toString());
-                                        LOGGER.error(response.toString());
-                                    }
-                                }
-                            });
-                        } catch (Throwable e) {
-                            LOGGER.error("processRequestWrapper process request over, but response failed", e);
-                            LOGGER.error(request.toString());
-                            LOGGER.error(response.toString());
-                        }
+                if (response != null) {
+                    response.setOpaque(request.getOpaque());
+                    response.markResponseType();
+                    try {
+                        NettyRemotingAbstract.writeResponse(channel, request, response, future -> {
+                            if (!future.isSuccess()) {
+                                LOGGER.error("processRequestWrapper response to {} failed", channel.remoteAddress(), future.cause());
+                                LOGGER.error(request.toString());
+                                LOGGER.error(response.toString());
+                            }
+                        });
+                    } catch (Throwable e) {
+                        LOGGER.error("processRequestWrapper process request over, but response failed", e);
+                        LOGGER.error(request.toString());
+                        LOGGER.error(response.toString());
                     }
-                } catch (RemotingCommandException e1) {
-                    LOGGER.error("excuteRequestWhenWakeup run", e1);
                 }
+            } catch (RemotingCommandException e1) {
+                LOGGER.error("excuteRequestWhenWakeup run", e1);
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));

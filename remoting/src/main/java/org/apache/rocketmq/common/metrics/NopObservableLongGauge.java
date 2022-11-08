@@ -14,22 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.metrics;
+package org.apache.rocketmq.common.metrics;
 
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.LongUpDownCounter;
-import io.opentelemetry.context.Context;
+import io.opentelemetry.api.metrics.ObservableLongGauge;
 
-public class NopLongUpDownCounter implements LongUpDownCounter {
-    @Override public void add(long l) {
-
-    }
-
-    @Override public void add(long l, Attributes attributes) {
-
-    }
-
-    @Override public void add(long l, Attributes attributes, Context context) {
-
-    }
+public class NopObservableLongGauge implements ObservableLongGauge {
 }

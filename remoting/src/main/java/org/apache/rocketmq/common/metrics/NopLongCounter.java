@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.metrics;
+package org.apache.rocketmq.common.metrics;
 
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.context.Context;
 
-public class NopLongHistogram implements LongHistogram {
-    @Override public void record(long l) {
+public class NopLongCounter implements LongCounter {
+    @Override public void add(long l) {
 
     }
 
-    @Override public void record(long l, Attributes attributes) {
+    @Override public void add(long l, Attributes attributes) {
 
     }
 
-    @Override public void record(long l, Attributes attributes, Context context) {
+    @Override public void add(long l, Attributes attributes, Context context) {
 
     }
 }
