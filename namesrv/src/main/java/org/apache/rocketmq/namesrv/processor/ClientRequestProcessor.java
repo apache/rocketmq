@@ -25,7 +25,6 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -43,7 +42,7 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
     protected NamesrvController namesrvController;
     private long startupTimeMillis;
 
-    private  AtomicBoolean needCheckNamesrvReady = new AtomicBoolean(true);
+    private AtomicBoolean needCheckNamesrvReady = new AtomicBoolean(true);
 
     public ClientRequestProcessor(final NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
@@ -62,16 +61,13 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        boolean namesrvReady = needCheckNamesrvReady.get()  && System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
+        boolean namesrvReady = needCheckNamesrvReady.get() && System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
 
         if (namesrvController.getNamesrvConfig().isNeedWaitForService() && !namesrvReady) {
-            //protect  logic
-            if (request.getCode() != RequestCode.REGISTER_BROKER && request.getCode() != RequestCode.UNREGISTER_BROKER) {
-                log.warn("name server not ready. request code {} ", request.getCode());
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("name server not ready");
-                return response;
-            }
+            log.warn("name server not ready. request code {} ", request.getCode());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("name server not ready");
+            return response;
         }
 
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
