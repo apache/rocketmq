@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -50,6 +51,10 @@ public class GrpcClientSettingsManager {
 
     public GrpcClientSettingsManager(MessagingProcessor messagingProcessor) {
         this.messagingProcessor = messagingProcessor;
+    }
+
+    public Settings getRawClientSettings(String clientId) {
+        return CLIENT_SETTINGS_MAP.get(clientId);
     }
 
     public Settings getClientSettings(ProxyContext ctx) {
@@ -182,6 +187,10 @@ public class GrpcClientSettingsManager {
 
     public void removeClientSettings(String clientId) {
         CLIENT_SETTINGS_MAP.remove(clientId);
+    }
+
+    public void computeIfPresent(String clientId, Function<Settings, Settings> function) {
+        CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, value) -> function.apply(value));
     }
 
     public Settings removeAndGetClientSettings(ProxyContext ctx) {

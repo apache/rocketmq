@@ -196,6 +196,14 @@ public class SimpleChannel extends AbstractChannel {
 
     }
 
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
+
+    public String getLocalAddress() {
+        return localAddress;
+    }
+
     public ChannelHandlerContext getChannelHandlerContext() {
         return channelHandlerContext;
     }

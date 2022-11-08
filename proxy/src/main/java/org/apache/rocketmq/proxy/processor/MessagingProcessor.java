@@ -285,6 +285,8 @@ public interface MessagingProcessor extends StartAndShutdown {
         ConsumerIdsChangeListener consumerIdsChangeListener
     );
 
+    void doChannelCloseEvent(String remoteAddr, Channel channel);
+
     ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup);
 
     void addTransactionSubscription(

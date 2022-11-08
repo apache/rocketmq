@@ -54,10 +54,12 @@ public class ProducerManager {
         this.brokerStatsManager = brokerStatsManager;
     }
 
+    @Override
     public int groupSize() {
         return this.groupChannelTable.size();
     }
 
+    @Override
     public boolean groupOnline(String group) {
         Map<Channel, ClientChannelInfo> channels = this.groupChannelTable.get(group);
         return channels != null && !channels.isEmpty();
@@ -67,6 +69,7 @@ public class ProducerManager {
         return groupChannelTable;
     }
 
+    @Override
     public ProducerTableInfo getProducerTable() {
         Map<String, List<ProducerInfo>> map = new HashMap<>();
         for (String group : this.groupChannelTable.keySet()) {
@@ -94,6 +97,7 @@ public class ProducerManager {
         return new ProducerTableInfo(map);
     }
 
+    @Override
     public void scanNotActiveChannel() {
         Iterator<Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>>> iterator = this.groupChannelTable.entrySet().iterator();
 
@@ -129,6 +133,7 @@ public class ProducerManager {
         }
     }
 
+    @Override
     public synchronized boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         boolean removed = false;
         if (channel != null) {
@@ -160,6 +165,7 @@ public class ProducerManager {
         return removed;
     }
 
+    @Override
     public synchronized void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         ClientChannelInfo clientChannelInfoFound = null;
 
@@ -183,6 +189,7 @@ public class ProducerManager {
         }
     }
 
+    @Override
     public synchronized void unregisterProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         ConcurrentHashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
         if (null != channelTable && !channelTable.isEmpty()) {
@@ -202,6 +209,7 @@ public class ProducerManager {
         }
     }
 
+    @Override
     public Channel getAvailableChannel(String groupId) {
         if (groupId == null) {
             return null;
@@ -242,6 +250,7 @@ public class ProducerManager {
         return lastActiveChannel;
     }
 
+    @Override
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
     }
@@ -257,6 +266,7 @@ public class ProducerManager {
         }
     }
 
+    @Override
     public void appendProducerChangeListener(ProducerChangeListener producerChangeListener) {
         producerChangeListenerList.add(producerChangeListener);
     }

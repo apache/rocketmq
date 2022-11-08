@@ -34,6 +34,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.ProxyMode;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 
 public class ProxyConfig implements ConfigFile {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -54,6 +56,12 @@ public class ProxyConfig implements ConfigFile {
     private String rocketMQClusterName = "";
     private String proxyClusterName = DEFAULT_CLUSTER_NAME;
     private String proxyName = StringUtils.isEmpty(localHostName) ? "DEFAULT_PROXY" : localHostName;
+
+    private String localServeAddr = "";
+
+    private String systemTopicClusterName = "";
+    private int heartbeatSyncerThreadPoolNums = 4;
+    private int heartbeatSyncerThreadPoolQueueCapacity = 100;
 
     /**
      * configuration for ThreadPoolMonitor
@@ -204,6 +212,15 @@ public class ProxyConfig implements ConfigFile {
     @Override
     public void initData() {
         parseDelayLevel();
+        if (StringUtils.isEmpty(localServeAddr)) {
+            this.localServeAddr = RemotingUtil.getLocalAddress();
+        }
+        if (StringUtils.isBlank(localServeAddr)) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "get local serve ip failed");
+        }
+        if (StringUtils.isBlank(systemTopicClusterName)) {
+            this.systemTopicClusterName = this.rocketMQClusterName;
+        }
     }
 
     public int computeDelayLevel(long timeMillis) {
@@ -265,6 +282,38 @@ public class ProxyConfig implements ConfigFile {
 
     public void setProxyName(String proxyName) {
         this.proxyName = proxyName;
+    }
+
+    public String getLocalServeAddr() {
+        return localServeAddr;
+    }
+
+    public void setLocalServeAddr(String localServeAddr) {
+        this.localServeAddr = localServeAddr;
+    }
+
+    public String getSystemTopicClusterName() {
+        return systemTopicClusterName;
+    }
+
+    public void setSystemTopicClusterName(String systemTopicClusterName) {
+        this.systemTopicClusterName = systemTopicClusterName;
+    }
+
+    public int getHeartbeatSyncerThreadPoolNums() {
+        return heartbeatSyncerThreadPoolNums;
+    }
+
+    public void setHeartbeatSyncerThreadPoolNums(int heartbeatSyncerThreadPoolNums) {
+        this.heartbeatSyncerThreadPoolNums = heartbeatSyncerThreadPoolNums;
+    }
+
+    public int getHeartbeatSyncerThreadPoolQueueCapacity() {
+        return heartbeatSyncerThreadPoolQueueCapacity;
+    }
+
+    public void setHeartbeatSyncerThreadPoolQueueCapacity(int heartbeatSyncerThreadPoolQueueCapacity) {
+        this.heartbeatSyncerThreadPoolQueueCapacity = heartbeatSyncerThreadPoolQueueCapacity;
     }
 
     public boolean isEnablePrintJstack() {
