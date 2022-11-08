@@ -78,7 +78,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
 
     protected void init(MessagingProcessor messagingProcessor) {
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
-        this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
+        this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
         this.receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);

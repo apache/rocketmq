@@ -275,6 +275,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public void doChannelCloseEvent(String remoteAddr, Channel channel) {
+        this.clientProcessor.doChannelCloseEvent(remoteAddr, channel);
+    }
+
+    @Override
     public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
         return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
     }

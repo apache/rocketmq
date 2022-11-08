@@ -16,9 +16,10 @@
  */
 package org.apache.rocketmq.proxy.service;
 
-import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.broker.client.ConsumerManagerInterface;
+import org.apache.rocketmq.broker.client.ProducerManagerInterface;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
@@ -30,13 +31,15 @@ public interface ServiceManager extends StartAndShutdown {
 
     TopicRouteService getTopicRouteService();
 
-    ProducerManager getProducerManager();
+    ProducerManagerInterface getProducerManager();
 
-    ConsumerManager getConsumerManager();
+    ConsumerManagerInterface getConsumerManager();
 
     TransactionService getTransactionService();
 
     ProxyRelayService getProxyRelayService();
 
     MetadataService getMetadataService();
+
+    AdminService getAdminService();
 }

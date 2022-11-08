@@ -32,6 +32,9 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.AdminService;
+import org.apache.rocketmq.proxy.service.admin.DefaultAdminService;
+import org.apache.rocketmq.proxy.service.client.ClusterConsumerManager;
 import org.apache.rocketmq.proxy.service.message.ClusterMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.ClusterMetadataService;
@@ -52,11 +55,12 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
 
     protected ClusterTransactionService clusterTransactionService;
     protected ProducerManager producerManager;
-    protected ConsumerManager consumerManager;
+    protected ClusterConsumerManager consumerManager;
     protected TopicRouteService topicRouteService;
     protected MessageService messageService;
     protected ProxyRelayService proxyRelayService;
     protected ClusterMetadataService metadataService;
+    protected AdminService adminService;
 
     protected ScheduledExecutorService scheduledExecutorService;
     protected MQClientAPIFactory messagingClientAPIFactory;
@@ -67,7 +71,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
         this.producerManager = new ProducerManager();
-        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout());
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout());
 
         this.messagingClientAPIFactory = new MQClientAPIFactory(
             "ClusterMQClient_",
@@ -76,7 +80,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             rpcHook,
             scheduledExecutorService);
         this.operationClientAPIFactory = new MQClientAPIFactory(
-            "TopicRouteServiceClient_",
+            "OperationClient_",
             1,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
@@ -95,6 +99,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
+        this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 
         this.init();
     }
@@ -118,6 +123,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
+        this.appendStartAndShutdown(this.consumerManager);
     }
 
     @Override
@@ -153,6 +159,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     @Override
     public MetadataService getMetadataService() {
         return this.metadataService;
+    }
+
+    @Override
+    public AdminService getAdminService() {
+        return this.adminService;
     }
 
     protected static class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
