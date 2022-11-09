@@ -66,7 +66,7 @@ public class ProcessQueueTest {
     }
 
     @Test
-    public void testHasMessage() {
+    public void testContainsMessage() {
         ProcessQueue pq = new ProcessQueue();
         final List<MessageExt> messageList = createMessageList(2);
         final MessageExt message0 = messageList.get(0);
