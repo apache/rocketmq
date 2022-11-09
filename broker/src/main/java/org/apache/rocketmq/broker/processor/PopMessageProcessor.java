@@ -682,6 +682,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         }
         if (queue.add(request)) {
+            remotingCommand.setSuspended(true);
             totalPollingNum.incrementAndGet();
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("polling {}, result POLLING_SUC", remotingCommand);

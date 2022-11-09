@@ -78,5 +78,9 @@
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio-jvm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

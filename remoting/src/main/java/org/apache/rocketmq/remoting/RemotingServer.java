@@ -18,7 +18,7 @@ package org.apache.rocketmq.remoting;
 
 import io.netty.channel.Channel;
 import java.util.concurrent.ExecutorService;
-import org.apache.rocketmq.remoting.common.Pair;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;

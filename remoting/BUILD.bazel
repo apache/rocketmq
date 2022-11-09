@@ -24,8 +24,9 @@ java_library(
         "//logging",
         "@maven//:com_alibaba_fastjson",
         "@maven//:com_google_guava_guava",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_squareup_okio_okio_jvm",
         "@maven//:io_netty_netty_all",
-        "@maven//:org_apache_commons_commons_lang3",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_context",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
@@ -33,7 +34,8 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk",
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
-        "@maven//:com_squareup_okio_okio_jvm",
+        "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:org_apache_commons_commons_lang3",
     ],
 )
 
@@ -44,11 +46,12 @@ java_library(
     deps = [
         ":remoting",
         "//:test_deps",
-        "@maven//:io_netty_netty_all",
+        "@maven//:com_alibaba_fastjson",
         "@maven//:com_google_code_gson_gson",
         "@maven//:com_google_guava_guava",
-        "@maven//:com_alibaba_fastjson",
-        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_squareup_okio_okio_jvm",
+        "@maven//:io_netty_netty_all",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_context",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
@@ -56,7 +59,8 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk",
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
-        "@maven//:com_squareup_okio_okio_jvm",
+        "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:org_apache_commons_commons_lang3",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
