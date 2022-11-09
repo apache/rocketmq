@@ -81,7 +81,7 @@ public class ThreadPoolMonitor {
         String name,
         int queueCapacity,
         List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+        ThreadPoolExecutor executor = new FutureTaskExtThreadPoolExecutor(
             corePoolSize,
             maximumPoolSize,
             keepAliveTime,

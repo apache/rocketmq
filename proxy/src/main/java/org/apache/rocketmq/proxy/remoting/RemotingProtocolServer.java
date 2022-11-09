@@ -17,22 +17,21 @@
 
 package org.apache.rocketmq.proxy.remoting;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.Channel;
-import java.lang.reflect.Field;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.broker.latency.FutureTaskExt;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.thread.ThreadPoolStatusMonitor;
-import org.apache.rocketmq.proxy.common.ReflectionCache;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -78,8 +77,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor updateOffsetExecutor;
     protected final ThreadPoolExecutor topicRouteExecutor;
     protected final ThreadPoolExecutor defaultExecutor;
-
-    private final ReflectionCache reflectionCache = new ReflectionCache();
+    protected final ScheduledExecutorService timerExecutor;
 
     public RemotingProtocolServer(MessagingProcessor messagingProcessor) {
         this.messagingProcessor = messagingProcessor;
@@ -173,10 +171,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             config.getRemotingDefaultThreadPoolQueueCapacity(),
             new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInDefaultQueue())
         );
-    }
 
-    protected void init() {
-
+        this.timerExecutor = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setNameFormat("RemotingServerScheduler-%d").build()
+        );
+        this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
     }
 
     protected void registerRemotingServer(RemotingServer remotingServer) {
@@ -342,19 +341,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     private RequestTask castRunnable(final Runnable runnable) {
         try {
-            if (runnable instanceof FutureTask) {
-                Field callableField = reflectionCache.getDeclaredField(FutureTask.class, "callable");
-                Callable callable = (Callable) callableField.get(runnable);
-                if (callable == null) {
-                    return null;
-                }
-                Field taskField = reflectionCache.getDeclaredField(callable.getClass(), "task");
-                if (taskField == null) {
-                    log.warn("get task from FutureTask failed. class:{}", runnable.getClass().getName());
-                    return null;
-                }
-                return (RequestTask) taskField.get(callable);
-            } else if (runnable instanceof FutureTaskExt) {
+            if (runnable instanceof FutureTaskExt) {
                 FutureTaskExt futureTaskExt = (FutureTaskExt) runnable;
                 return (RequestTask) futureTaskExt.getRunnable();
             }
