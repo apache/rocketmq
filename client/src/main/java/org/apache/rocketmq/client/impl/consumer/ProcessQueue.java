@@ -334,6 +334,27 @@ public class ProcessQueue {
         return result;
     }
 
+    /**
+     * Return the result that whether current message is exist in the process queue or not.
+     */
+    public boolean containsMessage(MessageExt message) {
+        if (message == null) {
+            // should never reach here.
+            return false;
+        }
+        try {
+            this.treeMapLock.readLock().lockInterruptibly();
+            try {
+                return this.msgTreeMap.containsKey(message.getQueueOffset());
+            } finally {
+                this.treeMapLock.readLock().unlock();
+            }
+        } catch (Throwable t) {
+            log.error("Failed to check message's existence in process queue, message={}", message, t);
+        }
+        return false;
+    }
+
     public boolean hasTempMessage() {
         try {
             this.treeMapLock.readLock().lockInterruptibly();
