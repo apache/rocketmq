@@ -651,6 +651,8 @@ public class TopicQueueMappingUtils {
             LogicQueueMappingItem item =  mappingItems.get(i);
             if (ignoreNegative && item.getLogicOffset() < 0) {
                 continue;
+            } else {
+                return item;
             }
         }
         return null;
