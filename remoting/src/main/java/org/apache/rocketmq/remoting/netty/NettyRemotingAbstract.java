@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import com.google.common.base.Stopwatch;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -244,7 +243,6 @@ public abstract class NettyRemotingAbstract {
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
         final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessorPair : matched;
         final int opaque = cmd.getOpaque();
-        cmd.setProcessTimer(Stopwatch.createStarted());
 
         if (pair == null) {
             String error = " request type " + cmd.getCode() + " not supported";
