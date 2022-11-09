@@ -26,6 +26,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.WriteBufferWaterMark;
@@ -93,9 +94,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     private final ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<>();
 
-    private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
-    private static final String TLS_HANDLER_NAME = "sslHandler";
-    private static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
+    public static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
+    public static final String TLS_HANDLER_NAME = "sslHandler";
+    public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     // sharable handlers
     private HandshakeHandler handshakeHandler;
@@ -242,17 +243,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
-                    ch.pipeline()
-                        .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
-                        .addLast(defaultEventExecutorGroup,
-                            encoder,
-                            new NettyDecoder(),
-                            distributionHandler,
-                            new IdleStateHandler(0, 0,
-                                nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                            connectionManageHandler,
-                            serverHandler
-                        );
+                    configChannel(ch);
                 }
             });
 
@@ -295,6 +286,25 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 TRAFFIC_LOGGER.error("NettyRemotingServer print remoting code distribution exception", e);
             }
         }, 1, 1, TimeUnit.SECONDS);
+    }
+
+    /**
+     * config channel in ChannelInitializer
+     * @param ch the SocketChannel needed to init
+     * @return the initialized ChannelPipeline, sub class can use it to extent in the future
+     */
+    protected ChannelPipeline configChannel(SocketChannel ch) {
+        return ch.pipeline()
+            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
+            .addLast(defaultEventExecutorGroup,
+                encoder,
+                new NettyDecoder(),
+                distributionHandler,
+                new IdleStateHandler(0, 0,
+                    nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                connectionManageHandler,
+                serverHandler
+            );
     }
 
     private void addCustomConfig(ServerBootstrap childHandler) {
@@ -438,8 +448,32 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    public DefaultEventExecutorGroup getDefaultEventExecutorGroup() {
+        return defaultEventExecutorGroup;
+    }
+
+    public HandshakeHandler getHandshakeHandler() {
+        return handshakeHandler;
+    }
+
+    public NettyEncoder getEncoder() {
+        return encoder;
+    }
+
+    public NettyConnectManageHandler getConnectionManageHandler() {
+        return connectionManageHandler;
+    }
+
+    public NettyServerHandler getServerHandler() {
+        return serverHandler;
+    }
+
+    public RemotingCodeDistributionHandler getDistributionHandler() {
+        return distributionHandler;
+    }
+
     @ChannelHandler.Sharable
-    class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
+    public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
         private final TlsMode tlsMode;
 
@@ -496,7 +530,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     @ChannelHandler.Sharable
-    class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+    public class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) {
@@ -529,7 +563,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     @ChannelHandler.Sharable
-    class NettyConnectManageHandler extends ChannelDuplexHandler {
+    public class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());

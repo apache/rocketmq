@@ -18,22 +18,26 @@
 package org.apache.rocketmq.proxy.remoting.protocol.remoting;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolHandler;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
+import org.apache.rocketmq.remoting.netty.RemotingCodeDistributionHandler;
 
 public class RemotingProtocolHandler implements ProtocolHandler {
 
     private final NettyEncoder encoder;
-    private final ChannelDuplexHandler connectionManageHandler;
-    private final SimpleChannelInboundHandler serverHandler;
+    private final RemotingCodeDistributionHandler remotingCodeDistributionHandler;
+    private final NettyRemotingServer.NettyConnectManageHandler connectionManageHandler;
+    private final NettyRemotingServer.NettyServerHandler serverHandler;
 
-    public RemotingProtocolHandler(NettyEncoder encoder, ChannelDuplexHandler connectionManageHandler,
-        SimpleChannelInboundHandler serverHandler) {
+    public RemotingProtocolHandler(NettyEncoder encoder,
+        RemotingCodeDistributionHandler remotingCodeDistributionHandler,
+        NettyRemotingServer.NettyConnectManageHandler connectionManageHandler,
+        NettyRemotingServer.NettyServerHandler serverHandler) {
         this.encoder = encoder;
+        this.remotingCodeDistributionHandler = remotingCodeDistributionHandler;
         this.connectionManageHandler = connectionManageHandler;
         this.serverHandler = serverHandler;
     }
@@ -48,6 +52,7 @@ public class RemotingProtocolHandler implements ProtocolHandler {
         ctx.pipeline().addLast(
             this.encoder,
             new NettyDecoder(),
+            this.remotingCodeDistributionHandler,
             this.connectionManageHandler,
             this.serverHandler
         );
