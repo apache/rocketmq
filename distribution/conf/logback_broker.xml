@@ -260,7 +260,7 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
@@ -287,6 +287,7 @@
 
     <logger name="RocketmqStore" additivity="false">
         <level value="INFO"/>
+        <appender-ref ref="STDOUT"/>
         <appender-ref ref="RocketmqStoreAppender"/>
     </logger>
 
