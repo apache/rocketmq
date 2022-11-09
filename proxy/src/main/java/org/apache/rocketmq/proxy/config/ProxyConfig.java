@@ -209,6 +209,33 @@ public class ProxyConfig implements ConfigFile {
 
     private long channelExpiredTimeout = 1000 * 120;
 
+    // remoting
+
+    private boolean enableRemotingLocalProxyGrpc = true;
+    private int localProxyConnectTimeoutMs = 3000;
+    private int remotingListenPort = 8080;
+
+    private int remotingHeartbeatThreadPoolNums = 2 * PROCESSOR_NUMBER;
+    private int remotingTopicRouteThreadPoolNums = 2 * PROCESSOR_NUMBER;
+    private int remotingSendMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingPullMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingUpdateOffsetThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingDefaultThreadPoolNums = 4 * PROCESSOR_NUMBER;
+
+    private int remotingHeartbeatThreadPoolQueueCapacity = 50000;
+    private int remotingTopicRouteThreadPoolQueueCapacity = 50000;
+    private int remotingSendThreadPoolQueueCapacity = 10000;
+    private int remotingPullThreadPoolQueueCapacity = 50000;
+    private int remotingUpdateOffsetThreadPoolQueueCapacity = 10000;
+    private int remotingDefaultThreadPoolQueueCapacity = 50000;
+
+    private long remotingWaitTimeMillsInSendQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInPullQueue = 5 * 1000;
+    private long remotingWaitTimeMillsInHeartbeatQueue = 31 * 1000;
+    private long remotingWaitTimeMillsInUpdateOffsetQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInTopicRouteQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInDefaultQueue = 3 * 1000;
+
     @Override
     public void initData() {
         parseDelayLevel();
@@ -1124,7 +1151,176 @@ public class ProxyConfig implements ConfigFile {
         return channelExpiredTimeout;
     }
 
+    public boolean isEnableRemotingLocalProxyGrpc() {
+        return enableRemotingLocalProxyGrpc;
+    }
+
     public void setChannelExpiredTimeout(long channelExpiredTimeout) {
         this.channelExpiredTimeout = channelExpiredTimeout;
+    }
+}
+
+    public void setEnableRemotingLocalProxyGrpc(boolean enableRemotingLocalProxyGrpc) {
+        this.enableRemotingLocalProxyGrpc = enableRemotingLocalProxyGrpc;
+    }
+
+    public int getLocalProxyConnectTimeoutMs() {
+        return localProxyConnectTimeoutMs;
+    }
+
+    public void setLocalProxyConnectTimeoutMs(int localProxyConnectTimeoutMs) {
+        this.localProxyConnectTimeoutMs = localProxyConnectTimeoutMs;
+    }
+
+    public int getRemotingListenPort() {
+        return remotingListenPort;
+    }
+
+    public void setRemotingListenPort(int remotingListenPort) {
+        this.remotingListenPort = remotingListenPort;
+    }
+
+    public int getRemotingHeartbeatThreadPoolNums() {
+        return remotingHeartbeatThreadPoolNums;
+    }
+
+    public void setRemotingHeartbeatThreadPoolNums(int remotingHeartbeatThreadPoolNums) {
+        this.remotingHeartbeatThreadPoolNums = remotingHeartbeatThreadPoolNums;
+    }
+
+    public int getRemotingTopicRouteThreadPoolNums() {
+        return remotingTopicRouteThreadPoolNums;
+    }
+
+    public void setRemotingTopicRouteThreadPoolNums(int remotingTopicRouteThreadPoolNums) {
+        this.remotingTopicRouteThreadPoolNums = remotingTopicRouteThreadPoolNums;
+    }
+
+    public int getRemotingSendMessageThreadPoolNums() {
+        return remotingSendMessageThreadPoolNums;
+    }
+
+    public void setRemotingSendMessageThreadPoolNums(int remotingSendMessageThreadPoolNums) {
+        this.remotingSendMessageThreadPoolNums = remotingSendMessageThreadPoolNums;
+    }
+
+    public int getRemotingPullMessageThreadPoolNums() {
+        return remotingPullMessageThreadPoolNums;
+    }
+
+    public void setRemotingPullMessageThreadPoolNums(int remotingPullMessageThreadPoolNums) {
+        this.remotingPullMessageThreadPoolNums = remotingPullMessageThreadPoolNums;
+    }
+
+    public int getRemotingUpdateOffsetThreadPoolNums() {
+        return remotingUpdateOffsetThreadPoolNums;
+    }
+
+    public void setRemotingUpdateOffsetThreadPoolNums(int remotingUpdateOffsetThreadPoolNums) {
+        this.remotingUpdateOffsetThreadPoolNums = remotingUpdateOffsetThreadPoolNums;
+    }
+
+    public int getRemotingDefaultThreadPoolNums() {
+        return remotingDefaultThreadPoolNums;
+    }
+
+    public void setRemotingDefaultThreadPoolNums(int remotingDefaultThreadPoolNums) {
+        this.remotingDefaultThreadPoolNums = remotingDefaultThreadPoolNums;
+    }
+
+    public int getRemotingHeartbeatThreadPoolQueueCapacity() {
+        return remotingHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingHeartbeatThreadPoolQueueCapacity(int remotingHeartbeatThreadPoolQueueCapacity) {
+        this.remotingHeartbeatThreadPoolQueueCapacity = remotingHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingTopicRouteThreadPoolQueueCapacity() {
+        return remotingTopicRouteThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingTopicRouteThreadPoolQueueCapacity(int remotingTopicRouteThreadPoolQueueCapacity) {
+        this.remotingTopicRouteThreadPoolQueueCapacity = remotingTopicRouteThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingSendThreadPoolQueueCapacity() {
+        return remotingSendThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingSendThreadPoolQueueCapacity(int remotingSendThreadPoolQueueCapacity) {
+        this.remotingSendThreadPoolQueueCapacity = remotingSendThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingPullThreadPoolQueueCapacity() {
+        return remotingPullThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingPullThreadPoolQueueCapacity(int remotingPullThreadPoolQueueCapacity) {
+        this.remotingPullThreadPoolQueueCapacity = remotingPullThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingUpdateOffsetThreadPoolQueueCapacity() {
+        return remotingUpdateOffsetThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingUpdateOffsetThreadPoolQueueCapacity(int remotingUpdateOffsetThreadPoolQueueCapacity) {
+        this.remotingUpdateOffsetThreadPoolQueueCapacity = remotingUpdateOffsetThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingDefaultThreadPoolQueueCapacity() {
+        return remotingDefaultThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingDefaultThreadPoolQueueCapacity(int remotingDefaultThreadPoolQueueCapacity) {
+        this.remotingDefaultThreadPoolQueueCapacity = remotingDefaultThreadPoolQueueCapacity;
+    }
+
+    public long getRemotingWaitTimeMillsInSendQueue() {
+        return remotingWaitTimeMillsInSendQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInSendQueue(long remotingWaitTimeMillsInSendQueue) {
+        this.remotingWaitTimeMillsInSendQueue = remotingWaitTimeMillsInSendQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInPullQueue() {
+        return remotingWaitTimeMillsInPullQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInPullQueue(long remotingWaitTimeMillsInPullQueue) {
+        this.remotingWaitTimeMillsInPullQueue = remotingWaitTimeMillsInPullQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInHeartbeatQueue() {
+        return remotingWaitTimeMillsInHeartbeatQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInHeartbeatQueue(long remotingWaitTimeMillsInHeartbeatQueue) {
+        this.remotingWaitTimeMillsInHeartbeatQueue = remotingWaitTimeMillsInHeartbeatQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInUpdateOffsetQueue() {
+        return remotingWaitTimeMillsInUpdateOffsetQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInUpdateOffsetQueue(long remotingWaitTimeMillsInUpdateOffsetQueue) {
+        this.remotingWaitTimeMillsInUpdateOffsetQueue = remotingWaitTimeMillsInUpdateOffsetQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInTopicRouteQueue() {
+        return remotingWaitTimeMillsInTopicRouteQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInTopicRouteQueue(long remotingWaitTimeMillsInTopicRouteQueue) {
+        this.remotingWaitTimeMillsInTopicRouteQueue = remotingWaitTimeMillsInTopicRouteQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInDefaultQueue() {
+        return remotingWaitTimeMillsInDefaultQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInDefaultQueue(long remotingWaitTimeMillsInDefaultQueue) {
+        this.remotingWaitTimeMillsInDefaultQueue = remotingWaitTimeMillsInDefaultQueue;
     }
 }
