@@ -118,7 +118,7 @@ public class GrpcServerBuilder {
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        boolean tlsTestModeEnable = proxyConfig.isGrpcTlsTestModeEnable();
+        boolean tlsTestModeEnable = proxyConfig.isTlsTestModeEnable();
         if (tlsTestModeEnable) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
             serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
@@ -128,8 +128,8 @@ public class GrpcServerBuilder {
             return;
         }
 
-        String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
-        String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
+        String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+        String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
         try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
              InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
             serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
