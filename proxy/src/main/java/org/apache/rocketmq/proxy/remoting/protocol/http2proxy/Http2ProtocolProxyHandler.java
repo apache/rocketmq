@@ -43,7 +43,7 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
     private static final String LOCAL_HOST = "127.0.0.1";
     /**
      * The int value of "PRI ". Now use 4 bytes to judge protocol, may be has potential risks if there is a new protocol
-     * which start with "PRI " too in the future
+     * which start with "PRI " in the future
      * <p>
      * The full HTTP/2 connection preface is "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
      * <p>
