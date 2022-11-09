@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -53,6 +52,7 @@ public class PullRequestHoldService extends ServiceThread {
             }
         }
 
+        pullRequest.getRequestCommand().setSuspended(true);
         mpr.addPullRequest(pullRequest);
     }
 

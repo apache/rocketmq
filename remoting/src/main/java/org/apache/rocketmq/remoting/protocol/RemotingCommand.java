@@ -17,13 +17,9 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
+import com.google.common.base.Stopwatch;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -36,9 +32,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -90,6 +89,8 @@ public class RemotingCommand {
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
     private transient byte[] body;
+    private boolean suspended;
+    private Stopwatch processTimer;
 
     protected RemotingCommand() {
     }
@@ -587,6 +588,16 @@ public class RemotingCommand {
         this.body = body;
     }
 
+    @JSONField(serialize = false)
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    @JSONField(serialize = false)
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
     public HashMap<String, String> getExtFields() {
         return extFields;
     }
@@ -615,5 +626,13 @@ public class RemotingCommand {
 
     public void setSerializeTypeCurrentRPC(SerializeType serializeTypeCurrentRPC) {
         this.serializeTypeCurrentRPC = serializeTypeCurrentRPC;
+    }
+
+    public Stopwatch getProcessTimer() {
+        return processTimer;
+    }
+
+    public void setProcessTimer(Stopwatch processTimer) {
+        this.processTimer = processTimer;
     }
 }
