@@ -77,7 +77,7 @@ public class SendMessageActivity extends AbstractRemotingActivity {
         }
         if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
             if (TopicMessageType.TRANSACTION.equals(messageType)) {
-                return sendTransactionMessage(ctx, request, context);
+                messagingProcessor.addTransactionSubscription(context, requestHeader.getProducerGroup(), requestHeader.getTopic());
             }
         }
         return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
@@ -86,11 +86,5 @@ public class SendMessageActivity extends AbstractRemotingActivity {
     protected RemotingCommand consumerSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
-    }
-
-    protected RemotingCommand sendTransactionMessage(ChannelHandlerContext ctx, RemotingCommand request,
-        ProxyContext context) throws Exception {
-        // TODO: wait for connection implement.
-        return null;
     }
 }

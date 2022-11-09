@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.remoting.activity.GetTopicRouteActivity;
 import org.apache.rocketmq.proxy.remoting.activity.PopMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.PullMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.SendMessageActivity;
+import org.apache.rocketmq.proxy.remoting.activity.TransactionActivity;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -67,6 +68,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ClientManagerActivity clientManagerActivity;
     protected final ConsumerManagerActivity consumerManagerActivity;
     protected final SendMessageActivity sendMessageActivity;
+    protected final TransactionActivity transactionActivity;
     protected final PullMessageActivity pullMessageActivity;
     protected final PopMessageActivity popMessageActivity;
     protected final AckMessageActivity ackMessageActivity;
@@ -88,6 +90,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.clientManagerActivity = new ClientManagerActivity(pipeline, messagingProcessor, remotingChannelManager);
         this.consumerManagerActivity = new ConsumerManagerActivity(pipeline, messagingProcessor);
         this.sendMessageActivity = new SendMessageActivity(pipeline, messagingProcessor);
+        this.transactionActivity = new TransactionActivity(pipeline, messagingProcessor);
         this.pullMessageActivity = new PullMessageActivity(pipeline, messagingProcessor);
         this.popMessageActivity = new PopMessageActivity(pipeline, messagingProcessor);
         this.ackMessageActivity = new AckMessageActivity(pipeline, messagingProcessor);
@@ -183,6 +186,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageActivity, this.sendMessageExecutor);
         remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageActivity, this.sendMessageExecutor);
         remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageActivity, sendMessageExecutor);
+
+        remotingServer.registerProcessor(RequestCode.END_TRANSACTION, transactionActivity, sendMessageExecutor);
 
         remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManagerActivity, this.heartbeatExecutor);
         remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManagerActivity, this.defaultExecutor);
