@@ -99,12 +99,12 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         NettyServerConfig defaultServerConfig = new NettyServerConfig();
         defaultServerConfig.setListenPort(config.getRemotingListenPort());
-        TlsSystemConfig.tlsTestModeEnable = false;
-        System.setProperty(TlsSystemConfig.TLS_TEST_MODE_ENABLE, "false");
-        TlsSystemConfig.tlsServerCertPath = config.getGrpcTlsCertPath();
-        System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getGrpcTlsCertPath());
-        TlsSystemConfig.tlsServerKeyPath = config.getGrpcTlsKeyPath();
-        System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getGrpcTlsKeyPath());
+        TlsSystemConfig.tlsTestModeEnable = config.isTlsTestModeEnable();
+        System.setProperty(TlsSystemConfig.TLS_TEST_MODE_ENABLE, Boolean.toString(config.isTlsTestModeEnable()));
+        TlsSystemConfig.tlsServerCertPath = config.getTlsCertPath();
+        System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getTlsCertPath());
+        TlsSystemConfig.tlsServerKeyPath = config.getTlsKeyPath();
+        System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getTlsKeyPath());
 
         this.clientHousekeepingService = new ClientHousekeepingService(this.clientManagerActivity);
 

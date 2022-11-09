@@ -74,13 +74,16 @@ public class ProxyConfig implements ConfigFile {
     private String namesrvDomain = "";
     private String namesrvDomainSubgroup = "";
     /**
+     * TLS
+     */
+    private boolean tlsTestModeEnable = true;
+    private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
+    private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
+    /**
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Integer grpcServerPort = 8081;
-    private boolean grpcTlsTestModeEnable = true;
-    private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
-    private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
     private boolean enableGrpcEpoll = false;
@@ -190,8 +193,6 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean traceOn = false;
 
-    private String remotingAccessPoint = "";
-
     private BrokerConfig.MetricsExporterType metricsExporterType = BrokerConfig.MetricsExporterType.DISABLE;
 
     private String metricsGrpcExporterTarget = "";
@@ -210,9 +211,9 @@ public class ProxyConfig implements ConfigFile {
     private long channelExpiredTimeout = 1000 * 120;
 
     // remoting
-
     private boolean enableRemotingLocalProxyGrpc = true;
     private int localProxyConnectTimeoutMs = 3000;
+    private String remotingAccessAddr = "";
     private int remotingListenPort = 8080;
 
     private int remotingHeartbeatThreadPoolNums = 2 * PROCESSOR_NUMBER;
@@ -244,6 +245,9 @@ public class ProxyConfig implements ConfigFile {
         }
         if (StringUtils.isBlank(localServeAddr)) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "get local serve ip failed");
+        }
+        if (StringUtils.isBlank(remotingAccessAddr)) {
+            this.remotingAccessAddr = this.localServeAddr;
         }
         if (StringUtils.isBlank(systemTopicClusterName)) {
             this.systemTopicClusterName = this.rocketMQClusterName;
@@ -407,28 +411,28 @@ public class ProxyConfig implements ConfigFile {
         this.grpcServerPort = grpcServerPort;
     }
 
-    public boolean isGrpcTlsTestModeEnable() {
-        return grpcTlsTestModeEnable;
+    public boolean isTlsTestModeEnable() {
+        return tlsTestModeEnable;
     }
 
-    public void setGrpcTlsTestModeEnable(boolean grpcTlsTestModeEnable) {
-        this.grpcTlsTestModeEnable = grpcTlsTestModeEnable;
+    public void setTlsTestModeEnable(boolean tlsTestModeEnable) {
+        this.tlsTestModeEnable = tlsTestModeEnable;
     }
 
-    public String getGrpcTlsKeyPath() {
-        return grpcTlsKeyPath;
+    public String getTlsKeyPath() {
+        return tlsKeyPath;
     }
 
-    public void setGrpcTlsKeyPath(String grpcTlsKeyPath) {
-        this.grpcTlsKeyPath = grpcTlsKeyPath;
+    public void setTlsKeyPath(String tlsKeyPath) {
+        this.tlsKeyPath = tlsKeyPath;
     }
 
-    public String getGrpcTlsCertPath() {
-        return grpcTlsCertPath;
+    public String getTlsCertPath() {
+        return tlsCertPath;
     }
 
-    public void setGrpcTlsCertPath(String grpcTlsCertPath) {
-        this.grpcTlsCertPath = grpcTlsCertPath;
+    public void setTlsCertPath(String tlsCertPath) {
+        this.tlsCertPath = tlsCertPath;
     }
 
     public int getGrpcBossLoopNum() {
@@ -1059,12 +1063,12 @@ public class ProxyConfig implements ConfigFile {
         this.traceOn = traceOn;
     }
 
-    public String getRemotingAccessPoint() {
-        return remotingAccessPoint;
+    public String getRemotingAccessAddr() {
+        return remotingAccessAddr;
     }
 
-    public void setRemotingAccessPoint(String remotingAccessPoint) {
-        this.remotingAccessPoint = remotingAccessPoint;
+    public void setRemotingAccessAddr(String remotingAccessAddr) {
+        this.remotingAccessAddr = remotingAccessAddr;
     }
 
     public BrokerConfig.MetricsExporterType getMetricsExporterType() {
