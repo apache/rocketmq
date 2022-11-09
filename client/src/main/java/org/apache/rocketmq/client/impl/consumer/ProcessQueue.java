@@ -337,7 +337,7 @@ public class ProcessQueue {
     /**
      * Return the result that whether current message is exist in the process queue or not.
      */
-    public boolean hasMessage(MessageExt message) {
+    public boolean containsMessage(MessageExt message) {
         if (message == null) {
             // should never reach here.
             return false;

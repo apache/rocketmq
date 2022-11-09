@@ -73,8 +73,8 @@ public class ProcessQueueTest {
         final MessageExt message1 = messageList.get(1);
 
         pq.putMessage(Lists.list(message0));
-        assertThat(pq.hasMessage(message0)).isTrue();
-        assertThat(pq.hasMessage(message1)).isFalse();
+        assertThat(pq.containsMessage(message0)).isTrue();
+        assertThat(pq.containsMessage(message1)).isFalse();
     }
 
     @Test

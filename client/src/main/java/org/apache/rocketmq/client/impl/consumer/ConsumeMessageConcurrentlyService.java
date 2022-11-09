@@ -285,8 +285,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
                     // Maybe message is expired and cleaned, just ignore it.
-                    if (!consumeRequest.getProcessQueue().hasMessage(msg)) {
-                        log.info("Message does not exist in process queue, skip to send it back, topic={}, "
+                    if (!consumeRequest.getProcessQueue().containsMessage(msg)) {
+                        log.info("Message is not found in its process queue; skip send-back-procedure, topic={}, "
                                 + "brokerName={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getBrokerName(),
                             msg.getQueueId(), msg.getQueueOffset());
                         continue;
