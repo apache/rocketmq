@@ -49,7 +49,7 @@ public class QueryConsumeTimeSpanBodyTest {
     @Test
     public void testFromJson() throws Exception {
         QueryConsumeTimeSpanBody qctsb = new QueryConsumeTimeSpanBody();
-        List<QueueTimeSpan> queueTimeSpans = new ArrayList<QueueTimeSpan>();
+        List<QueueTimeSpan> queueTimeSpans = new ArrayList<>();
         QueueTimeSpan queueTimeSpan = new QueueTimeSpan();
         queueTimeSpan.setMinTimeStamp(1550825710000L);
         queueTimeSpan.setMaxTimeStamp(1550825790000L);
@@ -100,7 +100,7 @@ public class QueryConsumeTimeSpanBodyTest {
     }
 
     private List<QueueTimeSpan> newUniqueConsumeTimeSpanSet() {
-        List<QueueTimeSpan> queueTimeSpans = new ArrayList<QueueTimeSpan>();
+        List<QueueTimeSpan> queueTimeSpans = new ArrayList<>();
         QueueTimeSpan queueTimeSpan = new QueueTimeSpan();
         queueTimeSpan.setMinTimeStamp(System.currentTimeMillis());
         queueTimeSpan.setMaxTimeStamp(UtilAll.computeNextHourTimeMillis());

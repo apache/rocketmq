@@ -73,7 +73,7 @@ public class TopicQueueMappingManagerTest {
     public void testEncodeDecode() throws Exception {
         Map<String, TopicQueueMappingDetail> mappingDetailMap = new HashMap<>();
         TopicQueueMappingManager topicQueueMappingManager = null;
-        Set<String> brokers = new HashSet<String>();
+        Set<String> brokers = new HashSet<>();
         brokers.add(BROKER1_NAME);
         {
             for (int i = 0; i < 10; i++) {

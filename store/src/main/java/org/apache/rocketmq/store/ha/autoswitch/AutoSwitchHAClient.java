@@ -92,7 +92,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     /**
      * Current epoch
      */
-    private volatile long currentReceivedEpoch;
+    private volatile int currentReceivedEpoch;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache) throws IOException {

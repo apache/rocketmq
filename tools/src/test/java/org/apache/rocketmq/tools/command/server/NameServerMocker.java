@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.server;
 
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 /**
  * tools class

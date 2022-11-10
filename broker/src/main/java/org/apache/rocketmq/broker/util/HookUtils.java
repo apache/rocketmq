@@ -72,11 +72,10 @@ public class HookUtils {
         }
 
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-        final int topicLength = topicData == null ? 0 : topicData.length;
 
-        if (topicLength > Byte.MAX_VALUE) {
+        if (topicData.length > Byte.MAX_VALUE) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
-                msg.getTopic(), topicLength);
+                msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
@@ -120,9 +119,9 @@ public class HookUtils {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }
-                    PutMessageResult tranformRes = transformTimerMessage(brokerController, msg);
-                    if (null != tranformRes) {
-                        return tranformRes;
+                    PutMessageResult transformRes = transformTimerMessage(brokerController, msg);
+                    if (null != transformRes) {
+                        return transformRes;
                     }
                 }
             }
@@ -176,7 +175,7 @@ public class HookUtils {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
         if (deliverMs > System.currentTimeMillis()) {
-            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000) {
+            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 

@@ -31,11 +31,11 @@ public class StatsItem {
 
     private final LongAdder times = new LongAdder();
 
-    private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListMinute = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> csListHour = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListHour = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListDay = new LinkedList<>();
 
     private final String statsName;
     private final String statsKey;

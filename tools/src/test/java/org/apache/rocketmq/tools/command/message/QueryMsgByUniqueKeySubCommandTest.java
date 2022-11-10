@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -33,11 +40,11 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.CMResult;
-import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -54,19 +61,10 @@ import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.Set;
-import java.util.List;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.ArrayList;
-
-
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -132,9 +130,9 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(defaultMQAdminExtImpl.queryMessageByUniqKey(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
 
         TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(MixAll.MASTER_ID, "127.0.0.1:9876");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
@@ -142,14 +140,14 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         GroupList groupList = new GroupList();
-        HashSet<String> groupSets = new HashSet<String>();
+        HashSet<String> groupSets = new HashSet<>();
         groupSets.add("testGroup");
         groupList.setGroupList(groupSets);
         when(mQClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
 
         ConsumeStats consumeStats = new ConsumeStats();
         consumeStats.setConsumeTps(100 * 10000);
-        HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
+        HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<>();
         MessageQueue messageQueue = new MessageQueue();
         messageQueue.setBrokerName("messageQueue BrokerName testing");
         messageQueue.setTopic("messageQueue topic");
@@ -163,11 +161,11 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String) isNull(), anyLong())).thenReturn(consumeStats);
 
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
+        HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
         brokerAddrTable.put("key", brokerData);
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
-        HashMap<String, Set<String>> clusterAddrTable = new HashMap<String, Set<String>>();
-        Set<String> addrSet = new HashSet<String>();
+        HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
+        Set<String> addrSet = new HashSet<>();
         addrSet.add("127.0.0.1:9876");
         clusterAddrTable.put("key", addrSet);
         clusterInfo.setClusterAddrTable(clusterAddrTable);

@@ -493,11 +493,11 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setWhiteRemoteAddress("192.168.0.*");
         plainAccessConfig.setDefaultGroupPerm("PUB");
         plainAccessConfig.setDefaultTopicPerm("SUB");
-        List<String> topicPerms = new ArrayList<String>();
+        List<String> topicPerms = new ArrayList<>();
         topicPerms.add("topicC=PUB|SUB");
         topicPerms.add("topicB=PUB");
         plainAccessConfig.setTopicPerms(topicPerms);
-        List<String> groupPerms = new ArrayList<String>();
+        List<String> groupPerms = new ArrayList<>();
         groupPerms.add("groupB=PUB|SUB");
         groupPerms.add("groupC=DENY");
         plainAccessConfig.setGroupPerms(groupPerms);
@@ -578,11 +578,11 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setWhiteRemoteAddress("192.168.0.*");
         plainAccessConfig.setDefaultGroupPerm("PUB");
         plainAccessConfig.setDefaultTopicPerm("SUB");
-        List<String> topicPerms = new ArrayList<String>();
+        List<String> topicPerms = new ArrayList<>();
         topicPerms.add("topicC=PUB|SUB");
         topicPerms.add("topicB=PUB");
         plainAccessConfig.setTopicPerms(topicPerms);
-        List<String> groupPerms = new ArrayList<String>();
+        List<String> groupPerms = new ArrayList<>();
         groupPerms.add("groupB=PUB|SUB");
         groupPerms.add("groupC=DENY");
         plainAccessConfig.setGroupPerms(groupPerms);
@@ -598,11 +598,11 @@ public class PlainAccessValidatorTest {
         plainAccessConfig1.setWhiteRemoteAddress("192.168.0.*");
         plainAccessConfig1.setDefaultGroupPerm("PUB");
         plainAccessConfig1.setDefaultTopicPerm("SUB");
-        List<String> topicPerms1 = new ArrayList<String>();
+        List<String> topicPerms1 = new ArrayList<>();
         topicPerms1.add("topicC=PUB|SUB");
         topicPerms1.add("topicB=PUB");
         plainAccessConfig1.setTopicPerms(topicPerms1);
-        List<String> groupPerms1 = new ArrayList<String>();
+        List<String> groupPerms1 = new ArrayList<>();
         groupPerms1.add("groupB=PUB|SUB");
         groupPerms1.add("groupC=DENY");
         plainAccessConfig1.setGroupPerms(groupPerms1);
@@ -658,11 +658,11 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setWhiteRemoteAddress("192.168.0.*");
         plainAccessConfig.setDefaultGroupPerm("PUB");
         plainAccessConfig.setDefaultTopicPerm("SUB");
-        List<String> topicPerms = new ArrayList<String>();
+        List<String> topicPerms = new ArrayList<>();
         topicPerms.add("topicC=PUB|SUB");
         topicPerms.add("topicB=PUB");
         plainAccessConfig.setTopicPerms(topicPerms);
-        List<String> groupPerms = new ArrayList<String>();
+        List<String> groupPerms = new ArrayList<>();
         groupPerms.add("groupB=PUB|SUB");
         groupPerms.add("groupC=DENY");
         plainAccessConfig.setGroupPerms(groupPerms);
@@ -1078,11 +1078,11 @@ public class PlainAccessValidatorTest {
         Map<String, Object> backUpAclConfigMap2 = AclUtils.getYamlDataObject(targetFileName2, Map.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        List<String> globalWhiteAddrsList1 = new ArrayList<String>();
+        List<String> globalWhiteAddrsList1 = new ArrayList<>();
         globalWhiteAddrsList1.add("10.10.154.1");
-        List<String> globalWhiteAddrsList2 = new ArrayList<String>();
+        List<String> globalWhiteAddrsList2 = new ArrayList<>();
         globalWhiteAddrsList2.add("10.10.154.2");
-        List<String> globalWhiteAddrsList3 = new ArrayList<String>();
+        List<String> globalWhiteAddrsList3 = new ArrayList<>();
         globalWhiteAddrsList3.add("10.10.154.3");
 
         //Test parameter p is null

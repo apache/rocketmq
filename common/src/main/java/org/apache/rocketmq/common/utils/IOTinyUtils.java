@@ -58,7 +58,7 @@ public class IOTinyUtils {
 
     static public List<String> readLines(Reader input) throws IOException {
         BufferedReader reader = toBufferedReader(input);
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         String line;
         for (; ; ) {
             line = reader.readLine();

@@ -29,7 +29,7 @@ public class ConsumerData {
     private ConsumeType consumeType;
     private MessageModel messageModel;
     private ConsumeFromWhere consumeFromWhere;
-    private Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
+    private Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
     private boolean unitMode;
 
     public String getGroupName() {

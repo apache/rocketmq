@@ -39,7 +39,7 @@ public class TraceView {
     private String status;
 
     public static List<TraceView> decodeFromTraceTransData(String key, MessageExt messageExt) {
-        List<TraceView> messageTraceViewList = new ArrayList<TraceView>();
+        List<TraceView> messageTraceViewList = new ArrayList<>();
         String messageBody = new String(messageExt.getBody(), StandardCharsets.UTF_8);
         if (messageBody == null || messageBody.length() <= 0) {
             return messageTraceViewList;

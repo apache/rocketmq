@@ -35,11 +35,11 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
     private String type;
     private long epoch;
 
-    private Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
+    private Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
 
-    private Set<String> brokerToMapIn = new HashSet<String>();
+    private Set<String> brokerToMapIn = new HashSet<>();
 
-    private Set<String> brokerToMapOut = new HashSet<String>();
+    private Set<String> brokerToMapOut = new HashSet<>();
 
     public TopicRemappingDetailWrapper() {
 

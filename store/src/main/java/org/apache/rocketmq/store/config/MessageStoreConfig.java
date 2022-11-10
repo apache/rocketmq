@@ -47,6 +47,21 @@ public class MessageStoreConfig {
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
 
+    // CompactinLog file size, default is 100M
+    private int compactionMappedFileSize = 100 * 1024 * 1024;
+
+    // CompactionLog consumeQueue file size, default is 10M
+    private int compactionCqMappedFileSize = 10 * 1024 * 1024;
+
+    private int compactionScheduleInternal = 15 * 60 * 1000;
+
+    private int maxOffsetMapSize = 100 * 1024 * 1024;
+
+    private int compactionThreadNum = 0;
+
+    private boolean enableCompaction = true;
+
+
     // TimerLog file size, default is 100M
     private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
 
@@ -383,6 +398,54 @@ public class MessageStoreConfig {
 
     public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
         this.warmMapedFileEnable = warmMapedFileEnable;
+    }
+
+    public int getCompactionMappedFileSize() {
+        return compactionMappedFileSize;
+    }
+
+    public int getCompactionCqMappedFileSize() {
+        return compactionCqMappedFileSize;
+    }
+
+    public void setCompactionMappedFileSize(int compactionMappedFileSize) {
+        this.compactionMappedFileSize = compactionMappedFileSize;
+    }
+
+    public void setCompactionCqMappedFileSize(int compactionCqMappedFileSize) {
+        this.compactionCqMappedFileSize = compactionCqMappedFileSize;
+    }
+
+    public int getCompactionScheduleInternal() {
+        return compactionScheduleInternal;
+    }
+
+    public void setCompactionScheduleInternal(int compactionScheduleInternal) {
+        this.compactionScheduleInternal = compactionScheduleInternal;
+    }
+
+    public int getMaxOffsetMapSize() {
+        return maxOffsetMapSize;
+    }
+
+    public void setMaxOffsetMapSize(int maxOffsetMapSize) {
+        this.maxOffsetMapSize = maxOffsetMapSize;
+    }
+
+    public int getCompactionThreadNum() {
+        return compactionThreadNum;
+    }
+
+    public void setCompactionThreadNum(int compactionThreadNum) {
+        this.compactionThreadNum = compactionThreadNum;
+    }
+
+    public boolean isEnableCompaction() {
+        return enableCompaction;
+    }
+
+    public void setEnableCompaction(boolean enableCompaction) {
+        this.enableCompaction = enableCompaction;
     }
 
     public int getMappedFileSizeCommitLog() {

@@ -26,7 +26,7 @@ public class UnlockBatchRequestBody extends RemotingSerializable {
     private String consumerGroup;
     private String clientId;
     private boolean onlyThisBroker = false;
-    private Set<MessageQueue> mqSet = new HashSet<MessageQueue>();
+    private Set<MessageQueue> mqSet = new HashSet<>();
 
     public String getConsumerGroup() {
         return consumerGroup;

@@ -25,7 +25,7 @@ import java.util.Map;
 
 public class RequestBuilder {
 
-    private static Map<Integer, Class> requestCodeMap = new HashMap<Integer, Class>();
+    private static Map<Integer, Class> requestCodeMap = new HashMap<>();
     static {
         requestCodeMap.put(RequestCode.PULL_MESSAGE, PullMessageRequestHeader.class);
     }

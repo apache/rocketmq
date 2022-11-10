@@ -132,7 +132,7 @@ public class TransactionMQProducerWithTraceTest {
 
         Field fieldHooks = DefaultMQProducerImpl.class.getDeclaredField("endTransactionHookList");
         fieldHooks.setAccessible(true);
-        List<EndTransactionHook> hooks = new ArrayList<EndTransactionHook>();
+        List<EndTransactionHook> hooks = new ArrayList<>();
         hooks.add(endTransactionHook);
         fieldHooks.set(producer.getDefaultMQProducerImpl(), hooks);
 
@@ -148,7 +148,7 @@ public class TransactionMQProducerWithTraceTest {
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        final AtomicReference<EndTransactionContext> context = new AtomicReference<EndTransactionContext>();
+        final AtomicReference<EndTransactionContext> context = new AtomicReference<>();
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock mock) throws Throwable {
@@ -175,18 +175,18 @@ public class TransactionMQProducerWithTraceTest {
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);

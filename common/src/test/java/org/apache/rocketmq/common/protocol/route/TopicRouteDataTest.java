@@ -40,10 +40,10 @@ public class TopicRouteDataTest {
         queueData.setWriteQueueNums(8);
         queueData.setTopicSysFlag(0);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         queueDataList.add(queueData);
 
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "192.168.0.47:10911");
         brokerAddrs.put(1L, "192.168.0.47:10921");
 
@@ -52,11 +52,11 @@ public class TopicRouteDataTest {
         brokerData.setBrokerName("broker-a");
         brokerData.setCluster("TestCluster");
 
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        List<BrokerData> brokerDataList = new ArrayList<>();
         brokerDataList.add(brokerData);
 
         topicRouteData.setBrokerDatas(brokerDataList);
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        topicRouteData.setFilterServerTable(new HashMap<>());
         topicRouteData.setQueueDatas(queueDataList);
 
         assertThat(new TopicRouteData(topicRouteData)).isEqualTo(topicRouteData);
@@ -75,10 +75,10 @@ public class TopicRouteDataTest {
         queueData.setWriteQueueNums(8);
         queueData.setTopicSysFlag(0);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         queueDataList.add(queueData);
 
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "192.168.0.47:10911");
         brokerAddrs.put(1L, "192.168.0.47:10921");
 
@@ -87,11 +87,11 @@ public class TopicRouteDataTest {
         brokerData.setBrokerName("broker-a");
         brokerData.setCluster("TestCluster");
 
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        List<BrokerData> brokerDataList = new ArrayList<>();
         brokerDataList.add(brokerData);
 
         topicRouteData.setBrokerDatas(brokerDataList);
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        topicRouteData.setFilterServerTable(new HashMap<>());
         topicRouteData.setQueueDatas(queueDataList);
 
         String topicRouteDataJsonStr = RemotingSerializable.toJson(topicRouteData, true);

@@ -16,11 +16,11 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class PeekMessageRequestHeader implements CommandCustomHeader {
+public class PeekMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String topic;
     @CFNotNull
@@ -50,11 +50,11 @@ public class PeekMessageRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

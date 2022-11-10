@@ -37,15 +37,15 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     private Properties properties = new Properties();
 
-    private TreeSet<SubscriptionData> subscriptionSet = new TreeSet<SubscriptionData>();
+    private TreeSet<SubscriptionData> subscriptionSet = new TreeSet<>();
 
-    private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
+    private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<>();
 
-    private TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable = new TreeMap<MessageQueue, PopProcessQueueInfo>();
+    private TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable = new TreeMap<>();
 
-    private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
+    private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<>();
 
-    private TreeMap<String, String> userConsumerInfo = new TreeMap<String, String>();
+    private TreeMap<String, String> userConsumerInfo = new TreeMap<>();
 
     private String jstack;
 

@@ -56,18 +56,18 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
             return result;
         }
 
         //group mq by machine room
-        Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<String, List<MessageQueue>>();
+        Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<>();
         for (MessageQueue mq : mqAll) {
             String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq);
             if (StringUtils.isNoneEmpty(brokerMachineRoom)) {
                 if (mr2Mq.get(brokerMachineRoom) == null) {
-                    mr2Mq.put(brokerMachineRoom, new ArrayList<MessageQueue>());
+                    mr2Mq.put(brokerMachineRoom, new ArrayList<>());
                 }
                 mr2Mq.get(brokerMachineRoom).add(mq);
             } else {
@@ -76,12 +76,12 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
         }
 
         //group consumer by machine room
-        Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<String, List<String>>();
+        Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<>();
         for (String cid : cidAll) {
             String consumerMachineRoom = machineRoomResolver.consumerDeployIn(cid);
             if (StringUtils.isNoneEmpty(consumerMachineRoom)) {
                 if (mr2c.get(consumerMachineRoom) == null) {
-                    mr2c.put(consumerMachineRoom, new ArrayList<String>());
+                    mr2c.put(consumerMachineRoom, new ArrayList<>());
                 }
                 mr2c.get(consumerMachineRoom).add(cid);
             } else {
@@ -89,7 +89,7 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
             }
         }
 
-        List<MessageQueue> allocateResults = new ArrayList<MessageQueue>();
+        List<MessageQueue> allocateResults = new ArrayList<>();
 
         //1.allocate the mq that deploy in the same machine room with the current consumer
         String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID);

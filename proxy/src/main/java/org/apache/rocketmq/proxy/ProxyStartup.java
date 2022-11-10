@@ -48,6 +48,7 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -93,6 +94,7 @@ public class ProxyStartup {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("try to shutdown server");
                 try {
+                    PROXY_START_AND_SHUTDOWN.preShutdown();
                     PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
                     log.error("err when shutdown rocketmq-proxy", e);
@@ -167,8 +169,11 @@ public class ProxyStartup {
 
         if (ProxyMode.isClusterMode(proxyModeStr)) {
             messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
+            ProxyMetricsManager proxyMetricsManager = ProxyMetricsManager.initClusterMode(ConfigurationManager.getProxyConfig());
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(proxyMetricsManager);
         } else if (ProxyMode.isLocalMode(proxyModeStr)) {
             BrokerController brokerController = createBrokerController();
+            ProxyMetricsManager.initLocalMode(brokerController.getBrokerMetricsManager(), ConfigurationManager.getProxyConfig());
             StartAndShutdown brokerControllerWrapper = new StartAndShutdown() {
                 @Override
                 public void start() throws Exception {

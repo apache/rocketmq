@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 public class ExtraInfoUtil {
     private static final String NORMAL_TOPIC = "0";
     private static final String RETRY_TOPIC = "1";
+    private static final String QUEUE_OFFSET = "qo";
 
     public static String[] split(String extraInfo) {
         if (extraInfo == null) {
@@ -131,7 +132,7 @@ public class ExtraInfoUtil {
             .append(MessageConst.KEY_SEPARATOR).append(startOffset);
     }
 
-    public static void buildOrderCountInfo(StringBuilder stringBuilder, boolean retry, int queueId, int orderCount) {
+    public static void buildQueueIdOrderCountInfo(StringBuilder stringBuilder, boolean retry, int queueId, int orderCount) {
         if (stringBuilder == null) {
             stringBuilder = new StringBuilder(64);
         }
@@ -143,6 +144,20 @@ public class ExtraInfoUtil {
         stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
                 .append(MessageConst.KEY_SEPARATOR).append(queueId)
                 .append(MessageConst.KEY_SEPARATOR).append(orderCount);
+    }
+
+    public static void buildQueueOffsetOrderCountInfo(StringBuilder stringBuilder, boolean retry, long queueId, long queueOffset, int orderCount) {
+        if (stringBuilder == null) {
+            stringBuilder = new StringBuilder(64);
+        }
+
+        if (stringBuilder.length() > 0) {
+            stringBuilder.append(";");
+        }
+
+        stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
+            .append(MessageConst.KEY_SEPARATOR).append(getQueueOffsetKeyValueKey(queueId, queueOffset))
+            .append(MessageConst.KEY_SEPARATOR).append(orderCount);
     }
 
     public static void buildMsgOffsetInfo(StringBuilder stringBuilder, boolean retry, int queueId, List<Long> msgOffsets) {
@@ -171,7 +186,7 @@ public class ExtraInfoUtil {
             return null;
         }
 
-        Map<String, List<Long>> msgOffsetMap = new HashMap<String, List<Long>>(4);
+        Map<String, List<Long>> msgOffsetMap = new HashMap<>(4);
         String[] array;
         if (msgOffsetInfo.indexOf(";") < 0) {
             array = new String[]{msgOffsetInfo};
@@ -188,7 +203,7 @@ public class ExtraInfoUtil {
             if (msgOffsetMap.containsKey(key)) {
                 throw new IllegalArgumentException("parse msgOffsetMap error, duplicate, " + msgOffsetMap);
             }
-            msgOffsetMap.put(key, new ArrayList<Long>(8));
+            msgOffsetMap.put(key, new ArrayList<>(8));
             String[] msgOffsets = split[2].split(",");
             for (String msgOffset : msgOffsets) {
                 msgOffsetMap.get(key).add(Long.valueOf(msgOffset));
@@ -202,7 +217,7 @@ public class ExtraInfoUtil {
         if (startOffsetInfo == null || startOffsetInfo.length() == 0) {
             return null;
         }
-        Map<String, Long> startOffsetMap = new HashMap<String, Long>(4);
+        Map<String, Long> startOffsetMap = new HashMap<>(4);
         String[] array;
         if (startOffsetInfo.indexOf(";") < 0) {
             array = new String[]{startOffsetInfo};
@@ -229,7 +244,7 @@ public class ExtraInfoUtil {
         if (orderCountInfo == null || orderCountInfo.length() == 0) {
             return null;
         }
-        Map<String, Integer> startOffsetMap = new HashMap<String, Integer>(4);
+        Map<String, Integer> startOffsetMap = new HashMap<>(4);
         String[] array;
         if (orderCountInfo.indexOf(";") < 0) {
             array = new String[]{orderCountInfo};
@@ -252,7 +267,19 @@ public class ExtraInfoUtil {
         return startOffsetMap;
     }
 
-    public static String getStartOffsetInfoMapKey(String topic, int queueId) {
-        return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + queueId;
+    public static String getStartOffsetInfoMapKey(String topic, long key) {
+        return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
+    }
+
+    public static String getQueueOffsetKeyValueKey(long queueId, long queueOffset) {
+        return QUEUE_OFFSET + queueId + "%" + queueOffset;
+    }
+
+    public static String getQueueOffsetMapKey(String topic, long queueId, long queueOffset) {
+        return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + getQueueOffsetKeyValueKey(queueId, queueOffset);
+    }
+
+    public static boolean isOrder(String[] extraInfo) {
+        return ExtraInfoUtil.getReviveQid(extraInfo) == KeyBuilder.POP_ORDER_REVIVE_QUEUE;
     }
 }
