@@ -35,27 +35,27 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.body.GetConsumerStatusBody;
-import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
-import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ReplyMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
+import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyConsumerIdsChangedRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ReplyMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 
 public class ClientRemotingProcessor implements NettyRequestProcessor {
     private final InternalLogger log = ClientLogger.getLog();
@@ -141,7 +141,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 requestHeader.getConsumerGroup());
             this.mqClientFactory.rebalanceImmediately();
         } catch (Exception e) {
-            log.error("notifyConsumerIdsChanged exception", RemotingHelper.exceptionSimpleDesc(e));
+            log.error("notifyConsumerIdsChanged exception", UtilAll.exceptionSimpleDesc(e));
         }
         return null;
     }
@@ -238,11 +238,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
 
             if (requestHeader.getBornHost() != null) {
-                msg.setBornHost(RemotingUtil.string2SocketAddress(requestHeader.getBornHost()));
+                msg.setBornHost(NetworkUtil.string2SocketAddress(requestHeader.getBornHost()));
             }
 
             if (requestHeader.getStoreHost() != null) {
-                msg.setStoreHost(RemotingUtil.string2SocketAddress(requestHeader.getStoreHost()));
+                msg.setStoreHost(NetworkUtil.string2SocketAddress(requestHeader.getStoreHost()));
             }
 
             byte[] body = request.getBody();

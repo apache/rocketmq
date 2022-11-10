@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-common</artifactId>
+            <artifactId>rocketmq-remoting</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>io.netty</groupId>

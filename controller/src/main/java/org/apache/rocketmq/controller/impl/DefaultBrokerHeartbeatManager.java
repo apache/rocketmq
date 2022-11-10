@@ -17,7 +17,6 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.netty.channel.Channel;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -37,7 +35,7 @@ import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
@@ -78,7 +76,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     final Channel channel = next.getValue().getChannel();
                     iterator.remove();
                     if (channel != null) {
-                        RemotingUtil.closeChannel(channel);
+                        RemotingHelper.closeChannel(channel);
                     }
                     this.executor.submit(() ->
                         notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().getBrokerName(), next.getKey().getBrokerAddr(), next.getValue().getBrokerId()));

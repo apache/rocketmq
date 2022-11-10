@@ -19,9 +19,9 @@ package org.apache.rocketmq.test.container;
 
 import java.time.Duration;
 import org.apache.rocketmq.container.InnerSalveBrokerController;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.junit.Ignore;
 import org.junit.Test;
 

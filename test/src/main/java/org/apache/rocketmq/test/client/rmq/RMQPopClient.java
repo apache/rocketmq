@@ -26,11 +26,11 @@ import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.test.clientinterface.MQConsumer;
 import org.apache.rocketmq.test.util.RandomUtil;
 

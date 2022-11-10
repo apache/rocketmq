@@ -39,7 +39,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
@@ -49,6 +48,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
 public class RouteActivity extends AbstractMessingActivity {
 

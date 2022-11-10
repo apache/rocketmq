@@ -18,7 +18,6 @@
 package org.apache.rocketmq.container;
 
 import io.netty.channel.ChannelHandlerContext;
-
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
@@ -28,17 +27,17 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.AddBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.AddBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetBrokerConfigResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerContainerProcessor implements NettyRequestProcessor {

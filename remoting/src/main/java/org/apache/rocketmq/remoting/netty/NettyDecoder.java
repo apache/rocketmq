@@ -23,7 +23,6 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
@@ -50,7 +49,7 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
             return cmd;
         } catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
-            RemotingUtil.closeChannel(ctx.channel());
+            RemotingHelper.closeChannel(ctx.channel());
         } finally {
             if (null != frame) {
                 frame.release();

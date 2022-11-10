@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -62,7 +61,7 @@ public class RemotingCommandTest {
     public void testCreateRequestCommand_RegisterBroker() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103; //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
         assertThat(cmd.getCode()).isEqualTo(code);
@@ -121,7 +120,7 @@ public class RemotingCommandTest {
     public void testEncodeAndDecode_EmptyBody() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103; //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
 
@@ -150,7 +149,7 @@ public class RemotingCommandTest {
     public void testEncodeAndDecode_FilledBody() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103; //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
         cmd.setBody(new byte[] {0, 1, 2, 3, 4});
@@ -179,7 +178,7 @@ public class RemotingCommandTest {
     public void testEncodeAndDecode_FilledBodyWithExtFields() throws RemotingCommandException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103; //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new ExtFieldsHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
 

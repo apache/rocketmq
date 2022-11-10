@@ -22,9 +22,9 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class BrokerConfig extends BrokerIdentity {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -42,8 +42,8 @@ public class BrokerConfig extends BrokerIdentity {
     private int listenPort = 6888;
 
     @ImportantField
-    private String brokerIP1 = RemotingUtil.getLocalAddress();
-    private String brokerIP2 = RemotingUtil.getLocalAddress();
+    private String brokerIP1 = NetworkUtil.getLocalAddress();
+    private String brokerIP2 = NetworkUtil.getLocalAddress();
 
     @ImportantField
     private boolean recoverConcurrently = false;
@@ -1557,7 +1557,7 @@ public class BrokerConfig extends BrokerIdentity {
     public void setMetricsPromExporterHost(String metricsPromExporterHost) {
         this.metricsPromExporterHost = metricsPromExporterHost;
     }
-    
+
     public int getTransactionOpMsgMaxSize() {
         return transactionOpMsgMaxSize;
     }

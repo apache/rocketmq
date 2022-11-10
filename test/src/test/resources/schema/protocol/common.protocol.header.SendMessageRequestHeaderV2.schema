@@ -30,8 +30,8 @@ Field k : private boolean false
 Field l : private java.lang.Integer null
 Field m : private boolean false
 Method checkFields() : public throws (void)
-Method createSendMessageRequestHeaderV1(org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2) : public throws (org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader)
-Method createSendMessageRequestHeaderV2(org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader) : public throws (org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2)
+Method createSendMessageRequestHeaderV1(org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2) : public throws (org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader)
+Method createSendMessageRequestHeaderV2(org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader) : public throws (org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2)
 Method decode(java.util.HashMap) : public throws (void)
 Method encode(io.netty.buffer.ByteBuf) : public throws (void)
 Method getA() : public throws (java.lang.String)

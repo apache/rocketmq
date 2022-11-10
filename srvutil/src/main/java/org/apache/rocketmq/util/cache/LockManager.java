@@ -17,9 +17,8 @@
 package org.apache.rocketmq.util.cache;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.rocketmq.common.PopAckConstants;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 
 public class LockManager {
     private static ExpiredLocalCache<String, AtomicBoolean> expiredLocalCache = new ExpiredLocalCache<>(100000);

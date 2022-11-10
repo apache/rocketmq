@@ -17,24 +17,23 @@
 
 package org.apache.rocketmq.test.autoswitchrole;
 
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -60,8 +59,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     private BrokerController brokerController1;
     private BrokerController brokerController2;
     protected List<BrokerController> brokerControllerList;
-    
-    
+
+
     public void init(int mappedFileSize) throws Exception {
         super.initialize();
 
@@ -88,8 +87,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
         this.brokerController2 = startBroker(this.namesrvAddress, this.controllerAddress, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
         this.brokerControllerList = ImmutableList.of(brokerController1, brokerController2);
-    
-    
+
+
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
     }
@@ -126,15 +125,15 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final ReplicasManager replicasManager = brokerController1.getReplicasManager();
         SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(2, syncStateSet.getSyncStateSet().size());
-        
-        
+
+
         // Shutdown controller2
         ScheduledExecutorService singleThread = Executors.newSingleThreadScheduledExecutor();
         while (!singleThread.awaitTermination(6 * 1000, TimeUnit.MILLISECONDS)) {
             this.brokerController2.shutdown();
             singleThread.shutdown();
         }
-        
+
         syncStateSet = replicasManager.getSyncStateSet();
         shutdown();
         assertEquals(1, syncStateSet.getSyncStateSet().size());
@@ -241,7 +240,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         checkMessage(broker4.getMessageStore(), 10, 10);
         shutdown();
     }
-    
+
     public void shutdown() throws InterruptedException {
         for (BrokerController controller : this.brokerList) {
             controller.shutdown();
@@ -252,7 +251,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         }
         super.destroy();
     }
-    
+
     public boolean awaitDispatchMs(long timeMs) throws Exception {
         await().atMost(Duration.ofSeconds(timeMs)).until(
             () -> {
@@ -271,5 +270,5 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         );
         return false;
     }
-    
+
 }

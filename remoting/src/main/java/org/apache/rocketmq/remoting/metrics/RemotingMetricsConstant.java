@@ -19,8 +19,8 @@ package org.apache.rocketmq.remoting.metrics;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class RemotingMetricsConstant {
     public static final String HISTOGRAM_RPC_LATENCY = "rocketmq_rpc_latency";

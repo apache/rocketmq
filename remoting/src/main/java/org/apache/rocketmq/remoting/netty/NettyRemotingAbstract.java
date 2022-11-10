@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -324,7 +325,7 @@ public abstract class NettyRemotingAbstract {
 
                 if (!cmd.isOnewayRPC()) {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                            RemotingHelper.exceptionSimpleDesc(e));
+                            UtilAll.exceptionSimpleDesc(e));
                     response.setOpaque(opaque);
                     writeResponse(ctx.channel(), cmd, response);
                 }

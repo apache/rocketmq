@@ -24,13 +24,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
+import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.FlowMonitor;
@@ -211,7 +211,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.setDaemon(true);
@@ -443,7 +443,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         protected long transferOffset = 0;
 
         public AbstractWriteSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
             this.setDaemon(true);
