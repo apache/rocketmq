@@ -217,12 +217,18 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
                         long storeTime =
                             this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+
+                        // this variable searchedTs(shift 0.1 milliseconds to the left)  will match no real message, as all message's timestamp is a long integer
+                        // the result will match the left most boundary of the searched timestamp.
+                        double searchedTs = timestamp - 0.1;
+
                         if (storeTime < 0) {
                             return 0;
-                        } else if (storeTime == timestamp) {
+                        } else if (storeTime == searchedTs) {
+                            //this branch will never be reached again.
                             targetOffset = midOffset;
                             break;
-                        } else if (storeTime > timestamp) {
+                        } else if (storeTime > searchedTs) {
                             high = midOffset - CQ_STORE_UNIT_SIZE;
                             rightOffset = midOffset;
                             rightIndexValue = storeTime;
