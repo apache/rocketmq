@@ -22,6 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//logging",
+        "//common",
         "@maven//:com_alibaba_fastjson",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_code_findbugs_jsr305",
@@ -45,6 +46,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         ":remoting",
+        "//common",
         "//:test_deps",
         "@maven//:com_alibaba_fastjson",
         "@maven//:com_google_code_gson_gson",
