@@ -156,6 +156,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
                 if (args[0] instanceof ClientChannelInfo) {
                     ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
                     remotingChannelManager.removeConsumerChannel(group, clientChannelInfo.getChannel());
+                    log.info("remove remoting channel when client unregister. clientChannelInfo:{}", clientChannelInfo);
                 }
             }
         }

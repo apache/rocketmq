@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.processor.channel;
 
+import com.google.common.base.MoreObjects;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
@@ -57,6 +58,13 @@ public class RemoteChannel extends SimpleChannel implements ChannelExtendAttribu
         public int compareTo(ChannelId o) {
             return this.id.compareTo(o.asLongText());
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                .add("id", id)
+                .toString();
+        }
     }
 
     @Override
@@ -94,5 +102,15 @@ public class RemoteChannel extends SimpleChannel implements ChannelExtendAttribu
     @Override
     public String getChannelExtendAttribute() {
         return this.extendAttribute;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("channelId", id())
+            .add("type", type)
+            .add("remoteProxyIp", remoteProxyIp)
+            .add("extendAttribute", extendAttribute)
+            .toString();
     }
 }

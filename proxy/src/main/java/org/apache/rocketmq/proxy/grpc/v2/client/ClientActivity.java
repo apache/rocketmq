@@ -40,7 +40,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
-import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
@@ -436,32 +435,12 @@ public class ClientActivity extends AbstractMessingActivity {
             }
             if (args[0] instanceof ClientChannelInfo) {
                 ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                String clientId = clientChannelInfo.getClientId();
                 if (ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
-                    grpcClientSettingsManager.computeIfPresent(clientId, orgSettings -> {
-                        if (grpcChannelManager.getChannel(clientId) == null) {
-                            // if there is no channel connect directly to this proxy
-                            return null;
-                        }
-                        return orgSettings;
-                    });
-                } else {
-                    grpcChannelManager.removeChannel(clientId);
-                    grpcClientSettingsManager.computeIfPresent(clientId, orgSettings -> {
-                        ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(group);
-                        if (consumerGroupInfo == null) {
-                            return null;
-                        }
-                        List<Channel> allChannels = consumerGroupInfo.getAllChannel();
-                        if (allChannels == null || allChannels.isEmpty() || allChannels.size() == 1) {
-                            // if there is only one channel of this clientId or
-                            // there is no channel if this clientId
-                            // remove settings of this client
-                            return null;
-                        }
-                        return orgSettings;
-                    });
+                    return;
                 }
+                GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
+                log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
+                    group, clientChannelInfo, removedChannel != null);
             }
         }
 
@@ -475,6 +454,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 if (ChannelHelper.isRemote(channel)) {
                     // save settings from channel sync from other proxy
                     Settings settings = GrpcClientChannel.parseChannelExtendAttribute(channel);
+                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settings:{}", group, clientChannelInfo, settings);
                     if (settings == null) {
                         return;
                     }

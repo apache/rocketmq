@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.sysmessage;
 
+import com.google.common.base.MoreObjects;
 import java.util.Set;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -37,13 +38,15 @@ public class HeartbeatSyncerData {
     private ConsumeFromWhere consumeFromWhere;
     private String connectProxyIp;
     private String channelData;
-    private String channelExtendAttribute;
+
+    public HeartbeatSyncerData() {
+    }
 
     public HeartbeatSyncerData(HeartbeatType heartbeatType, String clientId,
         LanguageCode language, int version, String group,
         ConsumeType consumeType, MessageModel messageModel,
         ConsumeFromWhere consumeFromWhere, String connectProxyIp,
-        String channelData, String channelExtendAttribute) {
+        String channelData) {
         this.heartbeatType = heartbeatType;
         this.clientId = clientId;
         this.language = language;
@@ -54,7 +57,6 @@ public class HeartbeatSyncerData {
         this.consumeFromWhere = consumeFromWhere;
         this.connectProxyIp = connectProxyIp;
         this.channelData = channelData;
-        this.channelExtendAttribute = channelExtendAttribute;
     }
 
     public HeartbeatType getHeartbeatType() {
@@ -154,11 +156,21 @@ public class HeartbeatSyncerData {
         this.channelData = channelData;
     }
 
-    public String getChannelExtendAttribute() {
-        return channelExtendAttribute;
-    }
-
-    public void setChannelExtendAttribute(String channelExtendAttribute) {
-        this.channelExtendAttribute = channelExtendAttribute;
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("heartbeatType", heartbeatType)
+            .add("clientId", clientId)
+            .add("language", language)
+            .add("version", version)
+            .add("lastUpdateTimestamp", lastUpdateTimestamp)
+            .add("subscriptionDataSet", subscriptionDataSet)
+            .add("group", group)
+            .add("consumeType", consumeType)
+            .add("messageModel", messageModel)
+            .add("consumeFromWhere", consumeFromWhere)
+            .add("connectProxyIp", connectProxyIp)
+            .add("channelData", channelData)
+            .toString();
     }
 }

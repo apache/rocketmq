@@ -111,6 +111,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                             return;
                         }
                         clearGroup(new ReceiptHandleGroupKey(clientChannelInfo.getChannel(), group));
+                        log.info("clear handle of this client when client unregister. group:{}, clientChannelInfo:{}", group, clientChannelInfo);
                     }
                 }
             }
