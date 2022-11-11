@@ -28,12 +28,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -103,7 +104,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     public void init() throws IOException {
-        this.selector = RemotingUtil.openSelector();
+        this.selector = NetworkUtil.openSelector();
         this.flowMonitor = new FlowMonitor(this.messageStore.getMessageStoreConfig());
         this.haReader = new HAClientReader();
         haReader.registerHook(readSize -> {
@@ -312,8 +313,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         if (null == this.socketChannel) {
             String addr = this.masterHaAddress.get();
             if (StringUtils.isNotEmpty(addr)) {
-                SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-                this.socketChannel = RemotingUtil.connect(socketAddress);
+                SocketAddress socketAddress = NetworkUtil.string2SocketAddress(addr);
+                this.socketChannel = RemotingHelper.connect(socketAddress);
                 if (this.socketChannel != null) {
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     LOGGER.info("AutoSwitchHAClient connect to master {}", addr);

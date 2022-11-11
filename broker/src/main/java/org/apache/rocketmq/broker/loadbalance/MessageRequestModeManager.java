@@ -20,8 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 
 public class MessageRequestModeManager extends ConfigManager {
 

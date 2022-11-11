@@ -33,8 +33,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
@@ -42,9 +41,10 @@ import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.RelayData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -132,7 +132,7 @@ public class ProxyClientRemotingProcessorTest {
         @Override
         public Channel channel() {
             Channel channel = mock(Channel.class);
-            when(channel.remoteAddress()).thenReturn(RemotingUtil.string2SocketAddress("127.0.0.1:10911"));
+            when(channel.remoteAddress()).thenReturn(NetworkUtil.string2SocketAddress("127.0.0.1:10911"));
             return channel;
         }
     }

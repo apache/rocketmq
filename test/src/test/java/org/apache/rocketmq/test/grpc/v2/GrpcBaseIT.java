@@ -96,13 +96,13 @@ import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.test.util.RandomUtils;
@@ -342,7 +342,7 @@ public class GrpcBaseIT extends BaseConf {
                     .setMessageType(MessageType.NORMAL)
                     .setBodyEncoding(Encoding.GZIP)
                     .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + delayTime))
                     .build())
                 .setBody(ByteString.copyFromUtf8("hello"))
@@ -592,7 +592,7 @@ public class GrpcBaseIT extends BaseConf {
                     .setQueueId(0)
                     .setMessageType(MessageType.NORMAL)
                     .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .build())
                 .setBody(ByteString.copyFromUtf8("123"))
                 .build())
@@ -611,7 +611,7 @@ public class GrpcBaseIT extends BaseConf {
                     .setMessageType(MessageType.FIFO)
                     .setMessageGroup(messageGroup)
                     .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .build())
                 .setBody(ByteString.copyFromUtf8("123"))
                 .build())
@@ -630,7 +630,7 @@ public class GrpcBaseIT extends BaseConf {
                     .setMessageType(MessageType.NORMAL)
                     .setBodyEncoding(Encoding.GZIP)
                     .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .build())
                 .setBody(ByteString.copyFromUtf8(RandomUtils.getStringWithCharacter(messageSize)))
                 .build())
@@ -649,7 +649,7 @@ public class GrpcBaseIT extends BaseConf {
                     .setMessageType(MessageType.TRANSACTION)
                     .setOrphanedTransactionRecoveryDuration(Duration.newBuilder().setSeconds(10))
                     .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .build())
                 .setBody(ByteString.copyFromUtf8("123"))
                 .build())

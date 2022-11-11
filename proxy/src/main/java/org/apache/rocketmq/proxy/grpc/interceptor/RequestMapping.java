@@ -29,7 +29,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.SendMessageRequest;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 public class RequestMapping {
     private final static Map<String, Integer> REQUEST_MAP = new HashMap<String, Integer>() {

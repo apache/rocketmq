@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.tools.monitor;
 
-import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
+import org.apache.rocketmq.remoting.protocol.topic.OffsetMovedEvent;
 
 public class DeleteMsgsEvent {
     private OffsetMovedEvent offsetMovedEvent;

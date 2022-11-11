@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.protocol.body.PopProcessQueueInfo;
+import org.apache.rocketmq.remoting.protocol.body.PopProcessQueueInfo;
 
 /**
  * Queue consumption snapshot

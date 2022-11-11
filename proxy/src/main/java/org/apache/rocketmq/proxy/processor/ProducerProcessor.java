@@ -31,10 +31,6 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageId;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -48,7 +44,11 @@ import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeVali
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 
 public class ProducerProcessor extends AbstractProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -143,7 +143,7 @@ public class ProducerProcessor extends AbstractProcessor {
         requestHeader.setQueueId(queueId);
         requestHeader.setSysFlag(sysFlag);
         /*
-        In RocketMQ 4.0, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader.bornTimestamp
+        In RocketMQ 4.0, org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader.bornTimestamp
         represents the timestamp when the message was born. In RocketMQ 5.0, the bornTimestamp of the message
         is a message attribute, that is, the timestamp when message was constructed, and there is no
         bornTimestamp in the SendMessageRequest of RocketMQ 5.0.

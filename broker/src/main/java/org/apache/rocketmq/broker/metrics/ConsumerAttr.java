@@ -17,8 +17,8 @@
 package org.apache.rocketmq.broker.metrics;
 
 import com.google.common.base.Objects;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 
 public class ConsumerAttr {
     String group;

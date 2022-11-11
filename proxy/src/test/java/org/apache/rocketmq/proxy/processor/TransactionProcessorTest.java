@@ -18,9 +18,9 @@
 package org.apache.rocketmq.proxy.processor;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.service.transaction.EndTransactionRequestData;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;

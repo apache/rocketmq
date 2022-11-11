@@ -18,7 +18,7 @@
 package org.apache.rocketmq.proxy.service.metadata;
 
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public interface MetadataService {
 

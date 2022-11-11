@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-common</artifactId>
+            <artifactId>rocketmq-remoting</artifactId>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
