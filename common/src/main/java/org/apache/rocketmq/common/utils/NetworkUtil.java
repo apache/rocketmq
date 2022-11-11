@@ -95,12 +95,12 @@ public class NetworkUtil {
             ArrayList<String> ipv4Result = new ArrayList<>();
             ArrayList<String> ipv6Result = new ArrayList<>();
             while (enumeration.hasMoreElements()) {
-                final NetworkInterface networkInterface = enumeration.nextElement();
-                if (isBridge(networkInterface)) {
+                final NetworkInterface nif = enumeration.nextElement();
+                if (isBridge(nif) || nif.isVirtual() || nif.isPointToPoint() || !nif.isUp()) {
                     continue;
                 }
 
-                final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
+                final Enumeration<InetAddress> en = nif.getInetAddresses();
                 while (en.hasMoreElements()) {
                     final InetAddress address = en.nextElement();
                     if (!address.isLoopbackAddress()) {
