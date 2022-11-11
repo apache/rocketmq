@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.remoting.channel;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.google.common.base.MoreObjects;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import java.time.Duration;
@@ -220,5 +221,16 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
             this.getLocalAddress(),
             ChannelProtocolType.REMOTING,
             this.getChannelExtendAttribute());
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("parent", parent())
+            .add("clientId", clientId)
+            .add("remoteAddress", remoteAddress)
+            .add("localAddress", localAddress)
+            .add("subscriptionData", subscriptionData)
+            .toString();
     }
 }

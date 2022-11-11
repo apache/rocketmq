@@ -119,11 +119,11 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         messageModel,
                         consumeFromWhere,
                         proxyConfig.getLocalServeAddr(),
-                        remoteChannel.encode(),
-                        remoteChannel.getChannelExtendAttribute()
+                        remoteChannel.encode()
                     );
                     data.setSubscriptionDataSet(subList);
 
+                    log.debug("sync register heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
                     log.error("heartbeat register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subList:{}",
@@ -158,10 +158,10 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         null,
                         null,
                         proxyConfig.getLocalServeAddr(),
-                        remoteChannel.encode(),
-                        remoteChannel.getChannelExtendAttribute()
+                        remoteChannel.encode()
                     );
 
+                    log.debug("sync unregister heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
                     log.error("heartbeat unregister broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}",
@@ -187,16 +187,16 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     continue;
                 }
 
-                RemoteChannel channel = RemoteChannel.decode(data.getChannelData());
-                RemoteChannel finalChannel = channel;
-                channel = remoteChannelMap.computeIfAbsent(channel.id().asLongText(), key -> finalChannel);
-                channel.setExtendAttribute(data.getChannelExtendAttribute());
+                RemoteChannel decodedChannel = RemoteChannel.decode(data.getChannelData());
+                RemoteChannel channel = remoteChannelMap.computeIfAbsent(decodedChannel.id().asLongText(), key -> decodedChannel);
+                channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,
                     data.getClientId(),
                     data.getLanguage(),
                     data.getVersion()
                 );
+                log.debug("start process remote channel. data:{}, clientChannelInfo:{}", data, clientChannelInfo);
                 if (data.getHeartbeatType().equals(HeartbeatType.REGISTER)) {
                     this.consumerManager.registerConsumer(
                         data.getGroup(),
