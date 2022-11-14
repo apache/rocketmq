@@ -906,15 +906,19 @@ public class BrokerController {
     }
 
     private void initialTransaction() {
-        this.transactionalMessageService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionalMessageService.class);
+        this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
-            this.transactionalMessageService = new TransactionalMessageServiceImpl(new TransactionalMessageBridge(this, this.getMessageStore()));
-            LOG.warn("Load default transaction message hook service: {}", TransactionalMessageServiceImpl.class.getSimpleName());
+            this.transactionalMessageService = new TransactionalMessageServiceImpl(
+                    new TransactionalMessageBridge(this, this.getMessageStore()));
+            LOG.warn("Load default transaction message hook service: {}",
+                    TransactionalMessageServiceImpl.class.getSimpleName());
         }
-        this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
+        this.transactionalMessageCheckListener = ServiceProvider.loadClass(
+                AbstractTransactionalMessageCheckListener.class);
         if (null == this.transactionalMessageCheckListener) {
             this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
-            LOG.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
+            LOG.warn("Load default discard message hook service: {}",
+                    DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
@@ -925,18 +929,18 @@ public class BrokerController {
             LOG.info("The broker dose not enable acl");
             return;
         }
-
-        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+    
+        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
         if (accessValidators.isEmpty()) {
             LOG.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
             accessValidators.add(new PlainAccessValidator());
         }
-
+    
         for (AccessValidator accessValidator : accessValidators) {
             final AccessValidator validator = accessValidator;
             accessValidatorMap.put(validator.getClass(), validator);
             this.registerServerRPCHook(new RPCHook() {
-
+            
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
                     //Do not catch the exception
@@ -952,8 +956,8 @@ public class BrokerController {
     }
 
     private void initialRpcHooks() {
-
-        List<RPCHook> rpcHooks = ServiceProvider.load(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
+    
+        List<RPCHook> rpcHooks = ServiceProvider.load(RPCHook.class);
         if (rpcHooks == null || rpcHooks.isEmpty()) {
             return;
         }
