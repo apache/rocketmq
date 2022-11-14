@@ -27,7 +27,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMessageQueueStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractAllocateMessageQueueStrategy.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractAllocateMessageQueueStrategy.class);
 
     public boolean check(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
@@ -42,7 +42,7 @@ public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMe
         }
 
         if (!cidAll.contains(currentCID)) {
-            logger.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
+            log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
                 currentCID,
                 cidAll);

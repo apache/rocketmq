@@ -53,7 +53,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class PullAPIWrapper {
-    private static final Logger logger = LoggerFactory.getLogger(PullAPIWrapper.class);
+    private static final Logger log = LoggerFactory.getLogger(PullAPIWrapper.class);
     private final MQClientInstance mQClientFactory;
     private final String consumerGroup;
     private final boolean unitMode;
@@ -105,7 +105,7 @@ public class PullAPIWrapper {
                     }
                     msgList = innerMsgList;
                 } catch (Throwable t) {
-                    logger.error("Try to decode the inner batch failed for {}", pullResult.toString(), t);
+                    log.error("Try to decode the inner batch failed for {}", pullResult.toString(), t);
                 }
             }
 
@@ -171,7 +171,7 @@ public class PullAPIWrapper {
                 try {
                     hook.filterMessage(context);
                 } catch (Throwable e) {
-                    logger.error("execute hook error. hookName={}", hook.hookName());
+                    log.error("execute hook error. hookName={}", hook.hookName());
                 }
             }
         }

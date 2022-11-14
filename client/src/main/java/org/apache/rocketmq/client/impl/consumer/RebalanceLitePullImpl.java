@@ -52,7 +52,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
             try {
                 messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
             } catch (Throwable e) {
-                logger.error("messageQueueChanged exception", e);
+                log.error("messageQueueChanged exception", e);
             }
         }
     }
@@ -81,7 +81,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         try {
             result = computePullFromWhereWithException(mq);
         } catch (MQClientException e) {
-            logger.warn("Compute consume offset exception, mq={}", mq);
+            log.warn("Compute consume offset exception, mq={}", mq);
         }
         return result;
     }
@@ -102,7 +102,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     }
@@ -131,7 +131,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     } else {
@@ -140,7 +140,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
-                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     }

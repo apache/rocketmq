@@ -26,7 +26,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class MQClientManager {
-    private final static Logger logger = LoggerFactory.getLogger(MQClientManager.class);
+    private final static Logger log = LoggerFactory.getLogger(MQClientManager.class);
     private static MQClientManager instance = new MQClientManager();
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
@@ -54,9 +54,9 @@ public class MQClientManager {
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
-                logger.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
+                log.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
             } else {
-                logger.info("Created new MQClientInstance for clientId:[{}]", clientId);
+                log.info("Created new MQClientInstance for clientId:[{}]", clientId);
             }
         }
 

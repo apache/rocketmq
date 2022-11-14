@@ -43,7 +43,7 @@ public class LocalFileOffsetStore implements OffsetStore {
     public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
-    private final static Logger logger = LoggerFactory.getLogger(LocalFileOffsetStore.class);
+    private final static Logger log = LoggerFactory.getLogger(LocalFileOffsetStore.class);
     private final MQClientInstance mQClientFactory;
     private final String groupName;
     private final String storePath;
@@ -67,7 +67,7 @@ public class LocalFileOffsetStore implements OffsetStore {
 
             for (Entry<MessageQueue, AtomicLong> mqEntry : offsetSerializeWrapper.getOffsetTable().entrySet()) {
                 AtomicLong offset = mqEntry.getValue();
-                logger.info("load consumer's offset, {} {} {}",
+                log.info("load consumer's offset, {} {} {}",
                         this.groupName,
                         mqEntry.getKey(),
                         offset.get());
@@ -147,7 +147,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             try {
                 MixAll.string2File(jsonString, this.storePath);
             } catch (IOException e) {
-                logger.error("persistAll consumer offset Exception, " + this.storePath, e);
+                log.error("persistAll consumer offset Exception, " + this.storePath, e);
             }
         }
     }
@@ -186,7 +186,7 @@ public class LocalFileOffsetStore implements OffsetStore {
         try {
             content = MixAll.file2String(this.storePath);
         } catch (IOException e) {
-            logger.warn("Load local offset store file exception", e);
+            log.warn("Load local offset store file exception", e);
         }
         if (null == content || content.length() == 0) {
             return this.readLocalOffsetBak();
@@ -196,7 +196,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                 offsetSerializeWrapper =
                     OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             } catch (Exception e) {
-                logger.warn("readLocalOffset Exception, and try to correct", e);
+                log.warn("readLocalOffset Exception, and try to correct", e);
                 return this.readLocalOffsetBak();
             }
 
@@ -209,7 +209,7 @@ public class LocalFileOffsetStore implements OffsetStore {
         try {
             content = MixAll.file2String(this.storePath + ".bak");
         } catch (IOException e) {
-            logger.warn("Load local offset store bak file exception", e);
+            log.warn("Load local offset store bak file exception", e);
         }
         if (content != null && content.length() > 0) {
             OffsetSerializeWrapper offsetSerializeWrapper = null;
@@ -217,7 +217,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                 offsetSerializeWrapper =
                     OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             } catch (Exception e) {
-                logger.warn("readLocalOffset Exception", e);
+                log.warn("readLocalOffset Exception", e);
                 throw new MQClientException("readLocalOffset Exception, maybe fastjson version too low"
                     + FAQUrl.suggestTodo(FAQUrl.LOAD_JSON_EXCEPTION),
                     e);

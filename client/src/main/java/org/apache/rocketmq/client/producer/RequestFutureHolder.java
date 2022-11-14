@@ -36,7 +36,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class RequestFutureHolder {
-    private static final Logger logger = LoggerFactory.getLogger(RequestFutureHolder.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestFutureHolder.class);
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<>();
     private final Set<DefaultMQProducerImpl> producerSet = new HashSet<>();
@@ -56,7 +56,7 @@ public class RequestFutureHolder {
             if (rep.isTimeout()) {
                 it.remove();
                 rfList.add(rep);
-                logger.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
+                log.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
             }
         }
 
@@ -66,7 +66,7 @@ public class RequestFutureHolder {
                 rf.setCause(cause);
                 rf.executeRequestCallback();
             } catch (Throwable e) {
-                logger.warn("scanResponseTable, operationComplete Exception", e);
+                log.warn("scanResponseTable, operationComplete Exception", e);
             }
         }
     }
@@ -82,7 +82,7 @@ public class RequestFutureHolder {
                     try {
                         RequestFutureHolder.getInstance().scanExpiredRequest();
                     } catch (Throwable e) {
-                        logger.error("scan RequestFutureTable exception", e);
+                        log.error("scan RequestFutureTable exception", e);
                     }
                 }
             }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);

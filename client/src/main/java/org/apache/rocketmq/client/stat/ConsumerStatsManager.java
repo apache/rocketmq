@@ -25,7 +25,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class ConsumerStatsManager {
-    private static final Logger logger = LoggerFactory.getLogger(ConsumerStatsManager.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsumerStatsManager.class);
 
     private static final String TOPIC_AND_GROUP_CONSUME_OK_TPS = "CONSUME_OK_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_FAILED_TPS = "CONSUME_FAILED_TPS";
@@ -41,17 +41,17 @@ public class ConsumerStatsManager {
 
     public ConsumerStatsManager(final ScheduledExecutorService scheduledExecutorService) {
         this.topicAndGroupConsumeOKTPS =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_OK_TPS, scheduledExecutorService, logger);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_OK_TPS, scheduledExecutorService, log);
 
         this.topicAndGroupConsumeRT =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_RT, scheduledExecutorService, logger);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_RT, scheduledExecutorService, log);
 
         this.topicAndGroupConsumeFailedTPS =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_FAILED_TPS, scheduledExecutorService, logger);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_FAILED_TPS, scheduledExecutorService, log);
 
-        this.topicAndGroupPullTPS = new StatsItemSet(TOPIC_AND_GROUP_PULL_TPS, scheduledExecutorService, logger);
+        this.topicAndGroupPullTPS = new StatsItemSet(TOPIC_AND_GROUP_PULL_TPS, scheduledExecutorService, log);
 
-        this.topicAndGroupPullRT = new StatsItemSet(TOPIC_AND_GROUP_PULL_RT, scheduledExecutorService, logger);
+        this.topicAndGroupPullRT = new StatsItemSet(TOPIC_AND_GROUP_PULL_RT, scheduledExecutorService, log);
     }
 
     public void start() {

@@ -43,7 +43,7 @@ public class ProcessQueue {
         Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
-    private final Logger logger = LoggerFactory.getLogger(ProcessQueue.class);
+    private final Logger log = LoggerFactory.getLogger(ProcessQueue.class);
     private final ReadWriteLock treeMapLock = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<>();
     private final AtomicLong msgCount = new AtomicLong();
@@ -99,13 +99,13 @@ public class ProcessQueue {
                     this.treeMapLock.readLock().unlock();
                 }
             } catch (InterruptedException e) {
-                logger.error("getExpiredMsg exception", e);
+                log.error("getExpiredMsg exception", e);
             }
 
             try {
 
                 pushConsumer.sendMessageBack(msg, 3);
-                logger.info("send expire msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
+                log.info("send expire msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                 try {
                     this.treeMapLock.writeLock().lockInterruptibly();
                     try {
@@ -113,17 +113,17 @@ public class ProcessQueue {
                             try {
                                 removeMessage(Collections.singletonList(msg));
                             } catch (Exception e) {
-                                logger.error("send expired msg exception", e);
+                                log.error("send expired msg exception", e);
                             }
                         }
                     } finally {
                         this.treeMapLock.writeLock().unlock();
                     }
                 } catch (InterruptedException e) {
-                    logger.error("getExpiredMsg exception", e);
+                    log.error("getExpiredMsg exception", e);
                 }
             } catch (Exception e) {
-                logger.error("send expired msg exception", e);
+                log.error("send expired msg exception", e);
             }
         }
     }
@@ -163,7 +163,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("putMessage exception", e);
+            log.error("putMessage exception", e);
         }
 
         return dispatchToConsume;
@@ -180,7 +180,7 @@ public class ProcessQueue {
                 this.treeMapLock.readLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("getMaxSpan exception", e);
+            log.error("getMaxSpan exception", e);
         }
 
         return 0;
@@ -213,7 +213,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (Throwable t) {
-            logger.error("removeMessage exception", t);
+            log.error("removeMessage exception", t);
         }
 
         return result;
@@ -257,7 +257,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("rollback exception", e);
+            log.error("rollback exception", e);
         }
     }
 
@@ -278,7 +278,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("commit exception", e);
+            log.error("commit exception", e);
         }
 
         return -1;
@@ -296,7 +296,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("makeMessageToCosumeAgain exception", e);
+            log.error("makeMessageToCosumeAgain exception", e);
         }
     }
 
@@ -326,7 +326,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("take Messages exception", e);
+            log.error("take Messages exception", e);
         }
 
         return result;
@@ -348,7 +348,7 @@ public class ProcessQueue {
                 this.treeMapLock.readLock().unlock();
             }
         } catch (Throwable t) {
-            logger.error("Failed to check message's existence in process queue, message={}", message, t);
+            log.error("Failed to check message's existence in process queue, message={}", message, t);
         }
         return false;
     }
@@ -380,7 +380,7 @@ public class ProcessQueue {
                 this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            logger.error("rollback exception", e);
+            log.error("rollback exception", e);
         }
     }
 

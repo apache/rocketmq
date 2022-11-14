@@ -48,7 +48,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
-    private static final Logger logger = LoggerFactory.getLogger(ConsumeMessagePopOrderlyService.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsumeMessagePopOrderlyService.class);
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
@@ -147,7 +147,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
         final long beginTime = System.currentTimeMillis();
 
-        logger.info("consumeMessageDirectly receive new message: {}", msg);
+        log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -175,7 +175,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
-            logger.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
                 UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessagePopOrderlyService.this.consumerGroup,
                 msgs,
@@ -185,7 +185,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
         result.setAutoCommit(context.isAutoCommit());
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
 
-        logger.info("consumeMessageDirectly Result: {}", result);
+        log.info("consumeMessageDirectly Result: {}", result);
 
         return result;
     }
@@ -222,7 +222,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
                 try {
                     consumeExecutor.submit(consumeRequest);
                 } catch (Exception e) {
-                    logger.error("error submit consume request: {}, mq: {}, shardingKeyIndex: {}",
+                    log.error("error submit consume request: {}, mq: {}, shardingKeyIndex: {}",
                         e.toString(), consumeRequest.getMessageQueue(), consumeRequest.getShardingKeyIndex());
                 }
             }
@@ -307,7 +307,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
             this.defaultMQPushConsumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(newMsg);
             return true;
         } catch (Exception e) {
-            logger.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
+            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
         }
 
         return false;
@@ -353,7 +353,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
         @Override
         public void run() {
             if (this.processQueue.isDropped()) {
-                logger.warn("run, message queue not be able to consume, because it's dropped. {}", this.messageQueue);
+                log.warn("run, message queue not be able to consume, because it's dropped. {}", this.messageQueue);
                 ConsumeMessagePopOrderlyService.this.removeConsumeRequest(this);
                 return;
             }

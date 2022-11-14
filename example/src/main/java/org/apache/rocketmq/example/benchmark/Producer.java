@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
 
-    private static final Logger logger = LoggerFactory.getLogger(Producer.class);
+    private static final Logger log = LoggerFactory.getLogger(Producer.class);
 
     private static byte[] msgBody;
     private static final int MAX_LENGTH_ASYNC_QUEUE = 10000;
@@ -222,7 +222,7 @@ public class Producer {
                             }
                         } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
-                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
@@ -236,10 +236,10 @@ public class Producer {
                             }
                         } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
-                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().increment();
-                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException ignored) {
@@ -270,7 +270,7 @@ public class Producer {
             }
             producer.shutdown();
         } catch (InterruptedException e) {
-            logger.error("[Exit] Thread Interrupted Exception", e);
+            log.error("[Exit] Thread Interrupted Exception", e);
         }
     }
 

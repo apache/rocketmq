@@ -51,7 +51,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
 public class AsyncTraceDispatcher implements TraceDispatcher {
-    private final static Logger logger = LoggerFactory.getLogger(AsyncTraceDispatcher.class);
+    private final static Logger log = LoggerFactory.getLogger(AsyncTraceDispatcher.class);
     private final static AtomicInteger COUNTER = new AtomicInteger();
     private final int queueSize;
     private final int batchSize;
@@ -177,7 +177,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     public boolean append(final Object ctx) {
         boolean result = traceContextQueue.offer((TraceContext) ctx);
         if (!result) {
-            logger.info("buffer full" + discardCount.incrementAndGet() + " ,context is " + ctx);
+            log.info("buffer full" + discardCount.incrementAndGet() + " ,context is " + ctx);
         }
         return result;
     }
@@ -203,7 +203,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 break;
             }
         }
-        logger.info("------end trace send " + traceContextQueue.size() + "   " + appenderQueue.size());
+        log.info("------end trace send " + traceContextQueue.size() + "   " + appenderQueue.size());
     }
 
     @Override
@@ -277,7 +277,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                                 traceDataSegment.addTraceTransferBean(traceTransferBean);
                             }
                         } catch (InterruptedException ignore) {
-                            logger.debug("traceContextQueue#poll exception");
+                            log.debug("traceContextQueue#poll exception");
                         }
                     }
 
@@ -406,7 +406,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
                     @Override
                     public void onException(Throwable e) {
-                        logger.error("send trace data failed, the traceData is {}", data, e);
+                        log.error("send trace data failed, the traceData is {}", data, e);
                     }
                 };
                 if (traceBrokerSet.isEmpty()) {
@@ -431,7 +431,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
 
             } catch (Exception e) {
-                logger.error("send trace data failed, the traceData is {}", data, e);
+                log.error("send trace data failed, the traceData is {}", data, e);
             }
         }
 

@@ -23,7 +23,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class MQFaultStrategy {
-    private final static Logger logger = LoggerFactory.getLogger(MQFaultStrategy.class);
+    private final static Logger log = LoggerFactory.getLogger(MQFaultStrategy.class);
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -79,7 +79,7 @@ public class MQFaultStrategy {
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {
-                logger.error("Error occurred when selecting message queue", e);
+                log.error("Error occurred when selecting message queue", e);
             }
 
             return tpInfo.selectOneMessageQueue();

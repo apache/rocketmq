@@ -63,7 +63,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
 
-    private final Logger logger = LoggerFactory.getLogger(DefaultMQPushConsumer.class);
+    private final Logger log = LoggerFactory.getLogger(DefaultMQPushConsumer.class);
 
     /**
      * Internal implementation. Most of the functions herein are delegated to it.
@@ -422,7 +422,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
                 this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
                     new ConsumeMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
         }
     }
@@ -739,7 +739,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
-                logger.warn("trace dispatcher start failed ", e);
+                log.warn("trace dispatcher start failed ", e);
             }
         }
     }

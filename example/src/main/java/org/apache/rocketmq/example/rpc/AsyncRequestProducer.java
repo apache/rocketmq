@@ -26,7 +26,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class AsyncRequestProducer {
-    private static final Logger logger = LoggerFactory.getLogger(AsyncRequestProducer.class);
+    private static final Logger log = LoggerFactory.getLogger(AsyncRequestProducer.class);
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
         String producerGroup = "please_rename_unique_group_name";
@@ -55,7 +55,7 @@ public class AsyncRequestProducer {
                 }
             }, ttl);
         } catch (Exception e) {
-            logger.warn("", e);
+            log.warn("", e);
         }
          /* shutdown after your request callback is finished */
 //        producer.shutdown();

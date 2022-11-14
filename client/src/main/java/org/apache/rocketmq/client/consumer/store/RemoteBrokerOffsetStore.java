@@ -41,7 +41,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
  * Remote storage implementation
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
-    private final static Logger logger = LoggerFactory.getLogger(RemoteBrokerOffsetStore.class);
+    private final static Logger log = LoggerFactory.getLogger(RemoteBrokerOffsetStore.class);
     private final MQClientInstance mQClientFactory;
     private final String groupName;
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
@@ -100,7 +100,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     }
                     //Other exceptions
                     catch (Exception e) {
-                        logger.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
+                        log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                         return -2;
                     }
                 }
@@ -126,13 +126,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 if (mqs.contains(mq)) {
                     try {
                         this.updateConsumeOffsetToBroker(mq, offset.get());
-                        logger.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
+                        log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                             this.groupName,
                             this.mQClientFactory.getClientId(),
                             mq,
                             offset.get());
                     } catch (Exception e) {
-                        logger.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                        log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                     }
                 } else {
                     unusedMQ.add(mq);
@@ -143,7 +143,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         if (!unusedMQ.isEmpty()) {
             for (MessageQueue mq : unusedMQ) {
                 this.offsetTable.remove(mq);
-                logger.info("remove unused mq, {}, {}", mq, this.groupName);
+                log.info("remove unused mq, {}, {}", mq, this.groupName);
             }
         }
     }
@@ -154,13 +154,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         if (offset != null) {
             try {
                 this.updateConsumeOffsetToBroker(mq, offset.get());
-                logger.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
+                log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                     this.groupName,
                     this.mQClientFactory.getClientId(),
                     mq,
                     offset.get());
             } catch (Exception e) {
-                logger.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
         }
     }
@@ -168,7 +168,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void removeOffset(MessageQueue mq) {
         if (mq != null) {
             this.offsetTable.remove(mq);
-            logger.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
+            log.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
                 offsetTable.size());
         }
     }

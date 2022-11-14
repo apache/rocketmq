@@ -29,7 +29,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public final class BeanUtils {
-    private static final Logger logger = LoggerFactory.getLogger(BeanUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(BeanUtils.class);
 
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
@@ -90,7 +90,7 @@ public final class BeanUtils {
             obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
-            logger.warn("Error occurs !", e);
+            log.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -101,7 +101,7 @@ public final class BeanUtils {
             obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
-            logger.warn("Error occurs !", e);
+            log.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -154,7 +154,7 @@ public final class BeanUtils {
                 }
             }
         } catch (RuntimeException e) {
-            logger.warn("Error occurs !", e);
+            log.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -178,7 +178,7 @@ public final class BeanUtils {
                 }
             }
         } catch (RuntimeException e) {
-            logger.warn("Error occurs !", e);
+            log.warn("Error occurs !", e);
         }
         return obj;
     }

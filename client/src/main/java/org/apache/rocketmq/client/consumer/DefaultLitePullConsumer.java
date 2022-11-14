@@ -41,7 +41,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultLitePullConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultLitePullConsumer.class);
 
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
@@ -234,7 +234,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
-                logger.warn("trace dispatcher start failed ", e);
+                log.warn("trace dispatcher start failed ", e);
             }
         }
     }
@@ -589,7 +589,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
                 this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
                     new ConsumeMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
         }
     }

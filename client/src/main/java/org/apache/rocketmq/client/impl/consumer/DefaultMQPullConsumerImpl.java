@@ -72,7 +72,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
  */
 @Deprecated
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultMQPullConsumerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultMQPullConsumerImpl.class);
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final RPCHook rpcHook;
@@ -91,7 +91,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);
-        logger.info("register consumeMessageHook Hook, {}", hook.hookName());
+        log.info("register consumeMessageHook Hook, {}", hook.hookName());
     }
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
@@ -365,7 +365,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     try {
                         ms = FilterAPI.buildSubscriptionData(t, SubscriptionData.SUB_ALL);
                     } catch (Exception e) {
-                        logger.error("parse subscription error", e);
+                        log.error("parse subscription error", e);
                     }
                     if (ms != null) {
                         ms.setSubVersion(0L);
@@ -394,7 +394,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             mqs.addAll(allocateMq);
             this.offsetStore.persistAll(mqs);
         } catch (Exception e) {
-            logger.error("group: " + this.defaultMQPullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
+            log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
         }
     }
 
@@ -625,7 +625,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, brokerName, msg, consumerGroup,
                 delayLevel, 3000, this.defaultMQPullConsumer.getMaxReconsumeTimes());
         } catch (Exception e) {
-            logger.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
+            log.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
 
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPullConsumer.getConsumerGroup()), msg.getBody());
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
@@ -650,7 +650,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
-                logger.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
+                log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
             case SHUTDOWN_ALREADY:
@@ -713,7 +713,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 }
 
                 mQClientFactory.start();
-                logger.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
+                log.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
                 break;
             case RUNNING:
@@ -803,7 +803,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
         this.filterMessageHookList.add(hook);
-        logger.info("register FilterMessageHook Hook, {}", hook.hookName());
+        log.info("register FilterMessageHook Hook, {}", hook.hookName());
     }
 
     public OffsetStore getOffsetStore() {

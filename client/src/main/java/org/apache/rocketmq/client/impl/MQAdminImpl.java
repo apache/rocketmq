@@ -59,7 +59,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class MQAdminImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(MQAdminImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(MQAdminImpl.class);
     private final MQClientInstance mQClientFactory;
     private long timeoutMillis = 6000;
 
@@ -361,7 +361,7 @@ public class MQAdminImpl {
                                                             (QueryMessageResponseHeader) response
                                                                 .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
                                                     } catch (RemotingCommandException e) {
-                                                        logger.error("decodeCommandCustomHeader exception", e);
+                                                        log.error("decodeCommandCustomHeader exception", e);
                                                         return;
                                                     }
 
@@ -378,11 +378,11 @@ public class MQAdminImpl {
                                                     break;
                                                 }
                                                 default:
-                                                    logger.warn("getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
+                                                    log.warn("getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                                                     break;
                                             }
                                         } else {
-                                            logger.warn("getResponseCommand return null");
+                                            log.warn("getResponseCommand return null");
                                         }
                                     } finally {
                                         countDownLatch.countDown();
@@ -390,14 +390,14 @@ public class MQAdminImpl {
                                 }
                             }, isUniqKey);
                     } catch (Exception e) {
-                        logger.warn("queryMessage exception", e);
+                        log.warn("queryMessage exception", e);
                     }
 
                 }
 
                 boolean ok = countDownLatch.await(timeoutMillis * 4, TimeUnit.MILLISECONDS);
                 if (!ok) {
-                    logger.warn("queryMessage, maybe some broker failed");
+                    log.warn("queryMessage, maybe some broker failed");
                 }
 
                 long indexLastUpdateTimestamp = 0;
@@ -424,7 +424,7 @@ public class MQAdminImpl {
                                     messageList.add(msgExt);
                                 }
                             } else {
-                                logger.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                             }
                         } else {
                             String keys = msgExt.getKeys();
@@ -445,7 +445,7 @@ public class MQAdminImpl {
                                 if (matched) {
                                     messageList.add(msgExt);
                                 } else {
-                                    logger.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                    log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                                 }
                             }
                         }

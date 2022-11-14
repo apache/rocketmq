@@ -25,7 +25,7 @@ public class RebalanceService extends ServiceThread {
     private static long waitInterval =
         Long.parseLong(System.getProperty(
             "rocketmq.client.rebalance.waitInterval", "20000"));
-    private final Logger logger = LoggerFactory.getLogger(RebalanceService.class);
+    private final Logger log = LoggerFactory.getLogger(RebalanceService.class);
     private final MQClientInstance mqClientFactory;
 
     public RebalanceService(MQClientInstance mqClientFactory) {
@@ -34,14 +34,14 @@ public class RebalanceService extends ServiceThread {
 
     @Override
     public void run() {
-        logger.info(this.getServiceName() + " service started");
+        log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             this.waitForRunning(waitInterval);
             this.mqClientFactory.doRebalance();
         }
 
-        logger.info(this.getServiceName() + " service end");
+        log.info(this.getServiceName() + " service end");
     }
 
     @Override

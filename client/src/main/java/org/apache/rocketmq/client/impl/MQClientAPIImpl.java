@@ -223,7 +223,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class MQClientAPIImpl implements NameServerUpdateCallback {
-    private final static Logger logger = LoggerFactory.getLogger(MQClientAPIImpl.class);
+    private final static Logger log = LoggerFactory.getLogger(MQClientAPIImpl.class);
     private static boolean sendSmartMsg =
         Boolean.parseBoolean(System.getProperty("org.apache.rocketmq.client.sendSmartMsg", "true"));
 
@@ -280,14 +280,14 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             String addrs = this.topAddressing.fetchNSAddr();
             if (!UtilAll.isBlank(addrs)) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    logger.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
+                    log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
                 }
             }
         } catch (Exception e) {
-            logger.error("fetchNameServerAddr Exception", e);
+            log.error("fetchNameServerAddr Exception", e);
         }
         return nameSrvAddr;
     }
@@ -296,7 +296,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     public String onNameServerAddressChange(String namesrvAddress) {
         if (namesrvAddress != null) {
             if (!namesrvAddress.equals(this.nameSrvAddr)) {
-                logger.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + namesrvAddress);
+                log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + namesrvAddress);
                 this.updateNameServerAddressList(namesrvAddress);
                 this.nameSrvAddr = namesrvAddress;
                 return nameSrvAddr;
@@ -732,7 +732,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 retryBrokerName = instance.getBrokerNameFromMessageQueue(mqChosen);
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
-            logger.warn("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
+            log.warn("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
                 retryBrokerName, e);
             request.setOpaque(RemotingCommand.createNewRequestId());
             sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
@@ -1106,7 +1106,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         int index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
                         Long msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
                         if (msgQueueOffset != messageExt.getQueueOffset()) {
-                            logger.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
+                            log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
                         }
 
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
@@ -1793,7 +1793,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (allowTopicNotExist) {
-                    logger.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
+                    log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
 
                 break;
@@ -2083,7 +2083,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             case ResponseCode.TOPIC_NOT_EXIST:
             case ResponseCode.SUBSCRIPTION_NOT_EXIST:
             case ResponseCode.SYSTEM_ERROR:
-                logger.warn("Invoke broker to reset offset error code={}, remark={}",
+                log.warn("Invoke broker to reset offset error code={}, remark={}",
                     response.getCode(), response.getRemark());
                 break;
             default:
@@ -2826,7 +2826,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 return true;
             }
             default:
-                logger.error("Failed to resume half message check logic. Remark={}", response.getRemark());
+                log.error("Failed to resume half message check logic. Remark={}", response.getRemark());
                 return false;
         }
     }

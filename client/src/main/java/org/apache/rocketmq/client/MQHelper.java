@@ -25,7 +25,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class MQHelper {
-    private static final Logger logger = LoggerFactory.getLogger(MQHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(MQHelper.class);
 
     @Deprecated
     public static void resetOffsetByTimestamp(
@@ -66,13 +66,13 @@ public class MQHelper {
                     long offset = consumer.searchOffset(mq, timestamp);
                     if (offset >= 0) {
                         consumer.updateConsumeOffset(mq, offset);
-                        logger.info("resetOffsetByTimestamp updateConsumeOffset success, {} {} {}",
+                        log.info("resetOffsetByTimestamp updateConsumeOffset success, {} {} {}",
                             consumerGroup, offset, mq);
                     }
                 }
             }
         } catch (Exception e) {
-            logger.warn("resetOffsetByTimestamp Exception", e);
+            log.warn("resetOffsetByTimestamp Exception", e);
             throw e;
         } finally {
             if (mqs != null) {

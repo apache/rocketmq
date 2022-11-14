@@ -38,7 +38,7 @@ import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
  * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
  */
 public class MQPullConsumerScheduleService {
-    private final Logger logger = LoggerFactory.getLogger(MQPullConsumerScheduleService.class);
+    private final Logger log = LoggerFactory.getLogger(MQPullConsumerScheduleService.class);
     private final MessageQueueListener messageQueueListener = new MessageQueueListenerImpl();
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
         new ConcurrentHashMap<>();
@@ -91,7 +91,7 @@ public class MQPullConsumerScheduleService {
 
         this.defaultMQPullConsumer.start();
 
-        logger.info("MQPullConsumerScheduleService start OK, {} {}",
+        log.info("MQPullConsumerScheduleService start OK, {} {}",
             this.defaultMQPullConsumer.getConsumerGroup(), this.callbackTable);
     }
 
@@ -181,20 +181,20 @@ public class MQPullConsumerScheduleService {
                         pullTaskCallback.doPullTask(this.messageQueue, context);
                     } catch (Throwable e) {
                         context.setPullNextDelayTimeMillis(1000);
-                        logger.error("doPullTask Exception", e);
+                        log.error("doPullTask Exception", e);
                     }
 
                     if (!this.isCancelled()) {
                         MQPullConsumerScheduleService.this.scheduledThreadPoolExecutor.schedule(this,
                             context.getPullNextDelayTimeMillis(), TimeUnit.MILLISECONDS);
                     } else {
-                        logger.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
+                        log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
                     }
                 } else {
-                    logger.warn("Pull Task Callback not exist , {}", topic);
+                    log.warn("Pull Task Callback not exist , {}", topic);
                 }
             } else {
-                logger.warn("The Pull Task is cancelled, {}", messageQueue);
+                log.warn("The Pull Task is cancelled, {}", messageQueue);
             }
         }
 

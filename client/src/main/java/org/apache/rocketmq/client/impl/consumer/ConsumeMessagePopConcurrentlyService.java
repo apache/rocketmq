@@ -51,7 +51,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageService {
-    private static final Logger logger = LoggerFactory.getLogger(ConsumeMessagePopConcurrentlyService.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsumeMessagePopConcurrentlyService.class);
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
@@ -131,7 +131,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
         final long beginTime = System.currentTimeMillis();
 
-        logger.info("consumeMessageDirectly receive new message: {}", msg);
+        log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
             ConsumeConcurrentlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -153,7 +153,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
-            logger.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
                 UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessagePopConcurrentlyService.this.consumerGroup,
                 msgs,
@@ -162,7 +162,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
 
-        logger.info("consumeMessageDirectly Result: {}", result);
+        log.info("consumeMessageDirectly Result: {}", result);
 
         return result;
     }
@@ -267,7 +267,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
         long msgDelaytime = System.currentTimeMillis() - msgExt.getBornTimestamp();
         if (msgDelaytime > delayLevelTable[delayLevelTable.length - 1] * 1000 * 2) {
-            logger.warn("Consume too many times, ack message async. message {}", msgExt.toString());
+            log.warn("Consume too many times, ack message async. message {}", msgExt.toString());
             this.defaultMQPushConsumerImpl.ackAsync(msgExt, consumerGroup);
         } else {
             int delayLevel = delayLevelTable.length - 1;
@@ -279,7 +279,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
             }
 
             changePopInvisibleTime(msgExt, consumerGroup, delayLevel);
-            logger.warn("Consume too many times, but delay time {} not enough. changePopInvisibleTime to delayLevel {} . message key:{}",
+            log.warn("Consume too many times, but delay time {} not enough. changePopInvisibleTime to delayLevel {} . message key:{}",
                 msgDelaytime, delayLevel, msgExt.getKeys());
         }
     }
@@ -303,11 +303,11 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
                         @Override
                         public void onException(Throwable e) {
-                            logger.error("changePopInvisibleTimeAsync fail. msg:{} error info: {}", msg.toString(), e.toString());
+                            log.error("changePopInvisibleTimeAsync fail. msg:{} error info: {}", msg.toString(), e.toString());
                         }
                     });
         } catch (Throwable t) {
-            logger.error("changePopInvisibleTimeAsync fail, group:{} msg:{} errorInfo:{}", consumerGroup, msg.toString(), t.toString());
+            log.error("changePopInvisibleTimeAsync fail, group:{} msg:{} errorInfo:{}", consumerGroup, msg.toString(), t.toString());
         }
     }
 
@@ -360,7 +360,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                 popTime = ExtraInfoUtil.getPopTime(extraInfoStrs);
                 invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfoStrs);
             } catch (Throwable t) {
-                logger.error("parse extra info error. msg:" + msgs.get(0), t);
+                log.error("parse extra info error. msg:" + msgs.get(0), t);
             }
         }
 
@@ -384,12 +384,12 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
         @Override
         public void run() {
             if (this.processQueue.isDropped()) {
-                logger.info("the message queue not be able to consume, because it's dropped(pop). group={} {}", ConsumeMessagePopConcurrentlyService.this.consumerGroup, this.messageQueue);
+                log.info("the message queue not be able to consume, because it's dropped(pop). group={} {}", ConsumeMessagePopConcurrentlyService.this.consumerGroup, this.messageQueue);
                 return;
             }
 
             if (isPopTimeout()) {
-                logger.info("the pop message time out so abort consume. popTime={} invisibleTime={}, group={} {}",
+                log.info("the pop message time out so abort consume. popTime={} invisibleTime={}, group={} {}",
                         popTime, invisibleTime, ConsumeMessagePopConcurrentlyService.this.consumerGroup, this.messageQueue);
                 processQueue.decFoundMsg(-msgs.size());
                 return;
@@ -423,7 +423,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                 }
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
-                logger.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
+                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                     UtilAll.exceptionSimpleDesc(e),
                     ConsumeMessagePopConcurrentlyService.this.consumerGroup,
                     msgs,
@@ -446,7 +446,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
             }
 
             if (null == status) {
-                logger.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
+                log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
                     ConsumeMessagePopConcurrentlyService.this.consumerGroup,
                     msgs,
                     messageQueue);
@@ -470,7 +470,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                     processQueue.decFoundMsg(-msgs.size());
                 }
 
-                logger.warn("processQueue invalid. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
+                log.warn("processQueue invalid. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
                         processQueue.isDropped(), isPopTimeout(), messageQueue, msgs);
             }
         }
