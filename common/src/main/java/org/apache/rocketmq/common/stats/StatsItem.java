@@ -27,7 +27,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class StatsItem {
-    private static final Logger logger = LoggerFactory.getLogger(StatsItem.class);
+    private final Logger logger = LoggerFactory.getLogger(StatsItem.class);
 
     private final LongAdder value = new LongAdder();
 

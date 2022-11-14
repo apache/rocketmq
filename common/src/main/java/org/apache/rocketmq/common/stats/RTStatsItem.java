@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.common.stats;
 
-import org.apache.rocketmq.logging.InternalLogger;
-
 import java.util.concurrent.ScheduledExecutorService;
 
 /**

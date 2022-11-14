@@ -27,11 +27,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.junit.After;
 import org.junit.Before;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 
-public class InitConfigAndLoggerTest {
+public class InitConfigTest {
     public static String mockProxyHome = "/mock/rmq/proxy/home";
 
     @Before
@@ -47,31 +46,10 @@ public class InitConfigAndLoggerTest {
 
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        initLogger();
     }
 
     @After
     public void after() {
         System.clearProperty(RMQ_PROXY_HOME);
-    }
-
-    private static void initLogger() throws JoranException {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        // https://logback.qos.ch/manual/configuration.html
-        lc.setPackagingDataEnabled(false);
-
-        try (InputStream inputStream = InitConfigAndLoggerTest.class.getClassLoader()
-                .getResourceAsStream("rmq-proxy-home/conf/logback_proxy.xml")) {
-            if (null != inputStream) {
-                configurator.doConfigure(inputStream);
-                return;
-            }
-        } catch (IOException ignore) {
-        }
-
-        configurator.doConfigure(mockProxyHome + "/conf/logback_proxy.xml");
     }
 }

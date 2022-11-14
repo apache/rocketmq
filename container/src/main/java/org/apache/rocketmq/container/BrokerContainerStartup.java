@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.container;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -42,10 +40,10 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrokerContainerStartup {
     private static final String BROKER_CONTAINER_CONFIG_OPTION = "c";
@@ -58,7 +56,6 @@ public class BrokerContainerStartup {
     public static InternalLogger log;
     public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
     public static String rocketmqHome = null;
-    public static final JoranConfigurator CONFIGURATOR = new JoranConfigurator();
 
     public static void main(String[] args) {
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
@@ -310,14 +307,6 @@ public class BrokerContainerStartup {
                     System.exit(-3);
                 }
             }
-
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            CONFIGURATOR.setContext(lc);
-            lc.reset();
-            //https://logback.qos.ch/manual/configuration.html
-            lc.setPackagingDataEnabled(false);
-
-            CONFIGURATOR.doConfigure(rocketmqHome + "/conf/logback_broker.xml");
 
             if (commandLine.hasOption(PRINT_PROPERTIES_OPTION)) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);

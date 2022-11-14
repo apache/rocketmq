@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
@@ -46,7 +44,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.mock;
 
@@ -63,13 +60,6 @@ public class RegisterBrokerBenchmark {
 
     @Setup
     public void setup() throws InterruptedException, JoranException {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        //https://logback.qos.ch/manual/configuration.html
-        lc.setPackagingDataEnabled(false);
-
         routeInfoManager = new RouteInfoManager(new NamesrvConfig(), null);
 
         // Init 4 clusters and 8 brokers in each cluster

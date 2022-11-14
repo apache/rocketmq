@@ -52,7 +52,6 @@ import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -238,23 +237,5 @@ public class ProxyStartup {
             config.isEnablePrintJstack(), config.getPrintJstackInMillis(),
             config.getPrintThreadPoolStatusInMillis());
         ThreadPoolMonitor.init();
-    }
-
-    public static void initLogger() throws JoranException {
-        System.setProperty("brokerLogDir", "");
-
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        //https://logback.qos.ch/manual/configuration.html
-        lc.setPackagingDataEnabled(false);
-        final String home = ConfigurationManager.getProxyHome();
-        if (StringUtils.isEmpty(home)) {
-            System.out.printf("Please set the %s variable or %s variable in your environment to match the location of the RocketMQ installation%n",
-                MixAll.ROCKETMQ_HOME_ENV, ConfigurationManager.RMQ_PROXY_HOME);
-            System.exit(-1);
-        }
-        configurator.doConfigure(home + "/conf/logback_proxy.xml");
     }
 }

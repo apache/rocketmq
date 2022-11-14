@@ -97,6 +97,14 @@
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.aliyun-mq</groupId>
+            <artifactId>rocketmq-slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyun-mq</groupId>
+            <artifactId>rocketmq-logback-classic</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

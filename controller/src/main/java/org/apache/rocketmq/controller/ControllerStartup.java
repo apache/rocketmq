@@ -40,7 +40,6 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.srvutil.ShutdownHookThread;
-import org.slf4j.LoggerFactory;
 
 public class ControllerStartup {
 
@@ -106,16 +105,10 @@ public class ControllerStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), controllerConfig);
 
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-
         if (StringUtils.isEmpty(controllerConfig.getRocketmqHome())) {
             System.out.printf("Please set the %s or %s variable in your environment!%n", MixAll.ROCKETMQ_HOME_ENV, MixAll.ROCKETMQ_HOME_PROPERTY);
             System.exit(-1);
         }
-        configurator.doConfigure(controllerConfig.getRocketmqHome() + "/conf/logback_controller.xml");
 
         log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
