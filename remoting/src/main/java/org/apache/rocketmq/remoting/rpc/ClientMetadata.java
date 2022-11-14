@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -36,7 +36,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 
 public class ClientMetadata {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<String/* Topic */, ConcurrentMap<MessageQueue, String/*brokerName*/>> topicEndPointsTable = new ConcurrentHashMap<>();

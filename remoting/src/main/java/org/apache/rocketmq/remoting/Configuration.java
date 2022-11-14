@@ -27,12 +27,12 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 
 public class Configuration {
 
-    private final InternalLogger log;
+    private final Logger log;
 
     private List<Object> configObjectList = new ArrayList<>(4);
     private String storePath;
@@ -46,11 +46,11 @@ public class Configuration {
      */
     private Properties allConfigs = new Properties();
 
-    public Configuration(InternalLogger log) {
+    public Configuration(Logger log) {
         this.log = log;
     }
 
-    public Configuration(InternalLogger log, Object... configObjects) {
+    public Configuration(Logger log, Object... configObjects) {
         this.log = log;
         if (configObjects == null || configObjects.length == 0) {
             return;
@@ -63,7 +63,7 @@ public class Configuration {
         }
     }
 
-    public Configuration(InternalLogger log, String storePath, Object... configObjects) {
+    public Configuration(Logger log, String storePath, Object... configObjects) {
         this(log, configObjects);
         this.storePath = storePath;
     }

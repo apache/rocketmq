@@ -19,8 +19,8 @@ package org.apache.rocketmq.remoting.netty;
 
 
 import io.netty.util.internal.logging.InternalLogLevel;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,12 +50,12 @@ public class NettyLogger {
 
     private static class NettyBridgeLogger implements io.netty.util.internal.logging.InternalLogger {
 
-        private InternalLogger logger = null;
+        private Logger logger = null;
 
         private static final String EXCEPTION_MESSAGE = "Unexpected exception:";
 
         public NettyBridgeLogger(String name) {
-            logger = InternalLoggerFactory.getLogger(name);
+            logger = LoggerFactory.getLogger(name);
         }
 
         @Override

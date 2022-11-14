@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ChannelManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);

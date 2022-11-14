@@ -52,8 +52,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);

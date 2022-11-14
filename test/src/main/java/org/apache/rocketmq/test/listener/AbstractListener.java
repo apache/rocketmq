@@ -21,13 +21,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.clientinterface.MQCollector;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class AbstractListener extends MQCollector implements MessageListener {
-    public static final Logger LOGGER = Logger.getLogger(AbstractListener.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(AbstractListener.class);
     protected boolean isDebug = true;
     protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;
@@ -105,7 +106,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
     public void waitForMessageConsume(Map<Object, Object> sendMsgIndex, int timeoutMills) {
         Collection<Object> notRecvMsgs = waitForMessageConsume(sendMsgIndex.keySet(), timeoutMills);
         for (Object object : notRecvMsgs) {
-            LOGGER.info(sendMsgIndex.get(object));
+            LOGGER.info("{}", sendMsgIndex.get(object));
         }
     }
 }

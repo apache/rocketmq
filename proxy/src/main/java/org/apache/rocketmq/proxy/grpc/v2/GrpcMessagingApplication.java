@@ -61,8 +61,8 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);

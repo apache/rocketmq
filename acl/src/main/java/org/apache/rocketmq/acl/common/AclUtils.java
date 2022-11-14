@@ -27,8 +27,8 @@ import java.util.SortedMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
@@ -37,7 +37,7 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
 public class AclUtils {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {

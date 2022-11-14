@@ -40,8 +40,8 @@ import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -58,7 +58,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 
 public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected GrpcClientSettingsManager grpcClientSettingsManager;
     protected GrpcChannelManager grpcChannelManager;

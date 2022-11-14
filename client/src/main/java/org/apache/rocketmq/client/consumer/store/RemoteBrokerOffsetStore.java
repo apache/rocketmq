@@ -28,20 +28,20 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * Remote storage implementation
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger log = LoggerFactory.getLogger(RemoteBrokerOffsetStore.class);
     private final MQClientInstance mQClientFactory;
     private final String groupName;
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =

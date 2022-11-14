@@ -38,8 +38,8 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -75,7 +75,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class PullMessageProcessor implements NettyRequestProcessor {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private List<ConsumeMessageHook> consumeMessageHookList;
     private PullMessageResultHandler pullMessageResultHandler;
     private final BrokerController brokerController;

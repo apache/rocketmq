@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.balance;
 
-import org.apache.log4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -33,7 +34,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMsgDynamicBalanceIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);
+    private static Logger logger = LoggerFactory.getLogger(NormalMsgStaticBalanceIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 

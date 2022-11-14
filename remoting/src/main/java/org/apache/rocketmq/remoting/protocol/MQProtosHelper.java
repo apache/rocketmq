@@ -18,13 +18,13 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
 
 public class MQProtosHelper {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
         final long timeoutMillis) {

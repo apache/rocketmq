@@ -51,12 +51,9 @@
             <artifactId>rocketmq-srvutil</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

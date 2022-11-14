@@ -20,7 +20,7 @@ package org.apache.rocketmq.proxy.service;
 import java.util.HashMap;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 @Ignore
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BaseServiceTest extends InitConfigAndLoggerTest {
+public class BaseServiceTest extends InitConfigTest {
 
     protected TopicRouteService topicRouteService;
     protected MQClientAPIFactory mqClientAPIFactory;

@@ -30,8 +30,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
@@ -46,7 +46,7 @@ import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResult
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
 
 public class GrpcClientChannel extends ProxyChannel {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final GrpcChannelManager grpcChannelManager;
 

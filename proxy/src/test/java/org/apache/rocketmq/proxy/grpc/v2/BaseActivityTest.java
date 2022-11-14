@@ -23,7 +23,7 @@ import java.util.Random;
 import java.util.UUID;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 @Ignore
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BaseActivityTest extends InitConfigAndLoggerTest {
+public class BaseActivityTest extends InitConfigTest {
     protected static final Random RANDOM = new Random();
     protected MessagingProcessor messagingProcessor;
     protected GrpcClientSettingsManager grpcClientSettingsManager;

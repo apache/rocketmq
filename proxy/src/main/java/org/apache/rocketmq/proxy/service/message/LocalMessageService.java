@@ -71,8 +71,8 @@ import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHe
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class LocalMessageService implements MessageService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
