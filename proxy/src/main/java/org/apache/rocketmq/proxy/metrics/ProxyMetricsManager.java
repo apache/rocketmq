@@ -69,7 +69,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyUp = null;
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
-        if (proxyConfig.getMetricsExporterType() != BrokerConfig.MetricsExporterType.DISABLE) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.DISABLE) {
             return;
         }
         ProxyMetricsManager.proxyConfig = proxyConfig;
