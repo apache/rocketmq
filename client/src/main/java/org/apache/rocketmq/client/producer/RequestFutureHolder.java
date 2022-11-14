@@ -31,12 +31,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class RequestFutureHolder {
-    private static InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(RequestFutureHolder.class);
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<>();
     private final Set<DefaultMQProducerImpl> producerSet = new HashSet<>();
@@ -56,7 +56,7 @@ public class RequestFutureHolder {
             if (rep.isTimeout()) {
                 it.remove();
                 rfList.add(rep);
-                log.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
+                logger.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
             }
         }
 
@@ -66,7 +66,7 @@ public class RequestFutureHolder {
                 rf.setCause(cause);
                 rf.executeRequestCallback();
             } catch (Throwable e) {
-                log.warn("scanResponseTable, operationComplete Exception", e);
+                logger.warn("scanResponseTable, operationComplete Exception", e);
             }
         }
     }
@@ -82,7 +82,7 @@ public class RequestFutureHolder {
                     try {
                         RequestFutureHolder.getInstance().scanExpiredRequest();
                     } catch (Throwable e) {
-                        log.error("scan RequestFutureTable exception", e);
+                        logger.error("scan RequestFutureTable exception", e);
                     }
                 }
             }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);

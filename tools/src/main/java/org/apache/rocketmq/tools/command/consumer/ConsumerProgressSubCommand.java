@@ -25,12 +25,10 @@ import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
@@ -40,12 +38,14 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ConsumerProgressSubCommand implements SubCommand {
-    private final InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(ConsumerProgressSubCommand.class);
 
     @Override
     public String commandName() {
@@ -88,7 +88,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 }
             }
         } catch (Exception e) {
-            log.error("getMqAllocationsResult error, ", e);
+            logger.error("getMqAllocationsResult error, ", e);
         }
         return results;
     }
@@ -218,14 +218,14 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             try {
                                 consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                             } catch (Exception e) {
-                                log.warn("examineConsumeStats exception, " + consumerGroup, e);
+                                logger.warn("examineConsumeStats exception, " + consumerGroup, e);
                             }
 
                             ConsumerConnection cc = null;
                             try {
                                 cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
                             } catch (Exception e) {
-                                log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                                logger.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
                             }
 
                             GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
@@ -253,7 +253,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 groupConsumeInfo.getDiffTotal()
                             );
                         } catch (Exception e) {
-                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                            logger.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
                         }
                     }
                 }

@@ -27,17 +27,17 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.util.Arrays;
@@ -52,6 +52,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
+
+    private static final Logger logger = LoggerFactory.getLogger(Producer.class);
 
     private static byte[] msgBody;
     private static final int MAX_LENGTH_ASYNC_QUEUE = 10000;
@@ -90,8 +92,6 @@ public class Producer {
             sb.append(RandomStringUtils.randomAlphanumeric(1));
         }
         msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
-
-        final InternalLogger log = ClientLogger.getLog();
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 
@@ -222,7 +222,7 @@ public class Producer {
                             }
                         } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
@@ -236,10 +236,10 @@ public class Producer {
                             }
                         } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().increment();
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException ignored) {
@@ -270,7 +270,7 @@ public class Producer {
             }
             producer.shutdown();
         } catch (InterruptedException e) {
-            log.error("[Exit] Thread Interrupted Exception", e);
+            logger.error("[Exit] Thread Interrupted Exception", e);
         }
     }
 

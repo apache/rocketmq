@@ -32,12 +32,10 @@ public class StatsItemSet {
 
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final InternalLogger log;
 
-    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
+    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService) {
         this.statsName = statsName;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.log = log;
         this.init();
     }
 
@@ -213,9 +211,9 @@ public class StatsItemSet {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             if (rtItem) {
-                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService);
             } else {
-                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService);
             }
             StatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 

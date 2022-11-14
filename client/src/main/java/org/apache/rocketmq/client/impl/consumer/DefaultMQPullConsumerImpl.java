@@ -42,7 +42,6 @@ import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
@@ -55,7 +54,6 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -65,6 +63,8 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 /**
  * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumerImpl} is recommend to use
@@ -72,7 +72,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
  */
 @Deprecated
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
-    private final InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(DefaultMQPullConsumerImpl.class);
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final RPCHook rpcHook;
@@ -91,7 +91,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);
-        log.info("register consumeMessageHook Hook, {}", hook.hookName());
+        logger.info("register consumeMessageHook Hook, {}", hook.hookName());
     }
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
@@ -365,7 +365,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     try {
                         ms = FilterAPI.buildSubscriptionData(t, SubscriptionData.SUB_ALL);
                     } catch (Exception e) {
-                        log.error("parse subscription error", e);
+                        logger.error("parse subscription error", e);
                     }
                     if (ms != null) {
                         ms.setSubVersion(0L);
@@ -394,7 +394,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             mqs.addAll(allocateMq);
             this.offsetStore.persistAll(mqs);
         } catch (Exception e) {
-            log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
+            logger.error("group: " + this.defaultMQPullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
         }
     }
 
@@ -625,7 +625,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, brokerName, msg, consumerGroup,
                 delayLevel, 3000, this.defaultMQPullConsumer.getMaxReconsumeTimes());
         } catch (Exception e) {
-            log.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
+            logger.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
 
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPullConsumer.getConsumerGroup()), msg.getBody());
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
@@ -650,7 +650,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
-                log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
+                logger.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
             case SHUTDOWN_ALREADY:
@@ -713,7 +713,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 }
 
                 mQClientFactory.start();
-                log.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
+                logger.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
                 break;
             case RUNNING:
@@ -803,7 +803,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
         this.filterMessageHookList.add(hook);
-        log.info("register FilterMessageHook Hook, {}", hook.hookName());
+        logger.info("register FilterMessageHook Hook, {}", hook.hookName());
     }
 
     public OffsetStore getOffsetStore() {

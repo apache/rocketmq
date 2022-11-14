@@ -35,23 +35,23 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 class LocalMessageCache implements ServiceLifecycle {
+    private static final Logger logger = LoggerFactory.getLogger(LocalMessageCache.class);
+
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
     private final Map<String, ConsumeRequest> consumedRequest;
     private final ConcurrentHashMap<MessageQueue, Long> pullOffsetTable;
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final ClientConfig clientConfig;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
-
-    private final static InternalLogger log = ClientLogger.getLog();
 
     LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final ClientConfig clientConfig) {
         consumeRequestCache = new LinkedBlockingQueue<>(clientConfig.getRmqPullMessageCacheCapacity());
@@ -73,7 +73,7 @@ class LocalMessageCache implements ServiceLifecycle {
                 pullOffsetTable.putIfAbsent(remoteQueue,
                     rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
             } catch (MQClientException e) {
-                log.error("An error occurred in fetch consume offset process.", e);
+                logger.error("An error occurred in fetch consume offset process.", e);
             }
         }
         return pullOffsetTable.get(remoteQueue);
@@ -124,7 +124,7 @@ class LocalMessageCache implements ServiceLifecycle {
             try {
                 rocketmqPullConsumer.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
             } catch (MQClientException e) {
-                log.error("An error occurred in update consume offset process.", e);
+                logger.error("An error occurred in update consume offset process.", e);
             }
         }
     }
@@ -135,7 +135,7 @@ class LocalMessageCache implements ServiceLifecycle {
         try {
             rocketmqPullConsumer.updateConsumeOffset(messageQueue, offset);
         } catch (MQClientException e) {
-            log.error("An error occurred in update consume offset process.", e);
+            logger.error("An error occurred in update consume offset process.", e);
         }
     }
 
@@ -161,7 +161,7 @@ class LocalMessageCache implements ServiceLifecycle {
             MessageQueue mq = next.getKey();
             ReadWriteLock lockTreeMap = getLockInProcessQueue(pq);
             if (lockTreeMap == null) {
-                log.error("Gets tree map lock in process queue error, may be has compatibility issue");
+                logger.error("Gets tree map lock in process queue error, may be has compatibility issue");
                 return;
             }
 
@@ -188,16 +188,16 @@ class LocalMessageCache implements ServiceLifecycle {
                         lockTreeMap.readLock().unlock();
                     }
                 } catch (InterruptedException e) {
-                    log.error("Gets expired message exception", e);
+                    logger.error("Gets expired message exception", e);
                 }
 
                 try {
                     rocketmqPullConsumer.sendMessageBack(msg, 3);
-                    log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
+                    logger.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
                         msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                     ack(mq, pq, msg);
                 } catch (Exception e) {
-                    log.error("Send back expired msg exception", e);
+                    logger.error("Send back expired msg exception", e);
                 }
             }
         }

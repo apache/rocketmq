@@ -34,7 +34,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -70,7 +69,7 @@ public class ProxyStartup {
         try {
             // parse argument from command line
             CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
-            initLogAndConfiguration(commandLineArgument);
+            initConfiguration(commandLineArgument);
 
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
@@ -111,12 +110,11 @@ public class ProxyStartup {
         log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
-    protected static void initLogAndConfiguration(CommandLineArgument commandLineArgument) throws Exception {
+    protected static void initConfiguration(CommandLineArgument commandLineArgument) throws Exception {
         if (StringUtils.isNotBlank(commandLineArgument.getProxyConfigPath())) {
             System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
         }
         ConfigurationManager.initEnv();
-        initLogger();
         ConfigurationManager.intConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
     }
@@ -244,7 +242,6 @@ public class ProxyStartup {
 
     public static void initLogger() throws JoranException {
         System.setProperty("brokerLogDir", "");
-        System.setProperty(ClientLogger.CLIENT_LOG_USESLF4J, "true");
 
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();

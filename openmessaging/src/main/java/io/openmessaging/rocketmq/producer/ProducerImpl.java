@@ -67,13 +67,13 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
         try {
             org.apache.rocketmq.client.producer.SendResult rmqResult = this.rocketmqProducer.send(rmqMessage, timeout);
             if (!rmqResult.getSendStatus().equals(SendStatus.SEND_OK)) {
-                log.error(String.format("Send message to RocketMQ failed, %s", message));
+                logger.error(String.format("Send message to RocketMQ failed, %s", message));
                 throw new OMSRuntimeException("-1", "Send message to RocketMQ broker failed.");
             }
             message.sysHeaders().put(Message.BuiltinKeys.MESSAGE_ID, rmqResult.getMsgId());
             return OMSUtil.sendResultConvert(rmqResult);
         } catch (Exception e) {
-            log.error(String.format("Send message to RocketMQ failed, %s", message), e);
+            logger.error(String.format("Send message to RocketMQ failed, %s", message), e);
             throw checkProducerException(rmqMessage.getTopic(), message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID), e);
         }
     }

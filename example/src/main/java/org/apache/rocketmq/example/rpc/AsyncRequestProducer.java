@@ -18,15 +18,15 @@
 package org.apache.rocketmq.example.rpc;
 
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class AsyncRequestProducer {
-    private static final InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(AsyncRequestProducer.class);
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
         String producerGroup = "please_rename_unique_group_name";
@@ -55,7 +55,7 @@ public class AsyncRequestProducer {
                 }
             }, ttl);
         } catch (Exception e) {
-            log.warn("", e);
+            logger.warn("", e);
         }
          /* shutdown after your request callback is finished */
 //        producer.shutdown();

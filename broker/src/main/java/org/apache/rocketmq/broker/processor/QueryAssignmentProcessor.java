@@ -64,7 +64,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
         //register strategy
         //NOTE: init with broker's log instead of init with ClientLogger.getLog();
-        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely(log);
+        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely();
         name2LoadStrategy.put(allocateMessageQueueAveragely.getName(), allocateMessageQueueAveragely);
         AllocateMessageQueueAveragelyByCircle allocateMessageQueueAveragelyByCircle = new AllocateMessageQueueAveragelyByCircle(log);
         name2LoadStrategy.put(allocateMessageQueueAveragelyByCircle.getName(), allocateMessageQueueAveragelyByCircle);

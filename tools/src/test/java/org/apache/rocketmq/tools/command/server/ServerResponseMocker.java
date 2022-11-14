@@ -32,7 +32,6 @@ import io.netty.util.concurrent.Future;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -49,11 +48,6 @@ public abstract class ServerResponseMocker {
     private int listenPort;
 
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-
-    @BeforeClass
-    public static void setLogHome() {
-        System.setProperty(ClientLogger.CLIENT_LOG_ROOT, System.getProperty("java.io.tmpdir"));
-    }
 
     @Before
     public void before() {

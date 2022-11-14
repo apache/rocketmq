@@ -58,7 +58,7 @@ public class RebalancePushImpl extends RebalanceImpl {
          */
         SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
         long newVersion = System.currentTimeMillis();
-        log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
+        logger.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
         subscriptionData.setSubVersion(newVersion);
 
         int currentQueueCount = this.processQueueTable.size();
@@ -66,7 +66,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();
             if (pullThresholdForTopic != -1) {
                 int newVal = Math.max(1, pullThresholdForTopic / currentQueueCount);
-                log.info("The pullThresholdForQueue is changed from {} to {}",
+                logger.info("The pullThresholdForQueue is changed from {} to {}",
                     this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForQueue(), newVal);
                 this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().setPullThresholdForQueue(newVal);
             }
@@ -74,7 +74,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             int pullThresholdSizeForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdSizeForTopic();
             if (pullThresholdSizeForTopic != -1) {
                 int newVal = Math.max(1, pullThresholdSizeForTopic / currentQueueCount);
-                log.info("The pullThresholdSizeForQueue is changed from {} to {}",
+                logger.info("The pullThresholdSizeForQueue is changed from {} to {}",
                     this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdSizeForQueue(), newVal);
                 this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(newVal);
             }
@@ -98,14 +98,14 @@ public class RebalancePushImpl extends RebalanceImpl {
                         pq.getConsumeLock().unlock();
                     }
                 } else {
-                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
+                    logger.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
                         mq,
                         pq.getTryUnlockTimes());
 
                     pq.incTryUnlockTimes();
                 }
             } catch (Exception e) {
-                log.error("removeUnnecessaryMessageQueue Exception", e);
+                logger.error("removeUnnecessaryMessageQueue Exception", e);
             }
 
             return false;
@@ -126,11 +126,11 @@ public class RebalancePushImpl extends RebalanceImpl {
     private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
 
         if (pq.hasTempMessage()) {
-            log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
+            logger.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
             this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
                 @Override
                 public void run() {
-                    log.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
+                    logger.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
                     RebalancePushImpl.this.unlock(mq, true);
                 }
             }, UNLOCK_DELAY_TIME_MILLS, TimeUnit.MILLISECONDS);
@@ -157,7 +157,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         try {
             result = computePullFromWhereWithException(mq);
         } catch (MQClientException e) {
-            log.warn("Compute consume offset exception, mq={}", mq);
+            logger.warn("Compute consume offset exception, mq={}", mq);
         }
         return result;
     }
@@ -184,7 +184,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     }
@@ -216,7 +216,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     } else {
@@ -225,7 +225,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
-                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            logger.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
                     }

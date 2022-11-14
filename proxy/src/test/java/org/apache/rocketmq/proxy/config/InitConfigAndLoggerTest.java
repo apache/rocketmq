@@ -21,7 +21,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.net.URL;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.assertj.core.util.Strings;
 
 import java.io.IOException;
@@ -54,12 +53,9 @@ public class InitConfigAndLoggerTest {
     @After
     public void after() {
         System.clearProperty(RMQ_PROXY_HOME);
-        System.clearProperty(ClientLogger.CLIENT_LOG_USESLF4J);
     }
 
     private static void initLogger() throws JoranException {
-        System.setProperty(ClientLogger.CLIENT_LOG_USESLF4J, "true");
-
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);

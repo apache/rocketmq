@@ -21,21 +21,13 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMessageQueueStrategy {
 
-    protected InternalLogger log;
-
-    AbstractAllocateMessageQueueStrategy() {
-        this.log = ClientLogger.getLog();
-    }
-
-    public AbstractAllocateMessageQueueStrategy(InternalLogger log) {
-        this.log = log;
-    }
+    private static final Logger logger = LoggerFactory.getLogger(AbstractAllocateMessageQueueStrategy.class);
 
     public boolean check(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
@@ -50,7 +42,7 @@ public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMe
         }
 
         if (!cidAll.contains(currentCID)) {
-            log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
+            logger.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
                 currentCID,
                 cidAll);

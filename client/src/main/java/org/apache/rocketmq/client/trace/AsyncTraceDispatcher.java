@@ -35,7 +35,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
@@ -45,14 +44,14 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
 public class AsyncTraceDispatcher implements TraceDispatcher {
-
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger logger = LoggerFactory.getLogger(AsyncTraceDispatcher.class);
     private final static AtomicInteger COUNTER = new AtomicInteger();
     private final int queueSize;
     private final int batchSize;
@@ -178,7 +177,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     public boolean append(final Object ctx) {
         boolean result = traceContextQueue.offer((TraceContext) ctx);
         if (!result) {
-            log.info("buffer full" + discardCount.incrementAndGet() + " ,context is " + ctx);
+            logger.info("buffer full" + discardCount.incrementAndGet() + " ,context is " + ctx);
         }
         return result;
     }
@@ -204,7 +203,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 break;
             }
         }
-        log.info("------end trace send " + traceContextQueue.size() + "   " + appenderQueue.size());
+        logger.info("------end trace send " + traceContextQueue.size() + "   " + appenderQueue.size());
     }
 
     @Override
@@ -278,7 +277,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                                 traceDataSegment.addTraceTransferBean(traceTransferBean);
                             }
                         } catch (InterruptedException ignore) {
-                            log.debug("traceContextQueue#poll exception");
+                            logger.debug("traceContextQueue#poll exception");
                         }
                     }
 
@@ -407,7 +406,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
                     @Override
                     public void onException(Throwable e) {
-                        log.error("send trace data failed, the traceData is {}", data, e);
+                        logger.error("send trace data failed, the traceData is {}", data, e);
                     }
                 };
                 if (traceBrokerSet.isEmpty()) {
@@ -432,7 +431,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
 
             } catch (Exception e) {
-                log.error("send trace data failed, the traceData is {}", data, e);
+                logger.error("send trace data failed, the traceData is {}", data, e);
             }
         }
 

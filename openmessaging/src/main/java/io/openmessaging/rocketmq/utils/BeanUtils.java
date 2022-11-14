@@ -25,11 +25,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public final class BeanUtils {
-    static InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(BeanUtils.class);
 
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
@@ -90,7 +90,7 @@ public final class BeanUtils {
             obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
-            log.warn("Error occurs !", e);
+            logger.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -101,7 +101,7 @@ public final class BeanUtils {
             obj = clazz.getDeclaredConstructor().newInstance();
             return populate(properties, obj);
         } catch (Throwable e) {
-            log.warn("Error occurs !", e);
+            logger.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -154,7 +154,7 @@ public final class BeanUtils {
                 }
             }
         } catch (RuntimeException e) {
-            log.warn("Error occurs !", e);
+            logger.warn("Error occurs !", e);
         }
         return obj;
     }
@@ -178,7 +178,7 @@ public final class BeanUtils {
                 }
             }
         } catch (RuntimeException e) {
-            log.warn("Error occurs !", e);
+            logger.warn("Error occurs !", e);
         }
         return obj;
     }
