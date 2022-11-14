@@ -134,7 +134,7 @@ public class ProxyStartup {
     }
 
     private static Options buildCommandlineOptions() {
-        Options options =  ServerUtil.buildCommandlineOptions(new Options());
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
 
         Option opt = new Option("bc", "brokerConfigPath", true, "Broker config file path for local mode");
         opt.setRequired(false);
