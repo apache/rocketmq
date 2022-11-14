@@ -184,7 +184,6 @@
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
-        <module>logging</module>
         <module>acl</module>
         <module>example</module>
         <module>container</module>
@@ -581,11 +580,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-remoting</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-logging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

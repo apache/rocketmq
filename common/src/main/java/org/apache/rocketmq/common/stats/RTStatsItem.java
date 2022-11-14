@@ -18,14 +18,16 @@
 package org.apache.rocketmq.common.stats;
 
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
 
 /**
  * A StatItem for response time, the only difference between from StatsItem is it has a different log output.
  */
 public class RTStatsItem extends StatsItem {
 
-    public RTStatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService) {
-        super(statsName, statsKey, scheduledExecutorService);
+    public RTStatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService,
+        Logger logger) {
+        super(statsName, statsKey, scheduledExecutorService, logger);
     }
 
     /**

@@ -41,17 +41,17 @@ public class ConsumerStatsManager {
 
     public ConsumerStatsManager(final ScheduledExecutorService scheduledExecutorService) {
         this.topicAndGroupConsumeOKTPS =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_OK_TPS, scheduledExecutorService);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_OK_TPS, scheduledExecutorService, logger);
 
         this.topicAndGroupConsumeRT =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_RT, scheduledExecutorService);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_RT, scheduledExecutorService, logger);
 
         this.topicAndGroupConsumeFailedTPS =
-            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_FAILED_TPS, scheduledExecutorService);
+            new StatsItemSet(TOPIC_AND_GROUP_CONSUME_FAILED_TPS, scheduledExecutorService, logger);
 
-        this.topicAndGroupPullTPS = new StatsItemSet(TOPIC_AND_GROUP_PULL_TPS, scheduledExecutorService);
+        this.topicAndGroupPullTPS = new StatsItemSet(TOPIC_AND_GROUP_PULL_TPS, scheduledExecutorService, logger);
 
-        this.topicAndGroupPullRT = new StatsItemSet(TOPIC_AND_GROUP_PULL_RT, scheduledExecutorService);
+        this.topicAndGroupPullRT = new StatsItemSet(TOPIC_AND_GROUP_PULL_RT, scheduledExecutorService, logger);
     }
 
     public void start() {

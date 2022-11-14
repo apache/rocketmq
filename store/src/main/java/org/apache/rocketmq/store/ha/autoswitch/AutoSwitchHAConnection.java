@@ -27,8 +27,8 @@ import java.util.List;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -47,7 +47,7 @@ public class AutoSwitchHAConnection implements HAConnection {
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final AutoSwitchHAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddress;

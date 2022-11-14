@@ -24,11 +24,8 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class StatsItem {
-    private final Logger logger = LoggerFactory.getLogger(StatsItem.class);
-
     private final LongAdder value = new LongAdder();
 
     private final LongAdder times = new LongAdder();
@@ -43,10 +40,13 @@ public class StatsItem {
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService) {
+    private final Logger logger;
+
+    public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService, Logger logger) {
         this.statsName = statsName;
         this.statsKey = statsKey;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.logger = logger;
     }
 
     private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {

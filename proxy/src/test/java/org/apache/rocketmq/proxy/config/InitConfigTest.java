@@ -17,14 +17,9 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import java.net.URL;
 import org.assertj.core.util.Strings;
 
-import java.io.IOException;
-import java.io.InputStream;
 import org.junit.After;
 import org.junit.Before;
 
