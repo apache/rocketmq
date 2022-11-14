@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Random;
@@ -59,7 +58,7 @@ public class RegisterBrokerBenchmark {
     private AtomicLong brokerIndex = new AtomicLong(0);
 
     @Setup
-    public void setup() throws InterruptedException, JoranException {
+    public void setup() throws InterruptedException {
         routeInfoManager = new RouteInfoManager(new NamesrvConfig(), null);
 
         // Init 4 clusters and 8 brokers in each cluster

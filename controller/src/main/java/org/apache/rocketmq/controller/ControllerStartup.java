@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.controller;
 
-import ch.qos.logback.core.joran.spi.JoranException;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -66,7 +65,7 @@ public class ControllerStartup {
         return null;
     }
 
-    public static ControllerManager createControllerManager(String[] args) throws IOException, JoranException {
+    public static ControllerManager createControllerManager(String[] args) throws IOException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqcontroller", args, buildCommandlineOptions(options), new DefaultParser());
         if (null == commandLine) {

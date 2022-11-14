@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Random;
@@ -56,7 +55,7 @@ public class GetRouteInfoBenchmark {
     private ExecutorService es = Executors.newCachedThreadPool();
 
     @Setup
-    public void setup() throws InterruptedException, JoranException {
+    public void setup() throws InterruptedException {
 
         routeInfoManager = new RouteInfoManager(new NamesrvConfig(), null);
 
