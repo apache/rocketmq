@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.controller;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;

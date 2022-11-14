@@ -45,7 +45,7 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ConsumerProgressSubCommand implements SubCommand {
-    private static final Logger logger = LoggerFactory.getLogger(ConsumerProgressSubCommand.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsumerProgressSubCommand.class);
 
     @Override
     public String commandName() {
@@ -88,7 +88,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 }
             }
         } catch (Exception e) {
-            logger.error("getMqAllocationsResult error, ", e);
+            log.error("getMqAllocationsResult error, ", e);
         }
         return results;
     }
@@ -218,14 +218,14 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             try {
                                 consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                             } catch (Exception e) {
-                                logger.warn("examineConsumeStats exception, " + consumerGroup, e);
+                                log.warn("examineConsumeStats exception, " + consumerGroup, e);
                             }
 
                             ConsumerConnection cc = null;
                             try {
                                 cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
                             } catch (Exception e) {
-                                logger.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                                log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
                             }
 
                             GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
@@ -253,7 +253,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 groupConsumeInfo.getDiffTotal()
                             );
                         } catch (Exception e) {
-                            logger.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
                         }
                     }
                 }

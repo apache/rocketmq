@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TimerProducer {
-    private static final Logger logger = LoggerFactory.getLogger(TimerProducer.class);
+    private static final Logger log = LoggerFactory.getLogger(TimerProducer.class);
 
     private final String topic;
     private final int threadCount;
@@ -188,17 +188,17 @@ public class TimerProducer {
                                 }
                             } catch (RemotingException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                                logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                                 sleep(3000);
                             } catch (InterruptedException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                                 sleep(3000);
                             } catch (MQClientException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                                logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             } catch (MQBrokerException e) {
                                 statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
-                                logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                                 sleep(3000);
                             }
                         }

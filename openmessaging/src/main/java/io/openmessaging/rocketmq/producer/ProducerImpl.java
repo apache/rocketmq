@@ -30,10 +30,14 @@ import io.openmessaging.rocketmq.promise.DefaultPromise;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
 
 public class ProducerImpl extends AbstractOMSProducer implements Producer {
+
+    private static final Logger log = LoggerFactory.getLogger(ProducerImpl.class);
 
     public ProducerImpl(final KeyValue properties) {
         super(properties);
@@ -67,13 +71,13 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
         try {
             org.apache.rocketmq.client.producer.SendResult rmqResult = this.rocketmqProducer.send(rmqMessage, timeout);
             if (!rmqResult.getSendStatus().equals(SendStatus.SEND_OK)) {
-                logger.error(String.format("Send message to RocketMQ failed, %s", message));
+                log.error(String.format("Send message to RocketMQ failed, %s", message));
                 throw new OMSRuntimeException("-1", "Send message to RocketMQ broker failed.");
             }
             message.sysHeaders().put(Message.BuiltinKeys.MESSAGE_ID, rmqResult.getMsgId());
             return OMSUtil.sendResultConvert(rmqResult);
         } catch (Exception e) {
-            logger.error(String.format("Send message to RocketMQ failed, %s", message), e);
+            log.error(String.format("Send message to RocketMQ failed, %s", message), e);
             throw checkProducerException(rmqMessage.getTopic(), message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID), e);
         }
     }

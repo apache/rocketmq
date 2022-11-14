@@ -36,13 +36,10 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 
 abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
-    final static Logger logger = LoggerFactory.getLogger(AbstractOMSProducer.class);
     final KeyValue properties;
     final DefaultMQProducer rocketmqProducer;
     private boolean started = false;

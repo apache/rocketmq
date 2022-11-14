@@ -38,7 +38,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 /**
  * mock server response for command

@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.test.container;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.File;
 import java.io.IOException;

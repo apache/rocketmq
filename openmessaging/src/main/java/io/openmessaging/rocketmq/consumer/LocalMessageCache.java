@@ -44,7 +44,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 class LocalMessageCache implements ServiceLifecycle {
-    private static final Logger logger = LoggerFactory.getLogger(LocalMessageCache.class);
+    private static final Logger log = LoggerFactory.getLogger(LocalMessageCache.class);
 
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
     private final Map<String, ConsumeRequest> consumedRequest;
@@ -73,7 +73,7 @@ class LocalMessageCache implements ServiceLifecycle {
                 pullOffsetTable.putIfAbsent(remoteQueue,
                     rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
             } catch (MQClientException e) {
-                logger.error("An error occurred in fetch consume offset process.", e);
+                log.error("An error occurred in fetch consume offset process.", e);
             }
         }
         return pullOffsetTable.get(remoteQueue);
@@ -124,7 +124,7 @@ class LocalMessageCache implements ServiceLifecycle {
             try {
                 rocketmqPullConsumer.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
             } catch (MQClientException e) {
-                logger.error("An error occurred in update consume offset process.", e);
+                log.error("An error occurred in update consume offset process.", e);
             }
         }
     }
@@ -135,7 +135,7 @@ class LocalMessageCache implements ServiceLifecycle {
         try {
             rocketmqPullConsumer.updateConsumeOffset(messageQueue, offset);
         } catch (MQClientException e) {
-            logger.error("An error occurred in update consume offset process.", e);
+            log.error("An error occurred in update consume offset process.", e);
         }
     }
 
@@ -161,7 +161,7 @@ class LocalMessageCache implements ServiceLifecycle {
             MessageQueue mq = next.getKey();
             ReadWriteLock lockTreeMap = getLockInProcessQueue(pq);
             if (lockTreeMap == null) {
-                logger.error("Gets tree map lock in process queue error, may be has compatibility issue");
+                log.error("Gets tree map lock in process queue error, may be has compatibility issue");
                 return;
             }
 
@@ -188,16 +188,16 @@ class LocalMessageCache implements ServiceLifecycle {
                         lockTreeMap.readLock().unlock();
                     }
                 } catch (InterruptedException e) {
-                    logger.error("Gets expired message exception", e);
+                    log.error("Gets expired message exception", e);
                 }
 
                 try {
                     rocketmqPullConsumer.sendMessageBack(msg, 3);
-                    logger.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
+                    log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
                         msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                     ack(mq, pq, msg);
                 } catch (Exception e) {
-                    logger.error("Send back expired msg exception", e);
+                    log.error("Send back expired msg exception", e);
                 }
             }
         }

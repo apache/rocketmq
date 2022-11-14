@@ -40,7 +40,7 @@ import org.apache.rocketmq.shade.org.slf4j.Logger;
 import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class PullConsumerImpl implements PullConsumer {
-    private static final Logger logger = LoggerFactory.getLogger(PullConsumerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PullConsumerImpl.class);
 
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final KeyValue properties;
@@ -167,7 +167,7 @@ public class PullConsumerImpl implements PullConsumer {
                     }
                     localMessageCache.updatePullOffset(mq, pullResult.getNextBeginOffset());
                 } catch (Exception e) {
-                    logger.error("An error occurred in pull message process.", e);
+                    log.error("An error occurred in pull message process.", e);
                 }
             }
         });
