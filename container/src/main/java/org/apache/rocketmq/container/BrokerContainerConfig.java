@@ -19,7 +19,7 @@ package org.apache.rocketmq.container;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 
 public class BrokerContainerConfig {
 
@@ -35,7 +35,7 @@ public class BrokerContainerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
 
     @ImportantField
-    private String brokerContainerIP = RemotingUtil.getLocalAddress();
+    private String brokerContainerIP = NetworkUtil.getLocalAddress();
 
     private String brokerConfigPaths = null;
 

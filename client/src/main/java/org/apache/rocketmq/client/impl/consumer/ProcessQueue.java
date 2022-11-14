@@ -26,16 +26,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.protocol.body.ProcessQueueInfo;
 
 /**
  * Queue consumption snapshot
@@ -332,6 +330,27 @@ public class ProcessQueue {
         }
 
         return result;
+    }
+
+    /**
+     * Return the result that whether current message is exist in the process queue or not.
+     */
+    public boolean containsMessage(MessageExt message) {
+        if (message == null) {
+            // should never reach here.
+            return false;
+        }
+        try {
+            this.treeMapLock.readLock().lockInterruptibly();
+            try {
+                return this.msgTreeMap.containsKey(message.getQueueOffset());
+            } finally {
+                this.treeMapLock.readLock().unlock();
+            }
+        } catch (Throwable t) {
+            log.error("Failed to check message's existence in process queue, message={}", message, t);
+        }
+        return false;
     }
 
     public boolean hasTempMessage() {

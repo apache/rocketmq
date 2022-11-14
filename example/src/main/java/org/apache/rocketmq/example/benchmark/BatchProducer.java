@@ -40,6 +40,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -72,8 +73,8 @@ public class BatchProducer {
         final boolean msgTraceEnable = getOptionValue(commandLine, 'm', false);
         final boolean aclEnable = getOptionValue(commandLine, 'a', false);
 
-        System.out.printf("topic: %s threadCount: %d messageSize: %d batchSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s%n",
-                topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
+        System.out.printf("topic: %s, threadCount: %d, messageSize: %d, batchSize: %d, keyEnable: %s, propertySize: %d, tagCount: %d, traceEnable: %s, aclEnable: %s%n",
+            topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
 
         StringBuilder sb = new StringBuilder(messageSize);
         for (int i = 0; i < messageSize; i++) {
@@ -386,8 +387,8 @@ class StatsBenchmarkBatchProducer {
                     final double averageRT = (end[5] - begin[5]) / (double) (end[1] - begin[1]);
                     final double averageMsgRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
 
-                    System.out.printf("Current Time: %s Send TPS: %d Send MPS: %d Max RT(ms): %d Average RT(ms): %7.3f Average Message RT(ms): %7.3f Send Failed: %d Send Message Failed: %d%n",
-                            System.currentTimeMillis(), sendTps, sendMps, getSendMessageMaxRT().longValue(), averageRT, averageMsgRT, end[2], end[4]);
+                    System.out.printf("Current Time: %s | Send TPS: %d | Send MPS: %d | Max RT(ms): %d | Average RT(ms): %7.3f | Average Message RT(ms): %7.3f | Send Failed: %d | Send Message Failed: %d%n",
+                        UtilAll.timeMillisToHumanString2(System.currentTimeMillis()), sendTps, sendMps, getSendMessageMaxRT().longValue(), averageRT, averageMsgRT, end[2], end[4]);
                 }
             }
 

@@ -17,29 +17,28 @@
 package org.apache.rocketmq.broker.topic;
 
 import com.alibaba.fastjson.JSON;
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.BrokerPathConfigHelper;
-import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.DataVersion;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.TopicQueueMappingSerializeWrapper;
-import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
-import org.apache.rocketmq.common.rpc.TopicRequestHeader;
-import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.TopicQueueMappingSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingContext;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 

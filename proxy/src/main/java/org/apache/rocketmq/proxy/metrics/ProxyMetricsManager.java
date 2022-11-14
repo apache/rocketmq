@@ -69,6 +69,9 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyUp = null;
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.DISABLE) {
+            return;
+        }
         ProxyMetricsManager.proxyConfig = proxyConfig;
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());

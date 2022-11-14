@@ -17,10 +17,10 @@
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.processor.PopMessageResultFilter;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class PopMessageResultFilterImpl implements PopMessageResultFilter {
 

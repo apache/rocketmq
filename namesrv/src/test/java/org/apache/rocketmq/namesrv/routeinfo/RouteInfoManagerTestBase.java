@@ -18,12 +18,6 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 
 public class RouteInfoManagerTestBase {
 

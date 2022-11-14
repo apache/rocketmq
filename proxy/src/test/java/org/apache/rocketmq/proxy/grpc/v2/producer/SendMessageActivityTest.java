@@ -41,17 +41,17 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,7 +102,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                         .setQueueId(0)
                         .setMessageType(MessageType.NORMAL)
                         .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                        .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                         .build())
                     .setBody(ByteString.copyFromUtf8("123"))
                     .build())
@@ -181,7 +181,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                         .setQueueId(0)
                         .setMessageType(MessageType.NORMAL)
                         .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                        .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                         .build())
                     .setBody(ByteString.copyFromUtf8("123"))
                     .build(),
@@ -194,7 +194,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                         .setQueueId(0)
                         .setMessageType(MessageType.NORMAL)
                         .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                        .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                         .build())
                     .setBody(ByteString.copyFromUtf8("123"))
                     .build()
@@ -221,7 +221,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                         .setMessageType(MessageType.DELAY)
                         .setDeliveryTimestamp(Timestamps.fromMillis(deliveryTime))
                         .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                        .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                         .build())
                     .setBody(ByteString.copyFromUtf8("123"))
                     .build()
@@ -247,7 +247,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .setOrphanedTransactionRecoveryDuration(Durations.fromSeconds(30))
                 .setBodyEncoding(Encoding.GZIP)
                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                 .build())
             .setBody(ByteString.copyFromUtf8("123"))
             .build();
@@ -360,7 +360,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[4 * 1024 * 1024 + 1]))
                             .build())
@@ -389,7 +389,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setTag("   ")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -418,7 +418,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setTag("|")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -447,7 +447,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setTag("\t")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -476,7 +476,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .addKeys("  ")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -505,7 +505,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .addKeys("\t")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -534,7 +534,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setMessageGroup("  ")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -563,7 +563,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setMessageGroup(createStr(ConfigurationManager.getProxyConfig().getMaxMessageGroupSize() + 1))
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -592,7 +592,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setMessageGroup("\t")
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -620,7 +620,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .putUserProperties("key", createStr(16 * 1024 + 1))
                             .setBody(ByteString.copyFrom(new byte[3]))
@@ -653,7 +653,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .putAllUserProperties(p)
                             .setBody(ByteString.copyFrom(new byte[3]))
@@ -682,7 +682,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .putUserProperties(MessageConst.PROPERTY_TRACE_SWITCH, "false")
                             .setBody(ByteString.copyFrom(new byte[3]))
@@ -711,7 +711,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .putUserProperties("\u0000", "hello")
                             .setBody(ByteString.copyFrom(new byte[3]))
@@ -740,7 +740,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .putUserProperties("p", "\u0000")
                             .setBody(ByteString.copyFrom(new byte[3]))
@@ -769,7 +769,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -799,7 +799,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .build())
                             .setBody(ByteString.copyFrom(new byte[3]))
                             .build())
@@ -827,7 +827,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                                 .setQueueId(0)
                                 .setMessageType(MessageType.NORMAL)
                                 .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
                                 .setOrphanedTransactionRecoveryDuration(Durations.fromHours(2))
                                 .setMessageType(MessageType.TRANSACTION)
                                 .build())

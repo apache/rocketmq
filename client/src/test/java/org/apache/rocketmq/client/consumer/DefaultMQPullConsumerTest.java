@@ -30,7 +30,7 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

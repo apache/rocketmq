@@ -133,6 +133,9 @@
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.23</spring.version>
+        <okio-jvm.version>3.0.0</okio-jvm.version>
+        <opentelemetry.version>1.19.0</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.19.0-alpha</opentelemetry-exporter-prometheus.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -901,7 +904,7 @@
             <dependency>
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-jvm</artifactId>
-                <version>3.0.0</version>
+                <version>${okio-jvm.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.jetbrains.kotlin</groupId>
@@ -916,7 +919,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-exporter-otlp</artifactId>
-                <version>1.19.0</version>
+                <version>${opentelemetry.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.squareup.okio</groupId>
@@ -927,12 +930,17 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-exporter-prometheus</artifactId>
-                <version>1.19.0-alpha</version>
+                <version>${opentelemetry-exporter-prometheus.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-sdk</artifactId>
-                <version>1.19.0</version>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>1.3.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

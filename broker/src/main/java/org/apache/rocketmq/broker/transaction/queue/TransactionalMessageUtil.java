@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -25,9 +27,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
-
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 public class TransactionalMessageUtil {
     public static final String REMOVE_TAG = "d";

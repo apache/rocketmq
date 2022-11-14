@@ -17,17 +17,16 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.junit.Test;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

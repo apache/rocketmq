@@ -23,11 +23,11 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.utils.NameServerAddressUtils;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RequestType;
 
 /**
@@ -39,7 +39,7 @@ public class ClientConfig {
     public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
-    private String clientIP = RemotingUtil.getLocalAddress();
+    private String clientIP = NetworkUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;

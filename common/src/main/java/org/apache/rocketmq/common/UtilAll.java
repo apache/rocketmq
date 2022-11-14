@@ -49,7 +49,6 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
@@ -489,10 +488,25 @@ public class UtilAll {
                 }
             }
         } catch (Throwable e) {
-            result.append(RemotingHelper.exceptionSimpleDesc(e));
+            result.append(exceptionSimpleDesc(e));
         }
 
         return result.toString();
+    }
+
+    public static String exceptionSimpleDesc(final Throwable e) {
+        StringBuilder sb = new StringBuilder();
+        if (e != null) {
+            sb.append(e);
+
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            if (stackTrace != null && stackTrace.length > 0) {
+                StackTraceElement element = stackTrace[0];
+                sb.append(", ");
+                sb.append(element.toString());
+            }
+        }
+        return sb.toString();
     }
 
     public static boolean isInternalIP(byte[] ip) {

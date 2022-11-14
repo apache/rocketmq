@@ -22,8 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +41,7 @@ public class ValidatorsTest {
             assertThat(e.getErrorMessage()).isEqualTo("the specified group is blank");
         }
     }
-    
+
     @Test
     public void testCheckTopic_Success() throws MQClientException {
         Validators.checkTopic("Hello");

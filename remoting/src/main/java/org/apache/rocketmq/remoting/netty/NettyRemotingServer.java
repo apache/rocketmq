@@ -55,14 +55,14 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingServer;
-import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -210,7 +210,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private boolean useEpoll() {
-        return RemotingUtil.isLinuxPlatform()
+        return NetworkUtil.isLinuxPlatform()
             && nettyServerConfig.isUseEpollNativeSelector()
             && Epoll.isAvailable();
     }
@@ -507,7 +507,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 return;
             }
             // The related remoting server has been shutdown, so close the connected channel
-            RemotingUtil.closeChannel(ctx.channel());
+            RemotingHelper.closeChannel(ctx.channel());
         }
 
         @Override
@@ -573,7 +573,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY SERVER PIPELINE: IDLE exception [{}]", remoteAddress);
-                    RemotingUtil.closeChannel(ctx.channel());
+                    RemotingHelper.closeChannel(ctx.channel());
                     if (NettyRemotingServer.this.channelEventListener != null) {
                         NettyRemotingServer.this
                             .putNettyEvent(new NettyEvent(NettyEventType.IDLE, remoteAddress, ctx.channel()));
@@ -594,7 +594,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress, ctx.channel()));
             }
 
-            RemotingUtil.closeChannel(ctx.channel());
+            RemotingHelper.closeChannel(ctx.channel());
         }
     }
 

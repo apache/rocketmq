@@ -40,13 +40,12 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.body.CMResult;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.body.CMResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
     private static final InternalLogger log = ClientLogger.getLog();
@@ -174,10 +173,10 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
             }
         } catch (Throwable e) {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
-            result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+            result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
             log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
-                RemotingHelper.exceptionSimpleDesc(e),
+                UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessagePopOrderlyService.this.consumerGroup,
                 msgs,
                 mq), e);

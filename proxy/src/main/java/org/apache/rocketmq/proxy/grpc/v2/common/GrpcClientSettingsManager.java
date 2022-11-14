@@ -31,16 +31,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.apache.rocketmq.common.subscription.CustomizedRetryPolicy;
-import org.apache.rocketmq.common.subscription.ExponentialRetryPolicy;
-import org.apache.rocketmq.common.subscription.GroupRetryPolicy;
-import org.apache.rocketmq.common.subscription.GroupRetryPolicyType;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.MetricCollectorMode;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.remoting.protocol.subscription.CustomizedRetryPolicy;
+import org.apache.rocketmq.remoting.protocol.subscription.ExponentialRetryPolicy;
+import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
+import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicyType;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class GrpcClientSettingsManager {
 

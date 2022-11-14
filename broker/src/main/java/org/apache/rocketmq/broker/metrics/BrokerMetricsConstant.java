@@ -28,6 +28,16 @@ public class BrokerMetricsConstant {
     public static final String COUNTER_THROUGHPUT_OUT_TOTAL = "rocketmq_throughput_out_total";
     public static final String HISTOGRAM_MESSAGE_SIZE = "rocketmq_message_size";
 
+    public static final String GAUGE_PRODUCER_CONNECTIONS = "rocketmq_producer_connections";
+    public static final String GAUGE_CONSUMER_CONNECTIONS = "rocketmq_consumer_connections";
+
+    public static final String GAUGE_CONSUMER_LAG_MESSAGES = "rocketmq_consumer_lag_messages";
+    public static final String GAUGE_CONSUMER_LAG_LATENCY = "rocketmq_consumer_lag_latency";
+    public static final String GAUGE_CONSUMER_INFLIGHT_MESSAGES = "rocketmq_consumer_inflight_messages";
+    public static final String GAUGE_CONSUMER_QUEUEING_LATENCY = "rocketmq_consumer_queueing_latency";
+    public static final String GAUGE_CONSUMER_READY_MESSAGES = "rocketmq_consumer_ready_messages";
+    public static final String GAUGE_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL = "rocketmq_send_to_dlq_messages_total";
+
     public static final String LABEL_CLUSTER_NAME = "cluster";
     public static final String LABEL_NODE_TYPE = "node_type";
     public static final String NODE_TYPE_BROKER = "broker";
@@ -41,4 +51,7 @@ public class BrokerMetricsConstant {
     public static final String LABEL_IS_SYSTEM = "is_system";
     public static final String LABEL_CONSUMER_GROUP = "consumer_group";
     public static final String LABEL_MESSAGE_TYPE = "message_type";
+    public static final String LABEL_LANGUAGE = "language";
+    public static final String LABEL_VERSION = "version";
+    public static final String LABEL_CONSUME_MODE = "consume_mode";
 }

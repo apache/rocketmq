@@ -18,7 +18,7 @@
 package org.apache.rocketmq.test.client.rmq;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQBroadCastConsumer extends RMQNormalConsumer {

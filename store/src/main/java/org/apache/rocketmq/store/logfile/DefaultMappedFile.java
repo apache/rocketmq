@@ -18,37 +18,35 @@ package org.apache.rocketmq.store.logfile;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
@@ -728,7 +726,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 // https://bugs.openjdk.org/browse/JDK-4724038
                 // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
                 // Windows can't move the file when mmapped.
-                if (RemotingUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+                if (NetworkUtil.isWindowsPlatform() && mappedByteBuffer != null) {
                     long position = this.fileChannel.position();
                     UtilAll.cleanBuffer(this.mappedByteBuffer);
                     this.fileChannel.close();
@@ -757,7 +755,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         // https://bugs.openjdk.org/browse/JDK-4724038
         // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
         // Windows can't move the file when mmapped.
-        if (RemotingUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+        if (NetworkUtil.isWindowsPlatform() && mappedByteBuffer != null) {
             long position = this.fileChannel.position();
             UtilAll.cleanBuffer(this.mappedByteBuffer);
             this.fileChannel.close();
