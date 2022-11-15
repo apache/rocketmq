@@ -1651,7 +1651,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void createTopic(String key, String newTopic, int queueNum,
         Map<String, String> attributes) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0, null);
+        createTopic(key, newTopic, queueNum, 0, attributes);
     }
 
     @Override
