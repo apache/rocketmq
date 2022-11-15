@@ -60,7 +60,7 @@ java_library(
         "src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService",
-        "src/test/resources/logback-test.xml",
+        "src/test/resources/rmq.logback-test.xml",
     ],
     visibility = ["//visibility:public"],
     deps = [
