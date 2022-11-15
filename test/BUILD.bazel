@@ -59,8 +59,7 @@ java_library(
         "src/test/resources/rmq-proxy-home/conf/broker.conf",
         "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
         "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
-        "src/test/resources/log4j.xml",
-        "src/test/resources/logback-test.xml",
+        "src/test/resources/rmq.logback-test.xml",
     ] + glob(["src/test/resources/schema/**/*.schema"]),
     visibility = ["//visibility:public"],
     deps = [
