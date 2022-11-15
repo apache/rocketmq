@@ -47,18 +47,22 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-proxy</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-broker</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-namesrv</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-container</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
@@ -79,10 +83,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-client</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-tools</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>

@@ -35,10 +35,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-remoting</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-common</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>
