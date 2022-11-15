@@ -94,6 +94,10 @@ maven_install(
         "io.opentelemetry:opentelemetry-api:1.19.0",
         "io.opentelemetry:opentelemetry-sdk-metrics:1.19.0",
         "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
+        "org.apache.logging.log4j:log4j-core:2.17.1",
+        "org.apache.logging.log4j:log4j-slf4j-impl:2.17.1",
+        "io.github.aliyun-mq:rocketmq-slf4j-api:1.0.1",
+        "io.github.aliyun-mq:rocketmq-logback-classic:1.0.1",
     ],
     fetch_sources = True,
     repositories = [
