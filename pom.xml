@@ -112,10 +112,8 @@
         <guava.version>31.0.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
-        <log4j.version>1.2.17</log4j.version>
         <snakeyaml.version>1.32</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
-        <logging-log4j.version>2.17.1</logging-log4j.version>
         <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
         <commons-validator.version>1.7</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
@@ -605,11 +603,6 @@
                 <version>${openmessaging.version}</version>
             </dependency>
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
@@ -618,16 +611,6 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${logging-log4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
-                <version>${logging-log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.aliyun-mq</groupId>
