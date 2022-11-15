@@ -477,7 +477,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-k</td>
-  <td class=xl68 width=87 style='width:65pt'>key</td>
+  <td class=xl68 width=87 style='width:65pt'>key, support multiple pairs config, eg: -k k1 -v v1 -k k2 -v v2</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-v</td>
@@ -1289,7 +1289,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-k</td>
-  <td class=xl67 width=87 style='width:65pt'>key</td>
+  <td class=xl67 width=87 style='width:65pt'>key, support multiple pairs config, eg: -k k1 -v v1 -k k2 -v v2</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-v</td>

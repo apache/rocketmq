@@ -497,7 +497,7 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-k</td>
-  <td class=xl68 width=87 style='width:65pt'>key 值</td>
+  <td class=xl68 width=87 style='width:65pt'>key 值，支持同时修改多对配置，例如 -k k1 -v v1 -k k2 -v v2</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-v</td>
@@ -1329,7 +1329,7 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-k</td>
-  <td class=xl67 width=87 style='width:65pt'>key</td>
+  <td class=xl67 width=87 style='width:65pt'>key，支持同时修改多对配置，例如 -k k1 -v v1 -k k2 -v v2</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-v</td>

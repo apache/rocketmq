@@ -25,6 +25,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -58,12 +59,7 @@ public class UpdateNamesrvConfigCommand implements SubCommand {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
-            // key name
-            String key = commandLine.getOptionValue('k').trim();
-            // key name
-            String value = commandLine.getOptionValue('v').trim();
-            Properties properties = new Properties();
-            properties.put(key, value);
+            Properties properties = CommandUtil.getUpdatedConfigPairs(commandLine);
 
             // servers
             String servers = commandLine.getOptionValue('n');
@@ -80,8 +76,8 @@ public class UpdateNamesrvConfigCommand implements SubCommand {
 
             defaultMQAdminExt.updateNameServerConfig(properties, serverList);
 
-            System.out.printf("update name server config success!%s\n%s : %s\n",
-                serverList == null ? "" : serverList, key, value);
+            System.out.printf("update name server config success!%s\n%s\n",
+                serverList == null ? "" : serverList, properties);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

@@ -68,14 +68,10 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String key = commandLine.getOptionValue('k').trim();
-            String value = commandLine.getOptionValue('v').trim();
-            Properties properties = new Properties();
-            properties.put(key, value);
+            Properties properties = CommandUtil.getUpdatedConfigPairs(commandLine);
 
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();

@@ -24,7 +24,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.commons.cli.CommandLine;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -33,6 +37,8 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class CommandUtil {
 
@@ -182,4 +188,26 @@ public class CommandUtil {
         }
         throw new Exception(ERROR_MESSAGE);
     }
+
+    /**
+     * Get the config pairs that will be updated from the {@link CommandLine}.
+     */
+    public static Properties getUpdatedConfigPairs(CommandLine commandLine) {
+        final String[] keys = commandLine.getOptionValues('k');
+        final String[] values = commandLine.getOptionValues('v');
+
+        checkState(
+            keys.length == values.length,
+            "The key-value config that will be modified should be in pairs."
+        );
+
+        Map<String, String> configs = IntStream.range(0, keys.length)
+            .boxed()
+            .collect(Collectors.toMap(i -> keys[i].trim(), i -> values[i].trim()));
+
+        Properties properties = new Properties();
+        properties.putAll(configs);
+        return properties;
+    }
+
 }
