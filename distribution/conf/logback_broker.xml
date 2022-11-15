@@ -18,15 +18,15 @@
 
 <configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/broker_default.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/broker_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -36,15 +36,15 @@
     </appender>
 
     <appender name="RocketmqBrokerAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/broker.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/broker.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -52,20 +52,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqBrokerAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqBrokerAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqBrokerAppender_inner"/>
     </appender>
 
     <appender name="RocketmqProtectionAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/protection.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/protection.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -73,20 +73,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqProtectionAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqProtectionAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqProtectionAppender_inner"/>
     </appender>
 
     <appender name="RocketmqWaterMarkAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/watermark.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/watermark.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -94,20 +94,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqWaterMarkAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqWaterMarkAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqWaterMarkAppender_inner"/>
     </appender>
 
     <appender name="RocketmqStoreAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/store.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/store.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -115,20 +115,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqStoreAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqStoreAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqStoreAppender_inner"/>
     </appender>
 
     <appender name="RocketmqTrafficAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/broker_traffic.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker_traffic.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -136,20 +136,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqTrafficAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqTrafficAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqTrafficAppender_inner"/>
     </appender>
 
     <appender name="RocketmqRemotingAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/remoting.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/remoting.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -157,20 +157,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqRemotingAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqRemotingAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqRemotingAppender_inner"/>
     </appender>
 
     <appender name="RocketmqStoreErrorAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/storeerror.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/storeerror.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -178,21 +178,21 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqStoreErrorAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqStoreErrorAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqStoreErrorAppender_inner"/>
     </appender>
 
 
     <appender name="RocketmqTransactionAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/transaction.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/transaction.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -200,20 +200,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqTransactionAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqTransactionAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqTransactionAppender_inner"/>
     </appender>
 
     <appender name="RocketmqRebalanceLockAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/lock.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/lock.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -221,20 +221,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqRebalanceLockAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqRebalanceLockAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqRebalanceLockAppender_inner"/>
     </appender>
 
     <appender name="RocketmqFilterAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/filter.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/filter.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -242,20 +242,20 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqFilterAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqFilterAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqFilterAppender_inner"/>
     </appender>
 
     <appender name="RocketmqStatsAppender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/stats.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/stats.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -265,31 +265,31 @@
     </appender>
 
     <appender name="RocketmqCommercialAppender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/commercial.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/commercial.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>500MB</maxFileSize>
         </triggeringPolicy>
     </appender>
 
     <appender name="RocketmqPopAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/pop.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/pop.%i.log
             </fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -298,11 +298,11 @@
         </encoder>
     </appender>
 
-    <appender name="RocketmqPopAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqPopAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqPopAppender_inner"/>
     </appender>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT" class="org.apache.rocketmq.shade.ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>

@@ -18,15 +18,15 @@
 
 <configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/tools_default.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -36,16 +36,16 @@
     </appender>
 
     <appender name="RocketmqToolsAppender_inner"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/tools.log</file>
         <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+        <rollingPolicy class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            class="org.apache.rocketmq.shade.ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -53,12 +53,12 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqToolsAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqToolsAppender" class="org.apache.rocketmq.shade.ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqToolsAppender_inner"/>
     </appender>
 
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT" class="org.apache.rocketmq.shade.ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
