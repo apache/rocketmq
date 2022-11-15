@@ -57,7 +57,7 @@ java_library(
         "@maven//:io_netty_netty_all",      
         "@maven//:commons_cli_commons_cli",         
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = glob(["src/test/resources/*.xml"]),
 )
 
 GenTestRules(

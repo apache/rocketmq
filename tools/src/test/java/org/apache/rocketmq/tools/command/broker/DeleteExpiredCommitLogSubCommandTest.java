@@ -61,7 +61,7 @@ public class DeleteExpiredCommitLogSubCommandTest extends ServerResponseMocker {
         final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
-        Assert.assertTrue(outContent.toString().startsWith("success"));
+        Assert.assertTrue(outContent.toString().contains("success"));
         Assert.assertEquals("", errContent.toString());
     }
 }
