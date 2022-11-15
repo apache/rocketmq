@@ -109,6 +109,11 @@
             <groupId>io.github.aliyun-mq</groupId>
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
