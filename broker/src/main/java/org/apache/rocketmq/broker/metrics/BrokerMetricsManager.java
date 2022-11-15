@@ -60,7 +60,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_MESSAGES_IN_TOTAL;
@@ -331,6 +333,10 @@ public class BrokerMetricsManager {
         for (Pair<InstrumentSelector, View> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
+
+        for (Pair<InstrumentSelector, View> selectorViewPair : DefaultStoreMetricsManager.getMetricsView()) {
+            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
+        }
     }
 
     private void initStatsMetrics() {
@@ -500,9 +506,9 @@ public class BrokerMetricsManager {
             }));
     }
 
-
     private void initOtherMetrics() {
         RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+        DefaultStoreMetricsManager.init(brokerMeter, BrokerMetricsManager::newAttributesBuilder, (DefaultMessageStore) messageStore);
     }
 
     public void shutdown() {
