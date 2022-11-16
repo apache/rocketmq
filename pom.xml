@@ -114,7 +114,7 @@
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <snakeyaml.version>1.32</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
-        <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
+        <rocketmq-logging.version>1.0.3</rocketmq-logging.version>
         <commons-validator.version>1.7</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
