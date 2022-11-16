@@ -73,7 +73,7 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
                 if (listenerName != null && listenerName != "") {
                     LOGGER.info(listenerName + ": " + msg);
                 } else {
-                    LOGGER.info(msg);
+                    LOGGER.info("{}", msg);
                 }
             }
 

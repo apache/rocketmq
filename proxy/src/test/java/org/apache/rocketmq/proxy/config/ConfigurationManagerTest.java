@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfigurationManagerTest extends InitConfigAndLoggerTest {
+public class ConfigurationManagerTest extends InitConfigTest {
 
     @Test
     public void testInitEnv() {
