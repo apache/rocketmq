@@ -111,6 +111,8 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerReques
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
@@ -127,13 +129,11 @@ import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED;
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_ELECT_MASTER_FAILED;
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
+import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED;
+import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_ELECT_MASTER_FAILED;
+import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 
 public class BrokerOuterAPI {
@@ -1165,7 +1165,7 @@ public class BrokerOuterAPI {
      * Broker try to elect itself as a master in broker set
      */
     public BrokerTryElectResponseHeader brokerElect(String controllerAddress, String clusterName, String brokerName,
-        String brokerAddress) throws Exception {
+                                                    String brokerAddress) throws Exception {
 
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);

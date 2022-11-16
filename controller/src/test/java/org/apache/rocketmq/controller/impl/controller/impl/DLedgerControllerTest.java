@@ -125,7 +125,6 @@ public class DLedgerControllerTest {
         }, Objects::nonNull);
 
         ElectMasterResponseHeader header = (ElectMasterResponseHeader) command.readCustomHeader();
-        System.out.println("------------- Broker try elect master done, the result is :" + header);
         assertEquals(exceptSuccess, ResponseCode.SUCCESS == command.getCode());
     }
 

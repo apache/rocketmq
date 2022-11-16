@@ -28,15 +28,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -46,6 +37,8 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
@@ -54,9 +47,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
-import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
+import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
@@ -116,7 +108,6 @@ public class ControllerManagerTest {
             for (ControllerManager controllerManager : controllers) {
                 final DLedgerController controller = (DLedgerController) controllerManager.getController();
                 if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
-                    System.out.println("New leader " + leaderId);
                     return controllerManager;
                 }
             }
@@ -206,7 +197,6 @@ public class ControllerManagerTest {
             heartbeatRequestHeader.setBrokerName("broker1");
             heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
-            System.out.println("send heartbeat success");
             try {
                 final RemotingCommand remotingCommand = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
             } catch (Exception e) {
@@ -233,7 +223,6 @@ public class ControllerManagerTest {
             controller.shutdown();
         }
         for (String dir : this.baseDirs) {
-            System.out.println("Delete file " + dir);
             new File(dir).delete();
         }
         this.remotingClient.shutdown();

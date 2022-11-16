@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.protocol.body;
+package org.apache.rocketmq.remoting.protocol.body;
 
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
+
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 
 public class RoleChangeNotifyEntry {
 
