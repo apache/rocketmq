@@ -30,8 +30,8 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -113,7 +113,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                 .getOptionValue('m').trim();
 
             if (commandLine.hasOption('c')) {
-                clusterNames = new TreeSet<String>();
+                clusterNames = new TreeSet<>();
                 clusterNames.add(commandLine.getOptionValue('c').trim());
             } else {
                 clusterNames = clusterAddr.keySet();

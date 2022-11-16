@@ -17,34 +17,33 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Set;
+import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
-import org.apache.rocketmq.common.rpc.RpcClientUtils;
-import org.apache.rocketmq.common.rpc.RpcRequest;
-import org.apache.rocketmq.common.rpc.RpcResponse;
-import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-import java.util.List;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingContext;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.remoting.rpc.RpcClientUtils;
+import org.apache.rocketmq.remoting.rpc.RpcRequest;
+import org.apache.rocketmq.remoting.rpc.RpcResponse;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -144,28 +143,61 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
-        final UpdateConsumerOffsetRequestHeader requestHeader =
-            (UpdateConsumerOffsetRequestHeader) request
-                .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
 
-        RemotingCommand rewriteResult  =  rewriteRequestForStaticTopic(requestHeader, mappingContext);
+        final UpdateConsumerOffsetRequestHeader requestHeader =
+            (UpdateConsumerOffsetRequestHeader)
+                request.decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+
+        TopicQueueMappingContext mappingContext =
+            this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
+
+        RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;
         }
-        Set<String> topicSets = this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet();
-        if (topicSets.contains(requestHeader.getTopic())) {
-            this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
-                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-        } else {
+
+        String topic = requestHeader.getTopic();
+        String group = requestHeader.getConsumerGroup();
+        Integer queueId = requestHeader.getQueueId();
+        Long offset = requestHeader.getCommitOffset();
+
+        if (!this.brokerController.getTopicConfigManager().containsTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-            response.setRemark("Topic " + requestHeader.getTopic() + " not exist!");
+            response.setRemark("Topic " + topic + " not exist!");
+            return response;
         }
 
+        if (queueId == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("QueueId is null, topic is " + topic);
+            return response;
+        }
+
+        if (offset == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Offset is null, topic is " + topic);
+            return response;
+        }
+
+        ConsumerOffsetManager consumerOffsetManager = brokerController.getConsumerOffsetManager();
+        if (this.brokerController.getBrokerConfig().isUseServerSideResetOffset()) {
+            // Note, ignoring this update offset request
+            if (consumerOffsetManager.hasOffsetReset(topic, group, queueId)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark("Offset has been previously reset");
+                LOGGER.info("Update consumer offset is rejected because of previous offset-reset. Group={}, " +
+                    "Topic={}, QueueId={}, Offset={}", group, topic, queueId, offset);
+                return response;
+            }
+        }
+
+        this.brokerController.getConsumerOffsetManager().commitOffset(
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), group, topic, queueId, offset);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
         return response;
     }
 

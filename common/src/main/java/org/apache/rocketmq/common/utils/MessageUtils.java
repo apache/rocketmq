@@ -41,7 +41,7 @@ public class MessageUtils {
     }
 
     public static Set<Integer> getShardingKeyIndexes(Collection<MessageExt> msgs, int indexSize) {
-        Set<Integer> indexSet = new HashSet<Integer>(indexSize);
+        Set<Integer> indexSet = new HashSet<>(indexSize);
         for (MessageExt msg : msgs) {
             indexSet.add(getShardingKeyIndexByMsg(msg, indexSize));
         }

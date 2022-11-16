@@ -29,8 +29,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -40,6 +38,9 @@ import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
@@ -86,6 +87,16 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                             return MessageQueueView.WRAPPED_EMPTY_QUEUE;
                         }
                         throw e;
+                    }
+                }
+
+                @Override public @Nullable MessageQueueView reload(@NonNull String key,
+                    @NonNull MessageQueueView oldValue) throws Exception {
+                    try {
+                        return load(key);
+                    } catch (Exception e) {
+                        log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
+                        return oldValue;
                     }
                 }
             });

@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.namesrv;
 
-import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
+import org.apache.rocketmq.remoting.Configuration;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.junit.Assert;

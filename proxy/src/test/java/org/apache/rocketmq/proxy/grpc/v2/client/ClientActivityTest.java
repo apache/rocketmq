@@ -41,11 +41,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.CMResult;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -53,6 +48,11 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.CMResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -208,7 +208,6 @@ public class ClientActivityTest extends BaseActivityTest {
         GrpcClientChannel channel = (GrpcClientChannel) clientChannelInfo.getChannel();
         assertEquals(REMOTE_ADDR, channel.getRemoteAddress());
         assertEquals(LOCAL_ADDR, channel.getLocalAddress());
-        assertEquals(group, channel.getGroup());
     }
 
     @Test
@@ -320,6 +319,19 @@ public class ClientActivityTest extends BaseActivityTest {
             StatusRuntimeException exception = (StatusRuntimeException) e.getCause();
             assertEquals(Status.Code.INVALID_ARGUMENT, exception.getStatus().getCode());
         }
+    }
+
+    @Test
+    public void testEmptyProducerSettings() throws Throwable {
+        ProxyContext context = createContext();
+        TelemetryCommand command = this.sendClientTelemetry(
+            context,
+            Settings.newBuilder()
+                .setClientType(ClientType.PRODUCER)
+                .setPublishing(Publishing.getDefaultInstance())
+                .build()).get();
+        assertTrue(command.hasSettings());
+        assertTrue(command.getSettings().hasPublishing());
     }
 
     @Test

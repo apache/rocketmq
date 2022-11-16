@@ -326,7 +326,7 @@ public class ConsumeQueueExt {
 
         log.info("Truncate consume queue ext by min {}.", minAddress);
 
-        List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
+        List<MappedFile> willRemoveFiles = new ArrayList<>();
 
         List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         final long realOffset = unDecorate(minAddress);

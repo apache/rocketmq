@@ -52,7 +52,7 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         private final String loggerSuffix;
         private final Logger defaultLogger;
 
-        private final Map<String, Logger> loggerMap = new HashMap<String, Logger>();
+        private final Map<String, Logger> loggerMap = new HashMap<>();
 
         public Slf4jLogger(String loggerSuffix) {
             this.loggerSuffix = loggerSuffix;

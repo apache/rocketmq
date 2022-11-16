@@ -20,7 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProcessQueueInfo;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -65,6 +66,18 @@ public class ProcessQueueTest {
     }
 
     @Test
+    public void testContainsMessage() {
+        ProcessQueue pq = new ProcessQueue();
+        final List<MessageExt> messageList = createMessageList(2);
+        final MessageExt message0 = messageList.get(0);
+        final MessageExt message1 = messageList.get(1);
+
+        pq.putMessage(Lists.list(message0));
+        assertThat(pq.containsMessage(message0)).isTrue();
+        assertThat(pq.containsMessage(message1)).isFalse();
+    }
+
+    @Test
     public void testFillProcessQueueInfo() {
         ProcessQueue pq = new ProcessQueue();
         pq.putMessage(createMessageList(102400));
@@ -95,7 +108,7 @@ public class ProcessQueueTest {
     }
 
     private List<MessageExt> createMessageList(int count) {
-        List<MessageExt> messageExtList = new ArrayList<MessageExt>();
+        List<MessageExt> messageExtList = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             MessageExt messageExt = new MessageExt();
             messageExt.setQueueOffset(i);

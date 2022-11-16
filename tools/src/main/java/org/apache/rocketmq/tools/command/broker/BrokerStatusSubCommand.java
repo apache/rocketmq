@@ -24,11 +24,11 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -95,7 +95,7 @@ public class BrokerStatusSubCommand implements SubCommand {
         final boolean printBroker) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 
-        TreeMap<String, String> tmp = new TreeMap<String, String>();
+        TreeMap<String, String> tmp = new TreeMap<>();
         tmp.putAll(kvTable.getTable());
 
         Iterator<Entry<String, String>> it = tmp.entrySet().iterator();

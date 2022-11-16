@@ -80,16 +80,16 @@ public final class AclTestHelper {
 
     public static void recursiveDelete(File file) {
         if (file.isFile()) {
-            Assert.assertTrue(file.delete());
-            return;
-        }
-        File[] files = file.listFiles();
-        if (null != files) {
-            for (File f : files) {
-                recursiveDelete(f);
+            file.delete();
+        } else {
+            File[] files = file.listFiles();
+            if (null != files) {
+                for (File f : files) {
+                    recursiveDelete(f);
+                }
             }
+            file.delete();
         }
-        Assert.assertTrue(file.delete());
     }
 
     public static File copyResources(String folder) throws IOException {

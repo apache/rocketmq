@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace.hook;
 
+import java.util.ArrayList;
 import org.apache.rocketmq.client.hook.EndTransactionContext;
 import org.apache.rocketmq.client.hook.EndTransactionHook;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
@@ -27,9 +28,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageType;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-
-import java.util.ArrayList;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class EndTransactionTraceHookImpl implements EndTransactionHook {
 
@@ -53,7 +52,7 @@ public class EndTransactionTraceHookImpl implements EndTransactionHook {
         Message msg = context.getMessage();
         //build the context content of TuxeTraceContext
         TraceContext tuxeContext = new TraceContext();
-        tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        tuxeContext.setTraceBeans(new ArrayList<>(1));
         tuxeContext.setTraceType(TraceType.EndTransaction);
         tuxeContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
         //build the data bean object of message trace

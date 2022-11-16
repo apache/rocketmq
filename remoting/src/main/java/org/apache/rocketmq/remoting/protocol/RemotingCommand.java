@@ -17,13 +17,9 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
+import com.google.common.base.Stopwatch;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -36,9 +32,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -48,11 +47,11 @@ public class RemotingCommand {
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
-        new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
-    private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
+        new HashMap<>();
+    private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<>();
     // 1, Oneway
     // 1, RESPONSE_COMMAND
-    private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<Field, Boolean>();
+    private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<>();
     private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_1 = Double.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_2 = double.class.getCanonicalName();
@@ -90,6 +89,8 @@ public class RemotingCommand {
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
     private transient byte[] body;
+    private boolean suspended;
+    private Stopwatch processTimer;
 
     protected RemotingCommand() {
     }
@@ -345,7 +346,7 @@ public class RemotingCommand {
         Field[] field = CLASS_HASH_MAP.get(classHeader);
 
         if (field == null) {
-            Set<Field> fieldList = new HashSet<Field>();
+            Set<Field> fieldList = new HashSet<>();
             for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
                 Field[] fields = className.getDeclaredFields();
                 fieldList.addAll(Arrays.asList(fields));
@@ -427,7 +428,7 @@ public class RemotingCommand {
         if (this.customHeader != null) {
             Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
-                this.extFields = new HashMap<String, String>();
+                this.extFields = new HashMap<>();
             }
 
             for (Field field : fields) {
@@ -587,6 +588,16 @@ public class RemotingCommand {
         this.body = body;
     }
 
+    @JSONField(serialize = false)
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    @JSONField(serialize = false)
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
     public HashMap<String, String> getExtFields() {
         return extFields;
     }
@@ -597,7 +608,7 @@ public class RemotingCommand {
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
-            extFields = new HashMap<String, String>();
+            extFields = new HashMap<>();
         }
         extFields.put(key, value);
     }
@@ -615,5 +626,13 @@ public class RemotingCommand {
 
     public void setSerializeTypeCurrentRPC(SerializeType serializeTypeCurrentRPC) {
         this.serializeTypeCurrentRPC = serializeTypeCurrentRPC;
+    }
+
+    public Stopwatch getProcessTimer() {
+        return processTimer;
+    }
+
+    public void setProcessTimer(Stopwatch processTimer) {
+        this.processTimer = processTimer;
     }
 }

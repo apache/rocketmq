@@ -155,11 +155,11 @@ public class UpdateTopicSubCommand implements SubCommand {
                     String brokerName = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExt, addr);
                     String orderConf = brokerName + ":" + topicConfig.getWriteQueueNums();
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf, false);
-                    System.out.printf("%s", String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
+                    System.out.printf("%s%n", String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
                         isOrder, orderConf.toString()));
                 }
                 System.out.printf("create topic to %s success.%n", addr);
-                System.out.printf("%s", topicConfig);
+                System.out.printf("%s%n", topicConfig);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -186,10 +186,10 @@ public class UpdateTopicSubCommand implements SubCommand {
                     }
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
                         orderConf.toString(), true);
-                    System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]", isOrder, orderConf);
+                    System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]%n", isOrder, orderConf);
                 }
 
-                System.out.printf("%s", topicConfig);
+                System.out.printf("%s%n", topicConfig);
                 return;
             }
 

@@ -133,7 +133,7 @@ public class BrokerStatsManager {
     private ScheduledExecutorService commercialExecutor;
     private ScheduledExecutorService accountExecutor;
 
-    private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
+    private final HashMap<String, StatsItemSet> statsTable = new HashMap<>();
     private final String clusterName;
     private final boolean enableQueueStat;
     private MomentStatsItemSet momentStatsItemSetFallSize;

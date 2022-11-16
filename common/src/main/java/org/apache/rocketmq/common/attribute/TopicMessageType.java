@@ -39,4 +39,8 @@ public enum TopicMessageType {
     public String getValue() {
         return value;
     }
+
+    public String getMetricsValue() {
+        return value.toLowerCase();
+    }
 }

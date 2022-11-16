@@ -72,7 +72,7 @@ public class PushMultipleReplicasIT extends ContainerIntegrationTestBase {
         // Wait topic synchronization
         await().atMost(Duration.ofMinutes(1)).until(() -> {
             InnerSalveBrokerController slaveBroker = brokerContainer2.getSlaveBrokers().iterator().next();
-           return slaveBroker.getTopicConfigManager().selectTopicConfig(TOPIC) != null;
+            return slaveBroker.getTopicConfigManager().selectTopicConfig(TOPIC) != null;
         });
         isolateBroker(master1With3Replicas);
         DefaultMQPushConsumer pushConsumer = createPushConsumer(CONSUMER_GROUP);

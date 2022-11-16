@@ -37,7 +37,7 @@ public class QueryMsgByIdExceptionIT extends BaseConf {
     public static void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @AfterClass

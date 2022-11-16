@@ -40,7 +40,7 @@ public class BroadcastTwoConsumerFilterIT extends BaseBroadcast {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -54,19 +54,19 @@ public class BroadcastTwoConsumerFilterIT extends BaseBroadcast {
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
 
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, topic, tag1,
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(NAMESRV_ADDR, topic, tag1,
             new RMQNormalListener());
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(NAMESRV_ADDR,
             consumer1.getConsumerGroup(), topic, tag1, new RMQNormalListener());
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.send(tag2, msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
         producer.clearMsg();
         producer.send(tag1, msgSize);
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))

@@ -28,12 +28,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.body.ProducerInfo;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.protocol.body.ProducerInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class ProducerManager {
@@ -82,12 +81,12 @@ public class ProducerManager {
                             clientChannelInfo.getLastUpdateTimestamp()
                     ));
                 } else {
-                    map.put(group, new ArrayList<ProducerInfo>(Collections.singleton(new ProducerInfo(
-                            clientChannelInfo.getClientId(),
-                            clientChannelInfo.getChannel().remoteAddress().toString(),
-                            clientChannelInfo.getLanguage(),
-                            clientChannelInfo.getVersion(),
-                            clientChannelInfo.getLastUpdateTimestamp()
+                    map.put(group, new ArrayList<>(Collections.singleton(new ProducerInfo(
+                        clientChannelInfo.getClientId(),
+                        clientChannelInfo.getChannel().remoteAddress().toString(),
+                        clientChannelInfo.getLanguage(),
+                        clientChannelInfo.getVersion(),
+                        clientChannelInfo.getLastUpdateTimestamp()
                     ))));
                 }
             }
@@ -118,7 +117,7 @@ public class ProducerManager {
                             "ProducerManager#scanNotActiveChannel: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                     callProducerChangeListener(ProducerGroupEvent.CLIENT_UNREGISTER, group, info);
-                    RemotingUtil.closeChannel(info.getChannel());
+                    RemotingHelper.closeChannel(info.getChannel());
                 }
             }
 

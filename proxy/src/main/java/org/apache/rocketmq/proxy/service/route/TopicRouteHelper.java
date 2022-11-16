@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.service.route;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class TopicRouteHelper {
 

@@ -57,10 +57,10 @@ public class StoreTestUtil {
         field.setAccessible(true);
         DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(store);
 
-        final int RETRY_TIMES_OVER = 3;
+        final int retryTimesOver = 3;
         Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
         method.setAccessible(true);
-        method.invoke(flushService, RETRY_TIMES_OVER);
+        method.invoke(flushService, retryTimesOver);
     }
 
 

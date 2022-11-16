@@ -17,18 +17,26 @@
 
 package org.apache.rocketmq.common.utils;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-
-import static org.junit.Assert.*;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.*;
-import java.lang.reflect.Method;
-import java.util.List;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class IOTinyUtilsTest {
 
@@ -55,18 +63,18 @@ public class IOTinyUtilsTest {
 
     @Test
     public void testToString() throws Exception {
-        byte[] b = "testToString".getBytes(RemotingHelper.DEFAULT_CHARSET);
+        byte[] b = "testToString".getBytes(StandardCharsets.UTF_8);
         InputStream is = new ByteArrayInputStream(b);
 
         String str = IOTinyUtils.toString(is, null);
         assertEquals("testToString", str);
 
         is = new ByteArrayInputStream(b);
-        str = IOTinyUtils.toString(is, RemotingHelper.DEFAULT_CHARSET);
+        str = IOTinyUtils.toString(is, StandardCharsets.UTF_8.name());
         assertEquals("testToString", str);
 
         is = new ByteArrayInputStream(b);
-        Reader isr = new InputStreamReader(is, RemotingHelper.DEFAULT_CHARSET);
+        Reader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
         str = IOTinyUtils.toString(isr);
         assertEquals("testToString", str);
     }
@@ -115,7 +123,7 @@ public class IOTinyUtilsTest {
         File file = new File(testRootDir, "testWriteStringToFile");
         assertTrue(!file.exists());
 
-        IOTinyUtils.writeStringToFile(file, "testWriteStringToFile", RemotingHelper.DEFAULT_CHARSET);
+        IOTinyUtils.writeStringToFile(file, "testWriteStringToFile", StandardCharsets.UTF_8.name());
 
         assertTrue(file.exists());
     }
@@ -123,7 +131,7 @@ public class IOTinyUtilsTest {
     @Test
     public void testCleanDirectory() throws Exception {
         for (int i = 0; i < 10; i++) {
-            IOTinyUtils.writeStringToFile(new File(testRootDir, "testCleanDirectory" + i), "testCleanDirectory", RemotingHelper.DEFAULT_CHARSET);
+            IOTinyUtils.writeStringToFile(new File(testRootDir, "testCleanDirectory" + i), "testCleanDirectory", StandardCharsets.UTF_8.name());
         }
 
         File dir = new File(testRootDir);
@@ -138,7 +146,7 @@ public class IOTinyUtilsTest {
     @Test
     public void testDelete() throws Exception {
         for (int i = 0; i < 10; i++) {
-            IOTinyUtils.writeStringToFile(new File(testRootDir, "testDelete" + i), "testCleanDirectory", RemotingHelper.DEFAULT_CHARSET);
+            IOTinyUtils.writeStringToFile(new File(testRootDir, "testDelete" + i), "testCleanDirectory", StandardCharsets.UTF_8.name());
         }
 
         File dir = new File(testRootDir);
@@ -155,7 +163,7 @@ public class IOTinyUtilsTest {
         File source = new File(testRootDir, "source");
         String target = testRootDir + File.separator + "dest";
 
-        IOTinyUtils.writeStringToFile(source, "testCopyFile", RemotingHelper.DEFAULT_CHARSET);
+        IOTinyUtils.writeStringToFile(source, "testCopyFile", StandardCharsets.UTF_8.name());
 
         IOTinyUtils.copyFile(source.getCanonicalPath(), target);
 

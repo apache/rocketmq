@@ -35,8 +35,8 @@ public class ConcurrentTreeMap<K, V> {
     private RoundQueue<K> roundQueue;
 
     public ConcurrentTreeMap(int capacity, Comparator<? super K> comparator) {
-        tree = new TreeMap<K, V>(comparator);
-        roundQueue = new RoundQueue<K>(capacity);
+        tree = new TreeMap<>(comparator);
+        roundQueue = new RoundQueue<>(capacity);
         lock = new ReentrantLock(true);
     }
 

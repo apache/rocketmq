@@ -32,16 +32,17 @@ import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class FilterServerManager {
 
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable =
-        new ConcurrentHashMap<Channel, FilterServerInfo>(16);
+        new ConcurrentHashMap<>(16);
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
@@ -84,7 +85,7 @@ public class FilterServerManager {
             config += String.format(" -n %s", this.brokerController.getBrokerConfig().getNamesrvAddr());
         }
 
-        if (RemotingUtil.isWindowsPlatform()) {
+        if (NetworkUtil.isWindowsPlatform()) {
             return String.format("start /b %s\\bin\\mqfiltersrv.exe %s",
                 this.brokerController.getBrokerConfig().getRocketmqHome(),
                 config);
@@ -122,7 +123,7 @@ public class FilterServerManager {
             if ((System.currentTimeMillis() - timestamp) > FILTER_SERVER_MAX_IDLE_TIME_MILLS) {
                 log.info("The Filter Server<{}> expired, remove it", next.getKey());
                 it.remove();
-                RemotingUtil.closeChannel(channel);
+                RemotingHelper.closeChannel(channel);
             }
         }
     }

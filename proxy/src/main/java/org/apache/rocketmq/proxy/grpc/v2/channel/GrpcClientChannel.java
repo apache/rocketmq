@@ -30,11 +30,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -44,36 +39,35 @@ import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
 
 public class GrpcClientChannel extends ProxyChannel {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected static final String SEPARATOR = "@";
 
     private final GrpcChannelManager grpcChannelManager;
 
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final Object telemetryWriteLock = new Object();
-    private final String group;
     private final String clientId;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager,
-        ProxyContext ctx,
-        String group, String clientId) {
-        super(proxyRelayService, null, new GrpcChannelId(group, clientId),
+        ProxyContext ctx, String clientId) {
+        super(proxyRelayService, null, new GrpcChannelId(clientId),
             ctx.getRemoteAddress(),
             ctx.getLocalAddress());
         this.grpcChannelManager = grpcChannelManager;
-        this.group = group;
         this.clientId = clientId;
     }
 
     protected static class GrpcChannelId implements ChannelId {
 
-        private final String group;
         private final String clientId;
 
-        public GrpcChannelId(String group, String clientId) {
-            this.group = group;
+        public GrpcChannelId(String clientId) {
             this.clientId = clientId;
         }
 
@@ -84,7 +78,7 @@ public class GrpcClientChannel extends ProxyChannel {
 
         @Override
         public String asLongText() {
-            return this.group + SEPARATOR + this.clientId;
+            return this.clientId;
         }
 
         @Override
@@ -95,7 +89,6 @@ public class GrpcClientChannel extends ProxyChannel {
             if (o instanceof GrpcChannelId) {
                 GrpcChannelId other = (GrpcChannelId) o;
                 return ComparisonChain.start()
-                    .compare(this.group, other.group)
                     .compare(this.clientId, other.clientId)
                     .result();
             }
@@ -184,10 +177,6 @@ public class GrpcClientChannel extends ProxyChannel {
         return CompletableFuture.completedFuture(null);
     }
 
-    public String getGroup() {
-        return group;
-    }
-
     public String getClientId() {
         return clientId;
     }
@@ -224,7 +213,6 @@ public class GrpcClientChannel extends ProxyChannel {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("group", group)
             .add("clientId", clientId)
             .add("remoteAddress", getRemoteAddress())
             .add("localAddress", getLocalAddress())

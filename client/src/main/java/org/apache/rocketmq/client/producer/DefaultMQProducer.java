@@ -41,11 +41,11 @@ import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 /**
  * This class is the entry point for applications intending to send messages. </p>
@@ -66,13 +66,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
     private final InternalLogger log = ClientLogger.getLog();
-    private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<Integer>(Arrays.asList(
-            ResponseCode.TOPIC_NOT_EXIST,
-            ResponseCode.SERVICE_NOT_AVAILABLE,
-            ResponseCode.SYSTEM_ERROR,
-            ResponseCode.NO_PERMISSION,
-            ResponseCode.NO_BUYER_ID,
-            ResponseCode.NOT_IN_CURRENT_UNIT
+    private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<>(Arrays.asList(
+        ResponseCode.TOPIC_NOT_EXIST,
+        ResponseCode.SERVICE_NOT_AVAILABLE,
+        ResponseCode.SYSTEM_ERROR,
+        ResponseCode.NO_PERMISSION,
+        ResponseCode.NO_BUYER_ID,
+        ResponseCode.NOT_IN_CURRENT_UNIT
     ));
 
     /**
@@ -81,7 +81,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * For non-transactional messages, it does not matter as long as it's unique per process. </p>
      *
-     * See <a href="http://rocketmq.apache.org/docs/core-concept/">core concepts</a> for more discussion.
+     * See <a href="https://rocketmq.apache.org/docs/introduction/02concepts">core concepts</a> for more discussion.
      */
     private String producerGroup;
 
@@ -284,7 +284,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
-    
+
     /**
      * Start this producer instance. </p>
      *

@@ -20,7 +20,7 @@ package org.apache.rocketmq.proxy.service.metadata;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class LocalMetadataService implements MetadataService {
     private final BrokerController brokerController;

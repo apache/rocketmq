@@ -51,7 +51,7 @@ public class SqlFilterIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
         OFFSE_TABLE.clear();
     }
 
@@ -66,13 +66,13 @@ public class SqlFilterIT extends BaseConf {
 
         String group = initConsumerGroup();
         MessageSelector selector = MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))");
-        RMQSqlConsumer consumer = ConsumerFactory.getRMQSqlConsumer(nsAddr, group, topic, selector, new RMQNormalListener(group + "_1"));
+        RMQSqlConsumer consumer = ConsumerFactory.getRMQSqlConsumer(NAMESRV_ADDR, group, topic, selector, new RMQNormalListener(group + "_1"));
         Thread.sleep(3000);
         producer.send("TagA", msgSize);
         producer.send("TagB", msgSize);
         producer.send("TagC", msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize * 3, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(msgSize * 2, consumeTime);
+        consumer.getListener().waitForMessageConsume(msgSize * 2, CONSUME_TIME);
         assertThat(producer.getAllMsgBody())
             .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()));
@@ -87,7 +87,7 @@ public class SqlFilterIT extends BaseConf {
         String group = initConsumerGroup();
         MessageSelector selector = MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))");
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(group);
-        consumer.setNamesrvAddr(nsAddr);
+        consumer.setNamesrvAddr(NAMESRV_ADDR);
         consumer.start();
         Thread.sleep(3000);
         producer.send("TagA", msgSize);

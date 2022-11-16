@@ -39,7 +39,7 @@ Field language : private org.apache.rocketmq.remoting.protocol.LanguageCode JAVA
 Field log : private org.apache.rocketmq.logging.InternalLogger null
 Field maxReconsumeTimes : private int -1
 Field messageListener : private org.apache.rocketmq.client.consumer.listener.MessageListener null
-Field messageModel : private org.apache.rocketmq.common.protocol.heartbeat.MessageModel CLUSTERING
+Field messageModel : private org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel CLUSTERING
 Field mqClientApiTimeout : private int 3000
 Field namespace : protected java.lang.String null
 Field namespaceInitialized : private boolean false
@@ -89,7 +89,7 @@ Method getInstanceName() : public throws (java.lang.String)
 Method getLanguage() : public throws (org.apache.rocketmq.remoting.protocol.LanguageCode)
 Method getMaxReconsumeTimes() : public throws (int)
 Method getMessageListener() : public throws (org.apache.rocketmq.client.consumer.listener.MessageListener)
-Method getMessageModel() : public throws (org.apache.rocketmq.common.protocol.heartbeat.MessageModel)
+Method getMessageModel() : public throws (org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel)
 Method getMqClientApiTimeout() : public throws (int)
 Method getNamespace() : public throws (java.lang.String)
 Method getNamesrvAddr() : public throws (java.lang.String)
@@ -145,7 +145,7 @@ Method setInstanceName(java.lang.String) : public throws (void)
 Method setLanguage(org.apache.rocketmq.remoting.protocol.LanguageCode) : public throws (void)
 Method setMaxReconsumeTimes(int) : public throws (void)
 Method setMessageListener(org.apache.rocketmq.client.consumer.listener.MessageListener) : public throws (void)
-Method setMessageModel(org.apache.rocketmq.common.protocol.heartbeat.MessageModel) : public throws (void)
+Method setMessageModel(org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel) : public throws (void)
 Method setMqClientApiTimeout(int) : public throws (void)
 Method setNamespace(java.lang.String) : public throws (void)
 Method setNamesrvAddr(java.lang.String) : public throws (void)

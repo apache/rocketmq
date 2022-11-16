@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.container;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.AfterClass;
@@ -47,17 +47,10 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
 
     private static final String CONSUME_GROUP = ScheduledMessageIT.class.getSimpleName() + "_Consumer";
     private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private static byte[] MESSAGE_BODY;
-
-    static {
-        try {
-            MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
-        } catch (UnsupportedEncodingException ignored) {
-        }
-    }
+    private static final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(StandardCharsets.UTF_8);
 
     private static final String TOPIC_PREFIX = ScheduledMessageIT.class.getSimpleName() + "_TOPIC";
-    private static Random random = new Random();
+    private final Random random = new Random();
     private static final int MESSAGE_COUNT = 128;
 
     public ScheduledMessageIT() throws UnsupportedEncodingException {

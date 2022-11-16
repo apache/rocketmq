@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.test.container;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +40,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -57,10 +56,10 @@ public class SyncConsumerOffsetIT extends ContainerIntegrationTestBase {
 
     private static DefaultMQProducer mqProducer;
     private static DefaultMQPushConsumer mqConsumerThreeReplica;
+    private static final String MSG = "Hello RocketMQ ";
+    private static final byte[] MESSAGE_BODY = MSG.getBytes(StandardCharsets.UTF_8);
 
-    private final byte[] MESSAGE_BODY = ("Hello RocketMQ").getBytes(RemotingHelper.DEFAULT_CHARSET);
-
-    public SyncConsumerOffsetIT() throws UnsupportedEncodingException {
+    public SyncConsumerOffsetIT() {
     }
 
     @BeforeClass

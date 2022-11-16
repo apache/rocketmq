@@ -22,15 +22,14 @@ import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMapAdapter;
 import io.opentracing.tag.Tags;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.trace.TraceConstants;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 
 public class ConsumeMessageOpenTracingHookImpl implements ConsumeMessageHook {
@@ -51,7 +50,7 @@ public class ConsumeMessageOpenTracingHookImpl implements ConsumeMessageHook {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
-        List<Span> spanList = new ArrayList<Span>();
+        List<Span> spanList = new ArrayList<>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;

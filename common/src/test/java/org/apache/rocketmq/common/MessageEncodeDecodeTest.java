@@ -46,7 +46,7 @@ public class MessageEncodeDecodeTest {
 
     @Test
     public void testEncodeDecodeList() throws Exception {
-        List<Message> messages = new ArrayList<Message>(128);
+        List<Message> messages = new ArrayList<>(128);
         for (int i = 0; i < 100; i++) {
             Message message = new Message("topic", ("body" + i).getBytes());
             message.setFlag(i);

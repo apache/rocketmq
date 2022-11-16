@@ -91,8 +91,6 @@ public class AppenderTest extends BasicLoggerTest {
 
         String content = readFile(file);
 
-        System.out.println(content);
-
         Assert.assertTrue(content.contains("info"));
         Assert.assertTrue(content.contains("RuntimeException"));
         Assert.assertTrue(!content.contains("debug"));

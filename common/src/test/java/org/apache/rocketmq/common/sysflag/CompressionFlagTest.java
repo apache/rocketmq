@@ -34,12 +34,12 @@ public class CompressionFlagTest {
         flag |= MessageSysFlag.COMPRESSION_LZ4_TYPE;
         assertThat(MessageSysFlag.getCompressionType(flag)).isEqualTo(CompressionType.LZ4);
 
-        flag &= (~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR);
+        flag &= ~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR;
         flag |= MessageSysFlag.COMPRESSION_ZSTD_TYPE;
         assertThat(MessageSysFlag.getCompressionType(flag)).isEqualTo(CompressionType.ZSTD);
 
 
-        flag &= (~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR);
+        flag &= ~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR;
         flag |= MessageSysFlag.COMPRESSION_ZLIB_TYPE;
         assertThat(MessageSysFlag.getCompressionType(flag)).isEqualTo(CompressionType.ZLIB);
     }
@@ -48,7 +48,7 @@ public class CompressionFlagTest {
     public void testCompressionFlagNotMatch() {
         int flag = 0;
         flag |= MessageSysFlag.COMPRESSED_FLAG;
-        flag |= (0x4 << 8);
+        flag |= 0x4 << 8;
 
         MessageSysFlag.getCompressionType(flag);
     }

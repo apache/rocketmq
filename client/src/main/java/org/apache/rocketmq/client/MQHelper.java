@@ -20,9 +20,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class MQHelper {
     @Deprecated
@@ -60,7 +60,7 @@ public class MQHelper {
         try {
             mqs = consumer.fetchSubscribeMessageQueues(topic);
             if (mqs != null && !mqs.isEmpty()) {
-                TreeSet<MessageQueue> mqsNew = new TreeSet<MessageQueue>(mqs);
+                TreeSet<MessageQueue> mqsNew = new TreeSet<>(mqs);
                 for (MessageQueue mq : mqsNew) {
                     long offset = consumer.searchOffset(mq, timestamp);
                     if (offset >= 0) {

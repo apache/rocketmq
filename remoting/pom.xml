@@ -33,16 +33,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-logging</artifactId>
+            <artifactId>rocketmq-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

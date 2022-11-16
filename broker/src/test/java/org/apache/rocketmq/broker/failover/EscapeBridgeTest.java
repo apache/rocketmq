@@ -145,7 +145,7 @@ public class EscapeBridgeTest {
         when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
         Assertions.assertThatCode(() -> escapeBridge.putMessage(messageExtBrokerInner)).doesNotThrowAnyException();
 
-        Assertions.assertThatCode(() -> escapeBridge.getMessage(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> escapeBridge.getMessage(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false)).doesNotThrowAnyException();
     }
 
     @Test
@@ -160,7 +160,7 @@ public class EscapeBridgeTest {
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, 10, mappedFile);
 
         getMessageResult.addMessage(result);
-        Assertions.assertThatCode(() -> escapeBridge.decodeMsgList(getMessageResult)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> escapeBridge.decodeMsgList(getMessageResult, false)).doesNotThrowAnyException();
     }
 
 }

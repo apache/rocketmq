@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -43,8 +44,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -54,53 +54,52 @@ public class AutoSwitchRoleBase {
         UUID.randomUUID().toString().replace("-", "");
     private static final AtomicInteger PORT_COUNTER = new AtomicInteger(35000);
     private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
-    private final String StoreMessage = "Once, there was a chance for me!";
-    private final byte[] MessageBody = StoreMessage.getBytes();
-    private final AtomicInteger QueueId = new AtomicInteger(0);
-    private static final Random random = new Random();
+    private static final String STORE_MESSAGE = "Once, there was a chance for me!";
+    private static final byte[] MESSAGE_BODY = STORE_MESSAGE.getBytes();
+    private final AtomicInteger queueId = new AtomicInteger(0);
     protected List<BrokerController> brokerList;
-    private SocketAddress BornHost;
-    private SocketAddress StoreHost;
-    private static Integer No= 0;
-    
-    
+    private SocketAddress bornHost;
+    private SocketAddress storeHost;
+    private static Integer no = 0;
+
     protected void initialize() {
         this.brokerList = new ArrayList<>();
         try {
-            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
-            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+            storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (Exception ignored) {
         }
     }
-    
+
     public static Integer nextPort() throws IOException {
-        return nextPort(1001,9999);
+        return nextPort(1001, 9999);
     }
-    
-    public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException  {
+
+    public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException {
         Random random = new Random();
         int tempPort;
         int port;
-        try{
-            while (true){
-                tempPort = random.nextInt(maxPort)%(maxPort-minPort+1) + minPort;
-                ServerSocket serverSocket =  new ServerSocket(tempPort);
+        try {
+            while (true) {
+                tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
+                ServerSocket serverSocket = new ServerSocket(tempPort);
                 port = serverSocket.getLocalPort();
                 serverSocket.close();
                 break;
             }
-        }catch (Exception ignored){
-            if (No>200){
+        } catch (Exception ignored) {
+            if (no > 200) {
                 throw new IOException("This server's open ports are temporarily full!");
             }
-            No++;
-            port = nextPort(minPort,maxPort);
+            no++;
+            port = nextPort(minPort, maxPort);
         }
-        No = 0;
+        no = 0;
         return port;
     }
 
-    public BrokerController startBroker(String namesrvAddress, String controllerAddress, int brokerId, int haPort, int brokerListenPort,
+    public BrokerController startBroker(String namesrvAddress, String controllerAddress, int brokerId, int haPort,
+        int brokerListenPort,
         int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
         final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
         storeConfig.setHaMaxTimeSlaveNotCatchup(3 * 1000);
@@ -164,14 +163,14 @@ public class AutoSwitchRoleBase {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("FooBar");
         msg.setTags("TAG1");
-        msg.setBody(MessageBody);
+        msg.setBody(MESSAGE_BODY);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        int QUEUE_TOTAL = 1;
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        int queueTotal = 1;
+        msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
@@ -185,15 +184,11 @@ public class AutoSwitchRoleBase {
     }
 
     protected void checkMessage(final MessageStore messageStore, int totalMsgs, int startOffset) {
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
-                System.out.println("Failed i :" + i);
-            }
-            assertEquals(GetMessageStatus.FOUND, result.getStatus());
-            result.release();
-        }
+        await().atMost(60, TimeUnit.SECONDS)
+            .until(() -> {
+                GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset, 1024, null);
+                return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() == totalMsgs;
+            });
     }
 
     protected void destroy() {

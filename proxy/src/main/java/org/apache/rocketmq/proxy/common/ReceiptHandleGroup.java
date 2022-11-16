@@ -100,6 +100,30 @@ public class ReceiptHandleGroup {
         return this.receiptHandleMap.isEmpty();
     }
 
+    public MessageReceiptHandle get(String msgID, String handle) {
+        Map<String, HandleData> handleMap = this.receiptHandleMap.get(msgID);
+        if (handleMap == null) {
+            return null;
+        }
+        long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
+        AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
+        handleMap.computeIfPresent(handle, (handleKey, handleData) -> {
+            if (!handleData.lock(timeout)) {
+                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to get handle failed");
+            }
+            try {
+                if (handleData.needRemove) {
+                    return null;
+                }
+                res.set(handleData.messageReceiptHandle);
+            } finally {
+                handleData.unlock();
+            }
+            return handleData;
+        });
+        return res.get();
+    }
+
     public MessageReceiptHandle remove(String msgID, String handle) {
         Map<String, HandleData> handleMap = this.receiptHandleMap.get(msgID);
         if (handleMap == null) {
