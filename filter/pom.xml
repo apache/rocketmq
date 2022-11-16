@@ -36,10 +36,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-common</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-srvutil</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

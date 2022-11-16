@@ -101,8 +101,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <slf4j.version>1.7.7</slf4j.version>
-        <logback.version>1.2.10</logback.version>
         <commons-cli.version>1.5.0</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
@@ -112,11 +110,11 @@
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
         <guava.version>31.0.1-jre</guava.version>
+        <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
-        <log4j.version>1.2.17</log4j.version>
         <snakeyaml.version>1.32</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
-        <logging-log4j.version>2.17.1</logging-log4j.version>
+        <rocketmq-logging.version>1.0.3</rocketmq-logging.version>
         <commons-validator.version>1.7</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
@@ -143,6 +141,7 @@
         <mockito-core.version>3.10.0</mockito-core.version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
+        <slf4j-api.version>1.7.33</slf4j-api.version>
 
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
@@ -183,7 +182,6 @@
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
-        <module>logging</module>
         <module>acl</module>
         <module>example</module>
         <module>container</module>
@@ -520,11 +518,6 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-controller</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
                 <version>${rocketmq-proto.version}</version>
                 <exclusions>
@@ -541,96 +534,6 @@
                         <artifactId>grpc-netty-shaded</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-broker</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-container</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-store</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-namesrv</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-tools</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-remoting</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-logging</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-srvutil</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-filter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-acl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-openmessaging</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-example</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-proxy</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -686,6 +589,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>com.google.code</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
                 <artifactId>concurrentlinkedhashmap-lru</artifactId>
                 <version>${concurrentlinkedhashmap-lru.version}</version>
@@ -694,11 +602,6 @@
                 <groupId>io.openmessaging</groupId>
                 <artifactId>openmessaging-api</artifactId>
                 <version>${openmessaging.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.yaml</groupId>
@@ -711,14 +614,14 @@
                 <version>${commons-codec.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${logging-log4j.version}</version>
+                <groupId>io.github.aliyun-mq</groupId>
+                <artifactId>rocketmq-slf4j-api</artifactId>
+                <version>${rocketmq-logging.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
-                <version>${logging-log4j.version}</version>
+                <groupId>io.github.aliyun-mq</groupId>
+                <artifactId>rocketmq-logback-classic</artifactId>
+                <version>${rocketmq-logging.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-validator</groupId>
@@ -784,6 +687,12 @@
                 <groupId>io.openmessaging.storage</groupId>
                 <artifactId>dledger</artifactId>
                 <version>${dleger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat</groupId>
@@ -881,6 +790,12 @@
                 <groupId>com.conversantmedia</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -898,6 +813,13 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j-api.version}</version>
                 <scope>test</scope>
             </dependency>
 
