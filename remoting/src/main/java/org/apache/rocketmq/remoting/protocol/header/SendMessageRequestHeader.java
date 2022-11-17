@@ -21,7 +21,6 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import java.util.HashMap;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -189,79 +188,6 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
                 break;
         }
         return requestHeader;
-    }
-
-    public static SendMessageRequestHeaderV2 decodeSendMessageHeaderV2(RemotingCommand request)
-        throws RemotingCommandException {
-        SendMessageRequestHeaderV2 r = new SendMessageRequestHeaderV2();
-        HashMap<String, String> fields = request.getExtFields();
-        if (fields == null) {
-            throw new RemotingCommandException("the ext fields is null");
-        }
-
-        String s = fields.get("a");
-        checkNotNull(s, "the custom field <a> is null");
-        r.setA(s);
-
-        s = fields.get("b");
-        checkNotNull(s, "the custom field <b> is null");
-        r.setB(s);
-
-        s = fields.get("c");
-        checkNotNull(s, "the custom field <c> is null");
-        r.setC(s);
-
-        s = fields.get("d");
-        checkNotNull(s, "the custom field <d> is null");
-        r.setD(Integer.parseInt(s));
-
-        s = fields.get("e");
-        checkNotNull(s, "the custom field <e> is null");
-        r.setE(Integer.parseInt(s));
-
-        s = fields.get("f");
-        checkNotNull(s, "the custom field <f> is null");
-        r.setF(Integer.parseInt(s));
-
-        s = fields.get("g");
-        checkNotNull(s, "the custom field <g> is null");
-        r.setG(Long.parseLong(s));
-
-        s = fields.get("h");
-        checkNotNull(s, "the custom field <h> is null");
-        r.setH(Integer.parseInt(s));
-
-        s = fields.get("i");
-        if (s != null) {
-            r.setI(s);
-        }
-
-        s = fields.get("j");
-        if (s != null) {
-            r.setJ(Integer.parseInt(s));
-        }
-
-        s = fields.get("k");
-        if (s != null) {
-            r.setK(Boolean.parseBoolean(s));
-        }
-
-        s = fields.get("l");
-        if (s != null) {
-            r.setL(Integer.parseInt(s));
-        }
-
-        s = fields.get("m");
-        if (s != null) {
-            r.setM(Boolean.parseBoolean(s));
-        }
-        return r;
-    }
-
-    private static void checkNotNull(String s, String msg) throws RemotingCommandException {
-        if (s == null) {
-            throw new RemotingCommandException(msg);
-        }
     }
 
     @Override
