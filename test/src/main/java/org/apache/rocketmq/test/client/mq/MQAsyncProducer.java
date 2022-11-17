@@ -18,14 +18,12 @@
 package org.apache.rocketmq.test.client.mq;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class MQAsyncProducer {
-    private static Logger logger = LoggerFactory.getLogger(MQAsyncProducer.class);
+    private static Logger logger = Logger.getLogger(MQAsyncProducer.class);
     private AbstractMQProducer producer = null;
     private long msgNum;
     private int intervalMills;

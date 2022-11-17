@@ -20,12 +20,11 @@ package org.apache.rocketmq.test.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class VerifyUtils {
-    private static Logger logger = LoggerFactory.getLogger(VerifyUtils.class);
+    private static Logger logger = Logger.getLogger(VerifyUtils.class);
 
     public static int verify(Collection<Object> sendMsgs, Collection<Object> recvMsgs) {
         int miss = 0;
