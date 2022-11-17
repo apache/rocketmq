@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.proxy.remoting.common;
 
-import java.nio.ByteBuffer;
-import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -40,27 +38,6 @@ public class RemotingConverter {
             }
         }
         return instance;
-    }
-
-    public byte[] convertMsgToBytes(List<MessageExt> msgList) {
-        // set response body
-        byte[][] msgBufferList = new byte[msgList.size()][];
-        int bodyTotalSize = 0;
-        for (int i = 0; i < msgList.size(); i++) {
-            try {
-                msgBufferList[i] = convertMsgToBytes(msgList.get(i));
-                bodyTotalSize += msgBufferList[i].length;
-            } catch (Exception e) {
-                log.error("messageToByteBuffer UnsupportedEncodingException", e);
-            }
-        }
-
-        ByteBuffer body = ByteBuffer.allocate(bodyTotalSize);
-        for (byte[] bb : msgBufferList) {
-            body.put(bb);
-        }
-
-        return body.array();
     }
 
     public byte[] convertMsgToBytes(final MessageExt msg) throws Exception {

@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
+import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.channel.ChannelExtendAttributeGetter;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
@@ -132,54 +133,48 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
     protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
-        CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, header);
-            return this.remotingProxyOutClient.invokeToClient(this.parent(), request, DEFAULT_MQ_CLIENT_TIMEOUT)
-                .thenApply(response -> {
+            this.remotingProxyOutClient.invokeToClient(this.parent(), request, DEFAULT_MQ_CLIENT_TIMEOUT)
+                .thenAccept(response -> {
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         ConsumerRunningInfo consumerRunningInfo = ConsumerRunningInfo.decode(response.getBody(), ConsumerRunningInfo.class);
                         responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", consumerRunningInfo));
-                        return null;
                     }
                     String errMsg = String.format("get consumer running info failed, code:%s remark:%s", response.getCode(), response.getRemark());
                     RuntimeException e = new RuntimeException(errMsg);
                     responseFuture.completeExceptionally(e);
-                    throw e;
                 });
+            return CompletableFuture.completedFuture(null);
         } catch (Throwable t) {
             responseFuture.completeExceptionally(t);
-            writeFuture.completeExceptionally(t);
+            return FutureUtils.completeExceptionally(t);
         }
-        return writeFuture;
     }
 
     @Override
     protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header, MessageExt messageExt,
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
-        CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, header);
             request.setBody(RemotingConverter.getInstance().convertMsgToBytes(messageExt));
 
-            return this.remotingProxyOutClient.invokeToClient(this.parent(), request, DEFAULT_MQ_CLIENT_TIMEOUT)
-                .thenApply(response -> {
+            this.remotingProxyOutClient.invokeToClient(this.parent(), request, DEFAULT_MQ_CLIENT_TIMEOUT)
+                .thenAccept(response -> {
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         ConsumeMessageDirectlyResult result = ConsumeMessageDirectlyResult.decode(response.getBody(), ConsumeMessageDirectlyResult.class);
                         responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", result));
-                        return null;
                     }
                     String errMsg = String.format("consume message directly failed, code:%s remark:%s", response.getCode(), response.getRemark());
                     RuntimeException e = new RuntimeException(errMsg);
                     responseFuture.completeExceptionally(e);
-                    throw e;
                 });
+            return CompletableFuture.completedFuture(null);
         } catch (Throwable t) {
             responseFuture.completeExceptionally(t);
-            writeFuture.completeExceptionally(t);
+            return FutureUtils.completeExceptionally(t);
         }
-        return writeFuture;
     }
 
     public String getClientId() {
