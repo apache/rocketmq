@@ -57,10 +57,6 @@ public class RemotingChannelManager implements StartAndShutdown {
         return prefix + group;
     }
 
-    protected String getGroupFromKey(String key) {
-        return key.substring(1);
-    }
-
     public RemotingChannel createProducerChannel(Channel channel, String group, String clientId) {
         return createChannel(channel, buildProducerKey(group), clientId, Collections.emptySet());
     }
@@ -80,14 +76,6 @@ public class RemotingChannelManager implements StartAndShutdown {
         return getChannel(group, channel);
     }
 
-    public RemotingChannel getConsumerChannel(String group, Channel channel) {
-        return getChannel(buildConsumerKey(group), channel);
-    }
-
-    public RemotingChannel getProducerChannel(String group, Channel channel) {
-        return getChannel(buildProducerKey(group), channel);
-    }
-
     protected RemotingChannel getChannel(String group, Channel channel) {
         Map<Channel, RemotingChannel> clientIdChannelMap = this.groupChannelMap.get(group);
         if (clientIdChannelMap == null) {
@@ -98,10 +86,9 @@ public class RemotingChannelManager implements StartAndShutdown {
 
     public Set<RemotingChannel> removeChannel(Channel channel) {
         Set<RemotingChannel> removedChannelSet = new HashSet<>();
-        for (Map.Entry<String, Map<Channel /* raw channel */, RemotingChannel>> entry : groupChannelMap.entrySet()) {
-            Map<Channel /* raw channel */, RemotingChannel> channelMap = entry.getValue();
-
-            RemotingChannel remotingChannel = channelMap.remove(channel);
+        Set<String> groupKeySet = groupChannelMap.keySet();
+        for (String group : groupKeySet) {
+            RemotingChannel remotingChannel = removeChannel(group, channel);
             if (remotingChannel != null) {
                 removedChannelSet.add(remotingChannel);
             }
@@ -121,13 +108,25 @@ public class RemotingChannelManager implements StartAndShutdown {
         AtomicReference<RemotingChannel> channelRef = new AtomicReference<>();
 
         this.groupChannelMap.computeIfPresent(group, (groupKey, channelMap) -> {
-            channelRef.set(channelMap.remove(channel));
+            channelRef.set(channelMap.remove(getOrgRawChannel(channel)));
             if (channelMap.isEmpty()) {
                 return null;
             }
             return channelMap;
         });
         return channelRef.get();
+    }
+
+    /**
+     * to get the org channel pass by nettyRemotingServer
+     * @param channel
+     * @return
+     */
+    protected Channel getOrgRawChannel(Channel channel) {
+        if (channel instanceof RemotingChannel) {
+            return channel.parent();
+        }
+        return channel;
     }
 
     @Override

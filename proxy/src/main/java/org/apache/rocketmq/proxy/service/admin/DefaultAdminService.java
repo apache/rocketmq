@@ -115,7 +115,11 @@ public class DefaultAdminService implements AdminService {
                 continue;
             }
 
-            this.getClient().createTopic(addr, TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, topicConfig, Duration.ofSeconds(3).toMillis());
+            try {
+                this.getClient().createTopic(addr, TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, topicConfig, Duration.ofSeconds(3).toMillis());
+            } catch (Exception e) {
+                log.error("create topic on broker failed. topic:{}, broker:{}", topicConfig, addr, e);
+            }
         }
 
         if (examineTopic) {
