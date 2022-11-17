@@ -22,14 +22,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class PullMessageService extends ServiceThread {
-    private final Logger logger = LoggerFactory.getLogger(PullMessageService.class);
+    private final InternalLogger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<MessageRequest> messageRequestQueue = new LinkedBlockingQueue<>();
 
     private final MQClientInstance mQClientFactory;
@@ -54,7 +54,7 @@ public class PullMessageService extends ServiceThread {
                 }
             }, timeDelay, TimeUnit.MILLISECONDS);
         } else {
-            logger.warn("PullMessageServiceScheduledThread has shutdown");
+            log.warn("PullMessageServiceScheduledThread has shutdown");
         }
     }
 
@@ -62,7 +62,7 @@ public class PullMessageService extends ServiceThread {
         try {
             this.messageRequestQueue.put(pullRequest);
         } catch (InterruptedException e) {
-            logger.error("executePullRequestImmediately pullRequestQueue.put", e);
+            log.error("executePullRequestImmediately pullRequestQueue.put", e);
         }
     }
 
@@ -75,7 +75,7 @@ public class PullMessageService extends ServiceThread {
                 }
             }, timeDelay, TimeUnit.MILLISECONDS);
         } else {
-            logger.warn("PullMessageServiceScheduledThread has shutdown");
+            log.warn("PullMessageServiceScheduledThread has shutdown");
         }
     }
 
@@ -83,7 +83,7 @@ public class PullMessageService extends ServiceThread {
         try {
             this.messageRequestQueue.put(pullRequest);
         } catch (InterruptedException e) {
-            logger.error("executePullRequestImmediately pullRequestQueue.put", e);
+            log.error("executePullRequestImmediately pullRequestQueue.put", e);
         }
     }
 
@@ -91,7 +91,7 @@ public class PullMessageService extends ServiceThread {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
         } else {
-            logger.warn("PullMessageServiceScheduledThread has shutdown");
+            log.warn("PullMessageServiceScheduledThread has shutdown");
         }
     }
 
@@ -105,7 +105,7 @@ public class PullMessageService extends ServiceThread {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
         } else {
-            logger.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
+            log.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
         }
     }
 
@@ -115,13 +115,13 @@ public class PullMessageService extends ServiceThread {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.popMessage(popRequest);
         } else {
-            logger.warn("No matched consumer for the PopRequest {}, drop it", popRequest);
+            log.warn("No matched consumer for the PopRequest {}, drop it", popRequest);
         }
     }
 
     @Override
     public void run() {
-        logger.info(this.getServiceName() + " service started");
+        log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             try {
@@ -133,11 +133,11 @@ public class PullMessageService extends ServiceThread {
                 }
             } catch (InterruptedException ignored) {
             } catch (Exception e) {
-                logger.error("Pull Message Service Run Method exception", e);
+                log.error("Pull Message Service Run Method exception", e);
             }
         }
 
-        logger.info(this.getServiceName() + " service end");
+        log.info(this.getServiceName() + " service end");
     }
 
     @Override

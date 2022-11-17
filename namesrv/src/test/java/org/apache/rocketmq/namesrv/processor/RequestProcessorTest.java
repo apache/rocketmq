@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -67,7 +67,7 @@ public class RequestProcessorTest {
 
     private RouteInfoManager routeInfoManager;
 
-    private Logger logger;
+    private InternalLogger logger;
 
     @Before
     public void init() throws Exception {
@@ -88,7 +88,7 @@ public class RequestProcessorTest {
 
         registerRouteInfoManager();
 
-        logger = mock(Logger.class);
+        logger = mock(InternalLogger.class);
         setFinalStatic(DefaultRequestProcessor.class.getDeclaredField("log"), logger);
     }
 

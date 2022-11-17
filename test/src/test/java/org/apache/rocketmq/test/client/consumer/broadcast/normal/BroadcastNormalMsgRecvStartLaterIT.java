@@ -17,8 +17,7 @@
 
 package org.apache.rocketmq.test.client.consumer.broadcast.normal;
 
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -33,7 +32,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class BroadcastNormalMsgRecvStartLaterIT extends BaseBroadcast {
-    private static Logger logger = LoggerFactory
+    private static Logger logger = Logger
         .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;

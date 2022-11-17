@@ -20,8 +20,8 @@ package org.apache.rocketmq.common.utils;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -30,7 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServiceProvider {
-    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    
+    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    
     /**
      * A reference to the classloader that loaded this class. It's more efficient to compute it once and cache it here.
      */

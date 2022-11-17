@@ -17,8 +17,7 @@
 
 package org.apache.rocketmq.test.delay;
 
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
@@ -32,7 +31,7 @@ import org.junit.Test;
 import java.util.List;
 
 public class NormalMsgDelayIT extends DelayConf {
-    private static Logger logger = LoggerFactory.getLogger(NormalMsgDelayIT.class);
+    private static Logger logger = Logger.getLogger(NormalMsgDelayIT.class);
     protected int msgSize = 100;
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;

@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.common.utils.FutureUtils;
-import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class ReceiptHandleGroupTest extends InitConfigTest {
+public class ReceiptHandleGroupTest extends InitConfigAndLoggerTest {
 
     private static final String TOPIC = "topic";
     private static final String GROUP = "group";
