@@ -1424,7 +1424,7 @@ public class BrokerController {
             scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ignore) {
             BrokerController.LOG.warn("shutdown ScheduledExecutorService was Interrupted!  ", ignore);
-        	Thread.currentThread().interrupt();
+            Thread.currentThread().interrupt();
         }
     }
 
