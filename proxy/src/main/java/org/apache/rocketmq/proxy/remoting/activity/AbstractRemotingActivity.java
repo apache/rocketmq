@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -44,6 +45,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final MessagingProcessor messagingProcessor;
     protected static final String BROKER_NAME_FIELD = "bname";
+    protected static final String BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2 = "n";
     private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<ProxyExceptionCode, Integer>() {
         {
             put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);
@@ -61,11 +63,20 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
 
     protected RemotingCommand request(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context, long timeoutMillis) throws Exception {
-        if (request.getExtFields().get(BROKER_NAME_FIELD) == null) {
-            return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
-                "Request doesn't have field bname");
+        String brokerName;
+        if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
+            if (request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2) == null) {
+                return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
+                    "Request doesn't have field bname");
+            }
+            brokerName = request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2);
+        } else {
+            if (request.getExtFields().get(BROKER_NAME_FIELD) == null) {
+                return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
+                    "Request doesn't have field bname");
+            }
+            brokerName = request.getExtFields().get(BROKER_NAME_FIELD);
         }
-        String brokerName = request.getExtFields().get(BROKER_NAME_FIELD);
         if (request.isOnewayRPC()) {
             messagingProcessor.requestOneway(context, brokerName, request, timeoutMillis);
             return null;
