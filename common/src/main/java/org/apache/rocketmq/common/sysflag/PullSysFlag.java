@@ -77,6 +77,10 @@ public class PullSysFlag {
         return (sysFlag & FLAG_SUBSCRIPTION) == FLAG_SUBSCRIPTION;
     }
 
+    public static int buildSysFlagWithSubscription(final int sysFlag) {
+        return sysFlag | FLAG_SUBSCRIPTION;
+    }
+
     public static boolean hasClassFilterFlag(final int sysFlag) {
         return (sysFlag & FLAG_CLASS_FILTER) == FLAG_CLASS_FILTER;
     }

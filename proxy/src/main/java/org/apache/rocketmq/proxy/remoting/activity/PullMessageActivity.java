@@ -39,7 +39,8 @@ public class PullMessageActivity extends AbstractRemotingActivity {
     protected RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         PullMessageRequestHeader requestHeader = (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
-        if (!PullSysFlag.hasSubscriptionFlag(requestHeader.getSysFlag())) {
+        int sysFlag = requestHeader.getSysFlag();
+        if (!PullSysFlag.hasSubscriptionFlag(sysFlag)) {
             ConsumerGroupInfo consumerInfo = messagingProcessor.getConsumerGroupInfo(requestHeader.getConsumerGroup());
             if (consumerInfo == null) {
                 return RemotingCommand.buildErrorResponse(ResponseCode.SUBSCRIPTION_NOT_LATEST,
@@ -50,6 +51,7 @@ public class PullMessageActivity extends AbstractRemotingActivity {
                 return RemotingCommand.buildErrorResponse(ResponseCode.SUBSCRIPTION_NOT_EXIST,
                     "the consumer's subscription not exist");
             }
+            requestHeader.setSysFlag(PullSysFlag.buildSysFlagWithSubscription(sysFlag));
             requestHeader.setSubscription(subscriptionData.getSubString());
             requestHeader.setExpressionType(subscriptionData.getExpressionType());
             request.writeCustomHeader(requestHeader);
