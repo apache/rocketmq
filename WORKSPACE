@@ -72,7 +72,7 @@ maven_install(
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
-        "javax.annotation:javax.annotation-api:1.3.2",
+        "org.apache.tomcat:annotations-api:6.0.53",
         "com.google.code.findbugs:jsr305:3.0.2",
         "org.checkerframework:checker-qual:3.12.0",
         "org.reflections:reflections:0.9.11",

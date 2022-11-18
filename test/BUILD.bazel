@@ -41,13 +41,14 @@ java_library(
         "@maven//:commons_cli_commons_cli",
         "@maven//:commons_validator_commons_validator",
         "@maven//:io_netty_netty_all",
-        "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_lz4_lz4_java",
         "@maven//:org_reflections_reflections",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyun_mq_rocketmq_logback_classic",
     ],
 )
 
@@ -87,7 +88,6 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_apache_rocketmq_rocketmq_proto",
         "@maven//:org_slf4j_slf4j_api",
-        "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
     ],
 )
 

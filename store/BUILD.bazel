@@ -39,6 +39,7 @@ java_library(
         "@maven//:net_java_dev_jna_jna",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyun_mq_rocketmq_logback_classic",
     ],
 )
 
@@ -57,6 +58,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:com_google_guava_guava",
         "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyun_mq_rocketmq_logback_classic",
     ],
 )
 

@@ -89,8 +89,8 @@
             <artifactId>okio-jvm</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>annotations-api</artifactId>
         </dependency>
         <dependency>
             <groupId>io.github.aliyun-mq</groupId>
