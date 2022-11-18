@@ -22,8 +22,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -317,7 +320,12 @@ public class RemotingCommand {
         Field[] field = CLASS_HASH_MAP.get(classHeader);
 
         if (field == null) {
-            field = classHeader.getDeclaredFields();
+            Set<Field> fieldList = new HashSet<>();
+            for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
+                Field[] fields = className.getDeclaredFields();
+                fieldList.addAll(Arrays.asList(fields));
+            }
+            field = fieldList.toArray(new Field[0]);
             synchronized (CLASS_HASH_MAP) {
                 CLASS_HASH_MAP.put(classHeader, field);
             }
