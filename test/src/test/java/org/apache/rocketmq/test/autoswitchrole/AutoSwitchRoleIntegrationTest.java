@@ -30,7 +30,7 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.body.SyncStateSet;
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
