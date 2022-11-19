@@ -1371,6 +1371,10 @@ public class DefaultMessageStore implements MessageStore {
         return this.reputMessageService.behind();
     }
 
+    public long flushBehindBytes() {
+        return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
+    }
+
     @Override
     public long flush() {
         return this.commitLog.flush();
