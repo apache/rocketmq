@@ -205,10 +205,10 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestH
 import org.apache.rocketmq.remoting.protocol.header.namesrv.PutKVConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;

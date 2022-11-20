@@ -43,15 +43,15 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory

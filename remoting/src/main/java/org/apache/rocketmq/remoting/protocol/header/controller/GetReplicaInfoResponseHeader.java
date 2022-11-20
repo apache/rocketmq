@@ -14,31 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.namesrv.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
-    private String brokerName;
+public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
+    // BrokerId for current replicas.
+    private long brokerId = -1L;
 
-    public AlterSyncStateSetRequestHeader() {
-    }
-
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
-        this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
-        this.masterEpoch = masterEpoch;
-    }
-
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
+    public GetReplicaInfoResponseHeader() {
     }
 
     public String getMasterAddress() {
@@ -57,12 +44,20 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
+    public long getBrokerId() {
+        return brokerId;
+    }
+
+    public void setBrokerId(long brokerId) {
+        this.brokerId = brokerId;
+    }
+
     @Override
     public String toString() {
-        return "AlterSyncStateSetRequestHeader{" +
-            "brokerName='" + brokerName + '\'' +
-            ", masterAddress='" + masterAddress + '\'' +
+        return "GetReplicaInfoResponseHeader{" +
+            "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
+            ", brokerId=" + brokerId +
             '}';
     }
 

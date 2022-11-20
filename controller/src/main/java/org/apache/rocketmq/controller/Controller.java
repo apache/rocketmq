@@ -22,11 +22,11 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 
 /**
  * The api for controller
