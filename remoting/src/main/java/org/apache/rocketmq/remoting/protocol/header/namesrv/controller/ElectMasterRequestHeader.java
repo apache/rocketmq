@@ -39,35 +39,39 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
     private String brokerAddress;
 
     @CFNotNull
-    private ElectMasterTriggerType electMasterTriggerType;
+    private Boolean forceElect = false;
 
     public ElectMasterRequestHeader() {
     }
 
-    public ElectMasterRequestHeader(ElectMasterTriggerType electMasterTriggerType, String brokerName) {
-        this.electMasterTriggerType = electMasterTriggerType;
+    public ElectMasterRequestHeader(String brokerName) {
         this.brokerName = brokerName;
     }
 
-    public ElectMasterRequestHeader(ElectMasterTriggerType electMasterTriggerType, String clusterName,
-        String brokerName, String brokerAddress) {
-        this.electMasterTriggerType = electMasterTriggerType;
+    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
     }
 
+    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress, boolean forceElect) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
+        this.forceElect = forceElect;
+    }
+
     public static ElectMasterRequestHeader ofBrokerTrigger(String clusterName, String brokerName,
         String brokerAddress) {
-        return new ElectMasterRequestHeader(ElectMasterTriggerType.BROKER_TRIGGER, clusterName, brokerName, brokerAddress);
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerAddress);
     }
 
     public static ElectMasterRequestHeader ofControllerTrigger(String brokerName) {
-        return new ElectMasterRequestHeader(ElectMasterTriggerType.CONTROLLER_TRIGGER, brokerName);
+        return new ElectMasterRequestHeader(brokerName);
     }
 
     public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, String brokerAddress) {
-        return new ElectMasterRequestHeader(ElectMasterTriggerType.ADMIN_TRIGGER, clusterName, brokerName, brokerAddress);
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerAddress, true);
     }
 
     public String getBrokerName() {
@@ -94,22 +98,18 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.clusterName = clusterName;
     }
 
-    public ElectMasterTriggerType getElectMasterTriggerType() {
-        return electMasterTriggerType;
-    }
-
-    public void setElectMasterTriggerType(ElectMasterTriggerType electMasterTriggerType) {
-        this.electMasterTriggerType = electMasterTriggerType;
+    public boolean isForceElect() {
+        return this.forceElect;
     }
 
     @Override
     public String toString() {
         return "ElectMasterRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            ", electMasterTriggerType=" + electMasterTriggerType +
-            '}';
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerAddress='" + brokerAddress + '\'' +
+                ", forceElect=" + forceElect +
+                '}';
     }
 
     @Override

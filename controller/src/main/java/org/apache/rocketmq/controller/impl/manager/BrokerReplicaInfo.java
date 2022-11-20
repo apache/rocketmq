@@ -28,16 +28,15 @@ import org.apache.rocketmq.common.MixAll;
 public class BrokerReplicaInfo {
     private final String clusterName;
     private final String brokerName;
-    // Start from 2, because no.1 will be used when the instance is initiated
+    // Start from 1
     private final AtomicLong nextAssignBrokerId;
     private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
 
-    public BrokerReplicaInfo(String clusterName, String brokerName, String address) {
+    public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerIdTable = new HashMap<>();
-        this.brokerIdTable.put(address, MixAll.FIRST_SLAVE_ID);
-        this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_SLAVE_ID + 1);
+        this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_SLAVE_ID);
     }
 
     public void removeBrokerAddress(final String address) {

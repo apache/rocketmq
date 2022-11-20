@@ -179,22 +179,10 @@ public class ReplicasInfoManager {
             newMaster = brokerAddress;
         }
 
-        if (newMaster == null && ElectMasterRequestHeader.ElectMasterTriggerType.BROKER_TRIGGER == request.getElectMasterTriggerType()) {
-            // broker trigger
-            if (StringUtils.isNotEmpty(oldMaster)) {
-                // old master still exist
-                newMaster = oldMaster;
-            } else {
-                newMaster = syncStateSet.contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster() ? brokerAddress : null;
-
-            }
-        }
-
         // elect by policy
         if (newMaster == null) {
-            // we should assign the brokerAddr when the electMaster is triggered by admin
-            String assignedBrokerAddr = ElectMasterRequestHeader.ElectMasterTriggerType.ADMIN_TRIGGER == request.getElectMasterTriggerType() ?
-                brokerAddress : null;
+            // we should assign this assignedBrokerAddr when the brokerAddress need to be elected by force
+            String assignedBrokerAddr = request.isForceElect() ? brokerAddress : null;
             newMaster = electPolicy.elect(brokerReplicaInfo.getClusterName(), syncStateSet, allReplicaBrokers, oldMaster, assignedBrokerAddr);
         }
 
@@ -228,9 +216,10 @@ public class ReplicasInfoManager {
             result.addEvent(event);
             return result;
         }
-        // If elect failed and the electMaster is triggered by controller, we still need to apply an ElectMasterEvent to tell the statemachine
+        // If elect failed and the electMaster is triggered by controller (we can figure it out by brokerAddress),
+        // we still need to apply an ElectMasterEvent to tell the statemachine
         // that the master was shutdown and no new master was elected.
-        if (ElectMasterRequestHeader.ElectMasterTriggerType.CONTROLLER_TRIGGER == request.getElectMasterTriggerType()) {
+        if (request.getBrokerAddress() == null) {
             final ElectMasterEvent event = new ElectMasterEvent(false, brokerName);
             result.addEvent(event);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE, "Old master has down and failed to elect a new broker master");
@@ -423,7 +412,9 @@ public class ReplicasInfoManager {
             // First time to register in this broker set
             // Initialize the replicaInfo about this broker set
             final String clusterName = event.getClusterName();
-            final BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName, event.getBrokerAddress());
+            final BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName);
+            long brokerId = brokerReplicaInfo.newBrokerId();
+            brokerReplicaInfo.addBroker(event.getBrokerAddress(), brokerId);
             this.replicaInfoTable.put(brokerName, brokerReplicaInfo);
             final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName);
             // Initialize an empty syncStateInfo for this broker set

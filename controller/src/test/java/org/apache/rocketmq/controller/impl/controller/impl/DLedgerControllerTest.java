@@ -260,6 +260,7 @@ public class DLedgerControllerTest {
         assertEquals(r1.getMasterAddress(), "");
 
         // Now, we start broker1 - 127.0.0.1:9000 to try elect, it will be elected as master
+        setBrokerElectPolicy(leader);
         final ElectMasterRequestHeader request2 =
             ElectMasterRequestHeader.ofBrokerTrigger("cluster1", "broker1", "127.0.0.1:9000");
         final ElectMasterResponseHeader r2 = (ElectMasterResponseHeader) leader.electMaster(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
