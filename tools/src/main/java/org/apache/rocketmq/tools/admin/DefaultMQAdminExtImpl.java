@@ -167,8 +167,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 this.defaultMQAdminExt.changeInstanceNameToPID();
 
-                String proxyConfig = System.getenv(SOCKS_PROXY_JSON);
-                this.defaultMQAdminExt.setSocksProxyConfig(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
+                if ("{}".equals(this.defaultMQAdminExt.getSocksProxyConfig())) {
+                    String proxyConfig = System.getenv(SOCKS_PROXY_JSON);
+                    this.defaultMQAdminExt.setSocksProxyConfig(StringUtils.isNotEmpty(proxyConfig) ? proxyConfig : "{}");
+                }
 
                 this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQAdminExt, rpcHook);
 
@@ -1651,7 +1653,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void createTopic(String key, String newTopic, int queueNum,
         Map<String, String> attributes) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0, null);
+        createTopic(key, newTopic, queueNum, 0, attributes);
     }
 
     @Override

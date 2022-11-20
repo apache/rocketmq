@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -110,7 +111,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
         return null;
     }
 
-    public static RegisterBrokerBody decode(byte[] data, boolean compressed) throws IOException {
+    public static RegisterBrokerBody decode(byte[] data, boolean compressed, MQVersion.Version brokerVersion) throws IOException {
         if (!compressed) {
             return RegisterBrokerBody.decode(data, RegisterBrokerBody.class);
         }
@@ -150,15 +151,17 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
         registerBrokerBody.setFilterServerList(filterServerList);
 
-        int topicQueueMappingNum =  readInt(inflaterInputStream);
-        Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
-        for (int i = 0; i < topicQueueMappingNum; i++) {
-            int mappingJsonLen = readInt(inflaterInputStream);
-            byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
-            TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
-            topicQueueMappingInfoMap.put(info.getTopic(), info);
+        if (brokerVersion.ordinal() >= MQVersion.Version.V5_0_0.ordinal()) {
+            int topicQueueMappingNum = readInt(inflaterInputStream);
+            Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
+            for (int i = 0; i < topicQueueMappingNum; i++) {
+                int mappingJsonLen = readInt(inflaterInputStream);
+                byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
+                TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
+                topicQueueMappingInfoMap.put(info.getTopic(), info);
+            }
+            registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         }
-        registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
 
         long interval = System.currentTimeMillis() - start;
         if (interval > 50) {

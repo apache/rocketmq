@@ -112,7 +112,7 @@ public class DLedgerController implements Controller {
         // Register statemachine and role handler.
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
         this.dLedgerServer.registerStateMachine(this.statemachine);
-        this.dLedgerServer.getdLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
+        this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
     }
 
     @Override
