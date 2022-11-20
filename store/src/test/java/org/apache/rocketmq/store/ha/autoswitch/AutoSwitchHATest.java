@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
@@ -186,20 +187,13 @@ public class AutoSwitchHATest {
         return flag;
     }
 
-    private void checkMessage(final DefaultMessageStore messageStore, int totalMsgs, int startOffset) {
-        for (int i = 0; i < totalMsgs; i++) {
-            final int index = i;
-            Boolean exist = await().atMost(Duration.ofSeconds(20)).until(() -> {
-                GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + index, 1024 * 1024, null);
-                if (result == null) {
-                    return false;
-                }
-                boolean equals = GetMessageStatus.FOUND.equals(result.getStatus());
-                result.release();
-                return equals;
-            }, item -> item);
-            assertTrue(exist);
-        }
+    private void checkMessage(final DefaultMessageStore messageStore, int totalNums, int startOffset) {
+        await().atMost(30, TimeUnit.SECONDS)
+            .until(() -> {
+                GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset, 1024, null);
+                System.out.printf(result + "%n");
+                return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() >= totalNums;
+            });
     }
 
     @Test
@@ -324,7 +318,7 @@ public class AutoSwitchHATest {
 
         // Step2: add new broker3, link to broker1
         messageStore3.getHaService().changeToSlave("", 1, 3L);
-        messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
+        messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
         checkMessage(messageStore3, 10, 0);
     }
 
