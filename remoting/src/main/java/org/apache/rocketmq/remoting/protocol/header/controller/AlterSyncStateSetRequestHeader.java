@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.namesrv.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
+public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
-    private String brokerAddress;
+    private String masterAddress;
+    private int masterEpoch;
 
-    public GetReplicaInfoRequestHeader() {
+    public AlterSyncStateSetRequestHeader() {
     }
 
-    public GetReplicaInfoRequestHeader(String brokerName) {
+    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
         this.brokerName = brokerName;
-    }
-
-    public GetReplicaInfoRequestHeader(String brokerName, String brokerAddress) {
-        this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
     }
 
     public String getBrokerName() {
@@ -43,19 +41,28 @@ public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public String getMasterAddress() {
+        return masterAddress;
     }
 
-    public void setBrokerAddress(String brokerAddress) {
-        this.brokerAddress = brokerAddress;
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
+    }
+
+    public int getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public void setMasterEpoch(int masterEpoch) {
+        this.masterEpoch = masterEpoch;
     }
 
     @Override
     public String toString() {
-        return "GetReplicaInfoRequestHeader{" +
+        return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
+            ", masterAddress='" + masterAddress + '\'' +
+            ", masterEpoch=" + masterEpoch +
             '}';
     }
 
