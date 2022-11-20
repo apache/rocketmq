@@ -18,7 +18,6 @@
 package org.apache.rocketmq.remoting.protocol.body;
 
 
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 
 public class RoleChangeNotifyEntry {
@@ -39,10 +38,6 @@ public class RoleChangeNotifyEntry {
     }
 
     public static RoleChangeNotifyEntry convert(ElectMasterResponseHeader header) {
-        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
-    }
-
-    public static RoleChangeNotifyEntry convert(BrokerTryElectResponseHeader header) {
         return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
     }
 

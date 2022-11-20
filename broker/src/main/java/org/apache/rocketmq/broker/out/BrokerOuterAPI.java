@@ -111,8 +111,8 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerReques
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
@@ -1164,8 +1164,8 @@ public class BrokerOuterAPI {
     /**
      * Broker try to elect itself as a master in broker set
      */
-    public BrokerTryElectResponseHeader brokerElect(String controllerAddress, String clusterName, String brokerName,
-                                                    String brokerAddress) throws Exception {
+    public ElectMasterResponseHeader brokerElect(String controllerAddress, String clusterName, String brokerName,
+                                                 String brokerAddress) throws Exception {
 
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);
@@ -1180,7 +1180,7 @@ public class BrokerOuterAPI {
             case CONTROLLER_ELECT_MASTER_FAILED:
             case CONTROLLER_MASTER_STILL_EXIST:
             case SUCCESS:
-                return (BrokerTryElectResponseHeader) response.decodeCommandCustomHeader(BrokerTryElectResponseHeader.class);
+                return (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }

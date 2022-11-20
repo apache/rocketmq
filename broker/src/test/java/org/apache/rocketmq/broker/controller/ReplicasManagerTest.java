@@ -24,7 +24,7 @@ import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.BrokerTryElectResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.RegisterBrokerToControllerResponseHeader;
@@ -71,7 +71,7 @@ public class ReplicasManagerTest {
 
     private RegisterBrokerToControllerResponseHeader registerBrokerToControllerResponseHeader;
 
-    private BrokerTryElectResponseHeader brokerTryElectResponseHeader;
+    private ElectMasterResponseHeader brokerTryElectResponseHeader;
 
     private Pair<GetReplicaInfoResponseHeader, SyncStateSet> result;
 
@@ -111,7 +111,7 @@ public class ReplicasManagerTest {
         getMetaDataResponseHeader = new GetMetaDataResponseHeader(GROUP, LEADER_ID, OLD_MASTER_ADDRESS, IS_LEADER, PEERS);
         registerBrokerToControllerResponseHeader = new RegisterBrokerToControllerResponseHeader();
         registerBrokerToControllerResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
-        brokerTryElectResponseHeader = new BrokerTryElectResponseHeader();
+        brokerTryElectResponseHeader = new ElectMasterResponseHeader();
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
