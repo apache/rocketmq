@@ -14,50 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.namesrv.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
-    private String masterAddress;
-    private int masterEpoch;
-    // BrokerId for current replicas.
-    private long brokerId = -1L;
+public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
+    private String brokerName;
+    private String brokerAddress;
 
-    public GetReplicaInfoResponseHeader() {
+    public GetReplicaInfoRequestHeader() {
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public GetReplicaInfoRequestHeader(String brokerName) {
+        this.brokerName = brokerName;
     }
 
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public GetReplicaInfoRequestHeader(String brokerName, String brokerAddress) {
+        this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
     }
 
-    public int getMasterEpoch() {
-        return masterEpoch;
+    public String getBrokerName() {
+        return brokerName;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
-        this.masterEpoch = masterEpoch;
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 
-    public long getBrokerId() {
-        return brokerId;
+    public String getBrokerAddress() {
+        return brokerAddress;
     }
 
-    public void setBrokerId(long brokerId) {
-        this.brokerId = brokerId;
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
     }
 
     @Override
     public String toString() {
-        return "GetReplicaInfoResponseHeader{" +
-            "masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            ", brokerId=" + brokerId +
+        return "GetReplicaInfoRequestHeader{" +
+            "brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
             '}';
     }
 

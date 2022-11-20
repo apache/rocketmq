@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.namesrv.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 
-public class ElectMasterResponseHeader implements CommandCustomHeader {
-    private String newMasterAddress;
+public class RegisterBrokerToControllerResponseHeader implements CommandCustomHeader {
+    private String masterAddress;
     private int masterEpoch;
     private int syncStateSetEpoch;
-    private BrokerMemberGroup brokerMemberGroup;
+    // The id of this registered replicas.
+    private long brokerId;
 
-    public ElectMasterResponseHeader() {
+    public RegisterBrokerToControllerResponseHeader() {
     }
 
-    public String getNewMasterAddress() {
-        return newMasterAddress;
+    public String getMasterAddress() {
+        return masterAddress;
     }
 
-    public void setNewMasterAddress(String newMasterAddress) {
-        this.newMasterAddress = newMasterAddress;
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
@@ -53,21 +53,21 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public BrokerMemberGroup getBrokerMemberGroup() {
-        return brokerMemberGroup;
+    public long getBrokerId() {
+        return brokerId;
     }
 
-    public void setBrokerMemberGroup(BrokerMemberGroup brokerMemberGroup) {
-        this.brokerMemberGroup = brokerMemberGroup;
+    public void setBrokerId(long brokerId) {
+        this.brokerId = brokerId;
     }
 
     @Override
     public String toString() {
-        return "ElectMasterResponseHeader{" +
-            "newMasterAddress='" + newMasterAddress + '\'' +
+        return "RegisterBrokerResponseHeader{" +
+            "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMember=" + brokerMemberGroup +
+            ", brokerId=" + brokerId +
             '}';
     }
 

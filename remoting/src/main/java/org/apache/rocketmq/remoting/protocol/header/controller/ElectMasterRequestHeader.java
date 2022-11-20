@@ -14,23 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.namesrv.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
-    private String brokerName;
-    private String masterAddress;
-    private int masterEpoch;
+public class ElectMasterRequestHeader implements CommandCustomHeader {
 
-    public AlterSyncStateSetRequestHeader() {
+    @CFNotNull
+    private String clusterName;
+
+    @CFNotNull
+    private String brokerName;
+
+    @CFNotNull
+    private String brokerAddress;
+
+    public ElectMasterRequestHeader() {
     }
 
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
+    public ElectMasterRequestHeader(String brokerName) {
         this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
-        this.masterEpoch = masterEpoch;
+    }
+
+    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
     }
 
     public String getBrokerName() {
@@ -41,28 +52,28 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public String getBrokerAddress() {
+        return brokerAddress;
     }
 
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
     }
 
-    public int getMasterEpoch() {
-        return masterEpoch;
+    public String getClusterName() {
+        return clusterName;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
-        this.masterEpoch = masterEpoch;
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     @Override
     public String toString() {
-        return "AlterSyncStateSetRequestHeader{" +
+        return "ElectMasterRequestHeader{" +
+            "clusterName='" + clusterName + '\'' +
             "brokerName='" + brokerName + '\'' +
-            ", masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
+            "brokerAddress='" + brokerAddress + '\'' +
             '}';
     }
 
