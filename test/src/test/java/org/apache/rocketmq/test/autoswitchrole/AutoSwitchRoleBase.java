@@ -38,12 +38,14 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleBase {
@@ -172,12 +174,11 @@ public class AutoSwitchRoleBase {
         return msg;
     }
 
-    protected void putMessage(MessageStore messageStore, String topic) throws InterruptedException {
+    protected void putMessage(MessageStore messageStore, String topic) {
         // Put message on master
         for (int i = 0; i < 10; i++) {
-            messageStore.putMessage(buildMessage(topic));
+            assertSame(messageStore.putMessage(buildMessage(topic)).getPutMessageStatus(), PutMessageStatus.PUT_OK);
         }
-        Thread.sleep(1000);
     }
 
     protected void checkMessage(final MessageStore messageStore, String topic, int totalNums, int startOffset) {

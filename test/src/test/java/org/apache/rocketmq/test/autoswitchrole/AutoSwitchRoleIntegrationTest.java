@@ -91,6 +91,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.brokerController2 = startBroker(nameserverAddress, controllerAddress, brokerName, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
+        Thread.sleep(1000);
     }
 
     public void mockData(String topic) throws Exception {
@@ -119,7 +120,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         initBroker(DEFAULT_FILE_SIZE, brokerName);
-        awaitDispatchMs(6);
 
         mockData(topic);
 
@@ -246,7 +246,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             UtilAll.deleteFile(new File(controller.getMessageStoreConfig().getStorePathRootDir()));
         }
         brokerList.clear();
-        Thread.sleep(1000);
     }
 
     @AfterClass
@@ -259,22 +258,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         }
         File file = new File(STORE_PATH_ROOT_PARENT_DIR);
         UtilAll.deleteFile(file);
-    }
-
-    public boolean awaitDispatchMs(long timeMs) throws Exception {
-        await().atMost(Duration.ofSeconds(timeMs)).until(
-            () -> {
-                boolean allOk = true;
-                for (BrokerController brokerController : brokerList) {
-                    if (brokerController.getMessageStore() == null) {
-                        allOk = false;
-                        break;
-                    }
-                }
-                return allOk;
-            }
-        );
-        return false;
     }
 
 }
