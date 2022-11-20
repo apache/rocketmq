@@ -23,7 +23,7 @@ set BASE_DIR=%~dp0
 set BASE_DIR=%BASE_DIR:~0,-1%
 for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
-set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
+set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;%CLASSPATH%
 
 rem ===========================================================================================
 rem  JVM Configuration
@@ -36,7 +36,7 @@ set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
 set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
-set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib;%JAVA_HOME%\jre\lib\ext"
+set "JAVA_OPT=%JAVA_OPT% -Drocketmq.client.logUseSlf4j=true"
 set "JAVA_OPT=%JAVA_OPT% -cp %CLASSPATH%"
 
 "%JAVA%" %JAVA_OPT% %*

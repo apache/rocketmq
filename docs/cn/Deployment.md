@@ -25,7 +25,7 @@ The Name Server boot success...
 ### 第一步先启动broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
-### 验证broker是否启动成功, 比如, broker的ip是192.168.1.2 然后名字是broker-a
+### 验证broker是否启动成功，比如，broker的ip是192.168.1.2 然后名字是broker-a
 $ tail -f ~/logs/rocketmqlogs/Broker.log 
 The broker[broker-a,192.169.1.2:10911] boot success...
 ```
@@ -36,12 +36,12 @@ The broker[broker-a,192.169.1.2:10911] boot success...
 
 该模式是指所有节点都是master主节点（比如2个或3个主节点），没有slave从节点的模式。 这种模式的优缺点如下：
 
-- 优点: 
+- 优点： 
   1. 配置简单。
   2. 一个master节点的宕机或者重启（维护）对应用程序没有影响。
   3. 当磁盘配置为RAID10时，消息不会丢失，因为RAID10磁盘非常可靠，即使机器不可恢复（消息异步刷盘模式的情况下，会丢失少量消息；如果消息是同步刷盘模式，不会丢失任何消息）。
   4. 在这种模式下，性能是最高的。
-- 缺点:
+- 缺点：
   1. 单台机器宕机时，本机未消费的消息，直到机器恢复后才会订阅，影响消息实时性。
 
 多Master模式的启动步骤如下：
@@ -49,7 +49,7 @@ The broker[broker-a,192.169.1.2:10911] boot success...
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动broker
+### 第一步先启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
@@ -69,17 +69,17 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 ...
 ```
 
-上面显示的boot命令用于单个NameServer的情况。对于多个NameServer的集群，broker boot命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1 : 9876; 192.161.2 : 9876
+上面显示的启动命令用于单个NameServer的情况。对于多个NameServer的集群，broker 启动命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1:9876;192.161.2:9876
 
 ### 3 多Master多Slave模式-异步复制
 
 每个主节点配置多个从节点，多对主从。HA采用异步复制，主节点和从节点之间有短消息延迟（毫秒）。这种模式的优缺点如下：
 
-- 优点: 
-  1. 即使磁盘损坏，也不会丢失极少的消息，不影响消息的实时性能。
+- 优点：
+  1. 即使磁盘损坏，也只会丢失极少的消息，不影响消息的实时性能。
   2. 同时，当主节点宕机时，消费者仍然可以消费从节点的消息，这个过程对应用本身是透明的，不需要人为干预。
   3. 性能几乎与多Master模式一样高。
-- 缺点:
+- 缺点：
   1. 主节点宕机、磁盘损坏时，会丢失少量消息。
 
 多主多从模式的启动步骤如下：
@@ -87,7 +87,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动broker
+### 第一步先启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
@@ -119,11 +119,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 
 这种模式的优缺点如下：
 
-- 优点: 
+- 优点： 
   1. 数据和服务都没有单点故障。
   2. 在master节点关闭的情况下，消息也没有延迟。
   3. 服务可用性和数据可用性非常高；
-- 缺点:
+- 缺点：
   1. 这种模式下的性能略低于异步复制模式（大约低 10%）。
   2. 发送单条消息的RT略高，目前版本，master节点宕机后，slave节点无法自动切换到master。
 
@@ -132,7 +132,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 **1）启动NameServer**
 
 ```shell
-### 第一步启动broker
+### 第一步启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
@@ -157,3 +157,15 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 ```
 
 上述Master和Slave是通过指定相同的config命名为“brokerName”来配对的，master节点的brokerId必须为0，slave节点的brokerId必须大于0。
+
+### 5 RocketMQ 5.0 自动主从切换
+
+RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
+
+[快速开始](controller/quick_start.md)
+
+[部署文档](controller/deploy.md)
+
+[设计思想](controller/design.md)
+
+

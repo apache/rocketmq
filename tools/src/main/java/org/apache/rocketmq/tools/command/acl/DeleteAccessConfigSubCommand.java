@@ -32,6 +32,11 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
+        return "deleteAclConfig";
+    }
+
+    @Override
+    public String commandAlias() {
         return "deleteAccessConfig";
     }
 
@@ -60,7 +65,8 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);

@@ -24,9 +24,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -34,19 +36,53 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumerOffsetManager extends ConfigManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final String TOPIC_GROUP_SEPARATOR = "@";
+    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    public static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+    private DataVersion dataVersion = new DataVersion();
+
+    protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
-    private transient BrokerController brokerController;
+    protected transient BrokerController brokerController;
+
+    private transient AtomicLong versionChangeCounter = new AtomicLong(0);
 
     public ConsumerOffsetManager() {
     }
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
+
+    public void cleanOffset(String group) {
+        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            if (topicAtGroup.contains(group)) {
+                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                if (arrays.length == 2 && group.equals(arrays[1])) {
+                    it.remove();
+                    LOG.warn("Clean group's offset, {}, {}", topicAtGroup, next.getValue());
+                }
+            }
+        }
+    }
+
+    public void cleanOffsetByTopic(String topic) {
+        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            if (topicAtGroup.contains(topic)) {
+                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                if (arrays.length == 2 && topic.equals(arrays[0])) {
+                    it.remove();
+                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
+                }
+            }
+        }
     }
 
     public void scanUnsubscribedTopic() {
@@ -62,7 +98,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                 if (null == brokerController.getConsumerManager().findSubscriptionData(group, topic)
                     && this.offsetBehindMuchThanData(topic, next.getValue())) {
                     it.remove();
-                    log.warn("remove topic offset, {}", topicAtGroup);
+                    LOG.warn("remove topic offset, {}", topicAtGroup);
                 }
             }
         }
@@ -118,6 +154,28 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    public Map<String, Set<String>> getGroupTopicMap() {
+        Map<String, Set<String>> retMap = new HashMap<String, Set<String>>(128);
+
+        for (String key : this.offsetTable.keySet()) {
+            String[] arr = key.split(TOPIC_GROUP_SEPARATOR);
+            if (arr.length == 2) {
+                String topic = arr[0];
+                String group = arr[1];
+
+                Set<String> topics = retMap.get(group);
+                if (topics == null) {
+                    topics = new HashSet<String>(8);
+                    retMap.put(group, topics);
+                }
+
+                topics.add(topic);
+            }
+        }
+
+        return retMap;
+    }
+
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
         // topic@group
@@ -134,8 +192,12 @@ public class ConsumerOffsetManager extends ConfigManager {
         } else {
             Long storeOffset = map.put(queueId, offset);
             if (storeOffset != null && offset < storeOffset) {
-                log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
             }
+        }
+        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
+            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+            dataVersion.nextVersion(stateMachineVersion);
         }
     }
 
@@ -145,8 +207,9 @@ public class ConsumerOffsetManager extends ConfigManager {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null != map) {
             Long offset = map.get(queueId);
-            if (offset != null)
+            if (offset != null) {
                 return offset;
+            }
         }
 
         return -1;
@@ -167,10 +230,12 @@ public class ConsumerOffsetManager extends ConfigManager {
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
                 this.offsetTable = obj.offsetTable;
+                this.dataVersion = obj.dataVersion;
             }
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
@@ -232,6 +297,14 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    public DataVersion getDataVersion() {
+        return dataVersion;
+    }
+
+    public void setDataVersion(DataVersion dataVersion) {
+        this.dataVersion = dataVersion;
+    }
+
     public void removeOffset(final String group) {
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -241,7 +314,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                 String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
                 if (arrays.length == 2 && group.equals(arrays[1])) {
                     it.remove();
-                    log.warn("clean group offset {}", topicAtGroup);
+                    LOG.warn("clean group offset {}", topicAtGroup);
                 }
             }
         }

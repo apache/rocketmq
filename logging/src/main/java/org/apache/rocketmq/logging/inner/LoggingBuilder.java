@@ -27,6 +27,7 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -174,7 +175,7 @@ public class LoggingBuilder {
         }
 
         public void append(final LoggingEvent event) {
-            if ((dispatcher == null) || !dispatcher.isAlive() || (bufferSize <= 0)) {
+            if (dispatcher == null || !dispatcher.isAlive() || bufferSize <= 0) {
                 synchronized (appenderPipeline) {
                     appenderPipeline.appendLoopOnAppenders(event);
                 }
@@ -382,7 +383,7 @@ public class LoggingBuilder {
                             int bufferSize = buffer.size();
                             isActive = !parent.closed;
 
-                            while ((bufferSize == 0) && isActive) {
+                            while (bufferSize == 0 && isActive) {
                                 buffer.wait();
                                 bufferSize = buffer.size();
                                 isActive = !parent.closed;
@@ -534,7 +535,7 @@ public class LoggingBuilder {
                 }
             }
             if (retval == null) {
-                retval = new OutputStreamWriter(os);
+                retval = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             }
             return retval;
         }
@@ -1209,7 +1210,7 @@ public class LoggingBuilder {
             sb.append(" ");
             sb.append(event.getLoggerName());
             sb.append(" - ");
-            sb.append(event.getMessage());
+            sb.append(event.getRenderedMessage());
             String[] throwableStr = event.getThrowableStr();
             if (throwableStr != null) {
                 sb.append("\r\n");

@@ -48,7 +48,7 @@ public class StoreCheckpointTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         File file = new File("target/checkpoint_test");
         UtilAll.deleteFile(file);
     }

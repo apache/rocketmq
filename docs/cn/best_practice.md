@@ -184,8 +184,8 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerIP1 | 网卡的 InetAddress                         | 当前 broker 监听的 IP  |
 | brokerIP2 | 跟 brokerIP1 一样                         | 存在主从 broker 时，如果在 broker 主节点上配置了 brokerIP2 属性，broker 从节点会连接主节点配置的 brokerIP2 进行同步  |
 | brokerName        | null                         | broker 的名称                           |
-| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名称           |
-| brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
+| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluster 名称           |
+| brokerId             | 0                              | broker id，0 表示 master，其他的正整数表示 slave                                                 |
 | storePathRootDir                         | $HOME/store/                   | 存储根路径                                            |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
 | mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
@@ -209,7 +209,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 
 ### 5.1 客户端寻址方式
 
-RocketMQ可以令客户端找到Name Server, 然后通过Name Server再找到Broker。如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
+RocketMQ可以令客户端找到Name Server，然后通过Name Server再找到Broker。如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
 
 - 代码中指定Name Server地址，多个namesrv地址之间用分号分割   
 
@@ -237,7 +237,7 @@ export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876
 ```
 客户端默认每隔2分钟访问一次这个HTTP服务器，并更新本地的Name Server地址。URL已经在代码中硬编码，可通过修改/etc/hosts文件来改变要访问的服务器，例如在/etc/hosts增加如下配置：
 ```text
-10.232.22.67    jmenv.taobao.net   
+10.232.22.67    jmenv.tbsite.net   
 ```
 推荐使用HTTP静态服务器寻址方式，好处是客户端部署简单，且Name Server集群可以热升级。
 
@@ -264,11 +264,11 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | producerGroup                    | DEFAULT_PRODUCER | Producer组名，多个Producer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
 | createTopicKey                   | TBW102           | 在发送消息时，自动创建服务器不存在的topic，需要指定Key，该Key可用于配置发送消息所在topic的默认路由。 |
 | defaultTopicQueueNums            | 4                | 在发送消息，自动创建服务器不存在的topic时，默认创建的队列数  |
-| sendMsgTimeout                   | 10000            | 发送消息超时时间，单位毫秒                                   |
+| sendMsgTimeout                   | 3000             | 发送消息超时时间，单位毫秒                                   |
 | compressMsgBodyOverHowmuch       | 4096             | 消息Body超过多大开始压缩（Consumer收到消息会自动解压缩），单位字节 |
 | retryAnotherBrokerWhenNotStoreOK | FALSE            | 如果发送消息返回sendResult，但是sendStatus!=SEND_OK，是否重试发送 |
 | retryTimesWhenSendFailed         | 2                | 如果消息发送失败，最大重试次数，该参数只对同步发送模式起作用 |
-| maxMessageSize                   | 4MB              | 客户端限制的消息大小，超过报错，同时服务端也会限制，所以需要跟服务端配合使用。 |
+| maxMessageSize                   | 4MB              | 客户端限制的消息体大小，超过报错，同时服务端也会限制，所以需要跟服务端配合使用。 |
 | transactionCheckListener         |                  | 事务消息回查监听器，如果发送事务消息，必须设置               |
 | checkThreadPoolMinSize           | 1                | Broker回查Producer事务状态时，线程池最小线程数                     |
 | checkThreadPoolMaxSize           | 1                | Broker回查Producer事务状态时，线程池最大线程数                     |
@@ -287,7 +287,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | subscription                 |                               | 订阅关系                                                     |
 | messageListener              |                               | 消息监听器                                                   |
 | offsetStore                  |                               | 消费进度存储                                                 |
-| consumeThreadMin             | 10                            | 消费线程池最小线程数                                               |
+| consumeThreadMin             | 20                            | 消费线程池最小线程数                                               |
 | consumeThreadMax             | 20                            | 消费线程池最大线程数                                               |
 | consumeConcurrentlyMaxSpan   | 2000                          | 单队列并行消费允许的最大跨度                                 |
 | pullThresholdForQueue        | 1000                          | 拉消息本地队列缓存消息最大数                                 |

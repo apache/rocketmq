@@ -41,22 +41,18 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
 
+    private TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable = new TreeMap<MessageQueue, PopProcessQueueInfo>();
+
     private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
+
+    private TreeMap<String, String> userConsumerInfo = new TreeMap<String, String>();
 
     private String jstack;
 
     public static boolean analyzeSubscription(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
 
-        boolean push = false;
-        {
-            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
-
-            if (property == null) {
-                property = ((ConsumeType) prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
-            }
-            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
-        }
+        boolean push = isPushType(prev);
 
         boolean startForAWhile = false;
         {
@@ -85,17 +81,27 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                     prev = next.getValue();
                 }
 
-                if (prev != null) {
-
-                    if (prev.getSubscriptionSet().isEmpty()) {
-                        // Subscription empty!
-                        return false;
-                    }
-                }
+                // after consumer.unsubscribe , SubscriptionSet is Empty
+                //if (prev != null) {
+                //
+                //    if (prev.getSubscriptionSet().isEmpty()) {
+                //        // Subscription empty!
+                //        return false;
+                //    }
+                //}
             }
         }
 
         return true;
+    }
+
+    public static boolean isPushType(ConsumerRunningInfo consumerRunningInfo) {
+        String property = consumerRunningInfo.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+
+        if (property == null) {
+            property = ((ConsumeType) consumerRunningInfo.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
+        }
+        return ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
     }
 
     public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
@@ -135,7 +141,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                             mq,
                             System.currentTimeMillis() - pq.getLastLockTimestamp()));
                     } else {
-                        if (pq.isDroped() && (pq.getTryUnlockTimes() > 0)) {
+                        if (pq.isDroped() && pq.getTryUnlockTimes() > 0) {
                             sb.append(String.format("%s %s unlock %d times, still failed%n",
                                 clientId,
                                 mq,
@@ -191,6 +197,10 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         this.statusTable = statusTable;
     }
 
+    public TreeMap<String, String> getUserConsumerInfo() {
+        return userConsumerInfo;
+    }
+
     public String formatString() {
         StringBuilder sb = new StringBuilder();
 
@@ -223,7 +233,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer Offset#\n");
-            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+            sb.append(String.format("%-64s  %-32s  %-4s  %-20s%n",
                 "#Topic",
                 "#Broker Name",
                 "#QID",
@@ -245,7 +255,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer MQ Detail#\n");
-            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+            sb.append(String.format("%-64s  %-32s  %-4s  %-20s%n",
                 "#Topic",
                 "#Broker Name",
                 "#QID",
@@ -255,6 +265,28 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = this.mqTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<MessageQueue, ProcessQueueInfo> next = it.next();
+                String item = String.format("%-64s  %-32s  %-4d  %s%n",
+                    next.getKey().getTopic(),
+                    next.getKey().getBrokerName(),
+                    next.getKey().getQueueId(),
+                    next.getValue().toString());
+
+                sb.append(item);
+            }
+        }
+
+        {
+            sb.append("\n\n#Consumer Pop Detail#\n");
+            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+                "#Topic",
+                "#Broker Name",
+                "#QID",
+                "#ProcessQueueInfo"
+            ));
+
+            Iterator<Entry<MessageQueue, PopProcessQueueInfo>> it = this.mqPopTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, PopProcessQueueInfo> next = it.next();
                 String item = String.format("%-32s  %-32s  %-4d  %s%n",
                     next.getKey().getTopic(),
                     next.getKey().getBrokerName(),
@@ -267,7 +299,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer RT&TPS#\n");
-            sb.append(String.format("%-32s  %14s %14s %14s %14s %18s %25s%n",
+            sb.append(String.format("%-64s  %14s %14s %14s %14s %18s %25s%n",
                 "#Topic",
                 "#Pull RT",
                 "#Pull TPS",
@@ -294,6 +326,16 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             }
         }
 
+        if (this.userConsumerInfo != null) {
+            sb.append("\n\n#User Consume Info#\n");
+            Iterator<Entry<String, String>> it = this.userConsumerInfo.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, String> next = it.next();
+                String item = String.format("%-40s: %s%n", next.getKey(), next.getValue());
+                sb.append(item);
+            }
+        }
+
         if (this.jstack != null) {
             sb.append("\n\n#Consumer jstack#\n");
             sb.append(this.jstack);
@@ -310,4 +352,12 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         this.jstack = jstack;
     }
 
+    public TreeMap<MessageQueue, PopProcessQueueInfo> getMqPopTable() {
+        return mqPopTable;
+    }
+
+    public void setMqPopTable(
+        TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable) {
+        this.mqPopTable = mqPopTable;
+    }
 }

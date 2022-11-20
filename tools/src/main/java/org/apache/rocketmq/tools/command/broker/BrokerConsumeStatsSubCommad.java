@@ -105,7 +105,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
             }
 
             ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
-            System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
+            System.out.printf("%-64s  %-64s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
                 "#Topic",
                 "#Group",
                 "#Broker Name",
@@ -136,8 +136,8 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
 
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)
-                                System.out.printf("%-32s  %-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
-                                    UtilAll.frontStringAtLeast(mq.getTopic(), 32),
+                                System.out.printf("%-64s  %-64s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
+                                    UtilAll.frontStringAtLeast(mq.getTopic(), 64),
                                     group,
                                     UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
                                     mq.getQueueId(),

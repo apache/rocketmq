@@ -80,4 +80,45 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
 
+    public static final int POLLING_FULL = 209;
+
+    public static final int POLLING_TIMEOUT = 210;
+
+    public static final int BROKER_NOT_EXIST = 211;
+
+    public static final int BROKER_DISPATCH_NOT_COMPLETE = 212;
+
+    public static final int BROADCAST_CONSUMPTION = 213;
+
+    public static final int FLOW_CONTROL = 215;
+
+    public static final int NOT_LEADER_FOR_QUEUE = 501;
+
+    public static final int RPC_UNKNOWN = -1000;
+    public static final int RPC_ADDR_IS_NULL = -1002;
+    public static final int RPC_SEND_TO_CHANNEL_FAILED = -1004;
+    public static final int RPC_TIME_OUT = -1006;
+
+    /**
+     * Controller response code
+     */
+    public static final int CONTROLLER_FENCED_MASTER_EPOCH = 2000;
+    public static final int CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH = 2001;
+    public static final int CONTROLLER_INVALID_MASTER = 2002;
+    public static final int CONTROLLER_INVALID_REPLICAS = 2003;
+    public static final int CONTROLLER_MASTER_NOT_AVAILABLE = 2004;
+    public static final int CONTROLLER_INVALID_REQUEST = 2005;
+    public static final int CONTROLLER_BROKER_NOT_ALIVE = 2006;
+    public static final int CONTROLLER_NOT_LEADER = 2007;
+
+    public static final int CONTROLLER_BROKER_METADATA_NOT_EXIST = 2008;
+
+    public static final int CONTROLLER_INVALID_CLEAN_BROKER_METADATA = 2009;
+
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2010;
+
+    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2011;
+
+    public static final int CONTROLLER_REGISTER_BROKER_FAILED = 2012;
+
 }

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.9.3-SNAPSHOT</version>
+        <version>5.0.1-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -28,7 +28,7 @@
     <name>rocketmq-tools ${project.version}</name>
 
     <properties>
-        <maven.test.skip>true</maven.test.skip>
+        <project.root>${basedir}/..</project.root>
     </properties>
 
     <dependencies>
@@ -39,10 +39,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-acl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-store</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -63,6 +59,10 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
     </dependencies>
 </project>

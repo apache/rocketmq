@@ -17,7 +17,12 @@
 
 case $1 in
     broker)
-
+    pid=`ps ax | grep -i 'org.apache.rocketmq.proxy.ProxyStartup' | grep '\-pm local' |grep java | grep -v grep | awk '{print $1}'`
+    if [ "$pid" != "" ] ; then
+            echo "The mqbroker with proxy enable is running(${pid})..."
+            kill ${pid}
+            echo "Send shutdown request to mqbroker with proxy enable OK(${pid})"
+    fi
     pid=`ps ax | grep -i 'org.apache.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqbroker running."
@@ -29,6 +34,20 @@ case $1 in
     kill ${pid}
 
     echo "Send shutdown request to mqbroker(${pid}) OK"
+    ;;
+    brokerContainer)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.container.BrokerContainerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No broker container running."
+            exit -1;
+    fi
+
+    echo "The broker container(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to broker container(${pid}) OK"
     ;;
     namesrv)
 
@@ -44,6 +63,34 @@ case $1 in
 
     echo "Send shutdown request to mqnamesrv(${pid}) OK"
     ;;
+    controller)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.controller.ControllerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqcontroller running."
+            exit -1;
+    fi
+
+    echo "The mqcontroller(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to mqcontroller(${pid}) OK"
+    ;;
+    proxy)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.proxy.ProxyStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqproxy running."
+            exit -1;
+    fi
+
+    echo "The mqproxy(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to mqproxy(${pid}) OK"
+    ;;
     *)
-    echo "Useage: mqshutdown broker | namesrv"
+    echo "Usage: mqshutdown broker | namesrv | controller | proxy"
 esac

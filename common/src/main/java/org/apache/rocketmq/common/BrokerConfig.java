@@ -16,31 +16,34 @@
  */
 package org.apache.rocketmq.common;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
-public class BrokerConfig {
+public class BrokerConfig extends BrokerIdentity {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
+    private String brokerConfigPath = null;
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+
+    /**
+     * Listen port for single broker
+     */
+    @ImportantField
+    private int listenPort = 6888;
+
     @ImportantField
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
-    @ImportantField
-    private String brokerName = localHostName();
-    @ImportantField
-    private String brokerClusterName = "DefaultCluster";
-    @ImportantField
-    private long brokerId = MixAll.MASTER_ID;
+
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
     @ImportantField
@@ -52,6 +55,8 @@ public class BrokerConfig {
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
+
+    private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
     @ImportantField
     private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
     @ImportantField
@@ -59,20 +64,24 @@ public class BrokerConfig {
     /**
      * thread numbers for send message thread pool.
      */
-    private int sendMessageThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
-    private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
-    private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
-    private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
+    private int sendMessageThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+    private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+    private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    private int ackMessageThreadPoolNums = 3;
+    private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
 
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
-    private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
+    private int loadBalanceProcessorThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = Math.min(32, PROCESSOR_NUMBER);
 
     /**
      * Thread numbers for EndTransactionProcessor
      */
-    private int endTransactionThreadPoolNums = Math.max(8 + Runtime.getRuntime().availableProcessors() * 2,
+    private int endTransactionThreadPoolNums = Math.max(8 + PROCESSOR_NUMBER * 2,
             sendMessageThreadPoolNums * 4);
 
     private int flushConsumerOffsetInterval = 1000 * 5;
@@ -84,13 +93,18 @@ public class BrokerConfig {
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
+    private int putThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int litePullThreadPoolQueueCapacity = 100000;
+    private int ackThreadPoolQueueCapacity = 100000;
     private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
     private int endTransactionPoolQueueCapacity = 100000;
+    private int adminBrokerThreadPoolQueueCapacity = 10000;
+    private int loadBalanceThreadPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
@@ -102,17 +116,20 @@ public class BrokerConfig {
 
     private boolean highSpeedMode = false;
 
-    private boolean commercialEnable = true;
-    private int commercialTimerCount = 1;
-    private int commercialTransCount = 1;
-    private int commercialBigCount = 1;
     private int commercialBaseCount = 1;
+
+    private int commercialSizePerMsg = 4 * 1024;
+
+    private boolean accountStatsEnable = true;
+    private boolean accountStatsPrintZeroValues = true;
 
     private boolean transferMsgByHeap = true;
     private int maxDelayTime = 40;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
-    private int registerBrokerTimeoutMills = 6000;
+    private int registerBrokerTimeoutMills = 24000;
+
+    private int sendHeartbeatTimeoutMillis = 1000;
 
     private boolean slaveReadEnable = false;
 
@@ -122,8 +139,10 @@ public class BrokerConfig {
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
+    private long waitTimeMillsInLitePullQueue = 5 * 1000;
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
+    private long waitTimeMillsInAckQueue = 3000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -134,6 +153,9 @@ public class BrokerConfig {
     // 1. Calculate filter bit map when construct queue.
     // 2. Filter bit map will be saved to consume queue extend file if allowed.
     private boolean enableCalcFilterBitMap = false;
+
+    //Reject the pull consumer instance to pull messages from broker.
+    private boolean rejectPullConsumerEnable = false;
 
     // Expect num of consumers will use filter.
     private int expectConsumerNumUseFilter = 32;
@@ -154,9 +176,60 @@ public class BrokerConfig {
 
     /**
      * This configurable item defines interval of topics registration of broker to name server. Allowing values are
-     * between 10, 000 and 60, 000 milliseconds.
+     * between 10,000 and 60,000 milliseconds.
      */
     private int registerNameServerPeriod = 1000 * 30;
+
+    /**
+     * the interval to send heartbeat to name server for liveness detection.
+     */
+    private int brokerHeartbeatInterval = 1000;
+
+    /**
+     * How long the broker will be considered as inactive by nameserver since last heartbeat. Effective only if
+     * enableSlaveActingMaster is true
+     */
+    private long brokerNotActiveTimeoutMillis = 10 * 1000;
+
+    private boolean enableNetWorkFlowControl = false;
+
+    private int popPollingSize = 1024;
+    private int popPollingMapSize = 100000;
+    // 20w cost 200M heap memory.
+    private long maxPopPollingSize = 100000;
+    private int reviveQueueNum = 8;
+    private long reviveInterval = 1000;
+    private long reviveMaxSlow = 3;
+    private long reviveScanTime = 10000;
+    private boolean enablePopLog = false;
+    private boolean enablePopBufferMerge = false;
+    private int popCkStayBufferTime = 10 * 1000;
+    private int popCkStayBufferTimeOut = 3 * 1000;
+    private int popCkMaxBufferSize = 200000;
+    private int popCkOffsetMaxQueueSize = 20000;
+
+    private boolean realTimeNotifyConsumerChange = true;
+
+    private boolean litePullMessageEnable = true;
+
+    // The period to sync broker member group from namesrv, default value is 1 second
+    private int syncBrokerMemberGroupPeriod = 1000;
+
+    /**
+     * the interval of pulling topic information from the named server
+     */
+    private long loadBalancePollNameServerInterval = 1000 * 30;
+
+    /**
+     * the interval of cleaning
+     */
+    private int cleanOfflineBrokerInterval = 1000 * 30;
+
+    private boolean serverLoadBalancerEnable = true;
+
+    private MessageRequestMode defaultMessageRequestMode = MessageRequestMode.PULL;
+
+    private int defaultPopShareQueueNum = -1;
 
     /**
      * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
@@ -185,16 +258,158 @@ public class BrokerConfig {
 
     private boolean storeReplyMessageEnable = true;
 
+    private boolean enableDetailStat = true;
+
     private boolean autoDeleteUnusedStats = false;
 
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.error("Failed to obtain the host name", e);
-        }
+    /**
+     * Whether to distinguish log paths when multiple brokers are deployed on the same machine
+     */
+    private boolean isolateLogEnable = false;
 
-        return "DEFAULT_BROKER";
+    private long forwardTimeout = 3 * 1000;
+
+    /**
+     * Slave will act master when failover. For example, if master down, timer or transaction message which is expire in slave will
+     * put to master (master of the same process in broker container mode or other masters in cluster when enableFailoverRemotingActing is true)
+     * when enableSlaveActingMaster is true
+     */
+    private boolean enableSlaveActingMaster = false;
+
+    private boolean enableRemoteEscape = false;
+
+    private boolean skipPreOnline = false;
+
+    private boolean asyncSendEnable = true;
+
+    private long consumerOffsetUpdateVersionStep = 500;
+
+    private long delayOffsetUpdateVersionStep = 200;
+
+    /**
+     * Whether to lock quorum replicas.
+     *
+     * True: need to lock quorum replicas succeed. False: only need to lock one replica succeed.
+     */
+    private boolean lockInStrictMode = false;
+
+    private boolean compatibleWithOldNameSrv = true;
+
+    /**
+     * Is startup controller mode, which support auto switch broker's role.
+     */
+    private boolean enableControllerMode = false;
+
+    private String controllerAddr = "";
+
+    private long syncBrokerMetadataPeriod = 5 * 1000;
+
+    private long checkSyncStateSetPeriod = 5 * 1000;
+
+    private long syncControllerMetadataPeriod = 10 * 1000;
+
+    public long getMaxPopPollingSize() {
+        return maxPopPollingSize;
+    }
+
+    public void setMaxPopPollingSize(long maxPopPollingSize) {
+        this.maxPopPollingSize = maxPopPollingSize;
+    }
+
+    public int getReviveQueueNum() {
+        return reviveQueueNum;
+    }
+
+    public void setReviveQueueNum(int reviveQueueNum) {
+        this.reviveQueueNum = reviveQueueNum;
+    }
+
+    public long getReviveInterval() {
+        return reviveInterval;
+    }
+
+    public void setReviveInterval(long reviveInterval) {
+        this.reviveInterval = reviveInterval;
+    }
+
+    public int getPopCkStayBufferTime() {
+        return popCkStayBufferTime;
+    }
+
+    public void setPopCkStayBufferTime(int popCkStayBufferTime) {
+        this.popCkStayBufferTime = popCkStayBufferTime;
+    }
+
+    public int getPopCkStayBufferTimeOut() {
+        return popCkStayBufferTimeOut;
+    }
+
+    public void setPopCkStayBufferTimeOut(int popCkStayBufferTimeOut) {
+        this.popCkStayBufferTimeOut = popCkStayBufferTimeOut;
+    }
+
+    public int getPopPollingMapSize() {
+        return popPollingMapSize;
+    }
+
+    public void setPopPollingMapSize(int popPollingMapSize) {
+        this.popPollingMapSize = popPollingMapSize;
+    }
+
+    public long getReviveScanTime() {
+        return reviveScanTime;
+    }
+
+    public void setReviveScanTime(long reviveScanTime) {
+        this.reviveScanTime = reviveScanTime;
+    }
+
+    public long getReviveMaxSlow() {
+        return reviveMaxSlow;
+    }
+
+    public void setReviveMaxSlow(long reviveMaxSlow) {
+        this.reviveMaxSlow = reviveMaxSlow;
+    }
+
+    public int getPopPollingSize() {
+        return popPollingSize;
+    }
+
+    public void setPopPollingSize(int popPollingSize) {
+        this.popPollingSize = popPollingSize;
+    }
+
+    public boolean isEnablePopBufferMerge() {
+        return enablePopBufferMerge;
+    }
+
+    public void setEnablePopBufferMerge(boolean enablePopBufferMerge) {
+        this.enablePopBufferMerge = enablePopBufferMerge;
+    }
+
+    public int getPopCkMaxBufferSize() {
+        return popCkMaxBufferSize;
+    }
+
+    public void setPopCkMaxBufferSize(int popCkMaxBufferSize) {
+        this.popCkMaxBufferSize = popCkMaxBufferSize;
+    }
+
+    public int getPopCkOffsetMaxQueueSize() {
+        return popCkOffsetMaxQueueSize;
+    }
+
+    public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
+        this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnablePopLog() {
+        return enablePopLog;
+    }
+
+    public void setEnablePopLog(boolean enablePopLog) {
+        this.enablePopLog = enablePopLog;
     }
 
     public boolean isTraceOn() {
@@ -301,22 +516,6 @@ public class BrokerConfig {
         this.highSpeedMode = highSpeedMode;
     }
 
-    public String getRocketmqHome() {
-        return rocketmqHome;
-    }
-
-    public void setRocketmqHome(String rocketmqHome) {
-        this.rocketmqHome = rocketmqHome;
-    }
-
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
-    }
-
     public int getBrokerPermission() {
         return brokerPermission;
     }
@@ -339,14 +538,6 @@ public class BrokerConfig {
 
     public void setAutoCreateTopicEnable(boolean autoCreateTopic) {
         this.autoCreateTopicEnable = autoCreateTopic;
-    }
-
-    public String getBrokerClusterName() {
-        return brokerClusterName;
-    }
-
-    public void setBrokerClusterName(String brokerClusterName) {
-        this.brokerClusterName = brokerClusterName;
     }
 
     public String getBrokerIP1() {
@@ -373,12 +564,28 @@ public class BrokerConfig {
         this.sendMessageThreadPoolNums = sendMessageThreadPoolNums;
     }
 
+    public int getPutMessageFutureThreadPoolNums() {
+        return putMessageFutureThreadPoolNums;
+    }
+
+    public void setPutMessageFutureThreadPoolNums(int putMessageFutureThreadPoolNums) {
+        this.putMessageFutureThreadPoolNums = putMessageFutureThreadPoolNums;
+    }
+
     public int getPullMessageThreadPoolNums() {
         return pullMessageThreadPoolNums;
     }
 
     public void setPullMessageThreadPoolNums(int pullMessageThreadPoolNums) {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
+    }
+
+    public int getAckMessageThreadPoolNums() {
+        return ackMessageThreadPoolNums;
+    }
+
+    public void setAckMessageThreadPoolNums(int ackMessageThreadPoolNums) {
+        this.ackMessageThreadPoolNums = ackMessageThreadPoolNums;
     }
 
     public int getProcessReplyMessageThreadPoolNums() {
@@ -437,20 +644,100 @@ public class BrokerConfig {
         this.namesrvAddr = namesrvAddr;
     }
 
-    public long getBrokerId() {
-        return brokerId;
-    }
-
-    public void setBrokerId(long brokerId) {
-        this.brokerId = brokerId;
-    }
-
     public boolean isAutoCreateSubscriptionGroup() {
         return autoCreateSubscriptionGroup;
     }
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
+    }
+
+    public String getBrokerConfigPath() {
+        return brokerConfigPath;
+    }
+
+    public void setBrokerConfigPath(String brokerConfigPath) {
+        this.brokerConfigPath = brokerConfigPath;
+    }
+
+    public String getRocketmqHome() {
+        return rocketmqHome;
+    }
+
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
+    }
+
+    public int getListenPort() {
+        return listenPort;
+    }
+
+    public void setListenPort(int listenPort) {
+        this.listenPort = listenPort;
+    }
+
+    public int getLitePullMessageThreadPoolNums() {
+        return litePullMessageThreadPoolNums;
+    }
+
+    public void setLitePullMessageThreadPoolNums(int litePullMessageThreadPoolNums) {
+        this.litePullMessageThreadPoolNums = litePullMessageThreadPoolNums;
+    }
+
+    public int getLitePullThreadPoolQueueCapacity() {
+        return litePullThreadPoolQueueCapacity;
+    }
+
+    public void setLitePullThreadPoolQueueCapacity(int litePullThreadPoolQueueCapacity) {
+        this.litePullThreadPoolQueueCapacity = litePullThreadPoolQueueCapacity;
+    }
+
+    public int getAdminBrokerThreadPoolQueueCapacity() {
+        return adminBrokerThreadPoolQueueCapacity;
+    }
+
+    public void setAdminBrokerThreadPoolQueueCapacity(int adminBrokerThreadPoolQueueCapacity) {
+        this.adminBrokerThreadPoolQueueCapacity = adminBrokerThreadPoolQueueCapacity;
+    }
+
+    public int getLoadBalanceThreadPoolQueueCapacity() {
+        return loadBalanceThreadPoolQueueCapacity;
+    }
+
+    public void setLoadBalanceThreadPoolQueueCapacity(int loadBalanceThreadPoolQueueCapacity) {
+        this.loadBalanceThreadPoolQueueCapacity = loadBalanceThreadPoolQueueCapacity;
+    }
+
+    public int getSendHeartbeatTimeoutMillis() {
+        return sendHeartbeatTimeoutMillis;
+    }
+
+    public void setSendHeartbeatTimeoutMillis(int sendHeartbeatTimeoutMillis) {
+        this.sendHeartbeatTimeoutMillis = sendHeartbeatTimeoutMillis;
+    }
+
+    public long getWaitTimeMillsInLitePullQueue() {
+        return waitTimeMillsInLitePullQueue;
+    }
+
+    public void setWaitTimeMillsInLitePullQueue(long waitTimeMillsInLitePullQueue) {
+        this.waitTimeMillsInLitePullQueue = waitTimeMillsInLitePullQueue;
+    }
+
+    public boolean isLitePullMessageEnable() {
+        return litePullMessageEnable;
+    }
+
+    public void setLitePullMessageEnable(boolean litePullMessageEnable) {
+        this.litePullMessageEnable = litePullMessageEnable;
+    }
+
+    public int getSyncBrokerMemberGroupPeriod() {
+        return syncBrokerMemberGroupPeriod;
+    }
+
+    public void setSyncBrokerMemberGroupPeriod(int syncBrokerMemberGroupPeriod) {
+        this.syncBrokerMemberGroupPeriod = syncBrokerMemberGroupPeriod;
     }
 
     public boolean isRejectTransactionMessage() {
@@ -477,12 +764,28 @@ public class BrokerConfig {
         this.sendThreadPoolQueueCapacity = sendThreadPoolQueueCapacity;
     }
 
+    public int getPutThreadPoolQueueCapacity() {
+        return putThreadPoolQueueCapacity;
+    }
+
+    public void setPutThreadPoolQueueCapacity(int putThreadPoolQueueCapacity) {
+        this.putThreadPoolQueueCapacity = putThreadPoolQueueCapacity;
+    }
+
     public int getPullThreadPoolQueueCapacity() {
         return pullThreadPoolQueueCapacity;
     }
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getAckThreadPoolQueueCapacity() {
+        return ackThreadPoolQueueCapacity;
+    }
+
+    public void setAckThreadPoolQueueCapacity(int ackThreadPoolQueueCapacity) {
+        this.ackThreadPoolQueueCapacity = ackThreadPoolQueueCapacity;
     }
 
     public int getReplyThreadPoolQueueCapacity() {
@@ -547,38 +850,6 @@ public class BrokerConfig {
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
-    }
-
-    public boolean isCommercialEnable() {
-        return commercialEnable;
-    }
-
-    public void setCommercialEnable(final boolean commercialEnable) {
-        this.commercialEnable = commercialEnable;
-    }
-
-    public int getCommercialTimerCount() {
-        return commercialTimerCount;
-    }
-
-    public void setCommercialTimerCount(final int commercialTimerCount) {
-        this.commercialTimerCount = commercialTimerCount;
-    }
-
-    public int getCommercialTransCount() {
-        return commercialTransCount;
-    }
-
-    public void setCommercialTransCount(final int commercialTransCount) {
-        this.commercialTransCount = commercialTransCount;
-    }
-
-    public int getCommercialBigCount() {
-        return commercialBigCount;
-    }
-
-    public void setCommercialBigCount(final int commercialBigCount) {
-        this.commercialBigCount = commercialBigCount;
     }
 
     public int getMaxDelayTime() {
@@ -797,11 +1068,259 @@ public class BrokerConfig {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
     }
 
+    public boolean isEnableDetailStat() {
+        return enableDetailStat;
+    }
+
+    public void setEnableDetailStat(boolean enableDetailStat) {
+        this.enableDetailStat = enableDetailStat;
+    }
+
     public boolean isAutoDeleteUnusedStats() {
         return autoDeleteUnusedStats;
     }
 
     public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
+    }
+
+    public long getLoadBalancePollNameServerInterval() {
+        return loadBalancePollNameServerInterval;
+    }
+
+    public void setLoadBalancePollNameServerInterval(long loadBalancePollNameServerInterval) {
+        this.loadBalancePollNameServerInterval = loadBalancePollNameServerInterval;
+    }
+
+    public int getCleanOfflineBrokerInterval() {
+        return cleanOfflineBrokerInterval;
+    }
+
+    public void setCleanOfflineBrokerInterval(int cleanOfflineBrokerInterval) {
+        this.cleanOfflineBrokerInterval = cleanOfflineBrokerInterval;
+    }
+
+    public int getLoadBalanceProcessorThreadPoolNums() {
+        return loadBalanceProcessorThreadPoolNums;
+    }
+
+    public void setLoadBalanceProcessorThreadPoolNums(int loadBalanceProcessorThreadPoolNums) {
+        this.loadBalanceProcessorThreadPoolNums = loadBalanceProcessorThreadPoolNums;
+    }
+
+    public boolean isServerLoadBalancerEnable() {
+        return serverLoadBalancerEnable;
+    }
+
+    public void setServerLoadBalancerEnable(boolean serverLoadBalancerEnable) {
+        this.serverLoadBalancerEnable = serverLoadBalancerEnable;
+    }
+
+    public MessageRequestMode getDefaultMessageRequestMode() {
+        return defaultMessageRequestMode;
+    }
+
+    public void setDefaultMessageRequestMode(String defaultMessageRequestMode) {
+        this.defaultMessageRequestMode = MessageRequestMode.valueOf(defaultMessageRequestMode);
+    }
+
+    public int getDefaultPopShareQueueNum() {
+        return defaultPopShareQueueNum;
+    }
+
+    public void setDefaultPopShareQueueNum(int defaultPopShareQueueNum) {
+        this.defaultPopShareQueueNum = defaultPopShareQueueNum;
+    }
+
+    public long getForwardTimeout() {
+        return forwardTimeout;
+    }
+
+    public void setForwardTimeout(long timeout) {
+        this.forwardTimeout = timeout;
+    }
+
+    public int getBrokerHeartbeatInterval() {
+        return brokerHeartbeatInterval;
+    }
+
+    public void setBrokerHeartbeatInterval(int brokerHeartbeatInterval) {
+        this.brokerHeartbeatInterval = brokerHeartbeatInterval;
+    }
+
+    public long getBrokerNotActiveTimeoutMillis() {
+        return brokerNotActiveTimeoutMillis;
+    }
+
+    public void setBrokerNotActiveTimeoutMillis(long brokerNotActiveTimeoutMillis) {
+        this.brokerNotActiveTimeoutMillis = brokerNotActiveTimeoutMillis;
+    }
+
+    public boolean isEnableNetWorkFlowControl() {
+        return enableNetWorkFlowControl;
+    }
+
+    public void setEnableNetWorkFlowControl(boolean enableNetWorkFlowControl) {
+        this.enableNetWorkFlowControl = enableNetWorkFlowControl;
+    }
+
+    public boolean isRealTimeNotifyConsumerChange() {
+        return realTimeNotifyConsumerChange;
+    }
+
+    public void setRealTimeNotifyConsumerChange(boolean realTimeNotifyConsumerChange) {
+        this.realTimeNotifyConsumerChange = realTimeNotifyConsumerChange;
+    }
+
+    public boolean isEnableSlaveActingMaster() {
+        return enableSlaveActingMaster;
+    }
+
+    public void setEnableSlaveActingMaster(boolean enableSlaveActingMaster) {
+        this.enableSlaveActingMaster = enableSlaveActingMaster;
+    }
+
+    public boolean isEnableRemoteEscape() {
+        return enableRemoteEscape;
+    }
+
+    public void setEnableRemoteEscape(boolean enableRemoteEscape) {
+        this.enableRemoteEscape = enableRemoteEscape;
+    }
+
+    public boolean isSkipPreOnline() {
+        return skipPreOnline;
+    }
+
+    public void setSkipPreOnline(boolean skipPreOnline) {
+        this.skipPreOnline = skipPreOnline;
+    }
+
+    public boolean isAsyncSendEnable() {
+        return asyncSendEnable;
+    }
+
+    public void setAsyncSendEnable(boolean asyncSendEnable) {
+        this.asyncSendEnable = asyncSendEnable;
+    }
+
+    public long getConsumerOffsetUpdateVersionStep() {
+        return consumerOffsetUpdateVersionStep;
+    }
+
+    public void setConsumerOffsetUpdateVersionStep(long consumerOffsetUpdateVersionStep) {
+        this.consumerOffsetUpdateVersionStep = consumerOffsetUpdateVersionStep;
+    }
+
+    public long getDelayOffsetUpdateVersionStep() {
+        return delayOffsetUpdateVersionStep;
+    }
+
+    public void setDelayOffsetUpdateVersionStep(long delayOffsetUpdateVersionStep) {
+        this.delayOffsetUpdateVersionStep = delayOffsetUpdateVersionStep;
+    }
+
+    public int getCommercialSizePerMsg() {
+        return commercialSizePerMsg;
+    }
+
+    public void setCommercialSizePerMsg(int commercialSizePerMsg) {
+        this.commercialSizePerMsg = commercialSizePerMsg;
+    }
+
+    public long getWaitTimeMillsInAckQueue() {
+        return waitTimeMillsInAckQueue;
+    }
+
+    public void setWaitTimeMillsInAckQueue(long waitTimeMillsInAckQueue) {
+        this.waitTimeMillsInAckQueue = waitTimeMillsInAckQueue;
+    }
+
+    public boolean isRejectPullConsumerEnable() {
+        return rejectPullConsumerEnable;
+    }
+
+    public void setRejectPullConsumerEnable(boolean rejectPullConsumerEnable) {
+        this.rejectPullConsumerEnable = rejectPullConsumerEnable;
+    }
+
+    public boolean isAccountStatsEnable() {
+        return accountStatsEnable;
+    }
+
+    public void setAccountStatsEnable(boolean accountStatsEnable) {
+        this.accountStatsEnable = accountStatsEnable;
+    }
+
+    public boolean isAccountStatsPrintZeroValues() {
+        return accountStatsPrintZeroValues;
+    }
+
+    public void setAccountStatsPrintZeroValues(boolean accountStatsPrintZeroValues) {
+        this.accountStatsPrintZeroValues = accountStatsPrintZeroValues;
+    }
+
+    public boolean isLockInStrictMode() {
+        return lockInStrictMode;
+    }
+
+    public void setLockInStrictMode(boolean lockInStrictMode) {
+        this.lockInStrictMode = lockInStrictMode;
+    }
+
+    public boolean isIsolateLogEnable() {
+        return isolateLogEnable;
+    }
+
+    public void setIsolateLogEnable(boolean isolateLogEnable) {
+        this.isolateLogEnable = isolateLogEnable;
+    }
+
+    public boolean isCompatibleWithOldNameSrv() {
+        return compatibleWithOldNameSrv;
+    }
+
+    public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
+        this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
+    }
+
+    public boolean isEnableControllerMode() {
+        return enableControllerMode;
+    }
+
+    public void setEnableControllerMode(boolean enableControllerMode) {
+        this.enableControllerMode = enableControllerMode;
+    }
+
+    public String getControllerAddr() {
+        return controllerAddr;
+    }
+
+    public void setControllerAddr(String controllerAddr) {
+        this.controllerAddr = controllerAddr;
+    }
+
+    public long getSyncBrokerMetadataPeriod() {
+        return syncBrokerMetadataPeriod;
+    }
+
+    public void setSyncBrokerMetadataPeriod(long syncBrokerMetadataPeriod) {
+        this.syncBrokerMetadataPeriod = syncBrokerMetadataPeriod;
+    }
+
+    public long getCheckSyncStateSetPeriod() {
+        return checkSyncStateSetPeriod;
+    }
+
+    public void setCheckSyncStateSetPeriod(long checkSyncStateSetPeriod) {
+        this.checkSyncStateSetPeriod = checkSyncStateSetPeriod;
+    }
+
+    public long getSyncControllerMetadataPeriod() {
+        return syncControllerMetadataPeriod;
+    }
+
+    public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
+        this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
     }
 }

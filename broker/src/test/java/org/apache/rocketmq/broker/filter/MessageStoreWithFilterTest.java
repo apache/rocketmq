@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.filter;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -30,11 +31,12 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.core.ThrowingRunnable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class MessageStoreWithFilterTest {
 
@@ -58,7 +61,7 @@ public class MessageStoreWithFilterTest {
 
     private static final String topic = "topic";
     private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
+    private static final String storePath = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 1024 * 256;
     private static final int cqFileSize = 300000 * 20;
     private static final int cqExtFileSize = 300000 * 128;
@@ -94,8 +97,10 @@ public class MessageStoreWithFilterTest {
 
     @After
     public void destroy() {
-        master.shutdown();
-        master.destroy();
+        if (master != null) {
+            master.shutdown();
+            master.destroy();
+        }
         UtilAll.deleteFile(new File(storePath));
     }
 
@@ -146,7 +151,7 @@ public class MessageStoreWithFilterTest {
 
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName()),
+            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
@@ -347,27 +352,31 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilter_checkTagsCode() throws Exception {
         putMsg(master, topicCount, msgPerTopic);
 
-        Thread.sleep(200);
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                for (int i = 0; i < topicCount; i++) {
+                    final String realTopic = topic + i;
+                    GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,
+                        new MessageFilter() {
+                            @Override
+                            public boolean isMatchedByConsumeQueue(Long tagsCode,
+                                ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                                if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
+                                    return false;
+                                }
+                                return true;
+                            }
 
-        for (int i = 0; i < topicCount; i++) {
-            String realTopic = topic + i;
-
-            GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,
-                new MessageFilter() {
-                    @Override
-                    public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
-                        if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
-                            return false;
-                        }
-                        return true;
-                    }
-
-                    @Override
-                    public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
-                        return true;
-                    }
-                });
-            assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
-        }
+                            @Override
+                            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer,
+                                Map<String, String> properties) {
+                                return true;
+                            }
+                        });
+                    assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+                }
+            }
+        });
     }
 }

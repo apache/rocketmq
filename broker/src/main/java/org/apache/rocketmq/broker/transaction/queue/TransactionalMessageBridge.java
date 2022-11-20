@@ -35,7 +35,7 @@ import org.apache.rocketmq.logging.InnerLoggerFactory;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -303,13 +303,13 @@ public class TransactionalMessageBridge {
      * Use this function while transaction msg is committed or rollback write a flag 'd' to operation queue for the
      * msg's offset
      *
-     * @param messageExt Op message
-     * @param messageQueue Op message queue
+     * @param prepareMessage Half message
+     * @param messageQueue Half message queue
      * @return This method will always return true.
      */
-    private boolean addRemoveTagInTransactionOp(MessageExt messageExt, MessageQueue messageQueue) {
+    private boolean addRemoveTagInTransactionOp(MessageExt prepareMessage, MessageQueue messageQueue) {
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
-            String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
+            String.valueOf(prepareMessage.getQueueOffset()).getBytes(TransactionalMessageUtil.CHARSET));
         writeOp(message, messageQueue);
         return true;
     }

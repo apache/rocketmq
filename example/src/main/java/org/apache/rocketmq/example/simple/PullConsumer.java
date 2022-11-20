@@ -56,7 +56,7 @@ public class PullConsumer {
             executors.execute(new Runnable() {
 
                 public void doSomething(List<MessageExt> msgs) {
-                    //do you business
+                    //do your business
 
                 }
 

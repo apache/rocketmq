@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -54,6 +55,9 @@ public class Configuration {
             return;
         }
         for (Object configObject : configObjects) {
+            if (configObject == null) {
+                continue;
+            }
             registerConfig(configObject);
         }
     }
@@ -233,6 +237,24 @@ public class Configuration {
         return null;
     }
 
+    public String getClientConfigsFormatString(List<String> clientKeys) {
+        try {
+            readWriteLock.readLock().lockInterruptibly();
+
+            try {
+
+                return getClientConfigsInternal(clientKeys);
+
+            } finally {
+                readWriteLock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("getAllConfigsFormatString lock error");
+        }
+
+        return null;
+    }
+
     public String getDataVersionJson() {
         return this.dataVersion.toJson();
     }
@@ -269,33 +291,53 @@ public class Configuration {
         }
 
         {
-            stringBuilder.append(MixAll.properties2String(this.allConfigs));
+            stringBuilder.append(MixAll.properties2String(this.allConfigs, true));
         }
 
         return stringBuilder.toString();
     }
 
-    private void merge(Properties from, Properties to) {
-        for (Object key : from.keySet()) {
-            Object fromObj = from.get(key), toObj = to.get(key);
-            if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", key, toObj, fromObj);
+    private String getClientConfigsInternal(List<String> clientConigKeys) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Properties clientProperties = new Properties();
+
+        // reload from config object ?
+        for (Object configObject : this.configObjectList) {
+            Properties properties = MixAll.object2Properties(configObject);
+
+            for (String nameNow : clientConigKeys) {
+                if (properties.containsKey(nameNow)) {
+                    clientProperties.put(nameNow, properties.get(nameNow));
+                }
             }
-            to.put(key, fromObj);
+
+        }
+        stringBuilder.append(MixAll.properties2String(clientProperties));
+
+        return stringBuilder.toString();
+    }
+
+    private void merge(Properties from, Properties to) {
+        for (Entry<Object, Object> next : from.entrySet()) {
+            Object fromObj = next.getValue(), toObj = to.get(next.getKey());
+            if (toObj != null && !toObj.equals(fromObj)) {
+                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
+            }
+            to.put(next.getKey(), fromObj);
         }
     }
 
     private void mergeIfExist(Properties from, Properties to) {
-        for (Object key : from.keySet()) {
-            if (!to.containsKey(key)) {
+        for (Entry<Object, Object> next : from.entrySet()) {
+            if (!to.containsKey(next.getKey())) {
                 continue;
             }
 
-            Object fromObj = from.get(key), toObj = to.get(key);
+            Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", key, toObj, fromObj);
+                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
             }
-            to.put(key, fromObj);
+            to.put(next.getKey(), fromObj);
         }
     }
 

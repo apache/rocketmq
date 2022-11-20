@@ -42,4 +42,37 @@ fi
 
 export ROCKETMQ_HOME
 
-sh ${ROCKETMQ_HOME}/bin/runbroker.sh org.apache.rocketmq.broker.BrokerStartup $@
+other_args=" "
+enable_proxy=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --enable-proxy)
+      enable_proxy=true
+      shift
+      ;;
+    -c|--configFile)
+      broker_config="$2"
+      shift
+      shift
+      ;;
+    *)
+      other_args=${other_args}" "${1}
+      shift
+      ;;
+  esac
+done
+
+if [ "$enable_proxy" = true ]; then
+  args_for_proxy=$other_args" -pm local"
+  if [ "$broker_config" != "" ]; then
+      args_for_proxy=${args_for_proxy}" -bc "${broker_config}
+  fi
+  sh ${ROCKETMQ_HOME}/bin/runserver.sh org.apache.rocketmq.proxy.ProxyStartup ${args_for_proxy}
+else
+  args_for_broker=$other_args
+  if [ "$broker_config" != "" ]; then
+      args_for_broker=${args_for_broker}" -c "${broker_config}
+  fi
+  sh ${ROCKETMQ_HOME}/bin/runbroker.sh org.apache.rocketmq.broker.BrokerStartup ${args_for_broker}
+fi

@@ -99,4 +99,17 @@ public class PlainAccessConfig {
     public void setGroupPerms(List<String> groupPerms) {
         this.groupPerms = groupPerms;
     }
+
+    @Override
+    public String toString() {
+        return "PlainAccessConfig{" +
+            "accessKey='" + accessKey + '\'' +
+            ", whiteRemoteAddress='" + whiteRemoteAddress + '\'' +
+            ", admin=" + admin +
+            ", defaultTopicPerm='" + defaultTopicPerm + '\'' +
+            ", defaultGroupPerm='" + defaultGroupPerm + '\'' +
+            ", topicPerms=" + topicPerms +
+            ", groupPerms=" + groupPerms +
+            '}';
+    }
 }
