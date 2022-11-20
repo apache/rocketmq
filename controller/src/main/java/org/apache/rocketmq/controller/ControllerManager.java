@@ -36,8 +36,8 @@ import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.Configuration;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -53,7 +53,7 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMast
 import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 
 public class ControllerManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
 
     private final ControllerConfig controllerConfig;
     private final NettyServerConfig nettyServerConfig;

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
@@ -41,8 +42,6 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.rpc.ClientMetadata;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminUtils;
@@ -54,7 +53,7 @@ import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappin
 import static org.awaitility.Awaitility.await;
 
 public class MQAdminTestUtils {
-    private static Logger log = LoggerFactory.getLogger(MQAdminTestUtils.class);
+    private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
                                       int queueNum, Map<String, String> attributes) {

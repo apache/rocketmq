@@ -20,8 +20,7 @@ package org.apache.rocketmq.test.client.consumer.pop;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQPopConsumer;
@@ -40,7 +39,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class PopSubCheckIT extends BaseConf {
-    private static final Logger log = LoggerFactory.getLogger(PopSubCheckIT.class);
+    private static Logger logger = Logger.getLogger(PopSubCheckIT.class);
     private String group;
 
     private DefaultMQAdminExt defaultMQAdminExt;
@@ -64,7 +63,7 @@ public class PopSubCheckIT extends BaseConf {
     @Test
     public void testNormalPopAck() throws Exception {
         String topic = initTopic();
-        log.info(String.format("use topic: %s; group: %s !", topic, group));
+        logger.info(String.format("use topic: %s; group: %s !", topic, group));
 
         RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         producer.getProducer().setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
@@ -80,7 +79,7 @@ public class PopSubCheckIT extends BaseConf {
         int msgNum = 1;
         producer.send(msgNum);
         Assert.assertEquals("Not all sent succeeded", msgNum, producer.getAllUndupMsgBody().size());
-        log.info(producer.getFirstMsg().toString());
+        logger.info(producer.getFirstMsg());
 
         TestUtils.waitForSeconds(10);
 

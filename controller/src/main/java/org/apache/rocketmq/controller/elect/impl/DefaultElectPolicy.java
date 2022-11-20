@@ -29,10 +29,11 @@ import java.util.stream.Collectors;
 
 public class DefaultElectPolicy implements ElectPolicy {
 
-    // <clusterName, brokerAddr> valid predicate
+    // <clusterName, brokerAddr>, Used to judge whether a broker
+    // has preliminary qualification to be selected as master
     private BiPredicate<String, String> validPredicate;
 
-    // <clusterName, brokerAddr, info> getter to get more information
+    // <clusterName, brokerAddr, BrokerLiveInfo>, Used to obtain the BrokerLiveInfo information of a broker
     private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
 
     private final Comparator<BrokerLiveInfo> comparator = (x, y) -> {
@@ -49,9 +50,13 @@ public class DefaultElectPolicy implements ElectPolicy {
     }
 
     /**
-     * try to elect a master, if old master still alive, we just return the old master, else
-     * we just elect the master by the resource.
-     * when the assignBrokerAddr is not empty, our policy is try to elect it or elect nothing
+     * We will try to select a new master from syncStateBrokers and allReplicaBrokers in turn.
+     * The strategies are as follows:
+     *    - Filter alive brokers by 'validPredicate'.
+     *    - Check whether the old master is still valid.
+     *    - If preferBrokerAddr is not empty and valid, select it as master.
+     *    - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset), and select the best candidate as the new master.
+     *
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
@@ -69,7 +74,8 @@ public class DefaultElectPolicy implements ElectPolicy {
         if (StringUtils.isNotEmpty(newMaster)) {
             return newMaster;
         }
-        // try to elect in all replicas
+
+        // try to elect in all allReplicaBrokers
         if (allReplicaBrokers != null) {
             newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, assignBrokerAddr);
         }
@@ -81,19 +87,19 @@ public class DefaultElectPolicy implements ElectPolicy {
         if (this.validPredicate != null) {
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
         }
-        // try to elect in brokers
-        if (brokers.size() >= 1) {
-            if (brokers.contains(oldMaster) && (StringUtils.isBlank(assignBrokerAddr) || assignBrokerAddr.equals(oldMaster))) {
-                // old master still valid, and our assignBrokerAddr is blank or is equals to oldMaster
+        if (!brokers.isEmpty()) {
+            // if old master is still valid, and preferBrokerAddr is blank or is equals to oldMaster
+            if (brokers.contains(oldMaster) && (StringUtils.isBlank(preferBrokerAddr) || preferBrokerAddr.equals(oldMaster))) {
                 return oldMaster;
             }
-            // if assignBrokerAddr is not blank, if assignBrokerAddr is valid, we choose it, else we choose nothing
-            if (StringUtils.isNotBlank(assignBrokerAddr)) {
-                return brokers.contains(assignBrokerAddr) ? assignBrokerAddr : null;
+
+            // if preferBrokerAddr is valid, we choose it, otherwise we choose nothing
+            if (StringUtils.isNotBlank(preferBrokerAddr)) {
+                return brokers.contains(preferBrokerAddr) ? preferBrokerAddr : null;
             }
+
             if (this.additionalInfoGetter != null) {
-                // get more information from getter
-                // sort brokerLiveInfos by epoch, maxOffset
+                // sort brokerLiveInfos by (epoch,maxOffset)
                 TreeSet<BrokerLiveInfo> brokerLiveInfos = new TreeSet<>(this.comparator);
                 brokers.forEach(brokerAddr -> brokerLiveInfos.add(this.additionalInfoGetter.apply(clusterName, brokerAddr)));
                 if (brokerLiveInfos.size() >= 1) {

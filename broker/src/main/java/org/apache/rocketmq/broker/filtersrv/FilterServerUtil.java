@@ -18,10 +18,10 @@
 package org.apache.rocketmq.broker.filtersrv;
 
 
-import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class FilterServerUtil {
-    public static void callShell(final String shellString, final Logger log) {
+    public static void callShell(final String shellString, final InternalLogger log) {
         Process process = null;
         try {
             String[] cmdArray = splitShellString(shellString);

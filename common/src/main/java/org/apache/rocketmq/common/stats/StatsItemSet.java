@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItemSet {
     private final ConcurrentMap<String/* key */, StatsItem> statsItemTable =
@@ -32,13 +32,12 @@ public class StatsItemSet {
 
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final InternalLogger log;
 
-    private final Logger logger;
-
-    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, Logger logger) {
-        this.logger = logger;
+    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
         this.statsName = statsName;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.log = log;
         this.init();
     }
 
@@ -214,9 +213,9 @@ public class StatsItemSet {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             if (rtItem) {
-                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService, logger);
+                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
             } else {
-                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, logger);
+                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
             }
             StatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 

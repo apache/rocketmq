@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.common.UtilAll;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -54,11 +56,9 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHead
 import org.apache.rocketmq.remoting.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ReplyMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
 
 public class ClientRemotingProcessor implements NettyRequestProcessor {
-    private final Logger logger = LoggerFactory.getLogger(ClientRemotingProcessor.class);
+    private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;
 
     public ClientRemotingProcessor(final MQClientInstance mqClientFactory) {
@@ -119,13 +119,13 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                     final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
-                    logger.debug("checkTransactionState, pick producer by group[{}] failed", group);
+                    log.debug("checkTransactionState, pick producer by group[{}] failed", group);
                 }
             } else {
-                logger.warn("checkTransactionState, pick producer group failed");
+                log.warn("checkTransactionState, pick producer group failed");
             }
         } else {
-            logger.warn("checkTransactionState, decode message failed");
+            log.warn("checkTransactionState, decode message failed");
         }
 
         return null;
@@ -136,12 +136,12 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         try {
             final NotifyConsumerIdsChangedRequestHeader requestHeader =
                 (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
-            logger.info("receive broker's notification[{}], the consumer group: {} changed, rebalance immediately",
+            log.info("receive broker's notification[{}], the consumer group: {} changed, rebalance immediately",
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 requestHeader.getConsumerGroup());
             this.mqClientFactory.rebalanceImmediately();
         } catch (Exception e) {
-            logger.error("notifyConsumerIdsChanged exception", UtilAll.exceptionSimpleDesc(e));
+            log.error("notifyConsumerIdsChanged exception", UtilAll.exceptionSimpleDesc(e));
         }
         return null;
     }
@@ -150,7 +150,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final ResetOffsetRequestHeader requestHeader =
             (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
-        logger.info("invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
+        log.info("invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
             requestHeader.getTimestamp());
         Map<MessageQueue, Long> offsetTable = new HashMap<>();
@@ -252,7 +252,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                     Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
                     body = compressor.decompress(body);
                 } catch (IOException e) {
-                    logger.warn("err when uncompress constant", e);
+                    log.warn("err when uncompress constant", e);
                 }
             }
             msg.setBody(body);
@@ -261,14 +261,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REPLY_MESSAGE_ARRIVE_TIME, String.valueOf(receiveTime));
             msg.setBornTimestamp(requestHeader.getBornTimestamp());
             msg.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
-            logger.debug("receive reply message :{}", msg);
+            log.debug("receive reply message :{}", msg);
 
             processReplyMessage(msg);
 
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         } catch (Exception e) {
-            logger.warn("unknown err when receiveReplyMsg", e);
+            log.warn("unknown err when receiveReplyMsg", e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("process reply message fail");
         }
@@ -288,7 +288,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             }
         } else {
             String bornHost = replyMsg.getBornHostString();
-            logger.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
+            log.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
                 correlationId, bornHost));
         }
     }

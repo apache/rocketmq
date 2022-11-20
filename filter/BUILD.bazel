@@ -23,6 +23,7 @@ java_library(
     deps = [
         "//common",
         "//remoting",
+        "//logging", 
         "//srvutil",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",

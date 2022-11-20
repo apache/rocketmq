@@ -18,9 +18,7 @@
 package org.apache.rocketmq.test.client.consumer.tag;
 
 import java.util.List;
-
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -35,7 +33,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class TagMessageWith1ConsumerIT extends BaseConf {
-    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 

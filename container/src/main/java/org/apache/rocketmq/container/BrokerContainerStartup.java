@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.container;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -34,14 +36,16 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BrokerContainerStartup {
     private static final String BROKER_CONTAINER_CONFIG_OPTION = "c";
@@ -51,9 +55,10 @@ public class BrokerContainerStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
-    public static Logger log;
+    public static InternalLogger log;
     public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
     public static String rocketmqHome = null;
+    public static final JoranConfigurator CONFIGURATOR = new JoranConfigurator();
 
     public static void main(String[] args) {
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
@@ -168,7 +173,7 @@ public class BrokerContainerStartup {
 
         brokerConfig.setBrokerConfigPath(filePath);
 
-        log = LoggerFactory.getLogger(brokerConfig.getLoggerIdentifier() + LoggerName.BROKER_LOGGER_NAME);
+        log = InternalLoggerFactory.getLogger(brokerConfig.getLoggerIdentifier() + LoggerName.BROKER_LOGGER_NAME);
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 
@@ -306,21 +311,29 @@ public class BrokerContainerStartup {
                 }
             }
 
+            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            CONFIGURATOR.setContext(lc);
+            lc.reset();
+            //https://logback.qos.ch/manual/configuration.html
+            lc.setPackagingDataEnabled(false);
+
+            CONFIGURATOR.doConfigure(rocketmqHome + "/conf/logback_broker.xml");
+
             if (commandLine.hasOption(PRINT_PROPERTIES_OPTION)) {
-                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, containerConfig);
                 MixAll.printObjectProperties(console, nettyServerConfig);
                 MixAll.printObjectProperties(console, nettyClientConfig);
                 System.exit(0);
             } else if (commandLine.hasOption(PRINT_IMPORTANT_PROPERTIES_OPTION)) {
-                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, containerConfig, true);
                 MixAll.printObjectProperties(console, nettyServerConfig, true);
                 MixAll.printObjectProperties(console, nettyClientConfig, true);
                 System.exit(0);
             }
 
-            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+            log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, containerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);

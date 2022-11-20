@@ -21,13 +21,21 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public abstract class AbstractAllocateMessageQueueStrategy implements AllocateMessageQueueStrategy {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractAllocateMessageQueueStrategy.class);
+    protected InternalLogger log;
+
+    AbstractAllocateMessageQueueStrategy() {
+        this.log = ClientLogger.getLog();
+    }
+
+    public AbstractAllocateMessageQueueStrategy(InternalLogger log) {
+        this.log = log;
+    }
 
     public boolean check(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {

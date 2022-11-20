@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.test.container;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.File;
 import java.io.IOException;
@@ -52,8 +54,8 @@ import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.container.BrokerContainer;
 import org.apache.rocketmq.container.BrokerContainerConfig;
 import org.apache.rocketmq.container.InnerSalveBrokerController;
-import org.apache.rocketmq.shade.org.slf4j.Logger;
-import org.apache.rocketmq.shade.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -69,6 +71,7 @@ import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
 
@@ -103,7 +106,7 @@ public class ContainerIntegrationTestBase {
 
     protected static DefaultMQAdminExt defaultMQAdminExt;
 
-    private final static Logger LOG = LoggerFactory.getLogger(ContainerIntegrationTestBase.class);
+    private final static InternalLogger LOG = InternalLoggerFactory.getLogger(ContainerIntegrationTestBase.class);
     private static ConcurrentMap<BrokerConfig, MessageStoreConfig> slaveStoreConfigCache = new ConcurrentHashMap<>();
 
     protected static ConcurrentMap<BrokerConfigLite, BrokerController> isolatedBrokers = new ConcurrentHashMap<>();
@@ -115,6 +118,16 @@ public class ContainerIntegrationTestBase {
             System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
             System.setProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.99");
             System.setProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.99");
+
+            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            JoranConfigurator configurator = new JoranConfigurator();
+            configurator.setContext(lc);
+            lc.reset();
+            //https://logback.qos.ch/manual/configuration.html
+            lc.setPackagingDataEnabled(false);
+
+            configurator.doConfigure("../distribution/conf/logback_broker.xml");
+            configurator.doConfigure("../distribution/conf/logback_namesrv.xml");
 
             setUpCluster();
             setUpTopic();
