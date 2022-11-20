@@ -61,15 +61,15 @@ public class DefaultElectPolicy implements ElectPolicy {
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
      * @param oldMaster         old master
-     * @param assignBrokerAddr  the broker assigned to be elected
+     * @param preferBrokerAddr  the broker prefer to be elected
      * @return master elected by our own policy
      */
     @Override
-    public String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String assignBrokerAddr) {
+    public String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr) {
         String newMaster = null;
         // try to elect in syncStateBrokers
         if (syncStateBrokers != null) {
-            newMaster = tryElect(clusterName, syncStateBrokers, oldMaster, assignBrokerAddr);
+            newMaster = tryElect(clusterName, syncStateBrokers, oldMaster, preferBrokerAddr);
         }
         if (StringUtils.isNotEmpty(newMaster)) {
             return newMaster;
@@ -77,13 +77,13 @@ public class DefaultElectPolicy implements ElectPolicy {
 
         // try to elect in all allReplicaBrokers
         if (allReplicaBrokers != null) {
-            newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, assignBrokerAddr);
+            newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, preferBrokerAddr);
         }
         return newMaster;
     }
 
 
-    private String tryElect(String clusterName, Set<String> brokers, String oldMaster, String assignBrokerAddr) {
+    private String tryElect(String clusterName, Set<String> brokers, String oldMaster, String preferBrokerAddr) {
         if (this.validPredicate != null) {
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
         }
