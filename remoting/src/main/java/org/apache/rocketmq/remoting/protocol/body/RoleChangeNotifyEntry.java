@@ -18,7 +18,7 @@
 package org.apache.rocketmq.remoting.protocol.body;
 
 
-import org.apache.rocketmq.remoting.protocol.header.namesrv.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 
 public class RoleChangeNotifyEntry {
 
