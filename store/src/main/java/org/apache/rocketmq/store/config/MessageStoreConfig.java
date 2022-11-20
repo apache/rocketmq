@@ -360,6 +360,11 @@ public class MessageStoreConfig {
 
     private boolean asyncLearner = false;
 
+    /**
+     * Enable ConsumeQueue building concurrently
+     */
+    private boolean enableConsumeQueueConcurrently = false;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1438,6 +1443,14 @@ public class MessageStoreConfig {
 
     public void setAsyncLearner(boolean asyncLearner) {
         this.asyncLearner = asyncLearner;
+    }
+
+    public boolean isEnableConsumeQueueConcurrently() {
+        return enableConsumeQueueConcurrently;
+    }
+
+    public void setEnableConsumeQueueConcurrently(boolean enableConsumeQueueConcurrently) {
+        this.enableConsumeQueueConcurrently = enableConsumeQueueConcurrently;
     }
 
     public int getMappedFileSizeTimerLog() {

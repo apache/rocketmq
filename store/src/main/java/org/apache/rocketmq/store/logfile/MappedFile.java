@@ -121,6 +121,16 @@ public interface MappedFile {
     boolean appendMessage(byte[] data, int offset, int length);
 
     /**
+     * Appends a raw message data represents by a byte array to the current {@code MappedFile},
+     * starting at the given offset in the array.
+     *
+     * @param data the byte array to append
+     * @param offset the offset of data appended to the current {@code MappedFile}
+     * @return true if success; false otherwise.
+     */
+    int appendMessageConcurrently(byte[] data, long offset);
+
+    /**
      * Returns the global offset of the current {code MappedFile}, it's a long value of the file name.
      *
      * @return the offset of this file

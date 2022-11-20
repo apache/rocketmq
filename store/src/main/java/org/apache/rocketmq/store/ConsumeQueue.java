@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
@@ -57,6 +58,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
+
+    private final ReentrantLock consumeQueueLock = new ReentrantLock();
 
     /**
      * Minimum offset of the consume file queue that points to valid commit log record.
@@ -554,8 +557,15 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
-            boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
-                request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
+            boolean result;
+            if (!messageStore.getMessageStoreConfig().isEnableConsumeQueueConcurrently()) {
+                result = this.putMessagePositionInfo(request.getCommitLogOffset(),
+                        request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
+            } else {
+                result = this.putMessagePositionInfoConcurrently(request.getCommitLogOffset(),
+                        request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
+            }
+            // todo how to set PhysicMsgTimestamp when EnableConsumeQueueConcurrently
             if (result) {
                 if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE ||
                     this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
@@ -730,7 +740,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
                 if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
                 }
@@ -751,6 +761,59 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         return false;
     }
+
+    private boolean putMessagePositionInfoConcurrently(final long offset, final int size, final long tagsCode, final long cqOffset) {
+        if (offset + size <= this.maxPhysicOffset) {
+            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
+            return true;
+        }
+
+        consumeQueueLock.lock();
+        try {
+            this.byteBufferIndex.flip();
+            this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
+            this.byteBufferIndex.putLong(offset);
+            this.byteBufferIndex.putInt(size);
+            this.byteBufferIndex.putLong(tagsCode);
+
+            final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
+
+            MappedFile mappedFile = this.mappedFileQueue.getMappedFileByOffset(expectLogicOffset);
+            if (mappedFile != null) {
+
+                if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+                    this.minLogicOffset = expectLogicOffset;
+                    this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
+                    this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
+                    this.fillPreBlank(mappedFile, expectLogicOffset);
+                    log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
+                            + mappedFile.getWrotePosition());
+                }
+
+                if (cqOffset != 0) {
+                    long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
+
+                    if (expectLogicOffset < currentLogicOffset) {
+                        log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                                expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
+                        return true;
+                    }
+
+                }
+
+                int length = mappedFile.appendMessageConcurrently(this.byteBufferIndex.array(), expectLogicOffset);
+                if (length == -1) {
+                    return false;
+                }
+                this.maxPhysicOffset = offset + length;
+                return true;
+            }
+        } finally {
+            consumeQueueLock.unlock();
+        }
+        return false;
+    }
+
 
     private void fillPreBlank(final MappedFile mappedFile, final long untilWhere) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);

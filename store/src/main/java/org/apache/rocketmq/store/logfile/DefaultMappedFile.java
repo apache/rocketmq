@@ -315,6 +315,42 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     /**
+     * Content of data is written from the offset of the file.
+     *
+     * @param data the byte array to append
+     * @param offset the offset of data appended to the current {@code MappedFile}
+     */
+    @Override
+    public int appendMessageConcurrently(final byte[] data, final long offset) {
+        int expectOffset = (int) (offset % this.fileSize);
+        if ((expectOffset + data.length) <= this.fileSize) {
+            try {
+                ByteBuffer buf = this.mappedByteBuffer.slice();
+                buf.position(expectOffset);
+                buf.put(data, 0, data.length);
+            } catch (Throwable e) {
+                log.error("Error occurred when append message to mappedFile.", e);
+            }
+            int length = 0;
+            int currentPos = WROTE_POSITION_UPDATER.get(this);
+            if (currentPos == expectOffset) {
+                // todo how to traverse two mappedByteBuffer
+                for (int index = currentPos; index <= this.mappedByteBuffer.limit(); index += 20) {
+                    int aSize = this.mappedByteBuffer.getInt(index + 8);
+                    if (aSize == 0) {
+                        break;
+                    }
+                    length += 20;
+                }
+            }
+            WROTE_POSITION_UPDATER.addAndGet(this, length);
+            return length;
+        }
+        return -1;
+    }
+
+
+    /**
      * @return The current flushed position
      */
     @Override

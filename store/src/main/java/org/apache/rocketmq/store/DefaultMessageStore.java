@@ -39,14 +39,20 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -2458,6 +2464,27 @@ public class DefaultMessageStore implements MessageStore {
 
         private volatile long reputFromOffset = 0;
 
+        private int reputThreadPoolNums = 32;
+
+        private final ExecutorService executor;
+
+        List<FutureTask<DispatchRequest>> dispatchRequestFutures = new ArrayList<>();
+
+        public ReputMessageService() {
+            executor = buildReputExecutorService(new LinkedBlockingDeque<>(), "ReputServiceThread_");
+        }
+
+        private ExecutorService buildReputExecutorService(BlockingQueue<Runnable> blockingQueue, String threadNamePrefix) {
+            return new ThreadPoolExecutor(
+                    this.reputThreadPoolNums,
+                    this.reputThreadPoolNums,
+                    1000 * 60,
+                    TimeUnit.MICROSECONDS,
+                    blockingQueue,
+                    new ThreadFactoryImpl(threadNamePrefix));
+        }
+
+
         public long getReputFromOffset() {
             return reputFromOffset;
         }
@@ -2572,6 +2599,99 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        private void doReputConcurrently() {
+            if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
+                LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
+                        this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
+                this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
+            }
+            for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
+
+                SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
+
+                if (result == null) {
+                    break;
+                }
+
+                try {
+                    this.reputFromOffset = result.getStartOffset();
+
+
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        DispatchRequest dispatchRequest =
+                                DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
+                        int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
+
+                        if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                            doNext = false;
+                            break;
+                        }
+                        if (dispatchRequest.isSuccess()) {
+                            if (size > 0) {
+                                FutureTask<DispatchRequest> futureTask = new FutureTask<>(() -> {
+                                    try {
+                                        DefaultMessageStore.this.doDispatch(dispatchRequest);
+                                    } catch (Throwable e) {
+                                        LOGGER.warn("Error occurred when doDispatch.", e);
+                                        return dispatchRequest;
+                                    }
+                                    return null;
+                                });
+                                dispatchRequestFutures.add(futureTask);
+                                executor.submit(futureTask);
+
+                                this.reputFromOffset += size;
+                                readSize += size;
+                                // todo check it
+                                if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
+                                        DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                                    DefaultMessageStore.this.storeStatsService
+                                            .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
+                                    DefaultMessageStore.this.storeStatsService
+                                            .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
+                                            .add(dispatchRequest.getMsgSize());
+                                }
+                            } else if (size == 0) {
+                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
+                                readSize = result.getSize();
+                            }
+                        } else {
+                            if (size > 0) {
+                                LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
+                                this.reputFromOffset += size;
+                            } else {
+                                doNext = false;
+                                if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
+                                        DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                    LOGGER.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                            this.reputFromOffset);
+                                    this.reputFromOffset += result.getSize() - readSize;
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    result.release();
+                }
+            }
+            // Reprocess the failed dispatchRequest
+            while (!dispatchRequestFutures.isEmpty()) {
+                for (FutureTask<DispatchRequest> future : dispatchRequestFutures) {
+                    if (future.isDone()) {
+                        try {
+                            DispatchRequest dispatchRequest = future.get();
+                            if (dispatchRequest != null) {
+                                DefaultMessageStore.this.doDispatch(dispatchRequest);
+                            }
+                            dispatchRequestFutures.remove(future);
+                        } catch (InterruptedException | ExecutionException e) {
+                            LOGGER.error("Error occurred when doDispatch again.", e);
+                        }
+                    }
+                }
+            }
+        }
+
         private void notifyMessageArrive4MultiQueue(DispatchRequest dispatchRequest) {
             Map<String, String> prop = dispatchRequest.getPropertiesMap();
             if (prop == null) {
@@ -2607,7 +2727,11 @@ public class DefaultMessageStore implements MessageStore {
             while (!this.isStopped()) {
                 try {
                     Thread.sleep(1);
-                    this.doReput();
+                    if (!messageStoreConfig.isEnableConsumeQueueConcurrently()) {
+                        this.doReput();
+                    } else {
+                        this.doReputConcurrently();
+                    }
                 } catch (Exception e) {
                     DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
                 }

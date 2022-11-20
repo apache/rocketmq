@@ -205,6 +205,14 @@ public class MappedFileQueue implements Swappable {
         return 0;
     }
 
+    public MappedFile getMappedFileByOffset(final long offset) {
+        MappedFile mappedFile = findMappedFileByOffset(offset);
+        if (mappedFile == null) {
+            return tryCreateMappedFile(offset);
+        }
+        return mappedFile;
+    }
+
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
