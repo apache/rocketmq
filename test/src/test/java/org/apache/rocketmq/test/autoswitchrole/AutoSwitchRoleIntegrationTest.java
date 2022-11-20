@@ -53,10 +53,9 @@ import static org.junit.Assert.assertTrue;
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
     private static final int DEFAULT_FILE_SIZE = 1700;
-    private static ControllerConfig controllerConfig;
     private static NamesrvController namesrvController;
     private static ControllerManager controllerManager;
-    private static String namesrvAddress;
+    private static String nameserverAddress;
     private static String controllerAddress;
     private BrokerController brokerController1;
     private BrokerController brokerController2;
@@ -73,7 +72,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         int namesrvPort = nextPort();
         serverConfig.setListenPort(namesrvPort);
 
-        controllerConfig = buildControllerConfig("n0", peers);
+        ControllerConfig controllerConfig = buildControllerConfig("n0", peers);
         namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig());
         assertTrue(namesrvController.initialize());
         namesrvController.start();
@@ -82,14 +81,14 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertTrue(controllerManager.initialize());
         controllerManager.start();
 
-        namesrvAddress = "127.0.0.1:" + namesrvPort + ";";
+        nameserverAddress = "127.0.0.1:" + namesrvPort + ";";
         controllerAddress = "127.0.0.1:" + controllerPort + ";";
     }
 
     public void initBroker(int mappedFileSize, String brokerName) throws Exception {
 
-        this.brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
-        this.brokerController2 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
+        this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
+        this.brokerController2 = startBroker(nameserverAddress, controllerAddress, brokerName, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
     }
@@ -150,7 +149,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         // Let master shutdown
         brokerController1.shutdown();
-        this.brokerList.remove(this.brokerController1);
+        brokerList.remove(this.brokerController1);
         Thread.sleep(6000);
 
         // The slave should change to master
@@ -158,7 +157,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
+        brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(brokerController1.getMessageStore());
 
         assertFalse(brokerController1.getReplicasManager().isMasterState());
@@ -180,7 +179,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         initBroker(DEFAULT_FILE_SIZE, brokerName);
         mockData(topic);
 
-        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
+        BrokerController broker3 = startBroker(nameserverAddress, controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(broker3.getMessageStore());
 
         checkMessage(broker3.getMessageStore(), topic, 10, 0);
@@ -202,14 +201,14 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         // Step2: shutdown broker1, broker2 as master
         brokerController1.shutdown();
-        this.brokerList.remove(brokerController1);
+        brokerList.remove(brokerController1);
         Thread.sleep(5000);
 
         assertTrue(brokerController2.getReplicasManager().isMasterState());
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Step3: add broker3
-        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
+        BrokerController broker3 = startBroker(nameserverAddress, controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker3.getMessageStore());
         checkMessage(broker3.getMessageStore(), topic, 10, 0);
 
@@ -235,17 +234,18 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         checkMessage(broker2MessageStore, topic, 10, 10);
 
         // Step6, start broker4, link to broker2, it should sync msg from epoch2(offset = 1700).
-        BrokerController broker4 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 4, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
+        BrokerController broker4 = startBroker(nameserverAddress, controllerAddress, brokerName, 4, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker4.getMessageStore());
         checkMessage(broker4.getMessageStore(), topic, 10, 10);
         shutdownAndClearBroker();
     }
 
     public void shutdownAndClearBroker() throws InterruptedException {
-        for (BrokerController controller : this.brokerList) {
+        for (BrokerController controller : brokerList) {
             controller.shutdown();
             UtilAll.deleteFile(new File(controller.getMessageStoreConfig().getStorePathRootDir()));
         }
+        brokerList.clear();
         Thread.sleep(1000);
     }
 
@@ -271,10 +271,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
                         break;
                     }
                 }
-                if (allOk) {
-                    return true;
-                }
-                return false;
+                return allOk;
             }
         );
         return false;
