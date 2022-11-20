@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.ControllerConfig;
@@ -49,9 +48,9 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleBase {
 
-    protected static final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
+    protected static final String STORE_PATH_ROOT_PARENT_DIR = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
-    private static final String storePathRootDir = storePathRootParentDir + File.separator + "store";
+    private static final String STORE_PATH_ROOT_DIR = STORE_PATH_ROOT_PARENT_DIR + File.separator + "store";
     private static final String STORE_MESSAGE = "Once, there was a chance for me!";
     private static final byte[] MESSAGE_BODY = STORE_MESSAGE.getBytes();
     protected static List<BrokerController> brokerList;
@@ -133,9 +132,9 @@ public class AutoSwitchRoleBase {
         storeConfig.setHaSendHeartbeatInterval(1000);
         storeConfig.setBrokerRole(BrokerRole.SLAVE);
         storeConfig.setHaListenPort(haPort);
-        storeConfig.setStorePathRootDir(storePathRootDir + File.separator + brokerDir);
-        storeConfig.setStorePathCommitLog(storePathRootDir + File.separator + brokerDir + File.separator + "commitlog");
-        storeConfig.setStorePathEpochFile(storePathRootDir + File.separator + brokerDir + File.separator + "EpochFileCache");
+        storeConfig.setStorePathRootDir(STORE_PATH_ROOT_DIR + File.separator + brokerDir);
+        storeConfig.setStorePathCommitLog(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "commitlog");
+        storeConfig.setStorePathEpochFile(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "EpochFileCache");
         storeConfig.setTotalReplicas(3);
         storeConfig.setInSyncReplicas(2);
 
@@ -154,7 +153,7 @@ public class AutoSwitchRoleBase {
         config.setControllerDLegerPeers(peers);
         config.setControllerDLegerSelfId(id);
         config.setMappedFileSize(1024 * 1024);
-        config.setControllerStorePath(storePathRootDir + File.separator + "namesrv" + id + File.separator + "DLedgerController");
+        config.setControllerStorePath(STORE_PATH_ROOT_DIR + File.separator + "namesrv" + id + File.separator + "DLedgerController");
         return config;
     }
 

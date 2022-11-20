@@ -52,7 +52,7 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
-    private static final int defaultFileSize = 1024 * 1024;
+    private static final int DEFAULT_FILE_SIZE = 1024 * 1024;
     private static ControllerConfig controllerConfig;
     private static NamesrvController namesrvController;
     private static ControllerManager controllerManager;
@@ -119,7 +119,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     public void testCheckSyncStateSet() throws Exception {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
-        initBroker(defaultFileSize, brokerName);
+        initBroker(DEFAULT_FILE_SIZE, brokerName);
         awaitDispatchMs(6);
 
         mockData(topic);
@@ -145,7 +145,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     public void testChangeMaster() throws Exception {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
-        initBroker(defaultFileSize, brokerName);
+        initBroker(DEFAULT_FILE_SIZE, brokerName);
         mockData(topic);
 
         // Let master shutdown
@@ -158,7 +158,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
+        brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(brokerController1.getMessageStore());
 
         assertFalse(brokerController1.getReplicasManager().isMasterState());
@@ -177,10 +177,10 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     public void testAddBroker() throws Exception {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
-        initBroker(defaultFileSize, brokerName);
+        initBroker(DEFAULT_FILE_SIZE, brokerName);
         mockData(topic);
 
-        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
+        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(broker3.getMessageStore());
 
         checkMessage(broker3.getMessageStore(), topic, 10, 0);
@@ -256,7 +256,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         if (controllerManager != null) {
             controllerManager.shutdown();
         }
-        File file = new File(storePathRootParentDir);
+        File file = new File(STORE_PATH_ROOT_PARENT_DIR);
         UtilAll.deleteFile(file);
     }
 
