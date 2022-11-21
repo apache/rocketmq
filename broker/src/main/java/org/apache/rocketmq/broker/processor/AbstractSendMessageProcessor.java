@@ -47,8 +47,8 @@ import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -64,8 +64,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
-    protected static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    protected static final InternalLogger DLQ_LOG = InternalLoggerFactory.getLogger(LoggerName.DLQ_LOGGER_NAME);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger DLQ_LOG = LoggerFactory.getLogger(LoggerName.DLQ_LOGGER_NAME);
 
     protected List<ConsumeMessageHook> consumeMessageHookList;
 

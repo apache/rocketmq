@@ -33,8 +33,8 @@ import org.apache.rocketmq.common.statistics.StatisticsItemStateGetter;
 import org.apache.rocketmq.common.statistics.StatisticsKindMeta;
 import org.apache.rocketmq.common.statistics.StatisticsManager;
 import org.apache.rocketmq.common.stats.Stats;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.stats.MomentStatsItemSet;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
@@ -123,11 +123,11 @@ public class BrokerStatsManager {
     /**
      * read disk follow stats
      */
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_STATS_LOGGER_NAME);
-    private static final InternalLogger COMMERCIAL_LOG = InternalLoggerFactory.getLogger(
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_STATS_LOGGER_NAME);
+    private static final Logger COMMERCIAL_LOG = LoggerFactory.getLogger(
         LoggerName.COMMERCIAL_LOGGER_NAME);
-    private static final InternalLogger ACCOUNT_LOG = InternalLoggerFactory.getLogger(LoggerName.ACCOUNT_LOGGER_NAME);
-    private static final InternalLogger DLQ_STAT_LOG = InternalLoggerFactory.getLogger(
+    private static final Logger ACCOUNT_LOG = LoggerFactory.getLogger(LoggerName.ACCOUNT_LOGGER_NAME);
+    private static final Logger DLQ_STAT_LOG = LoggerFactory.getLogger(
         LoggerName.DLQ_STATS_LOGGER_NAME);
     private ScheduledExecutorService scheduledExecutorService;
     private ScheduledExecutorService commercialExecutor;
@@ -668,7 +668,7 @@ public class BrokerStatsManager {
         String[] itemNames,
         ScheduledExecutorService executorService,
         StatisticsItemFormatter formatter,
-        InternalLogger log,
+        Logger log,
         long interval) {
         final BrokerConfig brokerConfig = this.brokerConfig;
         StatisticsItemPrinter printer = new StatisticsItemPrinter(formatter, log);

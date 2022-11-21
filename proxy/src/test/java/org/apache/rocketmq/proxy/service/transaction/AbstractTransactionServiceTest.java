@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class AbstractTransactionServiceTest extends InitConfigAndLoggerTest {
+public class AbstractTransactionServiceTest extends InitConfigTest {
 
     private static final String BROKER_NAME = "mockBroker";
     private static final String PRODUCER_GROUP = "producerGroup";

@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
 
 @Ignore
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BaseProcessorTest extends InitConfigAndLoggerTest {
+public class BaseProcessorTest extends InitConfigTest {
     protected static final Random RANDOM = new Random();
 
     @Mock

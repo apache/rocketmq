@@ -48,9 +48,9 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.util.StatUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BenchLmqStore {
     private static Logger logger = LoggerFactory.getLogger(BenchLmqStore.class);

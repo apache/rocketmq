@@ -51,7 +51,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -80,7 +80,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @RunWith(MockitoJUnitRunner.class)
-public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
+public class LocalMessageServiceTest extends InitConfigTest {
     private LocalMessageService localMessageService;
     @Mock
     private SendMessageProcessor sendMessageProcessorMock;

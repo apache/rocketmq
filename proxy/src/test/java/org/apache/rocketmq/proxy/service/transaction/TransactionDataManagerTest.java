@@ -22,7 +22,7 @@ import java.util.Random;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -34,7 +34,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
+public class TransactionDataManagerTest extends InitConfigTest {
     private static final String PRODUCER_GROUP = "producerGroup";
     private static final Random RANDOM = new Random();
     private TransactionDataManager transactionDataManager;

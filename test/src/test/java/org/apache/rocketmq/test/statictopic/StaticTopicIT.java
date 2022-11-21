@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
@@ -44,6 +43,8 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapp
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.rpc.ClientMetadata;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -66,7 +67,7 @@ import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappin
 @FixMethodOrder
 public class StaticTopicIT extends BaseConf {
 
-    private static Logger logger = Logger.getLogger(StaticTopicIT.class);
+    private static Logger logger = LoggerFactory.getLogger(StaticTopicIT.class);
     private DefaultMQAdminExt defaultMQAdminExt;
 
     @Before

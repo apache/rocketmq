@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.proxy;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import com.google.common.collect.Lists;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
@@ -34,12 +31,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.Configuration;
@@ -53,10 +49,9 @@ import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 
     private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
@@ -70,7 +65,7 @@ public class ProxyStartup {
         try {
             // parse argument from command line
             CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
-            initLogAndConfiguration(commandLineArgument);
+            initConfiguration(commandLineArgument);
 
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
@@ -111,12 +106,11 @@ public class ProxyStartup {
         log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
-    protected static void initLogAndConfiguration(CommandLineArgument commandLineArgument) throws Exception {
+    protected static void initConfiguration(CommandLineArgument commandLineArgument) throws Exception {
         if (StringUtils.isNotBlank(commandLineArgument.getProxyConfigPath())) {
             System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
         }
         ConfigurationManager.initEnv();
-        initLogger();
         ConfigurationManager.intConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
     }
@@ -235,29 +229,10 @@ public class ProxyStartup {
     public static void initThreadPoolMonitor() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         ThreadPoolMonitor.config(
-            InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME),
-            InternalLoggerFactory.getLogger(LoggerName.PROXY_WATER_MARK_LOGGER_NAME),
+            LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME),
+            LoggerFactory.getLogger(LoggerName.PROXY_WATER_MARK_LOGGER_NAME),
             config.isEnablePrintJstack(), config.getPrintJstackInMillis(),
             config.getPrintThreadPoolStatusInMillis());
         ThreadPoolMonitor.init();
-    }
-
-    public static void initLogger() throws JoranException {
-        System.setProperty("brokerLogDir", "");
-        System.setProperty(ClientLogger.CLIENT_LOG_USESLF4J, "true");
-
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        //https://logback.qos.ch/manual/configuration.html
-        lc.setPackagingDataEnabled(false);
-        final String home = ConfigurationManager.getProxyHome();
-        if (StringUtils.isEmpty(home)) {
-            System.out.printf("Please set the %s variable or %s variable in your environment to match the location of the RocketMQ installation%n",
-                MixAll.ROCKETMQ_HOME_ENV, ConfigurationManager.RMQ_PROXY_HOME);
-            System.exit(-1);
-        }
-        configurator.doConfigure(home + "/conf/logback_proxy.xml");
     }
 }

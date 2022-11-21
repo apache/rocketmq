@@ -35,18 +35,18 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class BatchProducer {
@@ -95,7 +95,7 @@ public class BatchProducer {
         final DefaultMQProducer producer = initInstance(namesrv, msgTraceEnable, rpcHook);
         producer.start();
 
-        final InternalLogger log = ClientLogger.getLog();
+        final Logger logger = LoggerFactory.getLogger(BatchProducer.class);
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
@@ -137,7 +137,7 @@ public class BatchProducer {
                         } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
@@ -152,15 +152,15 @@ public class BatchProducer {
                             }
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException ignored) {

@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.test.client.producer.oneway;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
@@ -32,7 +33,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class OneWaySendWithMQIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private static boolean sendFail = false;
     private RMQAsyncSendProducer producer = null;
     private String topic = null;

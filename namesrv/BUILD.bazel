@@ -22,7 +22,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//remoting",
-        "//logging", 
         "//srvutil",
         "//tools",
         "//client",
@@ -40,6 +39,8 @@ java_library(
         "@maven//:org_bouncycastle_bcpkix_jdk15on",
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_google_guava_guava",
+        "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyun_mq_rocketmq_logback_classic",
     ],
 )
 
@@ -50,7 +51,6 @@ java_library(
     deps = [
         ":namesrv",
         "//remoting",
-        "//logging", 
         "//srvutil",
         "//tools",
         "//client",

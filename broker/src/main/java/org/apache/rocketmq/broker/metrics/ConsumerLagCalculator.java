@@ -33,8 +33,8 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
@@ -49,7 +49,7 @@ public class ConsumerLagCalculator {
     private final MessageStore messageStore;
     private final PopBufferMergeService popBufferMergeService;
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     public ConsumerLagCalculator(BrokerController brokerController) {
         this.brokerConfig = brokerController.getBrokerConfig();
