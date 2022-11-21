@@ -244,6 +244,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             UtilAll.deleteFile(new File(controller.getMessageStoreConfig().getStorePathRootDir()));
         }
         brokerList.clear();
+        Thread.sleep(1000);
     }
 
     @AfterClass
