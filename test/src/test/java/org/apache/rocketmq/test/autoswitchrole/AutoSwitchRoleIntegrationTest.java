@@ -50,7 +50,7 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
-    private static final int DEFAULT_FILE_SIZE = 1700;
+    private static final int DEFAULT_FILE_SIZE = 1024 * 1024;
     private static NamesrvController namesrvController;
     private static ControllerManager controllerManager;
     private static String nameserverAddress;
@@ -245,7 +245,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             UtilAll.deleteFile(new File(controller.getMessageStoreConfig().getStorePathRootDir()));
         }
         brokerList.clear();
-        Thread.sleep(1000);
     }
 
     @AfterClass
