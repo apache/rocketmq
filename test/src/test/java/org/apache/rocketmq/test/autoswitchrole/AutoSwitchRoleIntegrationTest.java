@@ -189,6 +189,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
     @Test
     public void testTruncateEpochLogAndChangeMaster() throws Exception {
+        shutdownAndClearBroker();
         String topic = "FooBar";
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         // Noted that 10 msg 's total size = 1570, and if init the mappedFileSize = 1700, one file only be used to store 10 msg.

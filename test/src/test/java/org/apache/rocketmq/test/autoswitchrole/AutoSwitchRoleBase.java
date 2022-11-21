@@ -100,7 +100,7 @@ public class AutoSwitchRoleBase {
         int brokerId, int haPort,
         int brokerListenPort,
         int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
-        final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
+        final MessageStoreConfig storeConfig = buildMessageStoreConfig(brokerName+ "#" + brokerId, haPort, mappedFileSize);
         storeConfig.setHaMaxTimeSlaveNotCatchup(3 * 1000);
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setListenPort(brokerListenPort);
@@ -186,8 +186,8 @@ public class AutoSwitchRoleBase {
             .until(() -> {
                 GetMessageResult result = messageStore.getMessage("GROUP_A", topic, 0, startOffset, 1024, null);
                 System.out.printf(result + "%n");
-                System.out.printf("maxPhyOffset" + messageStore.getMaxPhyOffset() + "%n");
-                System.out.printf("confirmOffset" + messageStore.getConfirmOffset() + "%n");
+                System.out.printf("maxPhyOffset=" + messageStore.getMaxPhyOffset() + "%n");
+                System.out.printf("confirmOffset=" + messageStore.getConfirmOffset() + "%n");
                 return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() >= totalNums;
             });
     }
