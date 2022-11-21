@@ -16,19 +16,19 @@
  */
 package org.apache.rocketmq.common.statistics;
 
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 public class StatisticsItemPrinter {
-    private InternalLogger log;
+    private Logger log;
 
     private StatisticsItemFormatter formatter;
 
-    public StatisticsItemPrinter(StatisticsItemFormatter formatter, InternalLogger log) {
+    public StatisticsItemPrinter(StatisticsItemFormatter formatter, Logger log) {
         this.formatter = formatter;
         this.log = log;
     }
 
-    public void log(InternalLogger log) {
+    public void log(Logger log) {
         this.log = log;
     }
 

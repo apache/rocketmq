@@ -20,7 +20,6 @@ package org.apache.rocketmq.test.client.rmq;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -29,12 +28,14 @@ import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQPopConsumer extends RMQNormalConsumer {
 
-    private static final Logger log = Logger.getLogger(RMQPopConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(RMQPopConsumer.class);
 
     public static final long POP_TIMEOUT = 3000;
     public static final long DEFAULT_INVISIBLE_TIME = 30000;

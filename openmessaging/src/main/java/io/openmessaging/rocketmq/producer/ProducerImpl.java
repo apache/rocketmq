@@ -30,10 +30,14 @@ import io.openmessaging.rocketmq.promise.DefaultPromise;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
 
 public class ProducerImpl extends AbstractOMSProducer implements Producer {
+
+    private static final Logger log = LoggerFactory.getLogger(ProducerImpl.class);
 
     public ProducerImpl(final KeyValue properties) {
         super(properties);
