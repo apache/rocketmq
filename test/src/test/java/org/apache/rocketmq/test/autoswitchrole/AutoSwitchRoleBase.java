@@ -100,7 +100,7 @@ public class AutoSwitchRoleBase {
         int brokerId, int haPort,
         int brokerListenPort,
         int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
-        final MessageStoreConfig storeConfig = buildMessageStoreConfig(brokerName+ "#" + brokerId, haPort, mappedFileSize);
+        final MessageStoreConfig storeConfig = buildMessageStoreConfig(brokerName + "#" + brokerId, haPort, mappedFileSize);
         storeConfig.setHaMaxTimeSlaveNotCatchup(3 * 1000);
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setListenPort(brokerListenPort);
