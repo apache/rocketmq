@@ -336,8 +336,11 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
-    // It is an important basis for the controller to choose the broker master. Under the same conditions,
-    // the broker with higher priority will be selected as master. You can set a higher priority for the broker with better machine conditions.
+    /**
+     * It is an important basis for the controller to choose the broker master.
+     * The higher the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
+     * You can set a higher priority for the broker with better machine conditions.
+     */
     private int brokerElectionPriority = 0;
 
     public enum MetricsExporterType {
