@@ -190,7 +190,7 @@ public class AutoSwitchHATest {
         await().atMost(30, TimeUnit.SECONDS)
             .until(() -> {
                 GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset, 1024, null);
-                System.out.printf(result + "%n");
+//                System.out.printf(result + "%n");
                 return result != null && result.getStatus() == GetMessageStatus.FOUND && result.getMessageCount() >= totalNums;
             });
     }
