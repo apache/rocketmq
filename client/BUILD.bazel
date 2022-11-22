@@ -31,8 +31,8 @@ java_library(
         "@maven//:io_netty_netty_all",
         "@maven//:io_opentracing_opentracing_api",
         "@maven//:commons_collections_commons_collections",
-        "@maven//:io_github_aliyun_mq_rocketmq_slf4j_api",
-        "@maven//:io_github_aliyun_mq_rocketmq_logback_classic",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 

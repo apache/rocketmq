@@ -93,11 +93,11 @@
             <artifactId>annotations-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.aliyun-mq</groupId>
+            <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.aliyun-mq</groupId>
+            <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
     </dependencies>
