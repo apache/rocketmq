@@ -560,7 +560,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         long flush = 0;
         // long time = System.currentTimeMillis();
-        for (long i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
+        for (long i = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE) {
             byteBuffer.put((int) i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
