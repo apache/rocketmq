@@ -24,6 +24,7 @@ import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -75,8 +76,10 @@ public class AutoSwitchHATest {
     private String tmpdir = System.getProperty("java.io.tmpdir");
     private String storePathRootParentDir = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + UUID.randomUUID();
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
+    private Random random = new Random();
 
     public void init(int mappedFileSize) throws Exception {
+        String brokerName = "AutoSwitchHATest_" + random.nextInt(65535);
         queueTotal = 1;
         messageBody = storeMessage.getBytes();
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -84,9 +87,9 @@ public class AutoSwitchHATest {
         storeConfig1 = new MessageStoreConfig();
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
         storeConfig1.setHaSendHeartbeatInterval(1000);
-        storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + "broker1");
-        storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + "broker1" + File.separator + "commitlog");
-        storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + "broker1" + File.separator + "EpochFileCache");
+        storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#1");
+        storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "commitlog");
+        storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "EpochFileCache");
         storeConfig1.setTotalReplicas(3);
         storeConfig1.setInSyncReplicas(2);
         buildMessageStoreConfig(storeConfig1, mappedFileSize);
@@ -95,9 +98,9 @@ public class AutoSwitchHATest {
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
         storeConfig1.setHaSendHeartbeatInterval(1000);
-        storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + "broker2");
-        storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + "broker2" + File.separator + "commitlog");
-        storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + "broker2" + File.separator + "EpochFileCache");
+        storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#2");
+        storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "commitlog");
+        storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "EpochFileCache");
         storeConfig2.setHaListenPort(10943);
         storeConfig2.setTotalReplicas(3);
         storeConfig2.setInSyncReplicas(2);
@@ -110,9 +113,9 @@ public class AutoSwitchHATest {
         storeConfig3 = new MessageStoreConfig();
         storeConfig3.setBrokerRole(BrokerRole.SLAVE);
         storeConfig1.setHaSendHeartbeatInterval(1000);
-        storeConfig3.setStorePathRootDir(storePathRootDir + File.separator + "broker3");
-        storeConfig3.setStorePathCommitLog(storePathRootDir + File.separator + "broker3" + File.separator + "commitlog");
-        storeConfig3.setStorePathEpochFile(storePathRootDir + File.separator + "broker3" + File.separator + "EpochFileCache");
+        storeConfig3.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#3");
+        storeConfig3.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "commitlog");
+        storeConfig3.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "EpochFileCache");
         storeConfig3.setHaListenPort(10980);
         storeConfig3.setTotalReplicas(3);
         storeConfig3.setInSyncReplicas(2);
@@ -132,24 +135,25 @@ public class AutoSwitchHATest {
     }
 
     public void init(int mappedFileSize, boolean allAckInSyncStateSet) throws Exception {
+        String brokerName = "AutoSwitchHATest_" + random.nextInt(65535);
         queueTotal = 1;
         messageBody = storeMessage.getBytes();
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
-        storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + "broker1");
-        storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + "broker1" + File.separator + "commitlog");
-        storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + "broker1" + File.separator + "EpochFileCache");
+        storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#1");
+        storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "commitlog");
+        storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "EpochFileCache");
         storeConfig1.setAllAckInSyncStateSet(allAckInSyncStateSet);
         buildMessageStoreConfig(storeConfig1, mappedFileSize);
         this.store1HaAddress = "127.0.0.1:10912";
 
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
-        storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + "broker2");
-        storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + "broker2" + File.separator + "commitlog");
-        storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + "broker2" + File.separator + "EpochFileCache");
+        storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#2");
+        storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "commitlog");
+        storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "EpochFileCache");
         storeConfig2.setHaListenPort(10943);
         storeConfig2.setAllAckInSyncStateSet(allAckInSyncStateSet);
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
