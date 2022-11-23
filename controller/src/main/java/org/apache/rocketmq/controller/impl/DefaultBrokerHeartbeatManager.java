@@ -112,7 +112,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 channel,
                 epoch == null ? -1 : epoch,
                 maxOffset == null ? -1 : maxOffset,
-                electionPriority == null ? 0 : electionPriority));
+                electionPriority == null ? Integer.MAX_VALUE : electionPriority));
         if (prevBrokerLiveInfo == null) {
             log.info("new broker registered, {}, brokerId:{}", addrInfo, brokerId);
         }

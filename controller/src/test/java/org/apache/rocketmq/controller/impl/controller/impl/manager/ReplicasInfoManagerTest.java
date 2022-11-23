@@ -153,11 +153,11 @@ public class ReplicasInfoManagerTest {
 
     public void mockHeartbeatDataHigherPriority() {
         this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-                1, 3L, 1);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-                1, 3L, 5);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
                 1, 3L, 3);
+        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
+                1, 3L, 2);
+        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
+                1, 3L, 1);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class ReplicasInfoManagerTest {
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
-        assertEquals("127.0.0.1:9001", response.getNewMasterAddress());
+        assertEquals("127.0.0.1:9002", response.getNewMasterAddress());
     }
 
     @Test

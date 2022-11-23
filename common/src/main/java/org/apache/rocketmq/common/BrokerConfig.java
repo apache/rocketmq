@@ -338,10 +338,10 @@ public class BrokerConfig extends BrokerIdentity {
 
     /**
      * It is an important basis for the controller to choose the broker master.
-     * The higher the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
-     * You can set a higher priority for the broker with better machine conditions.
+     * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
+     * You can set a lower priority for the broker with better machine conditions.
      */
-    private int brokerElectionPriority = 0;
+    private int brokerElectionPriority = Integer.MAX_VALUE;
 
     public enum MetricsExporterType {
         DISABLE(0),
