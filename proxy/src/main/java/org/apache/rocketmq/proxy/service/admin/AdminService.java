@@ -18,7 +18,7 @@
 package org.apache.rocketmq.proxy.service.admin;
 
 import java.util.List;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 
 public interface AdminService {
 

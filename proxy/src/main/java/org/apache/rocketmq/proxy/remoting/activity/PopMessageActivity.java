@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.remoting.activity;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;

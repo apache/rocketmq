@@ -18,7 +18,7 @@
 package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 
 public interface ProducerManagerInterface {
 

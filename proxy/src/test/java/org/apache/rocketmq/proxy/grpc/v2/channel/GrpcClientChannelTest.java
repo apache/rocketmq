@@ -22,7 +22,7 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class GrpcClientChannelTest extends InitConfigAndLoggerTest {
+public class GrpcClientChannelTest extends InitConfigTest {
 
     @Mock
     private ProxyRelayService proxyRelayService;
