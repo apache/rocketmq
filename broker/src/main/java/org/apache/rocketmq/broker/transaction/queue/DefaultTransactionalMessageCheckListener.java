@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.transaction.queue;
 
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -34,15 +35,19 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    protected final BrokerConfig brokerConfig;
 
-    public DefaultTransactionalMessageCheckListener() {
+    public DefaultTransactionalMessageCheckListener(BrokerConfig brokerConfig) {
         super();
+        this.brokerConfig = brokerConfig;
     }
 
     @Override
     public void resolveDiscardMsg(MessageExt msgExt) {
+        if (!brokerConfig.isEnableTransCheckMaxTimeTopic()) {
+            return;
+        }
         log.error("MsgExt:{} has been checked too many times, so discard it by moving it to system topic TRANS_CHECK_MAXTIME_TOPIC", msgExt);
-
         try {
             MessageExtBrokerInner brokerInner = toMessageExtBrokerInner(msgExt);
             PutMessageResult putMessageResult = this.getBrokerController().getMessageStore().putMessage(brokerInner);

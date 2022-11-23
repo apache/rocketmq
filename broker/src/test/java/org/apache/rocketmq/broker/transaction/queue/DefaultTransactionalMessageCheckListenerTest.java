@@ -50,7 +50,7 @@ public class DefaultTransactionalMessageCheckListenerTest {
 
     @Before
     public void init() throws Exception {
-        listener = new DefaultTransactionalMessageCheckListener();
+        listener = new DefaultTransactionalMessageCheckListener(brokerController.getBrokerConfig());
         listener.setBrokerController(brokerController);
         brokerController.setMessageStore(messageStore);
 

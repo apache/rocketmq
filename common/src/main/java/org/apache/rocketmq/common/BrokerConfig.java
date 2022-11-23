@@ -276,6 +276,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int transactionOpBatchInterval = 3000;
 
+    private boolean enableTransCheckMaxTimeTopic = true;
+
     /**
      * Acl feature switch
      */
@@ -1572,5 +1574,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
         this.transactionOpBatchInterval = transactionOpBatchInterval;
+    }
+
+    public boolean isEnableTransCheckMaxTimeTopic() {
+        return enableTransCheckMaxTimeTopic;
+    }
+
+    public void setEnableTransCheckMaxTimeTopic(boolean enableTransCheckMaxTimeTopic) {
+        this.enableTransCheckMaxTimeTopic = enableTransCheckMaxTimeTopic;
     }
 }

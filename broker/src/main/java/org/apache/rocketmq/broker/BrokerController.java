@@ -916,7 +916,7 @@ public class BrokerController {
         this.transactionalMessageCheckListener = ServiceProvider.loadClass(
                 AbstractTransactionalMessageCheckListener.class);
         if (null == this.transactionalMessageCheckListener) {
-            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener(brokerConfig);
             LOG.warn("Load default discard message hook service: {}",
                     DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
