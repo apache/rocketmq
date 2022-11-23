@@ -548,7 +548,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
                     getMessageTmpResult.getBufferTotalSize());
 
-                if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
+                if (!isRetry) {
                     Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                         .put(LABEL_TOPIC, requestHeader.getTopic())
                         .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())

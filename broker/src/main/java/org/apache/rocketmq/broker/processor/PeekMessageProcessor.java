@@ -184,16 +184,6 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
 
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
 
-                if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
-                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                        .put(LABEL_TOPIC, requestHeader.getTopic())
-                        .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
-                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
-                        .build();
-                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
-                }
-
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                     final long beginTimeMills = this.brokerController.getMessageStore().now();
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
@@ -253,6 +243,16 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), null);
         }
         if (getMessageTmpResult != null) {
+            if (!getMessageTmpResult.getMessageMapedList().isEmpty() && !isRetry) {
+                Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_TOPIC, requestHeader.getTopic())
+                    .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
+                    .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
+                    .build();
+                BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
+                BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+            }
+
             for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
                 getMessageResult.addMessage(mapedBuffer);
             }
