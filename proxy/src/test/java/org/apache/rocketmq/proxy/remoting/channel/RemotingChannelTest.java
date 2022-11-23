@@ -21,15 +21,15 @@ import io.netty.channel.Channel;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.remoting.RemotingProxyOutClient;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RemotingChannelTest extends InitConfigAndLoggerTest {
+public class RemotingChannelTest extends InitConfigTest {
     @Mock
     private RemotingProxyOutClient remotingProxyOutClient;
     @Mock
@@ -61,8 +61,8 @@ public class RemotingChannelTest extends InitConfigAndLoggerTest {
     public void before() throws Throwable {
         super.before();
         this.clientId = RandomStringUtils.randomAlphabetic(10);
-        when(parent.remoteAddress()).thenReturn(RemotingUtil.string2SocketAddress(remoteAddress));
-        when(parent.localAddress()).thenReturn(RemotingUtil.string2SocketAddress(localAddress));
+        when(parent.remoteAddress()).thenReturn(NetworkUtil.string2SocketAddress(remoteAddress));
+        when(parent.localAddress()).thenReturn(NetworkUtil.string2SocketAddress(localAddress));
         this.subscriptionData = new HashSet<>();
         this.subscriptionData.add(FilterAPI.buildSubscriptionData("topic", "subTag"));
         this.remotingChannel = new RemotingChannel(remotingProxyOutClient, proxyRelayService,

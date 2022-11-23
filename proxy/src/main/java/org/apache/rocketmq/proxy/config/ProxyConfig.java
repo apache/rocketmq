@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.ProxyMode;
@@ -241,7 +242,7 @@ public class ProxyConfig implements ConfigFile {
     public void initData() {
         parseDelayLevel();
         if (StringUtils.isEmpty(localServeAddr)) {
-            this.localServeAddr = RemotingUtil.getLocalAddress();
+            this.localServeAddr = NetworkUtil.getLocalAddress();
         }
         if (StringUtils.isBlank(localServeAddr)) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "get local serve ip failed");

@@ -34,9 +34,9 @@ import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerAuthClient;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerCertPath;
