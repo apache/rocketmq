@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.common;
 
+import java.io.File;
+import org.apache.rocketmq.logging.org.slf4j.MDC;
+
 public abstract class AbstractBrokerRunnable implements Runnable {
     protected final BrokerIdentity brokerIdentity;
 
@@ -24,17 +27,22 @@ public abstract class AbstractBrokerRunnable implements Runnable {
         this.brokerIdentity = brokerIdentity;
     }
 
+    private static final String MDC_BROKER_CONTAINER_LOG_DIR = "brokerContainerLogDir";
+
     /**
      * real logic for running
      */
-    public abstract void run2();
+    public abstract void run0();
 
     @Override
     public void run() {
-        if (brokerIdentity.isInBrokerContainer()) {
-            // set threadlocal broker identity to forward logging to corresponding broker
-//            InnerLoggerFactory.BROKER_IDENTITY.set(brokerIdentity.getCanonicalName());
+        try {
+            if (brokerIdentity.isInBrokerContainer()) {
+                MDC.put(MDC_BROKER_CONTAINER_LOG_DIR, File.separator + brokerIdentity.getCanonicalName());
+            }
+            run0();
+        } finally {
+            MDC.clear();
         }
-        run2();
     }
 }

@@ -92,7 +92,7 @@ public class PullRequestHoldService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return this.brokerController.getBrokerIdentity().getLoggerIdentifier() + PullRequestHoldService.class.getSimpleName();
+            return this.brokerController.getBrokerIdentity().getIdentifier() + PullRequestHoldService.class.getSimpleName();
         }
         return PullRequestHoldService.class.getSimpleName();
     }

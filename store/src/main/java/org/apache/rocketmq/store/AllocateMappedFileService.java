@@ -122,7 +122,7 @@ public class AllocateMappedFileService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (messageStore != null && messageStore.getBrokerConfig().isInBrokerContainer()) {
-            return messageStore.getBrokerIdentity().getLoggerIdentifier() + AllocateMappedFileService.class.getSimpleName();
+            return messageStore.getBrokerIdentity().getIdentifier() + AllocateMappedFileService.class.getSimpleName();
         }
         return AllocateMappedFileService.class.getSimpleName();
     }

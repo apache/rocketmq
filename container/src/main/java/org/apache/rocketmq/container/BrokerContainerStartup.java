@@ -168,7 +168,7 @@ public class BrokerContainerStartup {
 
         brokerConfig.setBrokerConfigPath(filePath);
 
-        log = LoggerFactory.getLogger(brokerConfig.getLoggerIdentifier() + LoggerName.BROKER_LOGGER_NAME);
+        log = LoggerFactory.getLogger(brokerConfig.getIdentifier() + LoggerName.BROKER_LOGGER_NAME);
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 

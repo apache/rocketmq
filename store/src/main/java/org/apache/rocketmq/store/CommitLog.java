@@ -1240,7 +1240,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + CommitRealTimeService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerIdentity().getIdentifier() + CommitRealTimeService.class.getSimpleName();
             }
             return CommitRealTimeService.class.getSimpleName();
         }
@@ -1358,7 +1358,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + FlushRealTimeService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + FlushRealTimeService.class.getSimpleName();
             }
             return FlushRealTimeService.class.getSimpleName();
         }
@@ -1503,7 +1503,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCommitService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + GroupCommitService.class.getSimpleName();
             }
             return GroupCommitService.class.getSimpleName();
         }
@@ -1614,7 +1614,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCheckService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + GroupCheckService.class.getSimpleName();
             }
             return GroupCheckService.class.getSimpleName();
         }

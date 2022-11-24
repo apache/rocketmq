@@ -783,7 +783,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         @Override
         public String getServiceName() {
             if (PopMessageProcessor.this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getLoggerIdentifier() + PopLongPollingService.class.getSimpleName();
+                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getIdentifier() + PopLongPollingService.class.getSimpleName();
             }
             return PopLongPollingService.class.getSimpleName();
         }
@@ -1026,7 +1026,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         @Override
         public String getServiceName() {
             if (PopMessageProcessor.this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getLoggerIdentifier() + QueueLockManager.class.getSimpleName();
+                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getIdentifier() + QueueLockManager.class.getSimpleName();
             }
             return QueueLockManager.class.getSimpleName();
         }
