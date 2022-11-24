@@ -342,7 +342,7 @@ public class IndexService {
 
                 Thread flushThread = new Thread(new AbstractBrokerRunnable(defaultMessageStore.getBrokerConfig()) {
                     @Override
-                    public void run2() {
+                    public void run0() {
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");

@@ -57,7 +57,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
         this.checkNotificationPollingThread = new Thread(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
             @Override
-            public void run2() {
+            public void run0() {
                 while (true) {
                     if (Thread.currentThread().isInterrupted()) {
                         break;

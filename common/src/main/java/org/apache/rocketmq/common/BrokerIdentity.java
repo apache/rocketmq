@@ -115,13 +115,11 @@ public class BrokerIdentity {
     }
 
     public String getCanonicalName() {
-        if (isBrokerContainer) {
-//            return InnerLoggerFactory.BROKER_CONTAINER_NAME;
-        }
-        return this.getBrokerClusterName() + "_" + this.getBrokerName() + "_" + this.getBrokerId();
+        return isBrokerContainer ? "BrokerContainer" : String.format("%s_%s_%d", brokerClusterName, brokerName,
+            brokerId);
     }
 
-    public String getLoggerIdentifier() {
+    public String getIdentifier() {
         return "#" + getCanonicalName() + "#";
     }
 

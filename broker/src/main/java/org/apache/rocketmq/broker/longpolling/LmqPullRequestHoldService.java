@@ -33,7 +33,7 @@ public class LmqPullRequestHoldService extends PullRequestHoldService {
     @Override
     public String getServiceName() {
         if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return this.brokerController.getBrokerIdentity().getLoggerIdentifier() + LmqPullRequestHoldService.class.getSimpleName();
+            return this.brokerController.getBrokerIdentity().getIdentifier() + LmqPullRequestHoldService.class.getSimpleName();
         }
         return LmqPullRequestHoldService.class.getSimpleName();
     }

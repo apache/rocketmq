@@ -47,7 +47,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
 
         scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
             @Override
-            public void run2() {
+            public void run0() {
                 try {
                     notifyConsumerChange();
                 } catch (Exception e) {

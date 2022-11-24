@@ -53,7 +53,7 @@ public class BrokerPreOnlineService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerController != null && this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerIdentity().getLoggerIdentifier() + BrokerPreOnlineService.class.getSimpleName();
+            return brokerController.getBrokerIdentity().getIdentifier() + BrokerPreOnlineService.class.getSimpleName();
         }
         return BrokerPreOnlineService.class.getSimpleName();
     }
