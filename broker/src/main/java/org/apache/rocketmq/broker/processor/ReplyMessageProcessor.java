@@ -70,8 +70,8 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
             return null;
         }
 
-        mqtraceContext = buildMsgContext(ctx, requestHeader);
-        this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+        mqtraceContext = buildMsgContext(ctx, requestHeader, request);
+        this.executeSendMessageHookBefore(mqtraceContext);
 
         RemotingCommand response = this.processReplyMessageRequest(ctx, request, mqtraceContext, requestHeader);
 
