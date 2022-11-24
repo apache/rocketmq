@@ -169,9 +169,9 @@ public class ConsumerManagerTest {
 
     @Test
     public void scanNotActiveChannelTest() {
-        clientChannelInfo.setLastUpdateTimestamp(System.currentTimeMillis() - 1000 * 200);
+        clientChannelInfo.setLastUpdateTimestamp(System.currentTimeMillis() - brokerConfig.getChannelExpiredTimeout() * 2);
         consumerManager.scanNotActiveChannel();
-        assert consumerManager.getConsumerTable().size() == 0;
+        Assertions.assertThat(consumerManager.getConsumerTable().size()).isEqualTo(0);
     }
 
     @Test
@@ -199,7 +199,7 @@ public class ConsumerManagerTest {
     @Test
     public void removeExpireConsumerGroupInfo() {
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL);
-        subscriptionData.setSubVersion(System.currentTimeMillis() - brokerConfig.getSubscriptionExpiredTimeout());
+        subscriptionData.setSubVersion(System.currentTimeMillis() - brokerConfig.getSubscriptionExpiredTimeout() * 2);
         consumerManager.compensateSubscribeData(GROUP, TOPIC, subscriptionData);
         consumerManager.compensateSubscribeData(GROUP, TOPIC + "_1", new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
         consumerManager.removeExpireConsumerGroupInfo();
