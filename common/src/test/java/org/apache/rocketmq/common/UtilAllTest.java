@@ -189,4 +189,9 @@ public class UtilAllTest {
     public void testInvoke() throws Exception {
         UtilAll.invoke(new Object(), "noMethod");
     }
+
+    @Test
+    public void testGetFormatCurTime() {
+        UtilAll.getFormatCurTime();
+    }
 }

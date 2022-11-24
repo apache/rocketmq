@@ -18,17 +18,15 @@
 package org.apache.rocketmq.tools.command.cluster;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
@@ -171,7 +169,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                                 failCount
                             );
                         } else {
-                            System.out.printf("%s", String.format("%s|%s|%s|%s|%s%n", getCurTime(),
+                            System.out.printf("%s", String.format("%s|%s|%s|%s|%s%n", UtilAll.getFormatCurTime(),
                                 machineRoom, clusterName, brokerName,
                                 new BigDecimal(rt).setScale(0, BigDecimal.ROUND_HALF_UP)));
                         }
@@ -198,14 +196,4 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         }
         return res.toString();
     }
-
-    public String getCurTime() {
-        String fromTimeZone = "GMT+8";
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date();
-        format.setTimeZone(TimeZone.getTimeZone(fromTimeZone));
-        String chinaDate = format.format(date);
-        return chinaDate;
-    }
-
 }

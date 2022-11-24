@@ -33,6 +33,7 @@ import java.security.PrivilegedAction;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -40,6 +41,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
@@ -766,5 +768,13 @@ public class UtilAll {
             boolean result = f.mkdirs();
             STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
+    }
+
+    public static String getFormatCurTime() {
+        SimpleDateFormat format = new SimpleDateFormat(YYYY_MM_DD_HH_MM_SS);
+        Date date = new Date();
+        format.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+        String chinaDate = format.format(date);
+        return chinaDate;
     }
 }
