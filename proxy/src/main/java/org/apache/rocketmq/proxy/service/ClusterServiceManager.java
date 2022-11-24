@@ -64,11 +64,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected MQClientAPIFactory transactionClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
         this.producerManager = new ProducerManager();
-        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
+        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout());
 
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         this.messagingClientAPIFactory = new MQClientAPIFactory(
             "ClusterMQClient_",
             proxyConfig.getRocketmqMQClientNum(),

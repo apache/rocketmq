@@ -31,9 +31,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.ProxyMode;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.ProxyMode;
 
 public class ProxyConfig implements ConfigFile {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -192,6 +192,8 @@ public class ProxyConfig implements ConfigFile {
     private String metricsLabel = "";
 
     private boolean metricsInDelta = false;
+
+    private long channelExpiredTimeout = 1000 * 120;
 
     @Override
     public void initData() {
@@ -1037,5 +1039,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMetricsInDelta(boolean metricsInDelta) {
         this.metricsInDelta = metricsInDelta;
+    }
+
+    public long getChannelExpiredTimeout() {
+        return channelExpiredTimeout;
+    }
+
+    public void setChannelExpiredTimeout(long channelExpiredTimeout) {
+        this.channelExpiredTimeout = channelExpiredTimeout;
     }
 }
