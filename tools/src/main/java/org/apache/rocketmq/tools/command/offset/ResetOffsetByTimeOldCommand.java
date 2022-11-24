@@ -116,15 +116,14 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
                     System.out.printf("specified timestamp invalid.%n");
                     return;
                 }
-
-                boolean force = true;
-                if (commandLine.hasOption('f')) {
-                    force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
-                }
-
-                defaultMQAdminExt.start();
-                resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
             }
+
+            boolean force = true;
+            if (commandLine.hasOption('f')) {
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
+            }
+            defaultMQAdminExt.start();
+            resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
