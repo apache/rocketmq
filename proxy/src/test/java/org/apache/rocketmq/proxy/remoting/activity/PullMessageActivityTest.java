@@ -106,7 +106,7 @@ public class PullMessageActivityTest extends InitConfigTest {
         newHeader.setQueueId(0);
         newHeader.setQueueOffset(0L);
         newHeader.setMaxMsgNums(16);
-        newHeader.setSysFlag(PullSysFlag.buildSysFlag(true, false, false, false));
+        newHeader.setSysFlag(PullSysFlag.buildSysFlag(true, false, true, false));
         newHeader.setCommitOffset(0L);
         newHeader.setSuspendTimeoutMillis(1000L);
         newHeader.setSubVersion(0L);
