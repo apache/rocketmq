@@ -39,6 +39,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
@@ -85,14 +86,14 @@ public abstract class NettyRemotingAbstract {
      * This map caches all on-going requests.
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
-            new ConcurrentHashMap<>(256);
+        new ConcurrentHashMap<>(256);
 
     /**
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
      */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
-            new HashMap<>(64);
+        new HashMap<>(64);
 
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
@@ -100,7 +101,8 @@ public abstract class NettyRemotingAbstract {
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     /**
-     * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
+     * The default request processor to use in case there is no exact match in {@link #processorTable} per request
+     * code.
      */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessorPair;
 
@@ -122,7 +124,7 @@ public abstract class NettyRemotingAbstract {
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
      * @param permitsOneway Number of permits for one-way requests.
-     * @param permitsAsync  Number of permits for asynchronous requests.
+     * @param permitsAsync Number of permits for asynchronous requests.
      */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
@@ -195,7 +197,8 @@ public abstract class NettyRemotingAbstract {
         writeResponse(channel, request, response, null);
     }
 
-    public static void writeResponse(Channel channel, RemotingCommand request, @Nullable RemotingCommand response, Consumer<Future<?>> callback) {
+    public static void writeResponse(Channel channel, RemotingCommand request, @Nullable RemotingCommand response,
+        Consumer<Future<?>> callback) {
         if (response == null) {
             return;
         }
@@ -259,7 +262,7 @@ public abstract class NettyRemotingAbstract {
 
         if (pair.getObject1().rejectRequest()) {
             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
-                    "[REJECTREQUEST]system busy, start flow control for a while");
+                "[REJECTREQUEST]system busy, start flow control for a while");
             response.setOpaque(opaque);
             writeResponse(ctx.channel(), cmd, response);
             return;
@@ -272,9 +275,9 @@ public abstract class NettyRemotingAbstract {
         } catch (RejectedExecutionException e) {
             if ((System.currentTimeMillis() % 10000) == 0) {
                 log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
-                        + ", too many requests and system thread pool busy, RejectedExecutionException "
-                        + pair.getObject2().toString()
-                        + " request code: " + cmd.getCode());
+                    + ", too many requests and system thread pool busy, RejectedExecutionException "
+                    + pair.getObject2().toString()
+                    + " request code: " + cmd.getCode());
             }
 
             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
@@ -289,7 +292,8 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    private Runnable buildProcessRequestHandler(ChannelHandlerContext ctx, RemotingCommand cmd, Pair<NettyRequestProcessor, ExecutorService> pair, int opaque) {
+    private Runnable buildProcessRequestHandler(ChannelHandlerContext ctx, RemotingCommand cmd,
+        Pair<NettyRequestProcessor, ExecutorService> pair, int opaque) {
         return () -> {
             Exception exception = null;
             RemotingCommand response;
@@ -298,6 +302,8 @@ public abstract class NettyRemotingAbstract {
                 String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                 try {
                     doBeforeRpcHooks(remoteAddr, cmd);
+                } catch (AbortProcessException e) {
+                    throw e;
                 } catch (Exception e) {
                     exception = e;
                 }
@@ -310,6 +316,8 @@ public abstract class NettyRemotingAbstract {
 
                 try {
                     doAfterRpcHooks(remoteAddr, cmd, response);
+                } catch (AbortProcessException e) {
+                    throw e;
                 } catch (Exception e) {
                     exception = e;
                 }
@@ -319,13 +327,17 @@ public abstract class NettyRemotingAbstract {
                 }
 
                 writeResponse(ctx.channel(), cmd, response);
+            } catch (AbortProcessException e) {
+                response = RemotingCommand.createResponseCommand(e.getResponseCode(), e.getErrorMessage());
+                response.setOpaque(opaque);
+                writeResponse(ctx.channel(), cmd, response);
             } catch (Throwable e) {
                 log.error("process request exception", e);
                 log.error(cmd.toString());
 
                 if (!cmd.isOnewayRPC()) {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                            UtilAll.exceptionSimpleDesc(e));
+                        UtilAll.exceptionSimpleDesc(e));
                     response.setOpaque(opaque);
                     writeResponse(ctx.channel(), cmd, response);
                 }

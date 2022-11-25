@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.mqtrace;
+package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.help.FAQUrl;
 
 /**
  *
- * This exception is used for broker hooks only : SendMessageHook, ConsumeMessageHook, pullMessageHook
+ * This exception is used for broker hooks only : SendMessageHook, ConsumeMessageHook, RPCHook
  * This exception is not ignored while executing hooks and it means that
  * certain processor should return an immediate error response to the client. The
  * error response code is included in AbortProcessException.  it's naming might
