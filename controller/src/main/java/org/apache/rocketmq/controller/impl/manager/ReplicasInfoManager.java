@@ -16,19 +16,12 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.FastJsonSerializer;
+import org.apache.rocketmq.common.utils.Serializer;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
@@ -53,16 +46,28 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
  * state machine It should be noted that this class is not thread safe, and the upper layer needs to ensure that it can
  * be called sequentially
  */
-public class ReplicasInfoManager {
+public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final ControllerConfig controllerConfig;
-    private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
-    private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+    private final Serializer serializer = new FastJsonSerializer();
+    private Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
+    private Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -163,7 +168,7 @@ public class ReplicasInfoManager {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
             final String oldMaster = syncStateInfo.getMasterAddress();
-            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.getAllBroker() : null;
+            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.allBrokers() : null;
 
             // elect by policy
             String newMaster = electPolicy.elect(brokerInfo.getClusterName(), syncStateSet, allReplicaBrokers, oldMaster, assignBrokerAddress);
@@ -234,7 +239,7 @@ public class ReplicasInfoManager {
                 final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(), brokerAddress, brokerId);
                 result.addEvent(applyIdEvent);
             } else {
-                brokerId = brokerInfo.getBrokerId(brokerAddress);
+                brokerId = brokerInfo.getBrokerIdByAddress(brokerAddress);
             }
             response.setBrokerId(brokerId);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
@@ -287,7 +292,7 @@ public class ReplicasInfoManager {
             response.setMasterAddress(masterAddress);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
-                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
+                response.setBrokerId(brokerInfo.getBrokerIdByAddress(request.getBrokerAddress()));
             }
             result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
             return result;
@@ -308,7 +313,7 @@ public class ReplicasInfoManager {
                 final String master = syncStateInfo.getMasterAddress();
                 final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
                 syncStateSet.forEach(replicas -> {
-                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(replicas);
+                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerIdByAddress(replicas);
                     inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
                 });
 
@@ -465,5 +470,66 @@ public class ReplicasInfoManager {
      */
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
+    }
+
+    @Override
+    public byte[] encodeMetadata() {
+        byte[] replicaInfoTableBytes = this.serializer.serialize(this.replicaInfoTable);
+        byte[] syncStateSetInfoTableBytes = this.serializer.serialize(this.syncStateSetInfoTable);
+
+        int replicaInfoTableLength = replicaInfoTableBytes == null ? 0 : replicaInfoTableBytes.length;
+        int syncStateSetInfoTableLength = syncStateSetInfoTableBytes == null ? 0 : syncStateSetInfoTableBytes.length;
+
+        ByteBuffer buffer = ByteBuffer.allocate(8 + replicaInfoTableLength + syncStateSetInfoTableLength);
+        buffer.putInt(replicaInfoTableLength);
+        buffer.putInt(syncStateSetInfoTableLength);
+        if (replicaInfoTableBytes != null) {
+            buffer.put(replicaInfoTableBytes);
+        }
+        if (syncStateSetInfoTableBytes != null) {
+            buffer.put(syncStateSetInfoTableBytes);
+        }
+        buffer.flip();
+
+        return buffer.array();
+    }
+
+    @Override
+    public boolean loadMetadata(byte[] data) {
+        int length = data.length;
+        if (length < 8) {
+            return false;
+        }
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+        int replicaInfoTableLength = byteBuffer.getInt();
+        int syncStateSetInfoTableLength = byteBuffer.getInt();
+        if (length < 8 + replicaInfoTableLength + syncStateSetInfoTableLength) {
+            return false;
+        }
+
+        if (replicaInfoTableLength > 0) {
+            byte[] replicaInfoTableBytes = new byte[replicaInfoTableLength];
+            byteBuffer.get(replicaInfoTableBytes);
+            this.replicaInfoTable = this.serializer.deserialize(replicaInfoTableBytes, Map.class);
+        }
+        if (syncStateSetInfoTableLength > 0) {
+            byte[] syncStateSetInfoTableBytes = new byte[syncStateSetInfoTableLength];
+            byteBuffer.get(syncStateSetInfoTableBytes);
+            this.syncStateSetInfoTable = this.serializer.deserialize(syncStateSetInfoTableBytes, Map.class);
+        }
+        return true;
+    }
+
+    @Override
+    public MetadataManagerType getMetadataManagerType() {
+        return MetadataManagerType.REPLICAS_INFO_MANAGER;
+    }
+
+    public Map<String, BrokerInfo> getReplicaInfoTable() {
+        return new HashMap<>(this.replicaInfoTable);
+    }
+
+    public Map<String, SyncStateInfo> getSyncStateSetInfoTable() {
+        return new HashMap<>(this.syncStateSetInfoTable);
     }
 }
