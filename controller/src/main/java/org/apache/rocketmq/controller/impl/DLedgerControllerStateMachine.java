@@ -17,11 +17,11 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
@@ -30,7 +30,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
- * The state machine implementation of the dledger controller
+ * The state machine implementation of the DLedger controller
  */
 public class DLedgerControllerStateMachine implements StateMachine {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
@@ -61,7 +61,8 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
-    public void onSnapshotSave(SnapshotWriter writer, CompletableFuture<Boolean> future) {
+    public boolean onSnapshotSave(SnapshotWriter writer) {
+        return false;
     }
 
     @Override
@@ -72,6 +73,11 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onShutdown() {
+    }
+
+    @Override
+    public void onError(DLedgerException e) {
+
     }
 
     @Override
