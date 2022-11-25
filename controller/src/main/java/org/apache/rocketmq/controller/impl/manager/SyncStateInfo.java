@@ -23,8 +23,8 @@ import java.util.Set;
  * Manages the syncStateSet of broker replicas.
  */
 public class SyncStateInfo {
-    private final String clusterName;
-    private final String brokerName;
+    private String clusterName;
+    private String brokerName;
 
     private Set<String/*Address*/> syncStateSet;
     private int syncStateSetEpoch;
@@ -56,31 +56,55 @@ public class SyncStateInfo {
         return !this.masterAddress.isEmpty();
     }
 
+    public void removeSyncState(final String address) {
+        syncStateSet.remove(address);
+    }
+
     public String getClusterName() {
         return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     public Set<String> getSyncStateSet() {
         return new HashSet<>(syncStateSet);
+    }
+
+    public void setSyncStateSet(Set<String> syncStateSet) {
+        this.syncStateSet = syncStateSet;
     }
 
     public int getSyncStateSetEpoch() {
         return syncStateSetEpoch;
     }
 
+    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
     public String getMasterAddress() {
         return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void removeSyncState(final String address) {
-        syncStateSet.remove(address);
+    public void setMasterEpoch(int masterEpoch) {
+        this.masterEpoch = masterEpoch;
     }
 }
