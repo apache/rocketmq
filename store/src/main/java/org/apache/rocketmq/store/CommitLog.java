@@ -409,21 +409,11 @@ public class CommitLog implements Swappable {
 
             long bornTimeStamp = byteBuffer.getLong();
 
-            ByteBuffer byteBuffer1;
-            if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
-                byteBuffer1 = byteBuffer.get(bytesContent, 0, 4 + 4);
-            } else {
-                byteBuffer1 = byteBuffer.get(bytesContent, 0, 16 + 4);
-            }
+            ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, MessageSysFlag.getBornHostLength(sysFlag));
 
             long storeTimestamp = byteBuffer.getLong();
 
-            ByteBuffer byteBuffer2;
-            if ((sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0) {
-                byteBuffer2 = byteBuffer.get(bytesContent, 0, 4 + 4);
-            } else {
-                byteBuffer2 = byteBuffer.get(bytesContent, 0, 16 + 4);
-            }
+            ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, MessageSysFlag.getStoreHostLength(sysFlag));
 
             int reconsumeTimes = byteBuffer.getInt();
 
@@ -689,7 +679,7 @@ public class CommitLog implements Swappable {
         }
 
         int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+        int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
         int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
         long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
         if (0 == storeTimestamp) {
@@ -1128,7 +1118,7 @@ public class CommitLog implements Swappable {
             if (null != result) {
                 try {
                     int sysFlag = result.getByteBuffer().getInt(MessageDecoder.SYSFLAG_POSITION);
-                    int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+                    int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
                     int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
                     return result.getByteBuffer().getLong(msgStoreTimePos);
                 } finally {
@@ -1644,7 +1634,7 @@ public class CommitLog implements Swappable {
 
             Supplier<String> msgIdSupplier = () -> {
                 int sysflag = msgInner.getSysFlag();
-                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                int msgIdLen = MessageSysFlag.getStoreHostLength(sysflag) + 8;
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
                 MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
                 msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
@@ -1698,7 +1688,7 @@ public class CommitLog implements Swappable {
             pos += 8;
             // 7 PHYSICALOFFSET
             preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
-            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            int ipLen = MessageSysFlag.getBornHostLength(msgInner.getSysFlag());
             // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
             pos += 8 + 4 + 8 + ipLen;
             // refresh store time stamp in lock
@@ -1729,8 +1719,8 @@ public class CommitLog implements Swappable {
             ByteBuffer messagesByteBuff = messageExtBatch.getEncodedBuff();
 
             int sysFlag = messageExtBatch.getSysFlag();
-            int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            int storeHostLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            int bornHostLength = MessageSysFlag.getBornHostLength(sysFlag);
+            int storeHostLength = MessageSysFlag.getStoreHostLength(sysFlag);
             Supplier<String> msgIdSupplier = () -> {
                 int msgIdLen = storeHostLength + 8;
                 int batchCount = putMessageContext.getBatchSize();

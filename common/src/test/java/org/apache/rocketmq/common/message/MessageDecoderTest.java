@@ -397,7 +397,7 @@ public class MessageDecoderTest {
     }
 
     private void verifyMessageId(MessageExt msgExt) throws UnknownHostException {
-        int storehostIPLength = (msgExt.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 : 16;
+        int storehostIPLength = MessageSysFlag.getStoreHostIpLength(msgExt.getSysFlag());
         int msgIDLength = storehostIPLength + 4 + 8;
         ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
         String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());

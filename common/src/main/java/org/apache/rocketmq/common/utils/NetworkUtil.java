@@ -39,6 +39,10 @@ public class NetworkUtil {
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
 
+    private static final int IP_V4_LENGTH = 4;
+    private static final int IP_V6_LENGTH = 16;
+    private static final int PORT_LENGTH = 4;
+
     static {
         if (OS_NAME != null && OS_NAME.toLowerCase().contains("linux")) {
             isLinuxPlatform = true;
@@ -177,5 +181,15 @@ public class NetworkUtil {
             //Ignore
         }
         return false;
+    }
+
+    public static int getHostLength(boolean isIpV6, boolean includePort) {
+        if (includePort) {
+            // IPv4 host = ip(4 byte) + port(4 byte)
+            // IPv6 host = ip(16 byte) + port(4 byte)
+            return isIpV6 ? IP_V6_LENGTH + PORT_LENGTH : IP_V4_LENGTH + PORT_LENGTH;
+        } else {
+            return isIpV6 ? IP_V6_LENGTH : IP_V4_LENGTH;
+        }
     }
 }

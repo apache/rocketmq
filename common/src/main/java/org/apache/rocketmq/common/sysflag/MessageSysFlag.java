@@ -17,6 +17,7 @@
 package org.apache.rocketmq.common.sysflag;
 
 import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 
 public class MessageSysFlag {
 
@@ -69,4 +70,47 @@ public class MessageSysFlag {
         return (flag & expectedFlag) != 0;
     }
 
+    /**
+     * Return the length of born host address: {@code IP + PORT}
+     *
+     * @param flag
+     * @return
+     */
+    public static int getBornHostLength(int flag) {
+        boolean isIpV6 = check(flag, BORNHOST_V6_FLAG);
+        return NetworkUtil.getHostLength(isIpV6, true);
+    }
+
+    /**
+     * Return the length of born host ip
+     *
+     * @param flag
+     * @return
+     */
+    public static int getBornHostIpLength(int flag) {
+        boolean isIpV6 = check(flag, BORNHOST_V6_FLAG);
+        return NetworkUtil.getHostLength(isIpV6, false);
+    }
+
+    /**
+     * Return the length of store host address: {@code IP + PORT}
+     *
+     * @param flag
+     * @return
+     */
+    public static int getStoreHostLength(int flag) {
+        boolean isIpV6 = check(flag, STOREHOSTADDRESS_V6_FLAG);
+        return NetworkUtil.getHostLength(isIpV6,true);
+    }
+
+    /**
+     * Return the length of store host ip
+     *
+     * @param flag
+     * @return
+     */
+    public static int getStoreHostIpLength(int flag) {
+        boolean isIpV6 = check(flag, STOREHOSTADDRESS_V6_FLAG);
+        return NetworkUtil.getHostLength(isIpV6,false);
+    }
 }

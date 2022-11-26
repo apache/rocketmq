@@ -222,9 +222,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
 
                 byteBuffer.put(bb);
                 int sysFlag = bb.getInt(MessageDecoder.SYSFLAG_POSITION);
-//                bornhost has the IPv4 ip if the MessageSysFlag.BORNHOST_V6_FLAG bit of sysFlag is 0
-//                IPv4 host = ip(4 byte) + port(4 byte); IPv6 host = ip(16 byte) + port(4 byte)
-                int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+                // bornhost has the IPv4 ip if the MessageSysFlag.BORNHOST_V6_FLAG bit of sysFlag is 0
+                int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
                 int msgStoreTimePos = 4 // 1 TOTALSIZE
                     + 4 // 2 MAGICCODE
                     + 4 // 3 BODYCRC

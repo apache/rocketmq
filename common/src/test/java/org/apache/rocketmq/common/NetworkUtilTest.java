@@ -42,4 +42,22 @@ public class NetworkUtilTest {
         String result = NetworkUtil.convert2IpString("localhost:9876");
         assertThat(result).isEqualTo("127.0.0.1:9876");
     }
+
+    @Test
+    public void testGetHostLength() {
+        // IPv4 host = ip(4 byte) + port(4 byte)
+        // IPv6 host = ip(16 byte) + port(4 byte)
+
+        int ipV4WithoutPort = NetworkUtil.getHostLength(false, false);
+        assertThat(ipV4WithoutPort).isEqualTo(4);
+
+        int ipV4WithPort = NetworkUtil.getHostLength(false, true);
+        assertThat(ipV4WithPort).isEqualTo(8);
+
+        int ipV6WithoutPort = NetworkUtil.getHostLength(true, false);
+        assertThat(ipV6WithoutPort).isEqualTo(16);
+
+        int ipV6WithPort = NetworkUtil.getHostLength(true, true);
+        assertThat(ipV6WithPort).isEqualTo(20);
+    }
 }

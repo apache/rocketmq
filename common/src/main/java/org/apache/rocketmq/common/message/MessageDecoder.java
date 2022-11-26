@@ -110,8 +110,8 @@ public class MessageDecoder {
      */
     public static Map<String, String> decodeProperties(ByteBuffer byteBuffer) {
         int sysFlag = byteBuffer.getInt(SYSFLAG_POSITION);
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-        int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
+        int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
+        int storehostAddressLength = MessageSysFlag.getStoreHostLength(sysFlag);
         int bodySizePosition = 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCODE
             + 4 // 3 BODYCRC
@@ -164,8 +164,8 @@ public class MessageDecoder {
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = messageExt.getSysFlag();
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-        int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
+        int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
+        int storehostAddressLength = MessageSysFlag.getStoreHostLength(sysFlag);
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
             Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
@@ -283,7 +283,7 @@ public class MessageDecoder {
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = messageExt.getSysFlag();
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+        int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
             newBody = UtilAll.compress(body, 5);
@@ -441,7 +441,7 @@ public class MessageDecoder {
             msgExt.setBornTimestamp(bornTimeStamp);
 
             // 10 BORNHOST
-            int bornhostIPLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 : 16;
+            int bornhostIPLength = MessageSysFlag.getBornHostIpLength(sysFlag);
             byte[] bornHost = new byte[bornhostIPLength];
             byteBuffer.get(bornHost, 0, bornhostIPLength);
             int port = byteBuffer.getInt();
@@ -452,7 +452,7 @@ public class MessageDecoder {
             msgExt.setStoreTimestamp(storeTimestamp);
 
             // 12 STOREHOST
-            int storehostIPLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 : 16;
+            int storehostIPLength = MessageSysFlag.getStoreHostIpLength(sysFlag);
             byte[] storeHost = new byte[storehostIPLength];
             byteBuffer.get(storeHost, 0, storehostIPLength);
             port = byteBuffer.getInt();

@@ -431,7 +431,7 @@ public class DLedgerCommitLog extends CommitLog {
                 }
                 long wroteOffset = dledgerFuture.getPos() + DLedgerEntry.BODY_OFFSET;
 
-                int msgIdLength = (msg.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                int msgIdLength = MessageSysFlag.getStoreHostLength(msg.getSysFlag()) + 8;
                 ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
@@ -546,7 +546,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 long wroteOffset = 0;
 
-                int msgIdLength = (messageExtBatch.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                int msgIdLength = MessageSysFlag.getStoreHostLength(messageExtBatch.getSysFlag()) + 8;
                 ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
                 boolean isFirstOffset = true;
@@ -743,8 +743,8 @@ public class DLedgerCommitLog extends CommitLog {
 
             int sysflag = msgInner.getSysFlag();
 
-            int bornHostLength = (sysflag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            int storeHostLength = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            int bornHostLength = MessageSysFlag.getBornHostLength(sysflag);
+            int storeHostLength = MessageSysFlag.getStoreHostLength(sysflag);
             ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
@@ -843,8 +843,8 @@ public class DLedgerCommitLog extends CommitLog {
             List<byte[]> batchBody = new LinkedList<>();
 
             int sysFlag = messageExtBatch.getSysFlag();
-            int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            int storeHostLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            int bornHostLength = MessageSysFlag.getBornHostLength(sysFlag);
+            int storeHostLength = MessageSysFlag.getStoreHostLength(sysFlag);
             ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 

@@ -48,8 +48,8 @@ public class MessageExtEncoder {
     }
 
     public static int calMsgLength(int sysFlag, int bodyLength, int topicLength, int propertiesLength) {
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-        int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
+        int bornhostLength = MessageSysFlag.getBornHostLength(sysFlag);
+        int storehostAddressLength = MessageSysFlag.getStoreHostLength(sysFlag);
         final int msgLen = 4 //TOTALSIZE
             + 4 //MAGICCODE
             + 4 //BODYCRC
