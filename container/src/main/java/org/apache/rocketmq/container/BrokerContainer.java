@@ -158,7 +158,7 @@ public class BrokerContainer implements IBrokerContainer {
             // also auto update namesrv if specify
             this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
                 @Override
-                public void run2() {
+                public void run0() {
                     try {
                         BrokerContainer.this.updateNamesrvAddr();
                     } catch (Throwable e) {
@@ -170,7 +170,7 @@ public class BrokerContainer implements IBrokerContainer {
             this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
 
                 @Override
-                public void run2() {
+                public void run0() {
                     try {
                         BrokerContainer.this.brokerOuterAPI.fetchNameServerAddr();
                     } catch (Throwable e) {
@@ -182,7 +182,7 @@ public class BrokerContainer implements IBrokerContainer {
 
         this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
             @Override
-            public void run2() {
+            public void run0() {
                 try {
                     BrokerContainer.this.brokerOuterAPI.refreshMetadata();
                 } catch (Exception e) {

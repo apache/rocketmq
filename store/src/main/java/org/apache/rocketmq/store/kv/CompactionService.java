@@ -74,7 +74,7 @@ public class CompactionService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (defaultMessageStore != null && defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + CompactionService.class.getSimpleName();
+            return defaultMessageStore.getBrokerConfig().getIdentifier() + CompactionService.class.getSimpleName();
         }
         return CompactionService.class.getSimpleName();
     }

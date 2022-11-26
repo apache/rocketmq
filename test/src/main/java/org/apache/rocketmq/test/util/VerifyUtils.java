@@ -82,22 +82,17 @@ public class VerifyUtils {
         return verifyBalance(msgSize, 0.1f, recvSize);
     }
 
-    public static boolean verifyDelay(long delayTimeMills, Collection<Object> recvMsgTimes,
-        int errorMills) {
+    public static boolean verifyDelay(long delayTimeMills, long nextLevelDelayTimeMills,
+        Collection<Object> recvMsgTimes) {
         boolean delay = true;
         for (Object timeObj : recvMsgTimes) {
             long time = (Long) timeObj;
-            if (Math.abs(time - delayTimeMills) > errorMills) {
+            if (time < delayTimeMills || time > nextLevelDelayTimeMills) {
                 delay = false;
                 logger.info(String.format("delay error:%s", Math.abs(time - delayTimeMills)));
             }
         }
         return delay;
-    }
-
-    public static boolean verifyDelay(long delayTimeMills, Collection<Object> recvMsgTimes) {
-        int errorMills = 500;
-        return verifyDelay(delayTimeMills, recvMsgTimes, errorMills);
     }
 
     public static boolean verifyOrder(Collection<Collection<Object>> queueMsgs) {

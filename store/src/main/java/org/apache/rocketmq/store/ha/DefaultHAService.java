@@ -270,7 +270,7 @@ public class DefaultHAService implements HAService {
         @Override
         public String getServiceName() {
             if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
+                return defaultMessageStore.getBrokerConfig().getIdentifier() + AcceptSocketService.class.getSimpleName();
             }
             return DefaultAcceptSocketService.class.getSimpleName();
         }
