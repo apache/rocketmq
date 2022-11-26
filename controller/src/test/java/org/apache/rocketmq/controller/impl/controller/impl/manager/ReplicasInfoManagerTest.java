@@ -319,7 +319,6 @@ public class ReplicasInfoManagerTest {
         ReplicasInfoManager replicasInfoManager1 = new ReplicasInfoManager(null);
         assertTrue(replicasInfoManager1.loadMetadata(metadata));
 
-        assertEquals(this.replicasInfoManager.getReplicaInfoTable(), replicasInfoManager1.getReplicaInfoTable());
-        assertEquals(this.replicasInfoManager.getSyncStateSetInfoTable(), replicasInfoManager1.getSyncStateSetInfoTable());
+        assertArrayEquals(metadata, replicasInfoManager1.encodeMetadata());
     }
 }
