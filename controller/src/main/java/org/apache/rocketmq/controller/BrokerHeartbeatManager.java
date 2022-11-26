@@ -49,7 +49,7 @@ public interface BrokerHeartbeatManager {
      * Register new broker to heartManager.
      */
     void registerBroker(final String clusterName, final String brokerName, final String brokerAddr, final long brokerId,
-                        final Long timeoutMillis, final Channel channel, final Integer epoch, final Long maxOffset);
+                        final Long timeoutMillis, final Channel channel, final Integer epoch, final Long maxOffset, final Integer electionPriority);
 
     /**
      * Broker channel close

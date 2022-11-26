@@ -336,6 +336,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    /**
+     * It is an important basis for the controller to choose the broker master.
+     * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
+     * You can set a lower priority for the broker with better machine conditions.
+     */
+    private int brokerElectionPriority = Integer.MAX_VALUE;
+
     public enum MetricsExporterType {
         DISABLE(0),
         OTLP_GRPC(1),
@@ -1420,6 +1427,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
         this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
+    }
+
+    public int getBrokerElectionPriority() {
+        return brokerElectionPriority;
+    }
+
+    public void setBrokerElectionPriority(int brokerElectionPriority) {
+        this.brokerElectionPriority = brokerElectionPriority;
     }
 
     public boolean isRecoverConcurrently() {

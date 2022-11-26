@@ -31,9 +31,10 @@ public class BrokerLiveInfo {
     private int epoch;
     private long maxOffset;
     private long confirmOffset;
+    private Integer electionPriority;
 
     public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
-                          Channel channel, int epoch, long maxOffset) {
+                          Channel channel, int epoch, long maxOffset, Integer electionPriority) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -41,10 +42,12 @@ public class BrokerLiveInfo {
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
         this.channel = channel;
         this.epoch = epoch;
+        this.electionPriority = electionPriority;
         this.maxOffset = maxOffset;
     }
+
     public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
-                          Channel channel, int epoch, long maxOffset, long confirmOffset) {
+                          Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -53,6 +56,7 @@ public class BrokerLiveInfo {
         this.channel = channel;
         this.epoch = epoch;
         this.maxOffset = maxOffset;
+        this.electionPriority = electionPriority;
         this.confirmOffset = confirmOffset;
     }
 
@@ -121,6 +125,14 @@ public class BrokerLiveInfo {
 
     public void setConfirmOffset(long confirmOffset) {
         this.confirmOffset = confirmOffset;
+    }
+
+    public void setElectionPriority(Integer electionPriority) {
+        this.electionPriority = electionPriority;
+    }
+
+    public Integer getElectionPriority() {
+        return electionPriority;
     }
 
     public long getConfirmOffset() {

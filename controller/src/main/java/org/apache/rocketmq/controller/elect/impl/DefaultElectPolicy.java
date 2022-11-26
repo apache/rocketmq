@@ -36,8 +36,14 @@ public class DefaultElectPolicy implements ElectPolicy {
     // <clusterName, brokerAddr, BrokerLiveInfo>, Used to obtain the BrokerLiveInfo information of a broker
     private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
 
-    private final Comparator<BrokerLiveInfo> comparator = (x, y) -> {
-        return x.getEpoch() == y.getEpoch() ? (int) (y.getMaxOffset() - x.getMaxOffset()) : y.getEpoch() - x.getEpoch();
+    // Sort in descending order according to<epoch, offset>, and sort in ascending order according to priority
+    private final Comparator<BrokerLiveInfo> comparator = (o1, o2) -> {
+        if (o1.getEpoch() == o2.getEpoch()) {
+            return o1.getMaxOffset() == o2.getMaxOffset() ? o1.getElectionPriority() - o2.getElectionPriority() :
+                    (int) (o2.getMaxOffset() - o1.getMaxOffset());
+        } else {
+            return o2.getEpoch() - o1.getEpoch();
+        }
     };
 
     public DefaultElectPolicy(BiPredicate<String, String> validPredicate, BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
@@ -55,7 +61,7 @@ public class DefaultElectPolicy implements ElectPolicy {
      *    - Filter alive brokers by 'validPredicate'.
      *    - Check whether the old master is still valid.
      *    - If preferBrokerAddr is not empty and valid, select it as master.
-     *    - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset), and select the best candidate as the new master.
+     *    - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset, electionPriority), and select the best candidate as the new master.
      *
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
