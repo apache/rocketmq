@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,6 +35,18 @@ public class BrokerInfo {
         this.brokerName = brokerName;
         this.brokerIdCount = new AtomicLong(1L);
         this.brokerIdTable = new HashMap<>();
+    }
+
+    // This constructor is to adapt FastJSONSerializer.
+    public BrokerInfo(String clusterName, String brokerName, Integer brokerIdCount, JSONObject brokerIdTable) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerIdCount = new AtomicLong(brokerIdCount);
+        this.brokerIdTable = new HashMap<>();
+        brokerIdTable.entrySet().forEach(entry -> {
+            Long brokerId = new Long((Integer) entry.getValue());
+            this.brokerIdTable.put(entry.getKey(), brokerId);
+        });
     }
 
     public void removeBrokerAddress(final String address) {
@@ -92,5 +106,15 @@ public class BrokerInfo {
 
     public void setBrokerIdTable(HashMap<String, Long> brokerIdTable) {
         this.brokerIdTable = brokerIdTable;
+    }
+
+    @Override
+    public String toString() {
+        return "BrokerInfo{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerIdCount=" + brokerIdCount +
+                ", brokerIdTable=" + brokerIdTable +
+                '}';
     }
 }

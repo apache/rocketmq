@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import com.alibaba.fastjson.JSONArray;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,11 +28,11 @@ public class SyncStateInfo {
     private String clusterName;
     private String brokerName;
 
-    private Set<String/*Address*/> syncStateSet;
-    private int syncStateSetEpoch;
-
     private String masterAddress;
     private int masterEpoch;
+
+    private int syncStateSetEpoch;
+    private Set<String/*Address*/> syncStateSet;
 
     public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
         this.clusterName = clusterName;
@@ -40,6 +42,17 @@ public class SyncStateInfo {
         this.syncStateSet = new HashSet<>();
         this.syncStateSet.add(masterAddress);
         this.syncStateSetEpoch = 1;
+    }
+
+    // This constructor is to adapt FastJSONSerializer.
+    public SyncStateInfo(String clusterName, String brokerName, String masterAddress, int masterEpoch, int syncStateSetEpoch, JSONArray syncStateSet) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
+        this.syncStateSet = new HashSet<>();
+        syncStateSet.forEach(entry -> this.syncStateSet.add((String) entry));
     }
 
     public void updateMasterInfo(String masterAddress) {
@@ -106,5 +119,17 @@ public class SyncStateInfo {
 
     public void setMasterEpoch(int masterEpoch) {
         this.masterEpoch = masterEpoch;
+    }
+
+    @Override
+    public String toString() {
+        return "SyncStateInfo{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", masterAddress='" + masterAddress + '\'' +
+                ", masterEpoch=" + masterEpoch +
+                ", syncStateSetEpoch=" + syncStateSetEpoch +
+                ", syncStateSet=" + syncStateSet +
+                '}';
     }
 }

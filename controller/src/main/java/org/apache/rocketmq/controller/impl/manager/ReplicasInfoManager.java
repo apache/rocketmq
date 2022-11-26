@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -510,12 +511,16 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
         if (replicaInfoTableLength > 0) {
             byte[] replicaInfoTableBytes = new byte[replicaInfoTableLength];
             byteBuffer.get(replicaInfoTableBytes);
-            this.replicaInfoTable = this.serializer.deserialize(replicaInfoTableBytes, Map.class);
+            Map<String, JSONObject> kvPair = this.serializer.deserialize(replicaInfoTableBytes, Map.class);
+            this.replicaInfoTable = new HashMap<>();
+            kvPair.entrySet().forEach(entry -> this.replicaInfoTable.put(entry.getKey(), entry.getValue().toJavaObject(BrokerInfo.class)));
         }
         if (syncStateSetInfoTableLength > 0) {
             byte[] syncStateSetInfoTableBytes = new byte[syncStateSetInfoTableLength];
             byteBuffer.get(syncStateSetInfoTableBytes);
-            this.syncStateSetInfoTable = this.serializer.deserialize(syncStateSetInfoTableBytes, Map.class);
+            Map<String, JSONObject> kvPair = this.serializer.deserialize(syncStateSetInfoTableBytes, Map.class);
+            this.syncStateSetInfoTable = new HashMap<>();
+            kvPair.entrySet().forEach(entry -> this.syncStateSetInfoTable.put(entry.getKey(), entry.getValue().toJavaObject(SyncStateInfo.class)));
         }
         return true;
     }
@@ -523,13 +528,5 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
     @Override
     public MetadataManagerType getMetadataManagerType() {
         return MetadataManagerType.REPLICAS_INFO_MANAGER;
-    }
-
-    public Map<String, BrokerInfo> getReplicaInfoTable() {
-        return new HashMap<>(this.replicaInfoTable);
-    }
-
-    public Map<String, SyncStateInfo> getSyncStateSetInfoTable() {
-        return new HashMap<>(this.syncStateSetInfoTable);
     }
 }
