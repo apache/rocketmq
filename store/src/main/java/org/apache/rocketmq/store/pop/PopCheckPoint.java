@@ -60,10 +60,6 @@ public class PopCheckPoint {
         this.startOffset = startOffset;
     }
 
-    public void getStartOffset(long startOffset) {
-        this.startOffset = startOffset;
-    }
-
     public void setPopTime(long popTime) {
         this.popTime = popTime;
     }

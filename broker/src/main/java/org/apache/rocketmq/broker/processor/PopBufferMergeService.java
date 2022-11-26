@@ -416,7 +416,7 @@ public class PopBufferMergeService extends ServiceThread {
         ck.setNum((byte) 0);
         ck.setPopTime(popTime);
         ck.setInvisibleTime(invisibleTime);
-        ck.getStartOffset(startOffset);
+        ck.setStartOffset(startOffset);
         ck.setCId(group);
         ck.setTopic(topic);
         ck.setQueueId((byte) queueId);
