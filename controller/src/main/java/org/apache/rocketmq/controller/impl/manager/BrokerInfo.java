@@ -37,7 +37,7 @@ public class BrokerInfo {
         this.brokerIdTable = new HashMap<>();
     }
 
-    // This constructor is to adapt FastJSONSerializer.
+    // This constructor is to adapt FastJSONSerializer
     public BrokerInfo(String clusterName, String brokerName, Integer brokerIdCount, JSONObject brokerIdTable) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
