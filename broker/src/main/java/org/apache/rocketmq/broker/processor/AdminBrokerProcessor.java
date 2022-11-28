@@ -458,10 +458,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(result.getRemark());
             return response;
         }
-        if (TopicValidator.isSystemTopic(topic)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The topic[" + topic + "] is conflict with system topic.");
-            return response;
+        if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
+            if (TopicValidator.isSystemTopic(topic)) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("The topic[" + topic + "] is conflict with system topic.");
+                return response;
+            }
         }
         boolean force = false;
         if (requestHeader.getForce() != null && requestHeader.getForce()) {
