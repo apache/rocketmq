@@ -54,15 +54,17 @@ public class ProxyConfig implements ConfigFile {
         }
     }
 
-    private String rocketMQClusterName = "";
+    private String rocketMQClusterName = DEFAULT_CLUSTER_NAME;
     private String proxyClusterName = DEFAULT_CLUSTER_NAME;
     private String proxyName = StringUtils.isEmpty(localHostName) ? "DEFAULT_PROXY" : localHostName;
 
     private String localServeAddr = "";
 
-    private String systemTopicClusterName = "";
+    private String heartbeatSyncerTopicClusterName = "";
     private int heartbeatSyncerThreadPoolNums = 4;
     private int heartbeatSyncerThreadPoolQueueCapacity = 100;
+
+    private String heartbeatSyncerTopicName = "DefaultHeartBeatSyncerTopic";
 
     /**
      * configuration for ThreadPoolMonitor
@@ -250,8 +252,8 @@ public class ProxyConfig implements ConfigFile {
         if (StringUtils.isBlank(remotingAccessAddr)) {
             this.remotingAccessAddr = this.localServeAddr;
         }
-        if (StringUtils.isBlank(systemTopicClusterName)) {
-            this.systemTopicClusterName = this.rocketMQClusterName;
+        if (StringUtils.isBlank(heartbeatSyncerTopicClusterName)) {
+            this.heartbeatSyncerTopicClusterName = this.rocketMQClusterName;
         }
     }
 
@@ -324,12 +326,12 @@ public class ProxyConfig implements ConfigFile {
         this.localServeAddr = localServeAddr;
     }
 
-    public String getSystemTopicClusterName() {
-        return systemTopicClusterName;
+    public String getHeartbeatSyncerTopicClusterName() {
+        return heartbeatSyncerTopicClusterName;
     }
 
-    public void setSystemTopicClusterName(String systemTopicClusterName) {
-        this.systemTopicClusterName = systemTopicClusterName;
+    public void setHeartbeatSyncerTopicClusterName(String heartbeatSyncerTopicClusterName) {
+        this.heartbeatSyncerTopicClusterName = heartbeatSyncerTopicClusterName;
     }
 
     public int getHeartbeatSyncerThreadPoolNums() {
@@ -346,6 +348,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setHeartbeatSyncerThreadPoolQueueCapacity(int heartbeatSyncerThreadPoolQueueCapacity) {
         this.heartbeatSyncerThreadPoolQueueCapacity = heartbeatSyncerThreadPoolQueueCapacity;
+    }
+
+    public String getHeartbeatSyncerTopicName() {
+        return heartbeatSyncerTopicName;
+    }
+
+    public void setHeartbeatSyncerTopicName(String heartbeatSyncerTopicName) {
+        this.heartbeatSyncerTopicName = heartbeatSyncerTopicName;
     }
 
     public boolean isEnablePrintJstack() {
