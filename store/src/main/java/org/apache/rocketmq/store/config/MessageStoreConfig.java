@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.store.config;
 
+import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
-
-import java.io.File;
 
 public class MessageStoreConfig {
 
@@ -359,6 +358,16 @@ public class MessageStoreConfig {
     private boolean syncFromLastFile = false;
 
     private boolean asyncLearner = false;
+
+    /**
+     * Number of records to scan before starting to estimate.
+     */
+    private int maxConsumeQueueScan = 20_000;
+
+    /**
+     * Number of matched records before starting to estimate.
+     */
+    private int sampleCountThreshold = 5000;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -1565,5 +1574,19 @@ public class MessageStoreConfig {
         this.timerMaxDelaySec = timerMaxDelaySec;
     }
 
+    public int getMaxConsumeQueueScan() {
+        return maxConsumeQueueScan;
+    }
 
+    public void setMaxConsumeQueueScan(int maxConsumeQueueScan) {
+        this.maxConsumeQueueScan = maxConsumeQueueScan;
+    }
+
+    public int getSampleCountThreshold() {
+        return sampleCountThreshold;
+    }
+
+    public void setSampleCountThreshold(int sampleCountThreshold) {
+        this.sampleCountThreshold = sampleCountThreshold;
+    }
 }

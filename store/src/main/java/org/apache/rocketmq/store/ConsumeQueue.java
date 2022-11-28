@@ -21,9 +21,9 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -34,7 +34,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
@@ -1000,5 +999,89 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
         mappedFileQueue.cleanSwappedMap(forceCleanSwapIntervalMs);
+    }
+
+    @Override
+    public long estimateMessageCount(long from, long to, MessageFilter filter) {
+        long physicalOffsetFrom = from * CQ_STORE_UNIT_SIZE;
+        long physicalOffsetTo = to * CQ_STORE_UNIT_SIZE;
+        List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
+        if (mappedFiles.isEmpty()) {
+            return -1;
+        }
+
+        boolean sample = false;
+        long match = 0;
+        long raw = 0;
+
+        for (MappedFile mappedFile : mappedFiles) {
+            int start = 0;
+            int len = mappedFile.getFileSize();
+            // First file segment
+            if (mappedFile.getFileFromOffset() <= physicalOffsetFrom) {
+                start = (int) (physicalOffsetFrom - mappedFile.getFileFromOffset());
+                if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() >= physicalOffsetTo) {
+                    // Current mapped file covers search range completely.
+                    len = (int) (physicalOffsetTo - physicalOffsetFrom);
+                } else {
+                    len = mappedFile.getFileSize() - start;
+                }
+            }
+
+            // Scan partial of the last file segment
+            if (0 == start && mappedFile.getFileFromOffset() + mappedFile.getFileSize() > physicalOffsetTo) {
+                len = (int) (physicalOffsetTo - mappedFile.getFileFromOffset());
+            }
+
+            SelectMappedBufferResult slice = mappedFile.selectMappedBuffer(start, len);
+            if (null != slice) {
+                try {
+                    ByteBuffer buffer = slice.getByteBuffer();
+                    int current = 0;
+                    while (current < len) {
+                        // Skip physicalOffset and message length fields.
+                        buffer.position(current + 8 + 4);
+                        long tagCode = buffer.getLong();
+                        ConsumeQueueExt.CqExtUnit ext = null;
+                        if (isExtWriteEnable()) {
+                            ext = consumeQueueExt.get(tagCode);
+                            tagCode = ext.getTagsCode();
+                        }
+                        if (filter.isMatchedByConsumeQueue(tagCode, ext)) {
+                            match++;
+                        }
+                        raw++;
+                        current += CQ_STORE_UNIT_SIZE;
+
+                        if (raw >= messageStore.getMessageStoreConfig().getMaxConsumeQueueScan()) {
+                            sample = true;
+                            break;
+                        }
+
+                        if (match > messageStore.getMessageStoreConfig().getSampleCountThreshold()) {
+                            sample = true;
+                            break;
+                        }
+                    }
+                } finally {
+                    slice.release();
+                }
+            }
+            // We have scanned enough entries, now is the time to return an educated guess.
+            if (sample) {
+                break;
+            }
+        }
+
+        long result = match;
+        if (sample) {
+            if (0 == raw) {
+                log.error("[BUG]. Raw should NOT be 0");
+                return 0;
+            }
+            result = (long) (match * (to - from) * 1.0 / raw);
+        }
+        log.debug("Result={}, raw={}, match={}, sample={}", result, raw, match, sample);
+        return result;
     }
 }

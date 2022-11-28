@@ -389,6 +389,11 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean metricsInDelta = false;
 
+    /**
+     * Estimate accumulation or not when subscription filter type is tag and is not SUB_ALL.
+     */
+    private boolean estimateAccumulation = true;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1587,5 +1592,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
         this.transactionOpBatchInterval = transactionOpBatchInterval;
+    }
+
+    public boolean isEstimateAccumulation() {
+        return estimateAccumulation;
+    }
+
+    public void setEstimateAccumulation(boolean estimateAccumulation) {
+        this.estimateAccumulation = estimateAccumulation;
     }
 }

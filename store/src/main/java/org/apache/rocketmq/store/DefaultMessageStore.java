@@ -2666,4 +2666,33 @@ public class DefaultMessageStore implements MessageStore {
     public boolean isShutdown() {
         return shutdown;
     }
+
+    @Override
+    public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
+        if (from < 0) {
+            from = 0;
+        }
+
+        if (from >= to) {
+            return 0;
+        }
+
+        if (null == filter) {
+            return to - from;
+        }
+
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
+        if (null == consumeQueue) {
+            return 0;
+        }
+
+        long minOffset = consumeQueue.getMinOffsetInQueue();
+        from = Math.max(from, minOffset);
+        if (to < minOffset) {
+            to = Math.min(minOffset + messageStoreConfig.getMaxConsumeQueueScan(), consumeQueue.getMaxOffsetInQueue());
+        }
+
+        long msgCount = consumeQueue.estimateMessageCount(from, to, filter);
+        return msgCount == -1 ? to - from : msgCount;
+    }
 }

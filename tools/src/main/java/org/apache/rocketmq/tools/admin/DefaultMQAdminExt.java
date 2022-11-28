@@ -297,6 +297,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public ConsumeStats examineConsumeStats(final String brokerAddr, final String consumerGroup,
+        final String topicName, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.examineConsumeStats(brokerAddr, consumerGroup, topicName, timeoutMillis);
+    }
+
+    @Override
     public AdminToolResult<ConsumeStats> examineConsumeStatsConcurrent(String consumerGroup, String topic) {
         return defaultMQAdminExtImpl.examineConsumeStatsConcurrent(consumerGroup, topic);
     }

@@ -826,4 +826,15 @@ public interface MessageStore {
      */
     boolean isShutdown();
 
+    /**
+     * Estimate number of messages, within [from, to], which match given filter
+     *
+     * @param topic   Topic name
+     * @param queueId Queue ID
+     * @param from    Lower boundary of the range, inclusive.
+     * @param to      Upper boundary of the range, inclusive.
+     * @param filter  The message filter.
+     * @return Estimate number of messages matching given filter.
+     */
+    long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter);
 }
