@@ -49,7 +49,6 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final TopicRouteService topicRouteService;
     protected final AdminService adminService;
-    protected final String systemResourceName;
     protected final MQClientAPIFactory mqClientAPIFactory;
     protected DefaultMQPushConsumer defaultMQPushConsumer;
 
@@ -57,25 +56,18 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         this.topicRouteService = topicRouteService;
         this.adminService = adminService;
         this.mqClientAPIFactory = mqClientAPIFactory;
-
-        this.systemResourceName = this.getSystemResourceName();
-    }
-
-    protected String getSystemResourceName() {
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        return TopicValidator.SYSTEM_TOPIC_PREFIX + "proxy_" + this.getClass().getSimpleName() + "_" + proxyConfig.getProxyClusterName();
     }
 
     protected String getSystemMessageProducerId() {
-        return "PID_" + this.systemResourceName;
+        return "PID_" + getBroadcastTopicName();
     }
 
     protected String getSystemMessageConsumerId() {
-        return "CID_" + this.systemResourceName;
+        return "CID_" + getBroadcastTopicName();
     }
 
     protected String getBroadcastTopicName() {
-        return this.systemResourceName;
+        return ConfigurationManager.getProxyConfig().getHeartbeatSyncerTopicName();
     }
 
     protected String getSubTag() {
@@ -84,7 +76,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
 
     protected String getBroadcastTopicClusterName() {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        return proxyConfig.getSystemTopicClusterName();
+        return proxyConfig.getHeartbeatSyncerTopicClusterName();
     }
 
     protected int getBroadcastTopicQueueNum() {
