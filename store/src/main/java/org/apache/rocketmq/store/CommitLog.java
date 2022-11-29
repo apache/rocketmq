@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageVersion;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
@@ -384,7 +385,8 @@ public class CommitLog implements Swappable {
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
             switch (magicCode) {
-                case MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
                     break;
                 case BLANK_MAGIC_CODE:
                     return new DispatchRequest(0, true /* success */);
@@ -392,6 +394,8 @@ public class CommitLog implements Swappable {
                     log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
                     return new DispatchRequest(-1, false /* success */);
             }
+
+            MessageVersion messageVersion = MessageVersion.valueOfMagicCode(magicCode);
 
             byte[] bytesContent = new byte[totalSize];
 
@@ -446,7 +450,7 @@ public class CommitLog implements Swappable {
                 }
             }
 
-            byte topicLen = byteBuffer.get();
+            int topicLen = messageVersion.getTopicLength(byteBuffer);
             byteBuffer.get(bytesContent, 0, topicLen);
             String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
 
@@ -496,7 +500,7 @@ public class CommitLog implements Swappable {
                 }
             }
 
-            int readLength = MessageExtEncoder.calMsgLength(sysFlag, bodyLen, topicLen, propertiesLength);
+            int readLength = MessageExtEncoder.calMsgLength(messageVersion, sysFlag, bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
                 doNothingForDeadCode(reconsumeTimes);
                 doNothingForDeadCode(flag);
@@ -528,6 +532,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            log.error("Check message and return size error", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -684,7 +689,7 @@ public class CommitLog implements Swappable {
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
-        if (magicCode != MESSAGE_MAGIC_CODE) {
+        if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
             return false;
         }
 
@@ -760,6 +765,11 @@ public class CommitLog implements Swappable {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
+        msg.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (useMessageVersionV2 && topic.length() > Byte.MAX_VALUE) {
+            msg.setVersion(MessageVersion.MESSAGE_VERSION_V2);
+        }
 
         InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
         if (bornSocketAddress.getAddress() instanceof Inet6Address) {
@@ -960,6 +970,12 @@ public class CommitLog implements Swappable {
                 // Tell the producer, don't have enough slaves to handle the send request
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
+        }
+
+        messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (useMessageVersionV2 && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+            messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
         //fine-grained lock instead of the coarse-grained

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -72,8 +73,14 @@ public class HookUtils {
         }
 
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+        boolean retryTopic = msg.getTopic() != null && msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        if (!retryTopic && topicData.length > Byte.MAX_VALUE) {
+            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
+                msg.getTopic(), topicData.length);
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        }
 
-        if (topicData.length > Byte.MAX_VALUE) {
+        if (retryTopic && topicData.length > Short.MAX_VALUE) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
                 msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
