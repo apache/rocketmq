@@ -22,10 +22,12 @@ import java.nio.ByteBuffer;
 public class MessageExtBatch extends MessageExtBrokerInner {
 
     private static final long serialVersionUID = -2353110995348498537L;
+
     /**
-     * Inner batch means the batch dose not need to be unwrapped
+     * Inner batch means the batch does not need to be unwrapped
      */
     private boolean isInnerBatch = false;
+
     public ByteBuffer wrap() {
         assert getBody() != null;
         return ByteBuffer.wrap(getBody(), 0, getBody().length);

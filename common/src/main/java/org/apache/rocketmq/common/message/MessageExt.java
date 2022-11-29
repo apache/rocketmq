@@ -47,8 +47,6 @@ public class MessageExt extends Message {
 
     private long preparedTransactionOffset;
 
-    private MessageVersion version;
-
     public MessageExt() {
     }
 
@@ -306,22 +304,13 @@ public class MessageExt extends Message {
         }
     }
 
-    public MessageVersion getVersion() {
-        return version;
-    }
-
-    public void setVersion(MessageVersion version) {
-        this.version = version;
-    }
-
-
     @Override
     public String toString() {
         return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
             + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
             + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
             + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
-            + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset + ", version=" + version
+            + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
             + ", toString()=" + super.toString() + "]";
     }
 }

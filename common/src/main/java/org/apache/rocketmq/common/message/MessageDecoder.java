@@ -416,7 +416,7 @@ public class MessageDecoder {
 
             // 2 MAGICCODE
             int magicCode = byteBuffer.getInt();
-            msgExt.setVersion(MessageVersion.valueOfMagicCode(magicCode));
+            MessageVersion version = MessageVersion.valueOfMagicCode(magicCode);
 
             // 3 BODYCRC
             int bodyCRC = byteBuffer.getInt();
@@ -500,7 +500,7 @@ public class MessageDecoder {
             }
 
             // 16 TOPIC
-            int topicLen = msgExt.getVersion().getTopicLength(byteBuffer);
+            int topicLen = version.getTopicLength(byteBuffer);
             byte[] topic = new byte[topicLen];
             byteBuffer.get(topic);
             msgExt.setTopic(new String(topic, CHARSET_UTF8));
