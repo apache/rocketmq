@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -39,11 +38,14 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageRequestMode;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
+import org.apache.rocketmq.test.offset.OffsetResetIT;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.After;
 import org.junit.Assert;
@@ -54,7 +56,7 @@ import static org.awaitility.Awaitility.await;
 
 public class PopConsumerRetryIT extends BaseConf {
 
-    private static final Logger LOGGER = Logger.getLogger(PopConsumerRetryIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OffsetResetIT.class);
 
     private DefaultMQAdminExt defaultMQAdminExt = null;
     private String topicName = null;
