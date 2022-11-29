@@ -29,7 +29,8 @@ public enum AdminToolsResultCodeEnum {
     INTERRUPT_ERROR(-1004),
 
     TOPIC_ROUTE_INFO_NOT_EXIST(-2001),
-    CONSUMER_NOT_ONLINE(-2002);
+    CONSUMER_NOT_ONLINE(-2002),
+    BROADCAST_CONSUMPTION(-2003);
 
     private int code;
 
