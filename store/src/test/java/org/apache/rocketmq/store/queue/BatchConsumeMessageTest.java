@@ -53,6 +53,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
 public class BatchConsumeMessageTest extends QueueTestBase {
+    private static final int BATCH_NUM = 10;
+    private static final int TOTAL_MSGS = 200;
     private MessageStore messageStore;
 
     @Before
@@ -462,11 +464,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
     protected void putMsg(String topic) {
         createTopic(topic, CQType.BatchCQ, messageStore);
-        int batchNum = 10;
-        int totalMsgs = 200;
 
-        for (int i = 0; i < totalMsgs; i++) {
-            MessageExtBrokerInner message = buildMessage(topic, batchNum);
+        for (int i = 0; i < TOTAL_MSGS; i++) {
+            MessageExtBrokerInner message = buildMessage(topic, BATCH_NUM * (i % 2 + 1));
             switch (i % 3) {
                 case 0:
                     message.setTags("TagA");
@@ -474,10 +474,6 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
                 case 1:
                     message.setTags("TagB");
-                    break;
-
-                case 2:
-                    message.setTags("TagC");
                     break;
             }
             message.setTagsCode(message.getTags().hashCode());
@@ -530,13 +526,13 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 return false;
             }
         };
-        long estimation = cq.estimateMessageCount(0, 199, filter);
-        Assert.assertEquals(67, estimation);
+        long estimation = cq.estimateMessageCount(0, 2999, filter);
+        Assert.assertEquals(1000, estimation);
 
         // test for illegal offset
-        estimation = cq.estimateMessageCount(0, 1000, filter);
-        Assert.assertEquals(67, estimation);
-        estimation = cq.estimateMessageCount(1000, 10000, filter);
+        estimation = cq.estimateMessageCount(0, Long.MAX_VALUE, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = cq.estimateMessageCount(100000, 1000000, filter);
         Assert.assertEquals(-1, estimation);
         estimation = cq.estimateMessageCount(100, 0, filter);
         Assert.assertEquals(-1, estimation);
@@ -560,7 +556,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 return false;
             }
         };
-        long estimation = cq.estimateMessageCount(0, 199, filter);
-        Assert.assertTrue(estimation > 50 && estimation < 100);
+        long estimation = cq.estimateMessageCount(1000, 2000, filter);
+        Assert.assertEquals(300, estimation);
     }
 }

@@ -2686,10 +2686,12 @@ public class DefaultMessageStore implements MessageStore {
             return 0;
         }
 
+        // correct the "from" argument to min offset in queue if it is too small
         long minOffset = consumeQueue.getMinOffsetInQueue();
-        from = Math.max(from, minOffset);
-        if (to < minOffset) {
-            to = Math.min(minOffset + messageStoreConfig.getMaxConsumeQueueScan(), consumeQueue.getMaxOffsetInQueue());
+        if (from < minOffset) {
+            long diff = to - from;
+            from = minOffset;
+            to = from + diff;
         }
 
         long msgCount = consumeQueue.estimateMessageCount(from, to, filter);

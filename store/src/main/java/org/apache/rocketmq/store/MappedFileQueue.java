@@ -789,11 +789,11 @@ public class MappedFileQueue implements Swappable {
         List<MappedFile> result = new ArrayList<>();
         for (Object mf : mfs) {
             MappedFile mappedFile = (MappedFile) mf;
-            if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() < from) {
+            if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() <= from) {
                 continue;
             }
 
-            if (to < mappedFile.getFileFromOffset()) {
+            if (to <= mappedFile.getFileFromOffset()) {
                 break;
             }
             result.add(mappedFile);

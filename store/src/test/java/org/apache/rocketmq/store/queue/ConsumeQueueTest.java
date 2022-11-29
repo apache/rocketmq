@@ -294,8 +294,8 @@ public class ConsumeQueueTest extends QueueTestBase {
                     return false;
                 }
             };
-            long estimation = cq.estimateMessageCount(0, 199, filter);
-            Assert.assertTrue(estimation > 50 && estimation < 100);
+            long estimation = cq.estimateMessageCount(100, 150, filter);
+            Assert.assertEquals(15, estimation);
         } finally {
             messageStore.shutdown();
             messageStore.destroy();

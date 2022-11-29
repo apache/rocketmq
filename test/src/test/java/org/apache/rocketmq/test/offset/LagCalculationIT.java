@@ -53,8 +53,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class OffsetIT extends BaseConf {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OffsetIT.class);
+public class LagCalculationIT extends BaseConf {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LagCalculationIT.class);
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private String topic = null;
@@ -107,7 +107,7 @@ public class OffsetIT extends BaseConf {
     }
 
     @Test
-    public void testOffset() throws InterruptedException {
+    public void testCalculateLag() throws InterruptedException {
         int msgSize = 10;
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
@@ -146,7 +146,7 @@ public class OffsetIT extends BaseConf {
     }
 
     @Test
-    public void testEstimateOffset() throws Exception {
+    public void testEstimateLag() throws Exception {
         int msgNoTagSize = 80;
         int msgWithTagSize = 20;
         int repeat = 2;

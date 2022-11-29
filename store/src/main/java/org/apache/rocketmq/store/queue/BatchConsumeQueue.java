@@ -46,6 +46,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     //position 8, size 4, tagscode 8, storetime 8, msgBaseOffset 8, batchSize 2, compactedOffset 4, reserved 4
     public static final int CQ_STORE_UNIT_SIZE = 46;
+    public static final int MSG_TAG_OFFSET_INDEX = 12;
     public static final int MSG_STORE_TIME_OFFSET_INDEX = 20;
     public static final int MSG_BASE_OFFSET_INDEX = 28;
     public static final int MSG_BATCH_SIZE_INDEX = 36;
@@ -1008,8 +1009,19 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     @Override
     public long estimateMessageCount(long from, long to, MessageFilter filter) {
-        long physicalOffsetFrom = from * CQ_STORE_UNIT_SIZE;
-        long physicalOffsetTo = to * CQ_STORE_UNIT_SIZE;
+        // transfer message offset to physical offset
+        SelectMappedBufferResult firstMappedFileBuffer = getBatchMsgIndexBuffer(from);
+        if (firstMappedFileBuffer == null) {
+            return -1;
+        }
+        long physicalOffsetFrom = firstMappedFileBuffer.getStartOffset();
+
+        SelectMappedBufferResult lastMappedFileBuffer = getBatchMsgIndexBuffer(to);
+        if (lastMappedFileBuffer == null) {
+            return -1;
+        }
+        long physicalOffsetTo = lastMappedFileBuffer.getStartOffset();
+
         List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
         if (mappedFiles.isEmpty()) {
             return -1;
@@ -1017,48 +1029,57 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
         boolean sample = false;
         long match = 0;
+        long matchCqUnitCount = 0;
         long raw = 0;
+        long scanCqUnitCount = 0;
 
         for (MappedFile mappedFile : mappedFiles) {
             int start = 0;
             int len = mappedFile.getFileSize();
-            // First file segment
+
+            // calculate start and len for first segment and last segment to reduce scanning
+            // first file segment
             if (mappedFile.getFileFromOffset() <= physicalOffsetFrom) {
                 start = (int) (physicalOffsetFrom - mappedFile.getFileFromOffset());
                 if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() >= physicalOffsetTo) {
-                    // Current mapped file covers search range completely.
+                    // current mapped file covers search range completely.
                     len = (int) (physicalOffsetTo - physicalOffsetFrom);
                 } else {
                     len = mappedFile.getFileSize() - start;
                 }
             }
 
-            // Scan partial of the last file segment
+            // last file segment
             if (0 == start && mappedFile.getFileFromOffset() + mappedFile.getFileSize() > physicalOffsetTo) {
                 len = (int) (physicalOffsetTo - mappedFile.getFileFromOffset());
             }
 
+            // select partial data to scan
             SelectMappedBufferResult slice = mappedFile.selectMappedBuffer(start, len);
             if (null != slice) {
                 try {
                     ByteBuffer buffer = slice.getByteBuffer();
                     int current = 0;
                     while (current < len) {
-                        // Skip physicalOffset and message length fields.
-                        buffer.position(current + 8 + 4);
+                        // skip physicalOffset and message length fields.
+                        buffer.position(current + MSG_TAG_OFFSET_INDEX);
                         long tagCode = buffer.getLong();
+                        buffer.position(current + MSG_BATCH_SIZE_INDEX);
+                        long batchSize = buffer.getShort();
                         if (filter.isMatchedByConsumeQueue(tagCode, null)) {
-                            match++;
+                            match += batchSize;
+                            matchCqUnitCount++;
                         }
-                        raw++;
+                        raw += batchSize;
+                        scanCqUnitCount++;
                         current += CQ_STORE_UNIT_SIZE;
 
-                        if (raw >= messageStore.getMessageStoreConfig().getMaxConsumeQueueScan()) {
+                        if (scanCqUnitCount >= messageStore.getMessageStoreConfig().getMaxConsumeQueueScan()) {
                             sample = true;
                             break;
                         }
 
-                        if (match > messageStore.getMessageStoreConfig().getSampleCountThreshold()) {
+                        if (matchCqUnitCount > messageStore.getMessageStoreConfig().getSampleCountThreshold()) {
                             sample = true;
                             break;
                         }
@@ -1067,7 +1088,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
                     slice.release();
                 }
             }
-            // We have scanned enough entries, now is the time to return an educated guess.
+            // we have scanned enough entries, now is the time to return an educated guess.
             if (sample) {
                 break;
             }

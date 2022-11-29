@@ -44,6 +44,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final int CQ_STORE_UNIT_SIZE = 20;
+    public static final int MSG_TAG_OFFSET_INDEX = 12;
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final MessageStore messageStore;
@@ -1017,30 +1018,33 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         for (MappedFile mappedFile : mappedFiles) {
             int start = 0;
             int len = mappedFile.getFileSize();
-            // First file segment
+
+            // calculate start and len for first segment and last segment to reduce scanning
+            // first file segment
             if (mappedFile.getFileFromOffset() <= physicalOffsetFrom) {
                 start = (int) (physicalOffsetFrom - mappedFile.getFileFromOffset());
                 if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() >= physicalOffsetTo) {
-                    // Current mapped file covers search range completely.
+                    // current mapped file covers search range completely.
                     len = (int) (physicalOffsetTo - physicalOffsetFrom);
                 } else {
                     len = mappedFile.getFileSize() - start;
                 }
             }
 
-            // Scan partial of the last file segment
+            // last file segment
             if (0 == start && mappedFile.getFileFromOffset() + mappedFile.getFileSize() > physicalOffsetTo) {
                 len = (int) (physicalOffsetTo - mappedFile.getFileFromOffset());
             }
 
+            // select partial data to scan
             SelectMappedBufferResult slice = mappedFile.selectMappedBuffer(start, len);
             if (null != slice) {
                 try {
                     ByteBuffer buffer = slice.getByteBuffer();
                     int current = 0;
                     while (current < len) {
-                        // Skip physicalOffset and message length fields.
-                        buffer.position(current + 8 + 4);
+                        // skip physicalOffset and message length fields.
+                        buffer.position(current + MSG_TAG_OFFSET_INDEX);
                         long tagCode = buffer.getLong();
                         ConsumeQueueExt.CqExtUnit ext = null;
                         if (isExtWriteEnable()) {
@@ -1067,7 +1071,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     slice.release();
                 }
             }
-            // We have scanned enough entries, now is the time to return an educated guess.
+            // we have scanned enough entries, now is the time to return an educated guess.
             if (sample) {
                 break;
             }
