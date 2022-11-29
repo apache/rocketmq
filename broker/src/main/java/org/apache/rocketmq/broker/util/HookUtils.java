@@ -80,7 +80,7 @@ public class HookUtils {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        if (retryTopic && topicData.length > Short.MAX_VALUE) {
+        if (retryTopic && topicData.length > 255) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
                 msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
