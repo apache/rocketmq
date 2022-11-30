@@ -177,7 +177,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
-        Assert.assertEquals(10, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(10, getMessageResult.getMessageMappedList().size());
 
         for (int i = 0; i < results.size(); i++) {
             ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i);
@@ -222,7 +222,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageBufferList().size());
-        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMappedList().size());
         Assert.assertEquals(repeat * batchMessageSize, getMessageResult.getMaxOffset());
 
         for (int i = 0; i < results.size(); i++) {
@@ -268,7 +268,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
-        Assert.assertEquals(10, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(10, getMessageResult.getMessageMappedList().size());
 
         for (int i = 0; i < results.size(); i++) {
             ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i);
@@ -315,7 +315,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageBufferList().size());
-        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMappedList().size());
         Assert.assertEquals(repeat * batchMessageSize, getMessageResult.getMaxOffset());
 
         for (int i = 0; i < results.size(); i++) {

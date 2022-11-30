@@ -397,7 +397,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 startOffsetInfo, msgOffsetInfo, orderCountInfo);
         }
         // if not full , fetch retry again
-        if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
+        if (!needRetry && getMessageResult.getMessageMappedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
             TopicConfig retryTopicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
             if (retryTopicConfig != null) {
@@ -511,14 +511,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
             }
 
-            if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
+            if (getMessageResult.getMessageMappedList().size() >= requestHeader.getMaxMsgNums()) {
                 restNum =
                     this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
                 return restNum;
             }
             getMessageTmpResult = this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup()
                 , topic, queueId, offset,
-                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
+                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMappedList().size(), messageFilter);
             if (getMessageTmpResult == null) {
                 return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
             }
@@ -536,12 +536,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     queueId, offset);
                 getMessageTmpResult =
                     this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), topic,
-                        queueId, offset,
-                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
+                                                                       queueId, offset,
+                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMappedList().size(), messageFilter);
             }
 
             restNum = getMessageTmpResult.getMaxOffset() - getMessageTmpResult.getNextBeginOffset() + restNum;
-            if (!getMessageTmpResult.getMessageMapedList().isEmpty()) {
+            if (!getMessageTmpResult.getMessageMappedList().isEmpty()) {
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageTmpResult.getMessageCount());
                 this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
                     getMessageTmpResult.getMessageCount());
@@ -587,7 +587,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             queueLockManager.unLock(lockKey);
         }
         if (getMessageTmpResult != null) {
-            for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
+            for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMappedList()) {
                 getMessageResult.addMessage(mapedBuffer);
             }
         }
@@ -717,7 +717,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // add check point msg to revive log
         final PopCheckPoint ck = new PopCheckPoint();
         ck.setBitMap(0);
-        ck.setNum((byte) getMessageTmpResult.getMessageMapedList().size());
+        ck.setNum((byte) getMessageTmpResult.getMessageMappedList().size());
         ck.setPopTime(popTime);
         ck.setInvisibleTime(requestHeader.getInvisibleTime());
         ck.getStartOffset(offset);

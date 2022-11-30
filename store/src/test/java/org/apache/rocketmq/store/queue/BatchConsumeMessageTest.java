@@ -335,9 +335,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
         //get the message Normally
         GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 10 * batchNum, null);
-        Assert.assertEquals(10, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(10, getMessageResult.getMessageMappedList().size());
         for (int i = 0; i < 10; i++) {
-            SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(i);
+            SelectMappedBufferResult sbr = getMessageResult.getMessageMappedList().get(i);
             MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
             short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
             Assert.assertEquals(i * batchNum, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_BASE)));
@@ -370,9 +370,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, 1, Integer.MAX_VALUE, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
             Assert.assertEquals(batchNum, getMessageResult.getNextBeginOffset());
-            Assert.assertEquals(1, getMessageResult.getMessageMapedList().size());
+            Assert.assertEquals(1, getMessageResult.getMessageMappedList().size());
             Assert.assertEquals(batchNum, getMessageResult.getMessageCount());
-            SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(0);
+            SelectMappedBufferResult sbr = getMessageResult.getMessageMappedList().get(0);
             MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
             short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
             Assert.assertEquals(0, messageExt.getQueueOffset());
@@ -381,7 +381,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, 39, Integer.MAX_VALUE, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
-            Assert.assertEquals(1, getMessageResult.getMessageMapedList().size());
+            Assert.assertEquals(1, getMessageResult.getMessageMappedList().size());
             Assert.assertEquals(batchNum, getMessageResult.getNextBeginOffset());
             Assert.assertEquals(batchNum, getMessageResult.getMessageCount());
 
@@ -390,12 +390,12 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, 60, Integer.MAX_VALUE, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
-            Assert.assertEquals(3, getMessageResult.getMessageMapedList().size());
+            Assert.assertEquals(3, getMessageResult.getMessageMappedList().size());
             Assert.assertEquals(3 * batchNum, getMessageResult.getNextBeginOffset());
             Assert.assertEquals(3 * batchNum, getMessageResult.getMessageCount());
             for (int i = 0; i < getMessageResult.getMessageBufferList().size(); i++) {
-                Assert.assertFalse(getMessageResult.getMessageMapedList().get(i).hasReleased());
-                SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(i);
+                Assert.assertFalse(getMessageResult.getMessageMappedList().get(i).hasReleased());
+                SelectMappedBufferResult sbr = getMessageResult.getMessageMappedList().get(i);
                 MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
                 Assert.assertNotNull(messageExt);
                 short innerBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
@@ -430,8 +430,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, Integer.MAX_VALUE, 100, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
             Assert.assertEquals(10, getMessageResult.getNextBeginOffset());
-            Assert.assertEquals(1, getMessageResult.getMessageMapedList().size());
-            SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(0);
+            Assert.assertEquals(1, getMessageResult.getMessageMappedList().size());
+            SelectMappedBufferResult sbr = getMessageResult.getMessageMappedList().get(0);
             MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
             short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
             Assert.assertEquals(0, messageExt.getQueueOffset());
@@ -440,7 +440,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, Integer.MAX_VALUE, 2048, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
-            Assert.assertEquals(1, getMessageResult.getMessageMapedList().size());
+            Assert.assertEquals(1, getMessageResult.getMessageMappedList().size());
             Assert.assertEquals(10, getMessageResult.getNextBeginOffset());
 
         }
@@ -448,11 +448,11 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         {
             GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 5, Integer.MAX_VALUE, 4096, null);
             Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
-            Assert.assertEquals(3, getMessageResult.getMessageMapedList().size());
+            Assert.assertEquals(3, getMessageResult.getMessageMappedList().size());
             Assert.assertEquals(30, getMessageResult.getNextBeginOffset());
             for (int i = 0; i < getMessageResult.getMessageBufferList().size(); i++) {
-                Assert.assertFalse(getMessageResult.getMessageMapedList().get(i).hasReleased());
-                SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(i);
+                Assert.assertFalse(getMessageResult.getMessageMappedList().get(i).hasReleased());
+                SelectMappedBufferResult sbr = getMessageResult.getMessageMappedList().get(i);
                 MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
                 short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
                 Assert.assertEquals(i * batchNum, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_BASE)));
