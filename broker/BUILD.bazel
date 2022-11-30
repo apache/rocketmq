@@ -77,6 +77,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
 )
 
