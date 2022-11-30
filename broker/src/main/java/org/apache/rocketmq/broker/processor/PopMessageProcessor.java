@@ -592,7 +592,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             String brokerName = brokerController.getBrokerConfig().getBrokerName();
             for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
                 // We should not recode buffer for normal topic message
-                if (isRetry) {
+                if (!isRetry) {
                     getMessageResult.addMessage(mapedBuffer);
                 } else {
                     List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
