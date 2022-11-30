@@ -332,6 +332,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    private boolean validateSystemTopicWhenUpdateTopic = true;
+
     /**
      * It is an important basis for the controller to choose the broker master.
      * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
@@ -1588,6 +1590,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
         this.transactionOpBatchInterval = transactionOpBatchInterval;
+    }
+
+    public boolean isValidateSystemTopicWhenUpdateTopic() {
+        return validateSystemTopicWhenUpdateTopic;
+    }
+
+    public void setValidateSystemTopicWhenUpdateTopic(boolean validateSystemTopicWhenUpdateTopic) {
+        this.validateSystemTopicWhenUpdateTopic = validateSystemTopicWhenUpdateTopic;
     }
 
     public boolean isEstimateAccumulation() {
