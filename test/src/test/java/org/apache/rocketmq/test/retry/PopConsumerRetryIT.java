@@ -138,9 +138,9 @@ public class PopConsumerRetryIT extends BaseConf {
             Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
         }
 
-        await().pollInterval(1, TimeUnit.SECONDS).atMost(60, TimeUnit.SECONDS)
+        await().pollInterval(1, TimeUnit.SECONDS).atMost(90, TimeUnit.SECONDS)
             .until(() -> {
-                LOGGER.debug(String.format("retry: %d, succ: %d", retryCount.get(), successCount.get()));
+                LOGGER.debug(String.format("retry: %d, success: %d", retryCount.get(), successCount.get()));
                 return retryCount.get() == total * 2 && successCount.get() == total;
             });
     }
@@ -196,7 +196,7 @@ public class PopConsumerRetryIT extends BaseConf {
 
         await().pollInterval(1, TimeUnit.SECONDS).atMost(90, TimeUnit.SECONDS)
             .until(() -> {
-                LOGGER.debug(String.format("retry: %d, succ: %d", retryCount.get(), successCount.get()));
+                LOGGER.debug(String.format("retry: %d, success: %d", retryCount.get(), successCount.get()));
                 return retryCount.get() == total * 2 && successCount.get() == total;
             });
     }

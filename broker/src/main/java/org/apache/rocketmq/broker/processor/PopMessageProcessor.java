@@ -597,6 +597,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 } else {
                     List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
                         true, false, true);
+                    mapedBuffer.release();
                     for (MessageExt messageExt : messageExtList) {
                         try {
                             String ckInfo = ExtraInfoUtil.buildExtraInfo(offset, popTime, requestHeader.getInvisibleTime(),
@@ -607,7 +608,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
                             byte[] encode = MessageDecoder.encode(messageExt, true);
                             ByteBuffer buffer = ByteBuffer.wrap(encode);
-                            buffer.position(0);
                             SelectMappedBufferResult result =
                                 new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
                             getMessageResult.addMessage(result);
