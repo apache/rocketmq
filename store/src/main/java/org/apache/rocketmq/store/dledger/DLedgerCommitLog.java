@@ -404,8 +404,9 @@ public class DLedgerCommitLog extends CommitLog {
         final String finalTopic = msg.getTopic();
 
         msg.setVersion(MessageVersion.MESSAGE_VERSION_V1);
-        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
-        if (useMessageVersionV2 && msg.getTopic().length() > Byte.MAX_VALUE) {
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && msg.getTopic().length() > Byte.MAX_VALUE) {
             msg.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
@@ -518,8 +519,9 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
-        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
-        if (useMessageVersionV2 && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
             messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 

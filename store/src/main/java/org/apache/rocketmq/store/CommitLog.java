@@ -766,8 +766,9 @@ public class CommitLog implements Swappable {
 
         String topic = msg.getTopic();
         msg.setVersion(MessageVersion.MESSAGE_VERSION_V1);
-        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
-        if (useMessageVersionV2 && topic.length() > Byte.MAX_VALUE) {
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && topic.length() > Byte.MAX_VALUE) {
             msg.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
@@ -973,8 +974,9 @@ public class CommitLog implements Swappable {
         }
 
         messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
-        boolean useMessageVersionV2 = this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
-        if (useMessageVersionV2 && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
             messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
