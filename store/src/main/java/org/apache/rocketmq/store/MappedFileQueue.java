@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,8 +27,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
-
-import com.google.common.collect.Lists;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -779,5 +778,27 @@ public class MappedFileQueue implements Swappable {
 
     public String getStorePath() {
         return storePath;
+    }
+
+    public List<MappedFile> range(final long from, final long to) {
+        Object[] mfs = copyMappedFiles(0);
+        if (null == mfs) {
+            return new ArrayList<>();
+        }
+
+        List<MappedFile> result = new ArrayList<>();
+        for (Object mf : mfs) {
+            MappedFile mappedFile = (MappedFile) mf;
+            if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() <= from) {
+                continue;
+            }
+
+            if (to <= mappedFile.getFileFromOffset()) {
+                break;
+            }
+            result.add(mappedFile);
+        }
+
+        return result;
     }
 }

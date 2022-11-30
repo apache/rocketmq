@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
@@ -84,6 +85,7 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         UtilAll.deleteFile(file);
                     }
+                    MQAdminTestUtils.shutdownAdmin();
                 } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
@@ -133,6 +135,8 @@ public class IntegrationTestBase {
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
+        brokerConfig.setEnableCalcFilterBitMap(true);
+        storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
@@ -195,4 +199,12 @@ public class IntegrationTestBase {
         UtilAll.deleteFile(file);
     }
 
+    public static void initMQAdmin(String nsAddr) {
+        try {
+            MQAdminTestUtils.startAdmin(nsAddr);
+        } catch (MQClientException e) {
+            logger.info("MQAdmin start failed");
+            System.exit(1);
+        }
+    }
 }
