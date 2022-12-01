@@ -48,7 +48,6 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:org_slf4j_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
@@ -77,6 +76,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
 )
 
