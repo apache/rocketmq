@@ -607,8 +607,9 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
                         }
+                    } else {
+                        future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
                     }
-                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
                 } else {
                     future.completeExceptionally(processNullResponseErr(responseFuture));
                 }
