@@ -720,7 +720,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         ck.setNum((byte) getMessageTmpResult.getMessageMapedList().size());
         ck.setPopTime(popTime);
         ck.setInvisibleTime(requestHeader.getInvisibleTime());
-        ck.getStartOffset(offset);
+        ck.setStartOffset(offset);
         ck.setCId(requestHeader.getConsumerGroup());
         ck.setTopic(topic);
         ck.setQueueId((byte) queueId);
