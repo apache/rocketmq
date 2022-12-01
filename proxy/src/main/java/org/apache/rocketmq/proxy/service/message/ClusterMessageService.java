@@ -49,8 +49,8 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 
 public class ClusterMessageService implements MessageService {
-    private final TopicRouteService topicRouteService;
-    private final MQClientAPIFactory mqClientAPIFactory;
+    protected final TopicRouteService topicRouteService;
+    protected final MQClientAPIFactory mqClientAPIFactory;
 
     public ClusterMessageService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
