@@ -1111,10 +1111,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void persistConsumerOffset() {
-        // this method will be called by MQInstance schedule task, commit offset depends on autocommit config
-        if (!this.defaultLitePullConsumer.isAutoCommit()) {
-            return;
-        }
         try {
             checkServiceState();
             Set<MessageQueue> mqs = new HashSet<>();
