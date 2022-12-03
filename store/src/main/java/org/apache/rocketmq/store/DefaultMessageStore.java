@@ -1093,7 +1093,7 @@ public class DefaultMessageStore implements MessageStore {
         if (this.getCommitLog() instanceof DLedgerCommitLog) {
             minPhyOffset += DLedgerEntry.BODY_OFFSET;
         }
-        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
+        final int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 
