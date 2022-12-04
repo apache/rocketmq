@@ -44,7 +44,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertFalse;
+
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -118,13 +118,7 @@ public class AutoSwitchRoleBase {
         assertTrue(brokerController.initialize());
         brokerController.start();
         this.brokerList.add(brokerController);
-        Thread.sleep(1000);
-        // The first is master
-        if (expectedRole == BrokerRole.SYNC_MASTER) {
-            assertTrue(brokerController.getReplicasManager().isMasterState());
-        } else {
-            assertFalse(brokerController.getReplicasManager().isMasterState());
-        }
+        await().atMost(20, TimeUnit.SECONDS).until(() -> (expectedRole == BrokerRole.SYNC_MASTER) == brokerController.getReplicasManager().isMasterState());
         return brokerController;
     }
 
