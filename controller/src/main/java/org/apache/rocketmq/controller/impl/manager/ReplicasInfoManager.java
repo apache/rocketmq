@@ -16,15 +16,6 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -39,6 +30,7 @@ import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
@@ -53,16 +45,30 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
  * state machine It should be noted that this class is not thread safe, and the upper layer needs to ensure that it can
  * be called sequentially
  */
-public class ReplicasInfoManager {
+public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final ControllerConfig controllerConfig;
-    private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
-    private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+    private ControllerConfig controllerConfig;
+    private Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
+    private Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+
+    public ReplicasInfoManager() {
+    }
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -163,7 +169,7 @@ public class ReplicasInfoManager {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
             final String oldMaster = syncStateInfo.getMasterAddress();
-            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.getAllBroker() : null;
+            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.allBrokers() : null;
 
             // elect by policy
             String newMaster = electPolicy.elect(brokerInfo.getClusterName(), syncStateSet, allReplicaBrokers, oldMaster, assignBrokerAddress);
@@ -234,7 +240,7 @@ public class ReplicasInfoManager {
                 final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(), brokerAddress, brokerId);
                 result.addEvent(applyIdEvent);
             } else {
-                brokerId = brokerInfo.getBrokerId(brokerAddress);
+                brokerId = brokerInfo.getBrokerIdByAddress(brokerAddress);
             }
             response.setBrokerId(brokerId);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
@@ -287,7 +293,7 @@ public class ReplicasInfoManager {
             response.setMasterAddress(masterAddress);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
-                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
+                response.setBrokerId(brokerInfo.getBrokerIdByAddress(request.getBrokerAddress()));
             }
             result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
             return result;
@@ -308,7 +314,7 @@ public class ReplicasInfoManager {
                 final String master = syncStateInfo.getMasterAddress();
                 final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
                 syncStateSet.forEach(replicas -> {
-                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(replicas);
+                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerIdByAddress(replicas);
                     inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
                 });
 
@@ -465,5 +471,43 @@ public class ReplicasInfoManager {
      */
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
+    }
+
+
+    @Override
+    public byte[] encodeMetadata() {
+        String json = RemotingSerializable.toJson(this, true);
+        System.out.println(json);
+        return json.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public boolean loadMetadata(byte[] data) {
+        String json = new String(data);
+        ReplicasInfoManager obj = RemotingSerializable.fromJson(json, ReplicasInfoManager.class);
+        this.syncStateSetInfoTable.putAll(obj.syncStateSetInfoTable);
+        this.replicaInfoTable.putAll(obj.replicaInfoTable);
+        return true;
+    }
+
+    @Override
+    public MetadataManagerType getMetadataManagerType() {
+        return MetadataManagerType.REPLICAS_INFO_MANAGER;
+    }
+
+    public Map<String, BrokerInfo> getReplicaInfoTable() {
+        return replicaInfoTable;
+    }
+
+    public void setReplicaInfoTable(Map<String, BrokerInfo> replicaInfoTable) {
+        this.replicaInfoTable = replicaInfoTable;
+    }
+
+    public Map<String, SyncStateInfo> getSyncStateSetInfoTable() {
+        return syncStateSetInfoTable;
+    }
+
+    public void setSyncStateSetInfoTable(Map<String, SyncStateInfo> syncStateSetInfoTable) {
+        this.syncStateSetInfoTable = syncStateSetInfoTable;
     }
 }
