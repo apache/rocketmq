@@ -93,7 +93,7 @@ public class ReplicasInfoManagerTest {
     }
 
     @Test
-    public void testRegisterNewBroker(){
+    public void testRegisterNewBroker() {
         final RegisterBrokerToControllerRequestHeader registerRequest =
             new RegisterBrokerToControllerRequestHeader("default", "brokerName-a", "127.0.0.1:9000");
         final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest, (s, v) -> true);
@@ -108,7 +108,7 @@ public class ReplicasInfoManagerTest {
         alterNewInSyncSet("brokerName-a", "127.0.0.1:9000", 1, newSyncStateSet, 1);
         final RegisterBrokerToControllerRequestHeader registerRequest1 =
             new RegisterBrokerToControllerRequestHeader("default", "brokerName-a", "127.0.0.1:9002");
-        final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult1 = this.replicasInfoManager.registerBroker(registerRequest1, (s, v) -> StringUtils.equals(v,"127.0.0.1:9001"));
+        final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult1 = this.replicasInfoManager.registerBroker(registerRequest1, (s, v) -> StringUtils.equals(v, "127.0.0.1:9001"));
         apply(registerResult1.getEvents());
         final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("brokerName-a"));
         final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
