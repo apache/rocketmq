@@ -16,13 +16,10 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.utils.FastJsonSerializer;
-import org.apache.rocketmq.common.utils.Serializer;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
@@ -33,6 +30,7 @@ import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
@@ -47,7 +45,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 
-import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,10 +63,12 @@ import java.util.stream.Stream;
  */
 public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final ControllerConfig controllerConfig;
-    private final Serializer serializer = new FastJsonSerializer();
+    private ControllerConfig controllerConfig;
     private Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
     private Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+
+    public ReplicasInfoManager() {
+    }
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -473,60 +473,41 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
     }
 
+
     @Override
     public byte[] encodeMetadata() {
-        byte[] replicaInfoTableBytes = this.serializer.serialize(this.replicaInfoTable);
-        byte[] syncStateSetInfoTableBytes = this.serializer.serialize(this.syncStateSetInfoTable);
-
-        int replicaInfoTableLength = replicaInfoTableBytes == null ? 0 : replicaInfoTableBytes.length;
-        int syncStateSetInfoTableLength = syncStateSetInfoTableBytes == null ? 0 : syncStateSetInfoTableBytes.length;
-
-        ByteBuffer buffer = ByteBuffer.allocate(8 + replicaInfoTableLength + syncStateSetInfoTableLength);
-        buffer.putInt(replicaInfoTableLength);
-        buffer.putInt(syncStateSetInfoTableLength);
-        if (replicaInfoTableBytes != null) {
-            buffer.put(replicaInfoTableBytes);
-        }
-        if (syncStateSetInfoTableBytes != null) {
-            buffer.put(syncStateSetInfoTableBytes);
-        }
-        buffer.flip();
-
-        return buffer.array();
+        String json = RemotingSerializable.toJson(this, true);
+        System.out.println(json);
+        return json.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public boolean loadMetadata(byte[] data) {
-        int length = data.length;
-        if (length < 8) {
-            return false;
-        }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
-        int replicaInfoTableLength = byteBuffer.getInt();
-        int syncStateSetInfoTableLength = byteBuffer.getInt();
-        if (length < 8 + replicaInfoTableLength + syncStateSetInfoTableLength) {
-            return false;
-        }
-
-        if (replicaInfoTableLength > 0) {
-            byte[] replicaInfoTableBytes = new byte[replicaInfoTableLength];
-            byteBuffer.get(replicaInfoTableBytes);
-            Map<String, JSONObject> kvPair = this.serializer.deserialize(replicaInfoTableBytes, Map.class);
-            this.replicaInfoTable = new HashMap<>();
-            kvPair.entrySet().forEach(entry -> this.replicaInfoTable.put(entry.getKey(), entry.getValue().toJavaObject(BrokerInfo.class)));
-        }
-        if (syncStateSetInfoTableLength > 0) {
-            byte[] syncStateSetInfoTableBytes = new byte[syncStateSetInfoTableLength];
-            byteBuffer.get(syncStateSetInfoTableBytes);
-            Map<String, JSONObject> kvPair = this.serializer.deserialize(syncStateSetInfoTableBytes, Map.class);
-            this.syncStateSetInfoTable = new HashMap<>();
-            kvPair.entrySet().forEach(entry -> this.syncStateSetInfoTable.put(entry.getKey(), entry.getValue().toJavaObject(SyncStateInfo.class)));
-        }
+        String json = new String(data);
+        ReplicasInfoManager obj = RemotingSerializable.fromJson(json, ReplicasInfoManager.class);
+        this.syncStateSetInfoTable.putAll(obj.syncStateSetInfoTable);
+        this.replicaInfoTable.putAll(obj.replicaInfoTable);
         return true;
     }
 
     @Override
     public MetadataManagerType getMetadataManagerType() {
         return MetadataManagerType.REPLICAS_INFO_MANAGER;
+    }
+
+    public Map<String, BrokerInfo> getReplicaInfoTable() {
+        return replicaInfoTable;
+    }
+
+    public void setReplicaInfoTable(Map<String, BrokerInfo> replicaInfoTable) {
+        this.replicaInfoTable = replicaInfoTable;
+    }
+
+    public Map<String, SyncStateInfo> getSyncStateSetInfoTable() {
+        return syncStateSetInfoTable;
+    }
+
+    public void setSyncStateSetInfoTable(Map<String, SyncStateInfo> syncStateSetInfoTable) {
+        this.syncStateSetInfoTable = syncStateSetInfoTable;
     }
 }
