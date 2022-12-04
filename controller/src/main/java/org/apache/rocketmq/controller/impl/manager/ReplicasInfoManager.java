@@ -477,13 +477,12 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
     @Override
     public byte[] encodeMetadata() {
         String json = RemotingSerializable.toJson(this, true);
-        System.out.println(json);
         return json.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public boolean loadMetadata(byte[] data) {
-        String json = new String(data);
+        String json = new String(data, StandardCharsets.UTF_8);
         ReplicasInfoManager obj = RemotingSerializable.fromJson(json, ReplicasInfoManager.class);
         this.syncStateSetInfoTable.putAll(obj.syncStateSetInfoTable);
         this.replicaInfoTable.putAll(obj.replicaInfoTable);
