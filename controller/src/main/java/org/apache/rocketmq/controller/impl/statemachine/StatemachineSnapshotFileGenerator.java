@@ -22,13 +22,14 @@ import org.apache.rocketmq.controller.impl.manager.SnapshotAbleMetadataManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,14 +68,14 @@ public class StatemachineSnapshotFileGenerator {
             return new SnapshotFileHeader(totalSections);
         }
 
-        public byte[] build() {
+        public ByteBuffer build() {
             ByteBuffer buffer = ByteBuffer.allocate(HEADER_LENGTH);
             buffer.putInt(MAGIC);
             buffer.putShort(VERSION);
             buffer.putInt(this.totalSections);
             buffer.putLong(REVERSED);
             buffer.flip();
-            return buffer.array();
+            return buffer;
         }
     }
 
@@ -90,10 +91,12 @@ public class StatemachineSnapshotFileGenerator {
      * Generate snapshot and write the data to snapshot file.
      */
     public synchronized void generateSnapshot(final String snapshotPath) throws IOException {
-        try (final FileOutputStream out = new FileOutputStream(snapshotPath)) {
+        try (final FileChannel fileChannel = FileChannel.open(Paths.get(snapshotPath),
+                StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             // Write Snapshot Header
             SnapshotFileHeader header = new SnapshotFileHeader(this.metadataManagerTable.size());
-            out.write(header.build());
+
+            fileChannel.write(header.build());
 
             // Write each section
             ByteBuffer sectionHeader = ByteBuffer.allocate(6);
@@ -105,17 +108,20 @@ public class StatemachineSnapshotFileGenerator {
                 sectionHeader.putShort(section.getKey());
                 sectionHeader.putInt(serializedBytes.length);
                 sectionHeader.flip();
-                out.write(sectionHeader.array());
+                fileChannel.write(sectionHeader);
                 sectionHeader.rewind();
 
                 // Write section bytes
-                out.write(serializedBytes);
+                fileChannel.write(ByteBuffer.wrap(serializedBytes));
             }
 
-            out.flush();
+            fileChannel.force(true);
         }
     }
 
+    /**
+     * Read snapshot from snapshot file and load the metadata into corresponding metadataManager
+     */
     public synchronized boolean loadSnapshot(final String snapshotPath) throws IOException {
         try (ReadableByteChannel channel = Channels.newChannel(Files.newInputStream(Paths.get(snapshotPath)))) {
             // Read snapshot Header
