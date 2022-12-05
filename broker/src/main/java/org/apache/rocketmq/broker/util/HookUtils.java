@@ -44,7 +44,7 @@ public class HookUtils {
 
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private static final AtomicLong printTimes = new AtomicLong(0);
+    private static final AtomicLong PRINT_TIMES = new AtomicLong(0);
 
     private static final Integer MAX_TOPIC_LENGTH = 255;
 
@@ -55,7 +55,7 @@ public class HookUtils {
         }
 
         if (!brokerController.getMessageStoreConfig().isDuplicationEnable() && BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
-            long value = printTimes.getAndIncrement();
+            long value = PRINT_TIMES.getAndIncrement();
             if ((value % 50000) == 0) {
                 LOG.warn("message store is in slave mode, so putMessage is forbidden ");
             }
@@ -64,14 +64,14 @@ public class HookUtils {
         }
 
         if (!brokerController.getMessageStore().getRunningFlags().isWriteable()) {
-            long value = printTimes.getAndIncrement();
+            long value = PRINT_TIMES.getAndIncrement();
             if ((value % 50000) == 0) {
                 LOG.warn("message store is not writeable, so putMessage is forbidden " + brokerController.getMessageStore().getRunningFlags().getFlagBits());
             }
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         } else {
-            printTimes.set(0);
+            PRINT_TIMES.set(0);
         }
 
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
