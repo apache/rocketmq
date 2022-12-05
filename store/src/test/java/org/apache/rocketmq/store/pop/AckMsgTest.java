@@ -46,5 +46,6 @@ public class AckMsgTest {
         Assert.assertEquals(ackMsg1.getQueueId(), ackMsg2.getQueueId());
         Assert.assertEquals(ackMsg1.getStartOffset(), ackMsg2.getStartOffset());
         Assert.assertEquals(ackMsg1.getAckOffset(), ackMsg2.getAckOffset());
+        Assert.assertEquals(ackMsg1.getPopTime(), ackMsg2.getPopTime());
     }
 }
