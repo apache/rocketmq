@@ -44,7 +44,9 @@ public class HookUtils {
 
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private static AtomicLong printTimes = new AtomicLong(0);
+    private static final AtomicLong printTimes = new AtomicLong(0);
+
+    private static final Integer MAX_TOPIC_LENGTH = 255;
 
     public static PutMessageResult checkBeforePutMessage(BrokerController brokerController, final MessageExt msg) {
         if (brokerController.getMessageStore().isShutdown()) {
@@ -80,7 +82,7 @@ public class HookUtils {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        if (retryTopic && topicData.length > 255) {
+        if (topicData.length > MAX_TOPIC_LENGTH) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
                 msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);

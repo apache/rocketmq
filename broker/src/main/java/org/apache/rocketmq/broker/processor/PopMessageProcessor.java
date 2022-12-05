@@ -603,6 +603,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             String ckInfo = ExtraInfoUtil.buildExtraInfo(offset, popTime, requestHeader.getInvisibleTime(),
                                 reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
                             messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
+
+                            // Set retry message topic to origin topic and clear message store size to recode
                             messageExt.setTopic(requestHeader.getTopic());
                             messageExt.setStoreSize(0);
 
