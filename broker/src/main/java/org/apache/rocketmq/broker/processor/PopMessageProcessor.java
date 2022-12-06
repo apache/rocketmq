@@ -608,7 +608,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             messageExt.setTopic(requestHeader.getTopic());
                             messageExt.setStoreSize(0);
 
-                            byte[] encode = MessageDecoder.encode(messageExt, true);
+                            byte[] encode = MessageDecoder.encode(messageExt, false);
                             ByteBuffer buffer = ByteBuffer.wrap(encode);
                             SelectMappedBufferResult result =
                                 new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);

@@ -46,6 +46,15 @@ public class HookUtils {
 
     private static final AtomicLong PRINT_TIMES = new AtomicLong(0);
 
+    /**
+     * On Linux: The maximum length for a file name is 255 bytes.
+     * The maximum combined length of both the file name and path name is 4096 bytes.
+     * This length matches the PATH_MAX that is supported by the operating system.
+     * The Unicode representation of a character can occupy several bytes,
+     * so the maximum number of characters that comprises a path and file name can vary.
+     * The actual limitation is the number of bytes in the path and file components,
+     * which might correspond to an equal number of characters.
+     */
     private static final Integer MAX_TOPIC_LENGTH = 255;
 
     public static PutMessageResult checkBeforePutMessage(BrokerController brokerController, final MessageExt msg) {
