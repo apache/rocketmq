@@ -184,10 +184,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             } finally {
                 this.brokerController.getPopMessageProcessor().getQueueLockManager().unLock(lockKey);
             }
+            decInFlightMessageNum(requestHeader);
             return response;
         }
 
         if (this.brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
+            decInFlightMessageNum(requestHeader);
             return response;
         }
 
@@ -209,7 +211,16 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
             POP_LOGGER.error("put ack msg error:" + putMessageResult);
         }
+        decInFlightMessageNum(requestHeader);
         return response;
+    }
+
+    private void decInFlightMessageNum(AckMessageRequestHeader requestHeader) {
+        this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(
+            requestHeader.getTopic(),
+            requestHeader.getConsumerGroup(),
+            requestHeader.getExtraInfo()
+        );
     }
 
 }
