@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
@@ -212,10 +213,8 @@ public class ClusterMessageService implements MessageService {
         try {
             String brokerAddress = topicRouteService.getBrokerAddr(brokerName);
             return mqClientAPIFactory.getClient().invoke(brokerAddress, request, timeoutMillis);
-        } catch (Exception e) {
-            CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-            future.completeExceptionally(e);
-            return future;
+        } catch (Throwable t) {
+            return FutureUtils.completeExceptionally(t);
         }
     }
 
@@ -225,10 +224,8 @@ public class ClusterMessageService implements MessageService {
         try {
             String brokerAddress = topicRouteService.getBrokerAddr(brokerName);
             return mqClientAPIFactory.getClient().invokeOneway(brokerAddress, request, timeoutMillis);
-        } catch (Exception e) {
-            CompletableFuture<Void> future = new CompletableFuture<>();
-            future.completeExceptionally(e);
-            return future;
+        } catch (Throwable t) {
+            return FutureUtils.completeExceptionally(t);
         }
     }
 

@@ -53,9 +53,8 @@ public enum TopicMessageType {
             return TopicMessageType.DELAY;
         } else if (messageProperty.get(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             return TopicMessageType.FIFO;
-        } else {
-            return TopicMessageType.NORMAL;
         }
+        return TopicMessageType.NORMAL;
     }
 
     public String getMetricsValue() {
