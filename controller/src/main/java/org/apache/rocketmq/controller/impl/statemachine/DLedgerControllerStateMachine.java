@@ -29,6 +29,9 @@ import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Collections;
+
 /**
  * The state machine implementation of the DLedger controller
  */
@@ -37,12 +40,14 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private final ReplicasInfoManager replicasInfoManager;
     private final EventSerializer eventSerializer;
     private final String dLedgerId;
+    private final StatemachineSnapshotFileGenerator snapshotFileGenerator;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
                                          final EventSerializer eventSerializer, final String dLedgerId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
         this.dLedgerId = dLedgerId;
+        this.snapshotFileGenerator = new StatemachineSnapshotFileGenerator(Collections.singletonList(replicasInfoManager));
     }
 
     @Override
@@ -62,22 +67,35 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public boolean onSnapshotSave(SnapshotWriter writer) {
-        return false;
+        final String snapshotStorePath = writer.getSnapshotStorePath();
+        try {
+            this.snapshotFileGenerator.generateSnapshot(snapshotStorePath);
+            return true;
+        } catch (IOException e) {
+            log.error("Failed to generate controller statemachine snapshot", e);
+            return false;
+        }
     }
 
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
-        return false;
+        try {
+            return this.snapshotFileGenerator.loadSnapshot(reader.getSnapshotStorePath());
+        } catch (IOException e) {
+            log.error("Failed to load controller statemachine snapshot", e);
+            return false;
+        }
     }
 
 
     @Override
     public void onShutdown() {
+        log.info("Controller statemachine shutdown!");
     }
 
     @Override
     public void onError(DLedgerException e) {
-
+        log.error("Error happen in controller statemachine", e);
     }
 
     @Override
