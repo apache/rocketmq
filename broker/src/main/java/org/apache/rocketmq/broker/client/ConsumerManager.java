@@ -38,7 +38,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-public class ConsumerManager implements ConsumerManagerInterface {
+public class ConsumerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<String, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<>(1024);
@@ -64,7 +64,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         this.subscriptionExpiredTimeout = brokerConfig.getSubscriptionExpiredTimeout();
     }
 
-    @Override
     public ClientChannelInfo findChannel(final String group, final String clientId) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (consumerGroupInfo != null) {
@@ -73,7 +72,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return null;
     }
 
-    @Override
     public ClientChannelInfo findChannel(final String group, final Channel channel) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (consumerGroupInfo != null) {
@@ -82,7 +80,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return null;
     }
 
-    @Override
     public SubscriptionData findSubscriptionData(final String group, final String topic) {
         return findSubscriptionData(group, topic, true);
     }
@@ -110,7 +107,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return this.consumerTable;
     }
 
-    @Override
     public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
         return getConsumerGroupInfo(group, false);
     }
@@ -123,7 +119,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return consumerGroupInfo;
     }
 
-    @Override
     public int findSubscriptionDataCount(final String group) {
         ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
         if (consumerGroupInfo != null) {
@@ -133,7 +128,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return 0;
     }
 
-    @Override
     public boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         boolean removed = false;
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
@@ -178,7 +172,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
             isNotifyConsumerIdsChangedEnable, true);
     }
 
-    @Override
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable, boolean updateSubscription) {
@@ -214,7 +207,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return r1 || r2;
     }
 
-    @Override
     public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         boolean isNotifyConsumerIdsChangedEnable) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
@@ -260,7 +252,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         }
     }
 
-    @Override
     public void scanNotActiveChannel() {
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -295,7 +286,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         removeExpireConsumerGroupInfo();
     }
 
-    @Override
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
         HashSet<String> groups = new HashSet<>();
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
@@ -310,7 +300,6 @@ public class ConsumerManager implements ConsumerManagerInterface {
         return groups;
     }
 
-    @Override
     public void appendConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {
         consumerIdsChangeListenerList.add(listener);
     }

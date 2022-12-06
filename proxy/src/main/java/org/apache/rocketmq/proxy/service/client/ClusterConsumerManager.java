@@ -21,18 +21,17 @@ import java.util.Set;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.client.ConsumerManagerInterface;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.sysmessage.HeartbeatSyncer;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
-public class ClusterConsumerManager extends ConsumerManager implements ConsumerManagerInterface, StartAndShutdown {
+public class ClusterConsumerManager extends ConsumerManager implements StartAndShutdown {
 
     protected HeartbeatSyncer heartbeatSyncer;
 
