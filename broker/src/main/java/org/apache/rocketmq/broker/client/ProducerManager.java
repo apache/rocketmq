@@ -35,7 +35,7 @@ import org.apache.rocketmq.remoting.protocol.body.ProducerInfo;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-public class ProducerManager implements ProducerManagerInterface {
+public class ProducerManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private static final int GET_AVAILABLE_CHANNEL_RETRY_COUNT = 3;
@@ -54,12 +54,10 @@ public class ProducerManager implements ProducerManagerInterface {
         this.brokerStatsManager = brokerStatsManager;
     }
 
-    @Override
     public int groupSize() {
         return this.groupChannelTable.size();
     }
 
-    @Override
     public boolean groupOnline(String group) {
         Map<Channel, ClientChannelInfo> channels = this.groupChannelTable.get(group);
         return channels != null && !channels.isEmpty();
@@ -69,7 +67,6 @@ public class ProducerManager implements ProducerManagerInterface {
         return groupChannelTable;
     }
 
-    @Override
     public ProducerTableInfo getProducerTable() {
         Map<String, List<ProducerInfo>> map = new HashMap<>();
         for (String group : this.groupChannelTable.keySet()) {
@@ -97,7 +94,6 @@ public class ProducerManager implements ProducerManagerInterface {
         return new ProducerTableInfo(map);
     }
 
-    @Override
     public void scanNotActiveChannel() {
         Iterator<Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>>> iterator = this.groupChannelTable.entrySet().iterator();
 
@@ -133,7 +129,6 @@ public class ProducerManager implements ProducerManagerInterface {
         }
     }
 
-    @Override
     public synchronized boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         boolean removed = false;
         if (channel != null) {
@@ -165,7 +160,6 @@ public class ProducerManager implements ProducerManagerInterface {
         return removed;
     }
 
-    @Override
     public synchronized void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         ClientChannelInfo clientChannelInfoFound = null;
 
@@ -189,7 +183,6 @@ public class ProducerManager implements ProducerManagerInterface {
         }
     }
 
-    @Override
     public synchronized void unregisterProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         ConcurrentHashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
         if (null != channelTable && !channelTable.isEmpty()) {
@@ -209,7 +202,6 @@ public class ProducerManager implements ProducerManagerInterface {
         }
     }
 
-    @Override
     public Channel getAvailableChannel(String groupId) {
         if (groupId == null) {
             return null;
@@ -250,7 +242,6 @@ public class ProducerManager implements ProducerManagerInterface {
         return lastActiveChannel;
     }
 
-    @Override
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
     }
@@ -266,7 +257,6 @@ public class ProducerManager implements ProducerManagerInterface {
         }
     }
 
-    @Override
     public void appendProducerChangeListener(ProducerChangeListener producerChangeListener) {
         producerChangeListenerList.add(producerChangeListener);
     }

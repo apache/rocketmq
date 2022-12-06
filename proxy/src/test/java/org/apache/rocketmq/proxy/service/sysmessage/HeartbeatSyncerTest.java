@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.client.ConsumerManagerInterface;
+import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -94,7 +94,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
     @Mock
     private AdminService adminService;
     @Mock
-    private ConsumerManagerInterface consumerManager;
+    private ConsumerManager consumerManager;
     @Mock
     private MQClientAPIFactory mqClientAPIFactory;
     @Mock

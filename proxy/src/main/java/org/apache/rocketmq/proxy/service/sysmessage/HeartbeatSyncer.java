@@ -28,14 +28,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
-import org.apache.rocketmq.broker.client.ConsumerManagerInterface;
+import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -44,15 +41,18 @@ import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
     protected ThreadPoolExecutor threadPoolExecutor;
-    protected ConsumerManagerInterface consumerManager;
+    protected ConsumerManager consumerManager;
     protected final Map<String /* channelId as longText */, RemoteChannel> remoteChannelMap = new ConcurrentHashMap<>();
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
-        ConsumerManagerInterface consumerManager, MQClientAPIFactory mqClientAPIFactory) {
+        ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory) {
         super(topicRouteService, adminService, mqClientAPIFactory);
         this.consumerManager = consumerManager;
         this.init();
