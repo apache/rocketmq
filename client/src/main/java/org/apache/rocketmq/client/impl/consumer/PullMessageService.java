@@ -66,12 +66,12 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
-    public void executePopPullRequestLater(final PopRequest pullRequest, final long timeDelay) {
+    public void executePopPullRequestLater(final PopRequest popRequest, final long timeDelay) {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    PullMessageService.this.executePopPullRequestImmediately(pullRequest);
+                    PullMessageService.this.executePopPullRequestImmediately(popRequest);
                 }
             }, timeDelay, TimeUnit.MILLISECONDS);
         } else {
@@ -79,9 +79,9 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
-    public void executePopPullRequestImmediately(final PopRequest pullRequest) {
+    public void executePopPullRequestImmediately(final PopRequest popRequest) {
         try {
-            this.messageRequestQueue.put(pullRequest);
+            this.messageRequestQueue.put(popRequest);
         } catch (InterruptedException e) {
             logger.error("executePullRequestImmediately pullRequestQueue.put", e);
         }
