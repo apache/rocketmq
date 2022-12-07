@@ -314,7 +314,7 @@ public class MQAdminTestUtils {
     public static ConsumeStats examineConsumeStats(String brokerAddr, String topic, String group) {
         ConsumeStats consumeStats = null;
         try {
-            consumeStats = mqAdminExt.examineConsumeStats(brokerAddr, group, topic, Long.MAX_VALUE);
+            consumeStats = mqAdminExt.examineConsumeStats(brokerAddr, group, topic, 3000);
         } catch (Exception ignored) {
         }
         return consumeStats;

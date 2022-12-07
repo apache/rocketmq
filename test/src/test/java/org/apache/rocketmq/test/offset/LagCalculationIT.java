@@ -96,8 +96,9 @@ public class LagCalculationIT extends BaseConf {
                             topic, mq.getQueueId());
                     OffsetWrapper offsetWrapper = offsetTable.get(mq);
                     assertEquals(brokerOffset, offsetWrapper.getBrokerOffset());
-                    assertEquals(consumerOffset, offsetWrapper.getConsumerOffset());
-                    assertEquals(pullOffset, offsetWrapper.getPullOffset());
+                    if (offsetWrapper.getConsumerOffset() != consumerOffset || offsetWrapper.getPullOffset() != pullOffset) {
+                        return new Pair<>(-1L, -1L);
+                    }
                     lag += brokerOffset - consumerOffset;
                     pullLag += brokerOffset - pullOffset;
                 }
@@ -106,43 +107,56 @@ public class LagCalculationIT extends BaseConf {
         return new Pair<>(lag, pullLag);
     }
 
+    public void waitForFullyDispatched() {
+        await().atMost(5, TimeUnit.SECONDS).until(() -> {
+            for (BrokerController controller : brokerControllerList) {
+                if (controller.getMessageStore().dispatchBehindBytes() != 0) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
     @Test
-    public void testCalculateLag() throws InterruptedException {
+    public void testCalculateLag() {
         int msgSize = 10;
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
 
         producer.send(mqMsgs.getMsgsWithMQ());
+        waitForFullyDispatched();
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        // wait for updating offset
-        Thread.sleep(5 * 1000);
+        consumer.getConsumer().getDefaultMQPushConsumerImpl().persistConsumerOffset();
 
-        Pair<Long, Long> pair = getLag(mqs);
-        assertEquals(0, (long) pair.getObject1());
-        assertEquals(0, (long) pair.getObject2());
+        // wait for consume all msgs
+        await().atMost(5, TimeUnit.SECONDS).until(() -> {
+            Pair<Long, Long> lag = getLag(mqs);
+            return lag.getObject1() == 0 && lag.getObject2() == 0;
+        });
 
         blockListener.setBlock(true);
         consumer.clearMsg();
         producer.clearMsg();
         producer.send(mqMsgs.getMsgsWithMQ());
-        // wait for updating offset
-        Thread.sleep(5 * 1000);
+        waitForFullyDispatched();
 
-        pair = getLag(mqs);
-        assertEquals(producer.getAllMsgBody().size(), (long) pair.getObject1());
-        assertEquals(0, (long) pair.getObject2());
+        // wait for pull all msgs
+        await().atMost(5, TimeUnit.SECONDS).until(() -> {
+            Pair<Long, Long> lag = getLag(mqs);
+            return lag.getObject1() == producer.getAllMsgBody().size() && lag.getObject2() == 0;
+        });
 
         blockListener.setBlock(false);
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         consumer.shutdown();
         producer.clearMsg();
         producer.send(mqMsgs.getMsgsWithMQ());
-        // wait for updating offset
-        Thread.sleep(5 * 1000);
+        waitForFullyDispatched();
 
-        pair = getLag(mqs);
-        assertEquals(producer.getAllMsgBody().size(), (long) pair.getObject1());
-        assertEquals(producer.getAllMsgBody().size(), (long) pair.getObject2());
+        Pair<Long, Long> lag = getLag(mqs);
+        assertEquals(producer.getAllMsgBody().size(), (long) lag.getObject1());
+        assertEquals(producer.getAllMsgBody().size(), (long) lag.getObject2());
     }
 
     @Test
