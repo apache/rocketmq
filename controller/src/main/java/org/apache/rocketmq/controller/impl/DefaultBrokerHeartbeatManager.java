@@ -101,7 +101,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void registerBroker(String clusterName, String brokerName, String brokerAddr,
-        long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset) {
+        long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, final Integer electionPriority) {
         final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
             new BrokerLiveInfo(brokerName,
@@ -109,7 +109,10 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 brokerId,
                 System.currentTimeMillis(),
                 timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                channel, epoch == null ? -1 : epoch, maxOffset == null ? -1 : maxOffset));
+                channel,
+                epoch == null ? -1 : epoch,
+                maxOffset == null ? -1 : maxOffset,
+                electionPriority == null ? Integer.MAX_VALUE : electionPriority));
         if (prevBrokerLiveInfo == null) {
             log.info("new broker registered, {}, brokerId:{}", addrInfo, brokerId);
         }

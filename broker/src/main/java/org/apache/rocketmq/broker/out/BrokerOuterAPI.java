@@ -314,7 +314,7 @@ public class BrokerOuterAPI {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
 
                     @Override
-                    public void run2() {
+                    public void run0() {
                         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
                         request.setBody(dataVersion.encode());
 
@@ -346,7 +346,7 @@ public class BrokerOuterAPI {
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
                     @Override
-                    public void run2() {
+                    public void run0() {
                         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, requestHeader);
 
                         try {
@@ -489,7 +489,7 @@ public class BrokerOuterAPI {
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(brokerIdentity) {
                     @Override
-                    public void run2() {
+                    public void run0() {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
                             if (result != null) {
@@ -622,7 +622,7 @@ public class BrokerOuterAPI {
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
                     @Override
-                    public void run2() {
+                    public void run0() {
                         try {
                             QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
                             requestHeader.setBrokerAddr(brokerAddr);
@@ -1161,9 +1161,9 @@ public class BrokerOuterAPI {
      */
     public RegisterBrokerToControllerResponseHeader registerBrokerToController(
             final String controllerAddress, final String clusterName,
-            final String brokerName, final String address, final int epoch, final long maxOffset) throws Exception {
+            final String brokerName, final String address, final int epoch, final long maxOffset, final int electionPriority) throws Exception {
 
-        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address, epoch, maxOffset);
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, address, epoch, maxOffset, electionPriority);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
@@ -1230,7 +1230,7 @@ public class BrokerOuterAPI {
         requestHeader.setConfirmOffset(confirmOffset);
         brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
             @Override
-            public void run2() {
+            public void run0() {
                 RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, requestHeader);
 
                 try {

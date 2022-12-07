@@ -62,6 +62,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -106,8 +108,6 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapp
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.api.TrackType;
@@ -494,6 +494,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public ConsumeStats examineConsumeStats(String brokerAddr, String consumerGroup, String topicName,
+        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(brokerAddr, consumerGroup, topicName, timeoutMillis);
+    }
+
+    @Override
     public AdminToolResult<ConsumeStats> examineConsumeStatsConcurrent(final String consumerGroup, final String topic) {
 
         return adminToolExecute(new AdminToolHandler() {
@@ -549,8 +555,18 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 }
 
                 if (result.getOffsetTable().isEmpty()) {
-                    return AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the "
-                        + "consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                    ConsumerConnection connection;
+                    try {
+                        connection = examineConsumerConnectionInfo(consumerGroup);
+                    } catch (Exception e) {
+                        return AdminToolResult.failure(AdminToolsResultCodeEnum.CONSUMER_NOT_ONLINE, "Not found the "
+                            + "consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                    }
+
+                    if (connection.getMessageModel().equals(MessageModel.BROADCASTING)) {
+                        return AdminToolResult.failure(AdminToolsResultCodeEnum.BROADCAST_CONSUMPTION, "Not found the "
+                            + "consumer group consume stats, because return offset table is empty, the consumer is under the broadcast mode");
+                    }
                 }
                 return AdminToolResult.success(result);
             }

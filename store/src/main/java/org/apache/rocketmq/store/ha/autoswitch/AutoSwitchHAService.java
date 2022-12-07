@@ -265,7 +265,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public int inSyncReplicasNums(final long masterPutWhere) {
+    public synchronized int inSyncReplicasNums(final long masterPutWhere) {
         return syncStateSet.size();
     }
 
@@ -409,7 +409,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         @Override
         public String getServiceName() {
             if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
+                return defaultMessageStore.getBrokerConfig().getIdentifier() + AcceptSocketService.class.getSimpleName();
             }
             return AutoSwitchAcceptSocketService.class.getSimpleName();
         }

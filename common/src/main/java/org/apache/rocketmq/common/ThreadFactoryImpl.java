@@ -47,7 +47,7 @@ public class ThreadFactoryImpl implements ThreadFactory {
     public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon, BrokerIdentity brokerIdentity) {
         this.daemon = daemon;
         if (brokerIdentity != null && brokerIdentity.isInBrokerContainer()) {
-            this.threadNamePrefix = brokerIdentity.getLoggerIdentifier() + threadNamePrefix;
+            this.threadNamePrefix = brokerIdentity.getIdentifier() + threadNamePrefix;
         } else {
             this.threadNamePrefix = threadNamePrefix;
         }

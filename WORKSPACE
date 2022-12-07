@@ -43,7 +43,6 @@ maven_install(
         "com.alibaba:fastjson:1.2.76",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
-        "org.slf4j:slf4j-api:1.7.33",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
         "com.github.luben:zstd-jni:1.5.2-2",

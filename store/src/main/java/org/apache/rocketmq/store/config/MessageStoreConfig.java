@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.store.config;
 
+import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
-
-import java.io.File;
 
 public class MessageStoreConfig {
 
@@ -257,6 +256,13 @@ public class MessageStoreConfig {
     @Deprecated
     private int maxTopicLength = Byte.MAX_VALUE;
 
+    /**
+     * Use MessageVersion.MESSAGE_VERSION_V2 automatically if topic length larger than Bytes.MAX_VALUE.
+     * Otherwise, store use MESSAGE_VERSION_V1. Note: Client couldn't decode MESSAGE_VERSION_V2 version message.
+     * Enable this config to resolve this issue. https://github.com/apache/rocketmq/issues/5568
+     */
+    private boolean autoMessageVersionOnTopicLen = true;
+
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -359,6 +365,16 @@ public class MessageStoreConfig {
     private boolean syncFromLastFile = false;
 
     private boolean asyncLearner = false;
+
+    /**
+     * Number of records to scan before starting to estimate.
+     */
+    private int maxConsumeQueueScan = 20_000;
+
+    /**
+     * Number of matched records before starting to estimate.
+     */
+    private int sampleCountThreshold = 5000;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -538,6 +554,14 @@ public class MessageStoreConfig {
     @Deprecated
     public void setMaxTopicLength(int maxTopicLength) {
         this.maxTopicLength = maxTopicLength;
+    }
+
+    public boolean isAutoMessageVersionOnTopicLen() {
+        return autoMessageVersionOnTopicLen;
+    }
+
+    public void setAutoMessageVersionOnTopicLen(boolean autoMessageVersionOnTopicLen) {
+        this.autoMessageVersionOnTopicLen = autoMessageVersionOnTopicLen;
     }
 
     public int getTravelCqFileNumWhenGetMessage() {
@@ -1565,5 +1589,19 @@ public class MessageStoreConfig {
         this.timerMaxDelaySec = timerMaxDelaySec;
     }
 
+    public int getMaxConsumeQueueScan() {
+        return maxConsumeQueueScan;
+    }
 
+    public void setMaxConsumeQueueScan(int maxConsumeQueueScan) {
+        this.maxConsumeQueueScan = maxConsumeQueueScan;
+    }
+
+    public int getSampleCountThreshold() {
+        return sampleCountThreshold;
+    }
+
+    public void setSampleCountThreshold(int sampleCountThreshold) {
+        this.sampleCountThreshold = sampleCountThreshold;
+    }
 }

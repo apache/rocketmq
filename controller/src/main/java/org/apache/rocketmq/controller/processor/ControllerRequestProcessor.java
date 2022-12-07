@@ -114,7 +114,8 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
                     if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                         this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(), controllerRequest.getEpoch(), controllerRequest.getMaxOffset());
+                                                             responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
+                                                             controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getElectionPriority());
                     }
                     return response;
                 }

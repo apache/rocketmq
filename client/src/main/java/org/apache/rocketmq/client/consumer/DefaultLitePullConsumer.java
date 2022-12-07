@@ -317,18 +317,24 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
     }
 
+    @Deprecated
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
     }
 
-    /**
-     * Offset specified by batch commit
-     * @param offsetMap
-     * @param persist
-     */
+    @Deprecated
     @Override
     public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+    }
+
+    @Override
+    public void commit() {
+        this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    @Override public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
     }
 

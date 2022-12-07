@@ -30,23 +30,27 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private Long maxOffset;
     @CFNullable
     private Long heartbeatTimeoutMillis;
-
+    @CFNullable
+    private Integer electionPriority;
 
     public RegisterBrokerToControllerRequestHeader() {
     }
 
     public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this(clusterName, brokerName, brokerAddress, 0);
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int epoch, long maxOffset) {
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int electionPriority) {
+        this(clusterName, brokerName, brokerAddress, 0, 0, electionPriority);
+    }
+
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int epoch, long maxOffset, int electionPriority) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
         this.epoch = epoch;
         this.maxOffset = maxOffset;
+        this.electionPriority = electionPriority;
     }
 
     public String getClusterName() {
@@ -81,6 +85,14 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
     }
 
+    public Integer getElectionPriority() {
+        return electionPriority;
+    }
+
+    public void setElectionPriority(Integer electionPriority) {
+        this.electionPriority = electionPriority;
+    }
+
     @Override
     public String toString() {
         return "RegisterBrokerToControllerRequestHeader{" +
@@ -90,6 +102,7 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
                 ", epoch=" + epoch +
                 ", maxOffset=" + maxOffset +
                 ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+                ", electionPriority=" + electionPriority +
                 '}';
     }
 

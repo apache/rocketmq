@@ -546,7 +546,7 @@ public class StoreStatsService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerIdentity != null && this.brokerIdentity.isInBrokerContainer()) {
-            return brokerIdentity.getLoggerIdentifier() + StoreStatsService.class.getSimpleName();
+            return brokerIdentity.getIdentifier() + StoreStatsService.class.getSimpleName();
         }
         return StoreStatsService.class.getSimpleName();
     }

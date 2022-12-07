@@ -89,7 +89,29 @@ public class ConsumerProcessor extends AbstractProcessor {
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }
+            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+        }  catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
 
+    public CompletableFuture<PopResult> popMessage(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        String consumerGroup,
+        String topic,
+        int maxMsgNums,
+        long invisibleTime,
+        long pollTime,
+        int initMode,
+        SubscriptionData subscriptionData,
+        boolean fifo,
+        PopMessageResultFilter popMessageResultFilter,
+        long timeoutMillis
+    ) {
+        CompletableFuture<PopResult> future = new CompletableFuture<>();
+        try {
             if (maxMsgNums > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
                 log.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
                     maxMsgNums, ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST, topic, consumerGroup);
@@ -109,10 +131,10 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setOrder(fifo);
 
             future = this.serviceManager.getMessageService().popMessage(
-                ctx,
-                messageQueue,
-                requestHeader,
-                timeoutMillis)
+                    ctx,
+                    messageQueue,
+                    requestHeader,
+                    timeoutMillis)
                 .thenApplyAsync(popResult -> {
                     if (PopStatus.FOUND.equals(popResult.getPopStatus()) &&
                         popResult.getMsgFoundList() != null &&
@@ -218,11 +240,11 @@ public class ConsumerProcessor extends AbstractProcessor {
             long commitLogOffset = handle.getCommitLogOffset();
 
             future = this.serviceManager.getMessageService().changeInvisibleTime(
-                ctx,
-                handle,
-                messageId,
-                changeInvisibleTimeRequestHeader,
-                timeoutMillis)
+                    ctx,
+                    handle,
+                    messageId,
+                    changeInvisibleTimeRequestHeader,
+                    timeoutMillis)
                 .thenApplyAsync(ackResult -> {
                     if (StringUtils.isNotBlank(ackResult.getExtraInfo())) {
                         AckResult result = new AckResult();

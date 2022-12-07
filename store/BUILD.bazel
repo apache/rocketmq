@@ -52,7 +52,8 @@ java_library(
         ":store",
         "//:test_deps",
         "//common",
-        "//remoting",        
+        "//remoting",
+        "@maven//:com_alibaba_fastjson",
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:org_apache_commons_commons_lang3",
@@ -65,14 +66,14 @@ java_library(
 GenTestRules(
     name = "GeneratedTestRules",
     exclude_tests = [
-        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
-        "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
-        "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
-        "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
         "src/test/java/org/apache/rocketmq/store/HATest",
+        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
+        "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
+        "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
+        "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [

@@ -87,7 +87,7 @@ java_library(
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_apache_rocketmq_rocketmq_proto",
-        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
 )
 

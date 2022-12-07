@@ -47,7 +47,7 @@ public class HAConnectionStateNotificationService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (defaultMessageStore != null && defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + HAConnectionStateNotificationService.class.getSimpleName();
+            return defaultMessageStore.getBrokerIdentity().getIdentifier() + HAConnectionStateNotificationService.class.getSimpleName();
         }
         return HAConnectionStateNotificationService.class.getSimpleName();
     }

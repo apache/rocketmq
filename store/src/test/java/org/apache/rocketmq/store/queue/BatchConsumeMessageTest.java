@@ -18,9 +18,11 @@
 package org.apache.rocketmq.store.queue;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
@@ -34,8 +36,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -49,6 +53,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
 public class BatchConsumeMessageTest extends QueueTestBase {
+    private static final int BATCH_NUM = 10;
+    private static final int TOTAL_MSGS = 200;
     private MessageStore messageStore;
 
     @Before
@@ -456,4 +462,101 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
     }
 
+    protected void putMsg(String topic) {
+        createTopic(topic, CQType.BatchCQ, messageStore);
+
+        for (int i = 0; i < TOTAL_MSGS; i++) {
+            MessageExtBrokerInner message = buildMessage(topic, BATCH_NUM * (i % 2 + 1));
+            switch (i % 3) {
+                case 0:
+                    message.setTags("TagA");
+                    break;
+
+                case 1:
+                    message.setTags("TagB");
+                    break;
+            }
+            message.setTagsCode(message.getTags().hashCode());
+            message.setPropertiesString(MessageDecoder.messageProperties2String(message.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(message);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+        }
+
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
+    }
+
+    @Test
+    public void testEstimateMessageCountInEmptyConsumeQueue() {
+        String topic = UUID.randomUUID().toString();
+        ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = consumeQueue.estimateMessageCount(0, 0, filter);
+        Assert.assertEquals(-1, estimation);
+
+        // test for illegal offset
+        estimation = consumeQueue.estimateMessageCount(0, 100, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = consumeQueue.estimateMessageCount(100, 1000, filter);
+        Assert.assertEquals(-1, estimation);
+    }
+
+    @Test
+    public void testEstimateMessageCount() {
+        String topic = UUID.randomUUID().toString();
+        putMsg(topic);
+        ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = cq.estimateMessageCount(0, 2999, filter);
+        Assert.assertEquals(1000, estimation);
+
+        // test for illegal offset
+        estimation = cq.estimateMessageCount(0, Long.MAX_VALUE, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = cq.estimateMessageCount(100000, 1000000, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = cq.estimateMessageCount(100, 0, filter);
+        Assert.assertEquals(-1, estimation);
+    }
+
+    @Test
+    public void testEstimateMessageCountSample() {
+        String topic = UUID.randomUUID().toString();
+        putMsg(topic);
+        messageStore.getMessageStoreConfig().setSampleCountThreshold(10);
+        messageStore.getMessageStoreConfig().setMaxConsumeQueueScan(20);
+        ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = cq.estimateMessageCount(1000, 2000, filter);
+        Assert.assertEquals(300, estimation);
+    }
 }

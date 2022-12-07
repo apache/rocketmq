@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
-import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -81,7 +81,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        SendMessageContext traceContext;
+        SendMessageContext sendMessageContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
@@ -95,11 +95,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (rewriteResult != null) {
                     return rewriteResult;
                 }
-                traceContext = buildMsgContext(ctx, requestHeader);
-                String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
-                traceContext.setCommercialOwner(owner);
+                sendMessageContext = buildMsgContext(ctx, requestHeader, request);
                 try {
-                    this.executeSendMessageHookBefore(ctx, request, traceContext);
+                    this.executeSendMessageHookBefore(sendMessageContext);
                 } catch (AbortProcessException e) {
                     final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(), e.getErrorMessage());
                     errorResponse.setOpaque(request.getOpaque());
@@ -108,10 +106,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
                 RemotingCommand response;
                 if (requestHeader.isBatch()) {
-                    response = this.sendBatchMessage(ctx, request, traceContext, requestHeader, mappingContext,
+                    response = this.sendBatchMessage(ctx, request, sendMessageContext, requestHeader, mappingContext,
                         (ctx1, response1) -> executeSendMessageHookAfter(response1, ctx1));
                 } else {
-                    response = this.sendMessage(ctx, request, traceContext, requestHeader, mappingContext,
+                    response = this.sendMessage(ctx, request, sendMessageContext, requestHeader, mappingContext,
                         (ctx12, response12) -> executeSendMessageHookAfter(response12, ctx12));
                 }
 

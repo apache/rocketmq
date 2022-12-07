@@ -169,7 +169,7 @@ public class GroupTransferService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (defaultMessageStore != null && defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + GroupTransferService.class.getSimpleName();
+            return defaultMessageStore.getBrokerIdentity().getIdentifier() + GroupTransferService.class.getSimpleName();
         }
         return GroupTransferService.class.getSimpleName();
     }

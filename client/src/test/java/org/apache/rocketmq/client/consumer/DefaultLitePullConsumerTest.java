@@ -194,7 +194,7 @@ public class DefaultLitePullConsumerTest {
         //commit offset 1
         Map<MessageQueue, Long> commitOffset = new HashMap<>();
         commitOffset.put(messageQueue, 1L);
-        litePullConsumer.commitSync(commitOffset, true);
+        litePullConsumer.commit(commitOffset, true);
 
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(1);
     }
