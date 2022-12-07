@@ -28,10 +28,10 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionForRetryMessageFilter;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.plugin.PullMessageResultHandler;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -371,14 +371,16 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         ConsumerManager consumerManager = brokerController.getConsumerManager();
-        if (requestHeader.getRequestSource() != null) {
-            if (requestHeader.getRequestSource() == RequestSource.PROXY_FOR_BROADCAST.getValue()) {
+        switch (RequestSource.parseInteger(requestHeader.getRequestSource())) {
+            case PROXY_FOR_BROADCAST:
                 consumerManager.compensateBasicConsumerInfo(requestHeader.getConsumerGroup(), ConsumeType.CONSUME_PASSIVELY, MessageModel.BROADCASTING);
-            } else if (requestHeader.getRequestSource() == RequestSource.PROXY_FOR_STREAM.getValue()) {
+                break;
+            case PROXY_FOR_STREAM:
                 consumerManager.compensateBasicConsumerInfo(requestHeader.getConsumerGroup(), ConsumeType.CONSUME_ACTIVELY, MessageModel.CLUSTERING);
-            } else {
+                break;
+            default:
                 consumerManager.compensateBasicConsumerInfo(requestHeader.getConsumerGroup(), ConsumeType.CONSUME_PASSIVELY, MessageModel.CLUSTERING);
-            }
+                break;
         }
 
         SubscriptionData subscriptionData = null;
