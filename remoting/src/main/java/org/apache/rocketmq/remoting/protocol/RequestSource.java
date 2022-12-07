@@ -37,4 +37,11 @@ public enum RequestSource {
     public static boolean isValid(Integer value) {
         return null != value && value >= -1 && value < RequestSource.values().length - 1;
     }
+
+    public static RequestSource parseInteger(Integer value) {
+        if (isValid(value)) {
+            return RequestSource.values()[value + 1];
+        }
+        return SDK;
+    }
 }

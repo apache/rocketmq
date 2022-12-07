@@ -70,6 +70,8 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -262,6 +264,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             orderCountInfo = new StringBuilder(64);
         }
 
+        brokerController.getConsumerManager().compensateBasicConsumerInfo(requestHeader.getConsumerGroup(),
+            ConsumeType.CONSUME_POP, MessageModel.CLUSTERING);
+
         response.setOpaque(request.getOpaque());
 
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -333,6 +338,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         if (requestHeader.getExp() != null && requestHeader.getExp().length() > 0) {
             try {
                 SubscriptionData subscriptionData = FilterAPI.build(requestHeader.getTopic(), requestHeader.getExp(), requestHeader.getExpType());
+                brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), subscriptionData);
+
+                String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup());
+                SubscriptionData retrySubscriptionData = FilterAPI.build(retryTopic, SubscriptionData.SUB_ALL, requestHeader.getExpType());
+                brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), retrySubscriptionData);
+
                 ConsumerFilterData consumerFilterData = null;
                 if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                     consumerFilterData = ConsumerFilterManager.build(

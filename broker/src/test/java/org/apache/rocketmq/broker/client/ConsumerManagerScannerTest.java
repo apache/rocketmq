@@ -68,7 +68,7 @@ public class ConsumerManagerScannerTest {
             public void shutdown() {
 
             }
-        });
+        }, 1000 * 120);
     }
 
     private static class ConsumerIdsChangeListenerData {
