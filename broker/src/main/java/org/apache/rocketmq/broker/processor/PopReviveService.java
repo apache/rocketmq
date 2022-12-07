@@ -120,8 +120,9 @@ public class PopReviveService extends ServiceThread {
                 queueId, popCheckPoint, messageExt.getQueueId(), messageExt.getQueueOffset(),
                 (System.currentTimeMillis() - popCheckPoint.getReviveTime()) / 1000, putMessageResult);
         }
-        if (putMessageResult.getAppendMessageResult() == null || putMessageResult.getAppendMessageResult().getStatus() != AppendMessageStatus.PUT_OK) {
-            throw new Exception("reviveQueueId=" + queueId + ",revive error ,msg is :" + msgInner);
+        if (putMessageResult.getAppendMessageResult() == null ||
+            putMessageResult.getAppendMessageResult().getStatus() != AppendMessageStatus.PUT_OK) {
+            throw new Exception("reviveQueueId=" + queueId + ", revive error, msg is: " + msgInner);
         }
         this.brokerController.getBrokerStatsManager().incBrokerPutNums(1);
         this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
@@ -513,7 +514,7 @@ public class PopReviveService extends ServiceThread {
                     queueId, consumeReviveObj.oldOffset, consumeReviveObj.newOffset, delay);
 
                 if (sortList == null || sortList.isEmpty()) {
-                    POP_LOGGER.info("reviveQueueId={},has no new msg ,take a rest {}", queueId, slow);
+                    POP_LOGGER.info("reviveQueueId={}, has no new msg, take a rest {}", queueId, slow);
                     this.waitForRunning(slow * brokerController.getBrokerConfig().getReviveInterval());
                     if (slow < brokerController.getBrokerConfig().getReviveMaxSlow()) {
                         slow++;
@@ -521,7 +522,7 @@ public class PopReviveService extends ServiceThread {
                 }
 
             } catch (Throwable e) {
-                POP_LOGGER.error("reviveQueueId=" + queueId + ",revive error", e);
+                POP_LOGGER.error("reviveQueueId=" + queueId + ", revive error", e);
             }
         }
     }

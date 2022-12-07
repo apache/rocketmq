@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.DataConverter;
@@ -88,7 +89,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER =
         LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
-    private Random random = new Random(System.currentTimeMillis());
+    private final Random random = new Random(System.currentTimeMillis());
     String reviveTopic;
     private static final String BORN_TIME = "bornTime";
 
@@ -586,9 +587,37 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         } finally {
             queueLockManager.unLock(lockKey);
         }
+
         if (getMessageTmpResult != null) {
+            String brokerName = brokerController.getBrokerConfig().getBrokerName();
             for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
-                getMessageResult.addMessage(mapedBuffer);
+                // We should not recode buffer for normal topic message
+                if (!isRetry) {
+                    getMessageResult.addMessage(mapedBuffer);
+                } else {
+                    List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
+                        true, false, true);
+                    mapedBuffer.release();
+                    for (MessageExt messageExt : messageExtList) {
+                        try {
+                            String ckInfo = ExtraInfoUtil.buildExtraInfo(offset, popTime, requestHeader.getInvisibleTime(),
+                                reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
+                            messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
+
+                            // Set retry message topic to origin topic and clear message store size to recode
+                            messageExt.setTopic(requestHeader.getTopic());
+                            messageExt.setStoreSize(0);
+
+                            byte[] encode = MessageDecoder.encode(messageExt, false);
+                            ByteBuffer buffer = ByteBuffer.wrap(encode);
+                            SelectMappedBufferResult result =
+                                new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
+                            getMessageResult.addMessage(result);
+                        } catch (Exception e) {
+                            POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
+                        }
+                    }
+                }
             }
         }
         return restNum;

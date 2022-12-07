@@ -267,21 +267,23 @@ public class LocalMessageService implements MessageService {
                         }
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, map.get(key) + MessageConst.KEY_SEPARATOR + messageExt.getQueueOffset());
                     } else {
-                        String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
-                        int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
-                        Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
-                        if (msgQueueOffset != messageExt.getQueueOffset()) {
-                            log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
-                        }
+                        if (messageExt.getProperty(MessageConst.PROPERTY_POP_CK) == null) {
+                            String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                            int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
+                            Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
+                            if (msgQueueOffset != messageExt.getQueueOffset()) {
+                                log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
+                            }
 
-                        messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                            ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                                responseHeader.getReviveQid(), messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId(), msgQueueOffset)
-                        );
-                        if (requestHeader.isOrder() && orderCountInfo != null) {
-                            Integer count = orderCountInfo.get(key);
-                            if (count != null && count > 0) {
-                                messageExt.setReconsumeTimes(count);
+                            messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+                                ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                    responseHeader.getReviveQid(), messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId(), msgQueueOffset)
+                            );
+                            if (requestHeader.isOrder() && orderCountInfo != null) {
+                                Integer count = orderCountInfo.get(key);
+                                if (count != null && count > 0) {
+                                    messageExt.setReconsumeTimes(count);
+                                }
                             }
                         }
                     }
