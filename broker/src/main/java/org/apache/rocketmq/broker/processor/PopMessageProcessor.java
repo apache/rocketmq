@@ -512,6 +512,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
             }
 
+            if (isOrder) {
+                this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(
+                    topic,
+                    requestHeader.getConsumerGroup(),
+                    queueId
+                );
+            }
+
             if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
                 restNum =
                     this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
@@ -619,6 +627,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     }
                 }
             }
+            this.brokerController.getPopInflightMessageCounter().incrementInFlightMessageNum(
+                topic,
+                requestHeader.getConsumerGroup(),
+                queueId,
+                getMessageTmpResult.getMessageCount()
+            );
         }
         return restNum;
     }

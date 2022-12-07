@@ -124,6 +124,7 @@ public class PopReviveService extends ServiceThread {
             putMessageResult.getAppendMessageResult().getStatus() != AppendMessageStatus.PUT_OK) {
             throw new Exception("reviveQueueId=" + queueId + ", revive error, msg is: " + msgInner);
         }
+        this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(popCheckPoint);
         this.brokerController.getBrokerStatsManager().incBrokerPutNums(1);
         this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
         this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
