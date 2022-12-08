@@ -36,7 +36,7 @@ public class HeartbeatSyncerData {
     private ConsumeType consumeType;
     private MessageModel messageModel;
     private ConsumeFromWhere consumeFromWhere;
-    private String connectProxyIp;
+    private String localProxyId;
     private String channelData;
 
     public HeartbeatSyncerData() {
@@ -45,7 +45,7 @@ public class HeartbeatSyncerData {
     public HeartbeatSyncerData(HeartbeatType heartbeatType, String clientId,
         LanguageCode language, int version, String group,
         ConsumeType consumeType, MessageModel messageModel,
-        ConsumeFromWhere consumeFromWhere, String connectProxyIp,
+        ConsumeFromWhere consumeFromWhere, String localProxyId,
         String channelData) {
         this.heartbeatType = heartbeatType;
         this.clientId = clientId;
@@ -55,7 +55,7 @@ public class HeartbeatSyncerData {
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
-        this.connectProxyIp = connectProxyIp;
+        this.localProxyId = localProxyId;
         this.channelData = channelData;
     }
 
@@ -140,12 +140,12 @@ public class HeartbeatSyncerData {
         this.consumeFromWhere = consumeFromWhere;
     }
 
-    public String getConnectProxyIp() {
-        return connectProxyIp;
+    public String getLocalProxyId() {
+        return localProxyId;
     }
 
-    public void setConnectProxyIp(String connectProxyIp) {
-        this.connectProxyIp = connectProxyIp;
+    public void setLocalProxyId(String localProxyId) {
+        this.localProxyId = localProxyId;
     }
 
     public String getChannelData() {
@@ -169,7 +169,7 @@ public class HeartbeatSyncerData {
             .add("consumeType", consumeType)
             .add("messageModel", messageModel)
             .add("consumeFromWhere", consumeFromWhere)
-            .add("connectProxyIp", connectProxyIp)
+            .add("connectProxyIp", localProxyId)
             .add("channelData", channelData)
             .toString();
     }
