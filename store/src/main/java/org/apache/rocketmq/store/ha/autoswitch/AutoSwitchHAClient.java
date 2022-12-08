@@ -45,18 +45,60 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     /**
-     * Handshake header buffer size. Schema: state ordinal + Two flags + slaveAddressLength
+     * Handshake header buffer size. Schema: state ordinal + Two flags + slaveAddressLength. Format:
+     *
+     * <pre>
+     *                   ┌──────────────────┬───────────────┐
+     *                   │isSyncFromLastFile│ isAsyncLearner│
+     *                   │     (2bytes)     │   (2bytes)    │
+     *                   └──────────────────┴───────────────┘
+     *                     \                              /
+     *                      \                            /
+     *                       ╲                          /
+     *                        ╲                        /
+     * ┌───────────────────────┬───────────────────────┬───────────────────────┐
+     * │      current state    │          Flags        │  slaveAddressLength   │
+     * │         (4bytes)      │         (4bytes)      │         (4bytes)      │
+     * ├───────────────────────┴───────────────────────┴───────────────────────┤
+     * │                                                                       │
+     * │                          HANDSHAKE  Header                            │
+     * </pre>
+     * <p>
      * Flag: isSyncFromLastFile(short), isAsyncLearner(short)... we can add more flags in the future if needed
      */
     public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 4;
 
     /**
-     * Header + slaveAddress.
+     * Header + slaveAddress, Format:
+     * <pre>
+     *                   ┌──────────────────┬───────────────┐
+     *                   │isSyncFromLastFile│ isAsyncLearner│
+     *                   │     (2bytes)     │   (2bytes)    │
+     *                   └──────────────────┴───────────────┘
+     *                     \                              /
+     *                      \                            /
+     *                       ╲                          /
+     *                        ╲                        /
+     * ┌───────────────────────┬───────────────────────┬───────────────────────┬───────────────────────────────┐
+     * │      current state    │          Flags        │  slaveAddressLength   │          slaveAddress         │
+     * │         (4bytes)      │         (4bytes)      │         (4bytes)      │             (50bytes)         │
+     * ├───────────────────────┴───────────────────────┴───────────────────────┼───────────────────────────────┤
+     * │                                                                       │                               │
+     * │                        HANDSHAKE  Header                              │               body            │
+     * </pre>
      */
     public static final int HANDSHAKE_SIZE = HANDSHAKE_HEADER_SIZE + 50;
 
     /**
-     * Transfer header buffer size. Schema: state ordinal + maxOffset.
+     * Transfer header buffer size. Schema: state ordinal + maxOffset. Format:
+     * <pre>
+     * ┌───────────────────────┬───────────────────────┐
+     * │      current state    │        maxOffset      │
+     * │         (4bytes)      │         (8bytes)      │
+     * ├───────────────────────┴───────────────────────┤
+     * │                                               │
+     * │                TRANSFER  Header               │
+     * </pre>
      */
     public static final int TRANSFER_HEADER_SIZE = 4 + 8;
     public static final int MIN_HEADER_SIZE = Math.min(HANDSHAKE_HEADER_SIZE, TRANSFER_HEADER_SIZE);
