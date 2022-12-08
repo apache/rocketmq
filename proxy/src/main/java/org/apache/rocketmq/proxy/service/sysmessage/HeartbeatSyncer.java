@@ -50,11 +50,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
     protected ThreadPoolExecutor threadPoolExecutor;
     protected ConsumerManager consumerManager;
     protected final Map<String /* channelId as longText */, RemoteChannel> remoteChannelMap = new ConcurrentHashMap<>();
+    protected String localProxyId;
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
         ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory) {
         super(topicRouteService, adminService, mqClientAPIFactory);
         this.consumerManager = consumerManager;
+        this.localProxyId = buildLocalProxyId();
         this.init();
     }
 
@@ -104,7 +106,6 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         try {
             this.threadPoolExecutor.submit(() -> {
                 try {
-                    ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
                     RemoteChannel remoteChannel = RemoteChannel.create(clientChannelInfo.getChannel());
                     if (remoteChannel == null) {
                         return;
@@ -118,7 +119,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         consumeType,
                         messageModel,
                         consumeFromWhere,
-                        proxyConfig.getLocalServeAddr(),
+                        localProxyId,
                         remoteChannel.encode()
                     );
                     data.setSubscriptionDataSet(subList);
@@ -143,7 +144,6 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         try {
             this.threadPoolExecutor.submit(() -> {
                 try {
-                    ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
                     RemoteChannel remoteChannel = RemoteChannel.create(clientChannelInfo.getChannel());
                     if (remoteChannel == null) {
                         return;
@@ -157,7 +157,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         null,
                         null,
                         null,
-                        proxyConfig.getLocalServeAddr(),
+                        localProxyId,
                         remoteChannel.encode()
                     );
 
@@ -183,7 +183,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         for (MessageExt msg : msgs) {
             try {
                 HeartbeatSyncerData data = JSON.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), HeartbeatSyncerData.class);
-                if (data.getConnectProxyIp().equals(ConfigurationManager.getProxyConfig().getLocalServeAddr())) {
+                if (data.getLocalProxyId().equals(localProxyId)) {
                     continue;
                 }
 
@@ -220,5 +220,11 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         }
 
         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+    }
+
+    private String buildLocalProxyId() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        // use local address, remoting port and grpc port to build unique local proxy Id
+        return proxyConfig.getLocalServeAddr() + "%" + proxyConfig.getRemotingListenPort() + "%" + proxyConfig.getGrpcServerPort();
     }
 }
