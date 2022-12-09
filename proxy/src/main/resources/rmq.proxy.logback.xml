@@ -16,7 +16,7 @@
   limitations under the License.
   -->
 
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
 
     <appender name="RocketmqProxyAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
