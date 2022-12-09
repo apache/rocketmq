@@ -70,8 +70,6 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     public ClusterServiceManager(RPCHook rpcHook) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
-        this.producerManager = new ProducerManager();
-        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout());
 
         this.messagingClientAPIFactory = new MQClientAPIFactory(
             "ClusterMQClient_",
@@ -86,20 +84,24 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             rpcHook,
             this.scheduledExecutorService
         );
+
+        this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
+        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
+        this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
+        this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
+
+        this.producerManager = new ProducerManager();
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout());
+
         this.transactionClientAPIFactory = new MQClientAPIFactory(
             "ClusterTransaction_",
             1,
             new ProxyClientRemotingProcessor(producerManager),
             rpcHook,
             scheduledExecutorService);
-
-        this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
-        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook,
             this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
-        this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
-        this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 
         this.init();
     }
