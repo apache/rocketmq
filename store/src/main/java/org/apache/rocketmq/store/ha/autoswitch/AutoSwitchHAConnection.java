@@ -44,30 +44,30 @@ public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Handshake data protocol in syncing msg from master. Format:
      * <pre>
-     * +----------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   EpochEntrySize * EpochEntryNums  |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (12bytes * EpochEntryNums)    |
-     * +----------------------------------------------------------------------------------------------+
-     * |                       Header                            |             Body                   |
-     * |                                                         |                                    |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬────────────────────────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   EpochEntrySize * EpochEntryNums  │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (12bytes * EpochEntryNums)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┼────────────────────────────────────┤
+     * │                       Header                            │             Body                   │
+     * │                                                         │                                    │
      * </pre>
      * Handshake Header protocol Format:
-     *  current state + body size + offset + epoch
+     * current state + body size + offset + epoch
      */
     public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
 
     /**
      * Transfer data protocol in syncing msg from master. Format:
      * <pre>
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   epochStartOffset  |   confirmOffset  |    log data      |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (8bytes)       |      (8bytes)    |   (data size)    |
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |                                               Header                                             |       Body       |
-     * |                                                                                                  |                  |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬─────────────────────┬──────────────────┬──────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   epochStartOffset  │   confirmOffset  │    log data      │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (8bytes)       │      (8bytes)    │   (data size)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┴─────────────────────┴──────────────────┼──────────────────┤
+     * │                                               Header                                             │       Body       │
+     * │                                                                                                  │                  │
      * </pre>
      * Transfer Header protocol Format:
-     *  current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
+     * current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
      */
     public static final int TRANSFER_HEADER_SIZE = HANDSHAKE_HEADER_SIZE + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
