@@ -1173,7 +1173,6 @@ public class ProxyConfig implements ConfigFile {
     public void setChannelExpiredTimeout(long channelExpiredTimeout) {
         this.channelExpiredTimeout = channelExpiredTimeout;
     }
-}
 
     public void setEnableRemotingLocalProxyGrpc(boolean enableRemotingLocalProxyGrpc) {
         this.enableRemotingLocalProxyGrpc = enableRemotingLocalProxyGrpc;
