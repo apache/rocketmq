@@ -166,7 +166,7 @@ public class DLedgerController implements Controller {
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
         return this.scheduler.appendEvent("registerBroker",
-            () -> this.replicasInfoManager.registerBroker(request), true);
+            () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
     }
 
     @Override
