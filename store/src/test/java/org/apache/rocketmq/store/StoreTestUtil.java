@@ -21,8 +21,8 @@ import io.openmessaging.storage.dledger.store.file.MmapFile;
 import java.io.IOException;
 import java.util.List;
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
 
@@ -34,7 +34,7 @@ import java.util.ArrayList;
 
 public class StoreTestUtil {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(StoreTestUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(StoreTestUtil.class);
 
     public static boolean isCommitLogAvailable(DefaultMessageStore store) {
         try {
@@ -57,10 +57,10 @@ public class StoreTestUtil {
         field.setAccessible(true);
         DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(store);
 
-        final int RETRY_TIMES_OVER = 3;
+        final int retryTimesOver = 3;
         Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
         method.setAccessible(true);
-        method.invoke(flushService, RETRY_TIMES_OVER);
+        method.invoke(flushService, retryTimesOver);
     }
 
 

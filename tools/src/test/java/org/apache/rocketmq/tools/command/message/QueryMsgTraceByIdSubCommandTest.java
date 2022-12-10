@@ -16,16 +16,20 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
@@ -33,17 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 public class QueryMsgTraceByIdSubCommandTest {
-
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
 
     private ServerResponseMocker brokerMocker;
 
@@ -67,19 +61,19 @@ public class QueryMsgTraceByIdSubCommandTest {
     public void testExecute() throws SubCommandException {
         QueryMsgTraceByIdSubCommand cmd = new QueryMsgTraceByIdSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-i " + MSG_ID};
+        String[] subargs = new String[] {String.format("-i %s", MSG_ID),
+            String.format("-n localhost:%d", nameServerMocker.listenPort())};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
     private ServerResponseMocker startNameServer() {
-        int nameServerPort = NAME_SERVER_PORT;
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + nameServerPort);
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> dataList = new ArrayList<>();
         HashMap<Long, String> brokerAddress = new HashMap<>();
-        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
+        brokerAddress.put(1L, "127.0.0.1:" + brokerMocker.listenPort());
         BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
         brokerData.setBrokerName("mockBrokerName");
         dataList.add(brokerData);
@@ -95,7 +89,7 @@ public class QueryMsgTraceByIdSubCommandTest {
         queueDatas.add(queueData);
         topicRouteData.setQueueDatas(queueDatas);
 
-        return ServerResponseMocker.startServer(nameServerPort, topicRouteData.encode());
+        return ServerResponseMocker.startServer(topicRouteData.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
@@ -113,7 +107,7 @@ public class QueryMsgTraceByIdSubCommandTest {
             extMap.put("indexLastUpdateTimestamp", String.valueOf(System.currentTimeMillis()));
             extMap.put("indexLastUpdatePhyoffset", String.valueOf(System.currentTimeMillis()));
             // start broker
-            return ServerResponseMocker.startServer(BROKER_PORT, body, extMap);
+            return ServerResponseMocker.startServer(body, extMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);

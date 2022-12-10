@@ -36,7 +36,7 @@ public class TraceDataEncoder {
      * @return
      */
     public static List<TraceContext> decoderFromTraceDataString(String traceData) {
-        List<TraceContext> resList = new ArrayList<TraceContext>();
+        List<TraceContext> resList = new ArrayList<>();
         if (traceData == null || traceData.length() <= 0) {
             return resList;
         }
@@ -73,7 +73,7 @@ public class TraceDataEncoder {
                     bean.setClientHost(line[14]);
                 }
 
-                pubContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                pubContext.setTraceBeans(new ArrayList<>(1));
                 pubContext.getTraceBeans().add(bean);
                 resList.add(pubContext);
             } else if (line[0].equals(TraceType.SubBefore.name())) {
@@ -87,7 +87,7 @@ public class TraceDataEncoder {
                 bean.setMsgId(line[5]);
                 bean.setRetryTimes(Integer.parseInt(line[6]));
                 bean.setKeys(line[7]);
-                subBeforeContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                subBeforeContext.setTraceBeans(new ArrayList<>(1));
                 subBeforeContext.getTraceBeans().add(bean);
                 resList.add(subBeforeContext);
             } else if (line[0].equals(TraceType.SubAfter.name())) {
@@ -97,7 +97,7 @@ public class TraceDataEncoder {
                 TraceBean bean = new TraceBean();
                 bean.setMsgId(line[2]);
                 bean.setKeys(line[5]);
-                subAfterContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                subAfterContext.setTraceBeans(new ArrayList<>(1));
                 subAfterContext.getTraceBeans().add(bean);
                 subAfterContext.setCostTime(Integer.parseInt(line[3]));
                 subAfterContext.setSuccess(Boolean.parseBoolean(line[4]));
@@ -128,7 +128,7 @@ public class TraceDataEncoder {
                 bean.setTransactionState(LocalTransactionState.valueOf(line[11]));
                 bean.setFromTransactionCheck(Boolean.parseBoolean(line[12]));
 
-                endTransactionContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                endTransactionContext.setTraceBeans(new ArrayList<>(1));
                 endTransactionContext.getTraceBeans().add(bean);
                 resList.add(endTransactionContext);
             }
@@ -146,7 +146,7 @@ public class TraceDataEncoder {
         if (ctx == null) {
             return null;
         }
-        //build message trace of the transfering entity content bean
+        //build message trace of the transferring entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {

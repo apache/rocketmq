@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.test.container;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.File;
 import java.io.IOException;
@@ -37,32 +35,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.rocketmq.container.BrokerContainer;
-import org.apache.rocketmq.container.InnerSalveBrokerController;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.container.BrokerContainerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.container.BrokerContainer;
+import org.apache.rocketmq.container.BrokerContainerConfig;
+import org.apache.rocketmq.container.InnerSalveBrokerController;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnection;
@@ -70,7 +69,6 @@ import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
 
@@ -87,8 +85,8 @@ public class ContainerIntegrationTestBase {
 
     protected static final String THREE_REPLICAS_TOPIC = "SEND_MESSAGE_TEST_TOPIC_THREE_REPLICAS";
 
-    protected static final List<BrokerContainer> brokerContainerList = new ArrayList<>();
-    protected static final List<NamesrvController> namesrvControllers = new ArrayList<>();
+    protected static List<BrokerContainer> brokerContainerList = new ArrayList<>();
+    protected static List<NamesrvController> namesrvControllers = new ArrayList<>();
 
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
     protected static final int COMMIT_LOG_SIZE = 128 * 1024;
@@ -105,7 +103,7 @@ public class ContainerIntegrationTestBase {
 
     protected static DefaultMQAdminExt defaultMQAdminExt;
 
-    private final static InternalLogger LOG = InternalLoggerFactory.getLogger(ContainerIntegrationTestBase.class);
+    private final static Logger LOG = LoggerFactory.getLogger(ContainerIntegrationTestBase.class);
     private static ConcurrentMap<BrokerConfig, MessageStoreConfig> slaveStoreConfigCache = new ConcurrentHashMap<>();
 
     protected static ConcurrentMap<BrokerConfigLite, BrokerController> isolatedBrokers = new ConcurrentHashMap<>();
@@ -117,16 +115,6 @@ public class ContainerIntegrationTestBase {
             System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
             System.setProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.99");
             System.setProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.99");
-
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            JoranConfigurator configurator = new JoranConfigurator();
-            configurator.setContext(lc);
-            lc.reset();
-            //https://logback.qos.ch/manual/configuration.html
-            lc.setPackagingDataEnabled(false);
-
-            configurator.doConfigure("../distribution/conf/logback_broker.xml");
-            configurator.doConfigure("../distribution/conf/logback_namesrv.xml");
 
             setUpCluster();
             setUpTopic();
@@ -186,7 +174,6 @@ public class ContainerIntegrationTestBase {
         try {
             TopicConfig topicConfig = new TopicConfig(topicName, rqn, wqn, 6, 0);
             defaultMQAdminExt.createAndUpdateTopicConfig(masterBroker.getBrokerAddr(), topicConfig);
-
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer1);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer2);
             triggerSlaveSync(masterBroker.getBrokerConfig().getBrokerName(), brokerContainer3);
@@ -403,6 +390,15 @@ public class ContainerIntegrationTestBase {
         producer.setInstanceName(UUID.randomUUID().toString());
         producer.setNamesrvAddr(nsAddr);
         producer.setTransactionCheckListener(transactionCheckListener);
+        return producer;
+    }
+
+    protected static TransactionMQProducer createTransactionProducer(String producerGroup,
+        TransactionListener transactionListener) {
+        TransactionMQProducer producer = new TransactionMQProducer(producerGroup);
+        producer.setInstanceName(UUID.randomUUID().toString());
+        producer.setNamesrvAddr(nsAddr);
+        producer.setTransactionListener(transactionListener);
         return producer;
     }
 

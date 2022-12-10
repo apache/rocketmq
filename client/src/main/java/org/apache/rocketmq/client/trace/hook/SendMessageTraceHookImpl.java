@@ -25,7 +25,7 @@ import org.apache.rocketmq.client.trace.TraceBean;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceType;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class SendMessageTraceHookImpl implements SendMessageHook {
 
@@ -46,12 +46,12 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())) {
             return;
         }
-        //build the context content of TuxeTraceContext
-        TraceContext tuxeContext = new TraceContext();
-        tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
-        context.setMqTraceContext(tuxeContext);
-        tuxeContext.setTraceType(TraceType.Pub);
-        tuxeContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
+        //build the context content of TraceContext
+        TraceContext traceContext = new TraceContext();
+        traceContext.setTraceBeans(new ArrayList<>(1));
+        context.setMqTraceContext(traceContext);
+        traceContext.setTraceType(TraceType.Pub);
+        traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
         //build the data bean object of message trace
         TraceBean traceBean = new TraceBean();
         traceBean.setTopic(NamespaceUtil.withoutNamespace(context.getMessage().getTopic()));
@@ -60,7 +60,7 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         traceBean.setStoreHost(context.getBrokerAddr());
         traceBean.setBodyLength(context.getMessage().getBody().length);
         traceBean.setMsgType(context.getMsgType());
-        tuxeContext.getTraceBeans().add(traceBean);
+        traceContext.getTraceBeans().add(traceBean);
     }
 
     @Override
@@ -80,19 +80,19 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
             return;
         }
 
-        TraceContext tuxeContext = (TraceContext) context.getMqTraceContext();
-        TraceBean traceBean = tuxeContext.getTraceBeans().get(0);
-        int costTime = (int) ((System.currentTimeMillis() - tuxeContext.getTimeStamp()) / tuxeContext.getTraceBeans().size());
-        tuxeContext.setCostTime(costTime);
+        TraceContext traceContext = (TraceContext) context.getMqTraceContext();
+        TraceBean traceBean = traceContext.getTraceBeans().get(0);
+        int costTime = (int) ((System.currentTimeMillis() - traceContext.getTimeStamp()) / traceContext.getTraceBeans().size());
+        traceContext.setCostTime(costTime);
         if (context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK)) {
-            tuxeContext.setSuccess(true);
+            traceContext.setSuccess(true);
         } else {
-            tuxeContext.setSuccess(false);
+            traceContext.setSuccess(false);
         }
-        tuxeContext.setRegionId(context.getSendResult().getRegionId());
+        traceContext.setRegionId(context.getSendResult().getRegionId());
         traceBean.setMsgId(context.getSendResult().getMsgId());
         traceBean.setOffsetMsgId(context.getSendResult().getOffsetMsgId());
-        traceBean.setStoreTime(tuxeContext.getTimeStamp() + costTime / 2);
-        localDispatcher.append(tuxeContext);
+        traceBean.setStoreTime(traceContext.getTimeStamp() + costTime / 2);
+        localDispatcher.append(traceContext);
     }
 }

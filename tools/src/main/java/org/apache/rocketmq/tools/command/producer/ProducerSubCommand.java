@@ -16,19 +16,18 @@
  */
 package org.apache.rocketmq.tools.command.producer;
 
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.ProducerInfo;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.ProducerInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-
-import java.util.List;
 
 public class ProducerSubCommand implements SubCommand {
 

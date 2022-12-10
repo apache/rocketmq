@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.test.lmq;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -30,19 +34,16 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.test.lmq.benchmark.BenchLmqStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -71,6 +72,7 @@ public class TestBenchLmqStore {
         verify(BenchLmqStore.defaultMQPullConsumers[0], atLeastOnce()).pullBlockIfNotFound(any(MessageQueue.class), anyString(), anyLong(), anyInt(), any(
             PullCallback.class));
     }
+
     @Test
     public void testOffset() throws RemotingException, InterruptedException, MQClientException, MQBrokerException, IllegalAccessException {
         System.setProperty("sendThreadNum", "1");
@@ -88,7 +90,7 @@ public class TestBenchLmqStore {
         TopicRouteData topicRouteData = new TopicRouteData();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(MixAll.MASTER_ID, "test");
-        List<BrokerData> brokerData = Arrays.asList(new BrokerData("test", "test", brokerAddrs));
+        List<BrokerData> brokerData = Collections.singletonList(new BrokerData("test", "test", brokerAddrs));
         topicRouteData.setBrokerDatas(brokerData);
         FieldUtils.writeStaticField(BenchLmqStore.class, "lmqTopic", "test", true);
         when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);

@@ -22,26 +22,21 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
@@ -71,7 +66,6 @@ public class PopMessageProcessorTest {
     private ChannelHandlerContext handlerContext;
     @Mock
     private DefaultMessageStore messageStore;
-    private ScheduleMessageService scheduleMessageService;
     private ClientChannelInfo clientChannelInfo;
     private String group = "FooBarGroup";
     private String topic = "FooBar";
@@ -80,10 +74,6 @@ public class PopMessageProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        scheduleMessageService = new ScheduleMessageService(brokerController);
-        scheduleMessageService.parseDelayLevel();
-        when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
-        when(messageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
@@ -108,16 +98,6 @@ public class PopMessageProcessorTest {
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
         assertThat(response.getRemark()).contains("topic[" + topic + "] not exist");
-    }
-
-    @Test
-    public void testProcessRequest_SubNotExist() throws RemotingCommandException {
-        brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo, false);
-        final RemotingCommand request = createPopMsgCommand();
-        RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-        assertThat(response.getRemark()).contains("consumer's group info not exist");
     }
 
     @Test

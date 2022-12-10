@@ -33,7 +33,8 @@ public class GenericMapSuperclassDeserializer implements ObjectDeserializer {
     public static final GenericMapSuperclassDeserializer INSTANCE = new GenericMapSuperclassDeserializer();
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override public <T> T deserialze(DefaultJSONParser parser, Type type, Object fieldName) {
+    @Override
+    public <T> T deserialze(DefaultJSONParser parser, Type type, Object fieldName) {
         Class<?> clz = (Class<?>) type;
         Type genericSuperclass = clz.getGenericSuperclass();
         Map map;
@@ -52,7 +53,8 @@ public class GenericMapSuperclassDeserializer implements ObjectDeserializer {
         }
     }
 
-    @Override public int getFastMatchToken() {
+    @Override
+    public int getFastMatchToken() {
         return JSONToken.LBRACE;
     }
 }

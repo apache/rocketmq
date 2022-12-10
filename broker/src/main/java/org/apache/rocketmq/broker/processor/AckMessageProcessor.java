@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.util.MsgUtil;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -28,23 +27,23 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
 
 public class AckMessageProcessor implements NettyRequestProcessor {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private String reviveTopic;
     private PopReviveService[] popReviveServices;
@@ -93,7 +92,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 
@@ -164,7 +164,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 }
                 long nextOffset = brokerController.getConsumerOrderInfoManager().commitAndNext(
                     requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                    requestHeader.getQueueId(), requestHeader.getOffset());
+                    requestHeader.getQueueId(), requestHeader.getOffset(),
+                    ExtraInfoUtil.getPopTime(extraInfo));
                 if (nextOffset > -1) {
                     this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(),
@@ -183,10 +184,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             } finally {
                 this.brokerController.getPopMessageProcessor().getQueueLockManager().unLock(lockKey);
             }
+            decInFlightMessageNum(requestHeader);
             return response;
         }
 
         if (this.brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
+            decInFlightMessageNum(requestHeader);
             return response;
         }
 
@@ -198,7 +201,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
-        MsgUtil.setMessageDeliverTime(this.brokerController, msgInner, ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
+        msgInner.setDeliverTimeMs(ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
@@ -208,7 +211,16 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
             POP_LOGGER.error("put ack msg error:" + putMessageResult);
         }
+        decInFlightMessageNum(requestHeader);
         return response;
+    }
+
+    private void decInFlightMessageNum(AckMessageRequestHeader requestHeader) {
+        this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(
+            requestHeader.getTopic(),
+            requestHeader.getConsumerGroup(),
+            requestHeader.getExtraInfo()
+        );
     }
 
 }

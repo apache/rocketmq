@@ -46,4 +46,12 @@ public class LmqTopicConfigManager extends TopicConfigManager {
         return new TopicConfig(topic, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
     }
 
+    @Override
+    public boolean containsTopic(String topic) {
+        if (MixAll.isLmq(topic)) {
+            return true;
+        }
+        return super.containsTopic(topic);
+    }
+
 }

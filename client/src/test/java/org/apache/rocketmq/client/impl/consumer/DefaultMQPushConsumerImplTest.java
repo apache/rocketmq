@@ -65,7 +65,6 @@ public class DefaultMQPushConsumerImplTest {
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
-                System.out.println(" Receive New Messages: " + msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
@@ -78,24 +77,29 @@ public class DefaultMQPushConsumerImplTest {
     public void testHook() throws Exception {
         DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(defaultMQPushConsumer, null);
         defaultMQPushConsumerImpl.registerConsumeMessageHook(new ConsumeMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "consumerHook";
             }
 
-            @Override public void consumeMessageBefore(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
                 assertThat(context).isNotNull();
             }
 
-            @Override public void consumeMessageAfter(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
                 assertThat(context).isNotNull();
             }
         });
         defaultMQPushConsumerImpl.registerFilterMessageHook(new FilterMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "filterHook";
             }
 
-            @Override public void filterMessage(FilterMessageContext context) {
+            @Override
+            public void filterMessage(FilterMessageContext context) {
                 assertThat(context).isNotNull();
             }
         });
@@ -107,7 +111,8 @@ public class DefaultMQPushConsumerImplTest {
     @Test
     public void testPush() throws Exception {
         when(defaultMQPushConsumer.getMessageListener()).thenReturn(new MessageListenerConcurrently() {
-            @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
                 assertThat(msgs).size().isGreaterThan(0);
                 assertThat(context).isNotNull();

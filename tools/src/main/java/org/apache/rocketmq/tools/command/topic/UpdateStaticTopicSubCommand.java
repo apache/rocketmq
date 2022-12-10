@@ -16,28 +16,28 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
-import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.admin.MQAdminUtils;
-import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.rocketmq.tools.command.SubCommandException;
-
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicRemappingDetailWrapper;
+import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.admin.MQAdminUtils;
+import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class UpdateStaticTopicSubCommand implements SubCommand {
 
@@ -97,7 +97,8 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             String mapFileName = commandLine.getOptionValue('f').trim();
             String mapData = MixAll.file2String(mapFileName);
-            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(), TopicRemappingDetailWrapper.class);
+            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(StandardCharsets.UTF_8),
+                TopicRemappingDetailWrapper.class);
             //double check the config
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, wrapper.getBrokerConfigMap());
             boolean force = false;
@@ -139,7 +140,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))
+            if (!commandLine.hasOption("b") && !commandLine.hasOption('c')
                     || !commandLine.hasOption("qn")) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
@@ -182,7 +183,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             }
 
             {
-                TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), brokerConfigMap, new HashSet<String>(), new HashSet<String>());
+                TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), brokerConfigMap, new HashSet<>(), new HashSet<>());
                 String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
                 System.out.printf("The old mapping data is written to file " + oldMappingDataFile + "\n");
             }

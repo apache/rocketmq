@@ -16,14 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.export;
 
+import com.alibaba.fastjson.JSON;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import com.alibaba.fastjson.JSON;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -31,19 +29,19 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.Connection;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.stats.Stats;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.Connection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.remoting.protocol.body.KVTable;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -58,7 +56,7 @@ public class ExportMetricsCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export metrics";
+        return "Export metrics";
     }
 
     @Override
@@ -210,13 +208,13 @@ public class ExportMetricsCommand implements SubCommand {
         double normalInTps = 0;
         double normalOutTps = 0;
         String putTps = kvTable.getTable().get("putTps");
-        String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+        String getTransferredTps = kvTable.getTable().get("getTransferredTps");
         String[] inTpss = putTps.split(" ");
         if (inTpss.length > 0) {
             normalInTps = Double.parseDouble(inTpss[0]);
         }
 
-        String[] outTpss = getTransferedTps.split(" ");
+        String[] outTpss = getTransferredTps.split(" ");
         if (outTpss.length > 0) {
             normalOutTps = Double.parseDouble(outTpss[0]);
         }

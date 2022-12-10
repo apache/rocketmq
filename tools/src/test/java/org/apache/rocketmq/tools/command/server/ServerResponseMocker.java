@@ -29,6 +29,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -36,14 +39,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
 
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-
 /**
  * mock server response for command
  */
 public abstract class ServerResponseMocker {
+
+    private int listenPort;
 
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
@@ -65,7 +66,9 @@ public abstract class ServerResponseMocker {
         }
     }
 
-    protected abstract int getPort();
+    public int listenPort() {
+        return listenPort;
+    }
 
     protected abstract byte[] getBody();
 
@@ -79,11 +82,10 @@ public abstract class ServerResponseMocker {
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.SO_REUSEADDR, true)
-                .option(ChannelOption.SO_KEEPALIVE, false)
+                .childOption(ChannelOption.SO_KEEPALIVE, false)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_SNDBUF, 65535)
                 .childOption(ChannelOption.SO_RCVBUF, 65535)
-                .localAddress(new InetSocketAddress(getPort()))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
@@ -98,8 +100,9 @@ public abstract class ServerResponseMocker {
                     }
                 });
         try {
-            ChannelFuture sync = serverBootstrap.bind().sync();
+            ChannelFuture sync = serverBootstrap.bind(0).sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
+            this.listenPort = addr.getPort();
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
@@ -128,18 +131,13 @@ public abstract class ServerResponseMocker {
         }
     }
 
-    public static ServerResponseMocker startServer(int port, byte[] body) {
-        return startServer(port, body, null);
+    public static ServerResponseMocker startServer(byte[] body) {
+        return startServer(body, null);
     }
 
 
-    public static ServerResponseMocker startServer(int port, byte[] body, HashMap<String, String> extMap) {
+    public static ServerResponseMocker startServer(byte[] body, HashMap<String, String> extMap) {
         ServerResponseMocker mocker = new ServerResponseMocker() {
-            @Override
-            protected int getPort() {
-                return port;
-            }
-
             @Override
             protected byte[] getBody() {
                 return body;

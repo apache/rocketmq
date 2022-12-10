@@ -17,17 +17,16 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.junit.Test;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -81,9 +80,7 @@ public class ConsumerFilterManagerTest {
     public void testRegister_change() {
         ConsumerFilterManager filterManager = gen(10, 10);
 
-        ConsumerFilterData filterData = filterManager.get("topic9", "CID_9");
-
-        System.out.println(filterData.getCompiledExpression());
+        ConsumerFilterData filterData;
 
         String newExpr = "a > 0 and a < 10";
 
@@ -92,8 +89,6 @@ public class ConsumerFilterManagerTest {
         filterData = filterManager.get("topic9", "CID_9");
 
         assertThat(newExpr).isEqualTo(filterData.getExpression());
-
-        System.out.println(filterData.toString());
     }
 
     @Test

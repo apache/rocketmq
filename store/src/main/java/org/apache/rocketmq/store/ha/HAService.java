@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -49,6 +49,25 @@ public interface HAService {
     void shutdown();
 
     /**
+     * Change to master state
+     *
+     * @param masterEpoch the new masterEpoch
+     */
+    default boolean changeToMaster(int masterEpoch) {
+        return false;
+    }
+
+    /**
+     * Change to slave state
+     *
+     * @param newMasterAddr new master addr
+     * @param newMasterEpoch new masterEpoch
+     */
+    default boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
+        return false;
+    }
+
+    /**
      * Update master address
      *
      * @param newAddr
@@ -63,12 +82,13 @@ public interface HAService {
     void updateHaMasterAddress(String newAddr);
 
     /**
-     * Returns the number of slaves those commit log are not far behind the master.
+     * Returns the number of replicas those commit log are not far behind the master. It includes master itself. Returns
+     * syncStateSet size if HAService instanceof AutoSwitchService
      *
      * @return the number of slaves
      * @see MessageStoreConfig#getHaMaxGapNotInSync()
      */
-    int inSyncSlaveNums(long masterPutWhere);
+    int inSyncReplicasNums(long masterPutWhere);
 
     /**
      * Get connection count
@@ -121,8 +141,8 @@ public interface HAService {
     WaitNotifyObject getWaitNotifyObject();
 
     /**
-     * Judge whether the slave keeps up according to the masterPutWhere,
-     * If the offset gap exceeds haSlaveFallBehindMax, then slave is not OK
+     * Judge whether the slave keeps up according to the masterPutWhere, If the offset gap exceeds haSlaveFallBehindMax,
+     * then slave is not OK
      */
     boolean isSlaveOK(long masterPutWhere);
 }

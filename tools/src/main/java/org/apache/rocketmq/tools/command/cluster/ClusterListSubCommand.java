@@ -20,15 +20,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.KVTable;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -109,7 +108,7 @@ public class ClusterListSubCommand implements SubCommand {
         if (StringUtils.isEmpty(clusterName)) {
             return clusterInfo.getClusterAddrTable().keySet();
         } else {
-            Set<String> clusterNames = new TreeSet<String>();
+            Set<String> clusterNames = new TreeSet<>();
             clusterNames.add(clusterName);
             return clusterNames;
         }
@@ -128,7 +127,7 @@ public class ClusterListSubCommand implements SubCommand {
         );
 
         for (String clusterName : clusterNames) {
-            TreeSet<String> brokerNameTreeSet = new TreeSet<String>();
+            TreeSet<String> brokerNameTreeSet = new TreeSet<>();
             Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
             if (brokerNameSet != null && !brokerNameSet.isEmpty()) {
                 brokerNameTreeSet.addAll(brokerNameSet);
@@ -178,9 +177,9 @@ public class ClusterListSubCommand implements SubCommand {
     }
 
     private void printClusterBaseInfo(final Set<String> clusterNames,
-        final DefaultMQAdminExt defaultMQAdminExt,
-        final ClusterInfo clusterInfo) {
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s %10s%n",
+                                      final DefaultMQAdminExt defaultMQAdminExt,
+                                      final ClusterInfo clusterInfo) {
+        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %16s  %-22s  %-11s  %-12s  %-8s  %-10s%n",
             "#Cluster Name",
             "#Broker Name",
             "#BID",
@@ -188,6 +187,7 @@ public class ClusterListSubCommand implements SubCommand {
             "#Version",
             "#InTPS(LOAD)",
             "#OutTPS(LOAD)",
+            "#Timer(Progress)",
             "#PCWait(ms)",
             "#Hour",
             "#SPACE",
@@ -195,7 +195,7 @@ public class ClusterListSubCommand implements SubCommand {
         );
 
         for (String clusterName : clusterNames) {
-            TreeSet<String> brokerNameTreeSet = new TreeSet<String>();
+            TreeSet<String> brokerNameTreeSet = new TreeSet<>();
             Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
             if (brokerNameSet != null && !brokerNameSet.isEmpty()) {
                 brokerNameTreeSet.addAll(brokerNameSet);
@@ -217,12 +217,17 @@ public class ClusterListSubCommand implements SubCommand {
                         String pageCacheLockTimeMills = "";
                         String earliestMessageTimeStamp = "";
                         String commitLogDiskRatio = "";
+                        long timerReadBehind = 0;
+                        long timerOffsetBehind = 0;
+                        long timerCongestNum = 0;
+                        float timerEnqueueTps = 0.0f;
+                        float timerDequeueTps = 0.0f;
                         boolean isBrokerActive = false;
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             isBrokerActive = Boolean.parseBoolean(kvTable.getTable().get("brokerActive"));
                             String putTps = kvTable.getTable().get("putTps");
-                            String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+                            String getTransferredTps = kvTable.getTable().get("getTransferredTps");
                             sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
                             pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
 
@@ -235,16 +240,26 @@ public class ClusterListSubCommand implements SubCommand {
                             earliestMessageTimeStamp = kvTable.getTable().get("earliestMessageTimeStamp");
                             commitLogDiskRatio = kvTable.getTable().get("commitLogDiskRatio");
 
+                            try {
+                                timerReadBehind = Long.parseLong(kvTable.getTable().get("timerReadBehind"));
+                                timerOffsetBehind = Long.parseLong(kvTable.getTable().get("timerOffsetBehind"));
+                                timerCongestNum = Long.parseLong(kvTable.getTable().get("timerCongestNum"));
+                                timerEnqueueTps = Float.parseFloat(kvTable.getTable().get("timerEnqueueTps"));
+                                timerDequeueTps = Float.parseFloat(kvTable.getTable().get("timerDequeueTps"));
+                            } catch (Throwable ignored) {
+                            }
+
                             version = kvTable.getTable().get("brokerVersionDesc");
-                            {
+
+                            if (StringUtils.isNotBlank(putTps)) {
                                 String[] tpss = putTps.split(" ");
                                 if (tpss.length > 0) {
                                     in = Double.parseDouble(tpss[0]);
                                 }
                             }
 
-                            {
-                                String[] tpss = getTransferedTps.split(" ");
+                            if (StringUtils.isNotBlank(getTransferredTps)) {
+                                String[] tpss = getTransferredTps.split(" ");
                                 if (tpss.length > 0) {
                                     out = Double.parseDouble(tpss[0]);
                                 }
@@ -265,7 +280,7 @@ public class ClusterListSubCommand implements SubCommand {
                             space = Double.parseDouble(commitLogDiskRatio);
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s %10s%n",
+                        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %16s  %-22s  %11s  %-12s  %-8s  %10s%n",
                             clusterName,
                             brokerName,
                             next1.getKey(),
@@ -273,6 +288,7 @@ public class ClusterListSubCommand implements SubCommand {
                             version,
                             String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
                             String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
+                            String.format("%d-%d(%.1fw, %.1f, %.1f)", timerReadBehind, timerOffsetBehind, timerCongestNum / 10000.0f, timerEnqueueTps, timerDequeueTps),
                             pageCacheLockTimeMills,
                             String.format("%2.2f", hour),
                             String.format("%.4f", space),

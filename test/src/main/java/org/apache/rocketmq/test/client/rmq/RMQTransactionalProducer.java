@@ -17,18 +17,20 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
-import org.apache.log4j.Logger;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
 public class RMQTransactionalProducer extends AbstractMQProducer {
-    private static Logger logger  = Logger.getLogger(RMQTransactionalProducer.class);
+    private static Logger logger  = LoggerFactory.getLogger(RMQTransactionalProducer.class);
     private TransactionMQProducer producer = null;
     private String nsAddr = null;
 
@@ -61,7 +63,7 @@ public class RMQTransactionalProducer extends AbstractMQProducer {
             super.setStartSuccess(true);
         } catch (MQClientException e) {
             super.setStartSuccess(false);
-            logger.error(e);
+            logger.error("", e);
             e.printStackTrace();
         }
     }
@@ -76,16 +78,16 @@ public class RMQTransactionalProducer extends AbstractMQProducer {
             metaqResult = producer.sendMessageInTransaction(message, arg);
             this.msgRTs.addData(System.currentTimeMillis() - start);
             if (isDebug) {
-                logger.info(metaqResult);
+                logger.info("SendResult: {}", metaqResult);
             }
             sendResult.setMsgId(metaqResult.getMsgId());
             sendResult.setSendResult(true);
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
             if (commitMsg) {
-                msgBodys.addData(new String(message.getBody()));
+                msgBodys.addData(new String(message.getBody(), StandardCharsets.UTF_8));
             }
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(message.getBody()), metaqResult);
+            originMsgIndex.put(new String(message.getBody(), StandardCharsets.UTF_8), metaqResult);
         } catch (MQClientException e) {
             if (isDebug) {
                 e.printStackTrace();

@@ -68,7 +68,7 @@ public class Message implements Serializable {
 
     void putProperty(final String name, final String value) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         this.properties.put(name, value);
@@ -102,7 +102,7 @@ public class Message implements Serializable {
 
     public String getProperty(final String name) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         return this.properties.get(name);
@@ -213,5 +213,19 @@ public class Message implements Serializable {
             ", body=" + Arrays.toString(body) +
             ", transactionId='" + transactionId + '\'' +
             '}';
+    }
+
+    public void setDelayTimeSec(long sec) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC, String.valueOf(sec));
+    }
+    public void setDelayTimeMs(long timeMs) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_MS, String.valueOf(timeMs));
+    }
+    public void setDeliverTimeMs(long timeMs) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(timeMs));
+    }
+
+    public long getDeliverTimeMs() {
+        return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
     }
 }

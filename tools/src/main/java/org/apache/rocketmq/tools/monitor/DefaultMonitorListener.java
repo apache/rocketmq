@@ -20,36 +20,36 @@ package org.apache.rocketmq.tools.monitor;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class DefaultMonitorListener implements MonitorListener {
     private final static String LOG_PREFIX = "[MONITOR] ";
     private final static String LOG_NOTIFY = LOG_PREFIX + " [NOTIFY] ";
-    private final InternalLogger log = ClientLogger.getLog();
+    private final Logger logger = LoggerFactory.getLogger(DefaultMonitorListener.class);
 
     public DefaultMonitorListener() {
     }
 
     @Override
     public void beginRound() {
-        log.info(LOG_PREFIX + "=========================================beginRound");
+        logger.info(LOG_PREFIX + "=========================================beginRound");
     }
 
     @Override
     public void reportUndoneMsgs(UndoneMsgs undoneMsgs) {
-        log.info(String.format(LOG_PREFIX + "reportUndoneMsgs: %s", undoneMsgs));
+        logger.info(String.format(LOG_PREFIX + "reportUndoneMsgs: %s", undoneMsgs));
     }
 
     @Override
     public void reportFailedMsgs(FailedMsgs failedMsgs) {
-        log.info(String.format(LOG_PREFIX + "reportFailedMsgs: %s", failedMsgs));
+        logger.info(String.format(LOG_PREFIX + "reportFailedMsgs: %s", failedMsgs));
     }
 
     @Override
     public void reportDeleteMsgsEvent(DeleteMsgsEvent deleteMsgsEvent) {
-        log.info(String.format(LOG_PREFIX + "reportDeleteMsgsEvent: %s", deleteMsgsEvent));
+        logger.info(String.format(LOG_PREFIX + "reportDeleteMsgsEvent: %s", deleteMsgsEvent));
     }
 
     @Override
@@ -58,7 +58,7 @@ public class DefaultMonitorListener implements MonitorListener {
         {
             boolean result = ConsumerRunningInfo.analyzeSubscription(criTable);
             if (!result) {
-                log.info(String.format(LOG_NOTIFY
+                logger.info(String.format(LOG_NOTIFY
                     + "reportConsumerRunningInfo: ConsumerGroup: %s, Subscription different", criTable
                     .firstEntry().getValue().getProperties().getProperty("consumerGroup")));
             }
@@ -70,7 +70,7 @@ public class DefaultMonitorListener implements MonitorListener {
                 Entry<String, ConsumerRunningInfo> next = it.next();
                 String result = ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
                 if (!result.isEmpty()) {
-                    log.info(String.format(LOG_NOTIFY
+                    logger.info(String.format(LOG_NOTIFY
                             + "reportConsumerRunningInfo: ConsumerGroup: %s, ClientId: %s, %s",
                         criTable.firstEntry().getValue().getProperties().getProperty("consumerGroup"),
                         next.getKey(),
@@ -82,6 +82,6 @@ public class DefaultMonitorListener implements MonitorListener {
 
     @Override
     public void endRound() {
-        log.info(LOG_PREFIX + "=========================================endRound");
+        logger.info(LOG_PREFIX + "=========================================endRound");
     }
 }

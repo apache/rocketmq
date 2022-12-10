@@ -24,6 +24,20 @@ error_exit ()
     exit 1
 }
 
+find_java_home()
+{
+    case "`uname`" in
+        Darwin)
+            JAVA_HOME=$(/usr/libexec/java_home)
+        ;;
+        *)
+            JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+        ;;
+    esac
+}
+
+find_java_home
+
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=$HOME/jdk/java
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=/usr/java
 [ ! -e "$JAVA_HOME/bin/java" ] && error_exit "Please set the JAVA_HOME variable in your environment, We need java(x64)!"

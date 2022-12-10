@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -32,24 +33,29 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByIdSubCommand implements SubCommand {
-    public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
+    public static void queryById(final DefaultMQAdminExt admin, final String msgId, final Charset msgBodyCharset) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(msgId);
 
-        printMsg(admin, msg);
+        printMsg(admin, msg, msgBodyCharset);
     }
 
     public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
+        printMsg(admin, msg, null);
+    }
+
+    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg, final Charset msgBodyCharset) throws IOException {
         if (msg == null) {
             System.out.printf("%nMessage not found!");
             return;
@@ -136,6 +142,10 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             bodyTmpFilePath
         );
 
+        if (null != msgBodyCharset) {
+            System.out.printf("%-20s %s%n", "Message Body:", new String(msg.getBody(), msgBodyCharset));
+        }
+
         try {
             List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
             if (mtdList.isEmpty()) {
@@ -143,7 +153,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             } else {
                 System.out.printf("%n%n");
                 for (MessageTrack mt : mtdList) {
-                    System.out.printf("%s", mt);
+                    System.out.printf("%s%n", mt);
                 }
             }
         } catch (Exception e) {
@@ -201,6 +211,10 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -242,9 +256,13 @@ public class QueryMsgByIdSubCommand implements SubCommand {
                     }
                 }
             } else {
+                Charset msgBodyCharset = null;
+                if (commandLine.hasOption('f')) {
+                    msgBodyCharset = Charset.forName(commandLine.getOptionValue('f').trim());
+                }
                 for (String msgId : msgIdArr) {
                     if (StringUtils.isNotBlank(msgId)) {
-                        queryById(defaultMQAdminExt, msgId.trim());
+                        queryById(defaultMQAdminExt, msgId.trim(), msgBodyCharset);
                     }
                 }
 
@@ -260,9 +278,14 @@ public class QueryMsgByIdSubCommand implements SubCommand {
     private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId,
         final String msgId) {
         try {
-            ConsumeMessageDirectlyResult result =
-                defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
-            System.out.printf("%s", result);
+            ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false, false);
+            if (consumerRunningInfo != null && ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
+                ConsumeMessageDirectlyResult result =
+                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+                System.out.printf("%s", result);
+            } else {
+                System.out.printf("this %s client is not push consumer ,not support direct push \n", clientId);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

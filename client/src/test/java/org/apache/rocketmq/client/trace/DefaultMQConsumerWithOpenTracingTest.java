@@ -62,9 +62,9 @@ import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -160,7 +160,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
 
@@ -176,7 +176,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -197,7 +197,8 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
         // wait until consumeMessageAfter hook of tracer is done surely.
         waitAtMost(1, TimeUnit.SECONDS).until(new Callable() {
-            @Override public Object call() throws Exception {
+            @Override
+            public Object call() throws Exception {
                 return tracer.finishedSpans().size() == 1;
             }
         });

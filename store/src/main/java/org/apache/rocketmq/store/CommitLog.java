@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.UnpooledByteBufAllocator;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -34,27 +31,28 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
-
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageVersion;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.MessageExtEncoder.PutMessageThreadLocal;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.common.attribute.CQType;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -62,7 +60,7 @@ import org.apache.rocketmq.common.attribute.CQType;
 public class CommitLog implements Swappable {
     // Message's MAGIC CODE daa320a7
     public final static int MESSAGE_MAGIC_CODE = -626843481;
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     // End of file empty MAGIC CODE cbd43194
     public final static int BLANK_MAGIC_CODE = -875286124;
     protected final MappedFileQueue mappedFileQueue;
@@ -386,7 +384,8 @@ public class CommitLog implements Swappable {
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
             switch (magicCode) {
-                case MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
                     break;
                 case BLANK_MAGIC_CODE:
                     return new DispatchRequest(0, true /* success */);
@@ -394,6 +393,8 @@ public class CommitLog implements Swappable {
                     log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
                     return new DispatchRequest(-1, false /* success */);
             }
+
+            MessageVersion messageVersion = MessageVersion.valueOfMagicCode(magicCode);
 
             byte[] bytesContent = new byte[totalSize];
 
@@ -448,7 +449,7 @@ public class CommitLog implements Swappable {
                 }
             }
 
-            byte topicLen = byteBuffer.get();
+            int topicLen = messageVersion.getTopicLength(byteBuffer);
             byteBuffer.get(bytesContent, 0, topicLen);
             String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
 
@@ -498,7 +499,7 @@ public class CommitLog implements Swappable {
                 }
             }
 
-            int readLength = calMsgLength(sysFlag, bodyLen, topicLen, propertiesLength);
+            int readLength = MessageExtEncoder.calMsgLength(messageVersion, sysFlag, bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
                 doNothingForDeadCode(reconsumeTimes);
                 doNothingForDeadCode(flag);
@@ -530,6 +531,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            log.error("Check message and return size error", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -540,30 +542,6 @@ public class CommitLog implements Swappable {
             dispatchRequest.setMsgBaseOffset(Long.parseLong(propertiesMap.get(MessageConst.PROPERTY_INNER_BASE)));
             dispatchRequest.setBatchSize(Short.parseShort(propertiesMap.get(MessageConst.PROPERTY_INNER_NUM)));
         }
-    }
-
-    protected static int calMsgLength(int sysFlag, int bodyLength, int topicLength, int propertiesLength) {
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-        int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
-        final int msgLen = 4 //TOTALSIZE
-            + 4 //MAGICCODE
-            + 4 //BODYCRC
-            + 4 //QUEUEID
-            + 4 //FLAG
-            + 8 //QUEUEOFFSET
-            + 8 //PHYSICALOFFSET
-            + 4 //SYSFLAG
-            + 8 //BORNTIMESTAMP
-            + bornhostLength //BORNHOST
-            + 8 //STORETIMESTAMP
-            + storehostAddressLength //STOREHOSTADDRESS
-            + 4 //RECONSUMETIMES
-            + 8 //Prepared Transaction Offset
-            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
-            + 1 + topicLength //TOPIC
-            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
-            + 0;
-        return msgLen;
     }
 
     public long getConfirmOffset() {
@@ -709,8 +687,8 @@ public class CommitLog implements Swappable {
     private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
-        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
-        if (magicCode != MESSAGE_MAGIC_CODE) {
+        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
+        if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
             return false;
         }
 
@@ -778,8 +756,7 @@ public class CommitLog implements Swappable {
             msg.setStoreTimestamp(System.currentTimeMillis());
         }
 
-        // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
+        // Set the message body CRC (consider the most appropriate setting on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
         AppendMessageResult result = null;
@@ -787,6 +764,12 @@ public class CommitLog implements Swappable {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
+        msg.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && topic.length() > Byte.MAX_VALUE) {
+            msg.setVersion(MessageVersion.MESSAGE_VERSION_V2);
+        }
 
         InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
         if (bornSocketAddress.getAddress() instanceof Inet6Address) {
@@ -812,12 +795,20 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        boolean needHandleHA = needHandleHA(msg);
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        boolean needHandleHA = needHandleHA(msg);
 
-        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+            if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+            if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            }
+        } else if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
             needAckNums = calcNeedAckNums(inSyncReplicas);
             if (needAckNums > inSyncReplicas) {
                 // Tell the producer, don't have enough slaves to handle the send request
@@ -917,7 +908,7 @@ public class CommitLog implements Swappable {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
-        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
+        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
         return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
@@ -959,17 +950,33 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
-        boolean needHandleHA = needHandleHA(messageExtBatch);
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        boolean needHandleHA = needHandleHA(messageExtBatch);
 
-        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
+
+        if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+            if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+            if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
+            }
+        } else if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableSlaveActingMaster()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset));
             needAckNums = calcNeedAckNums(inSyncReplicas);
             if (needAckNums > inSyncReplicas) {
                 // Tell the producer, don't have enough slaves to handle the send request
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
+        }
+
+        messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+            messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
         //fine-grained lock instead of the coarse-grained
@@ -1114,27 +1121,16 @@ public class CommitLog implements Swappable {
 
     private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
         int needAckNums) {
-        if (needAckNums <= 1) {
+        if (needAckNums >= 0 && needAckNums <= 1) {
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
 
         HAService haService = this.defaultMessageStore.getHaService();
 
         long nextOffset = result.getWroteOffset() + result.getWroteBytes();
-        // NOTE: Plus the master replicas
-//        int inSyncReplicas = haService.inSyncSlaveNums(nextOffset) + 1;
-
-//        if (needAckNums > inSyncReplicas) {
-//            /*
-//             * Tell the producer, don't have enough slaves to handle the send request.
-//             * NOTE: this may cause msg duplicate
-//             */
-//            putMessageResult.setPutMessageStatus(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//            return CompletableFuture.completedFuture(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
-//        }
 
         // Wait enough acks from different slaves
-        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1);
+        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums);
         haService.putRequest(request);
         haService.getWaitNotifyObject().wakeupAll();
         return request.future();
@@ -1144,7 +1140,7 @@ public class CommitLog implements Swappable {
      * According to receive certain message or offset storage time if an error occurs, it returns -1
      */
     public long pickupStoreTimestamp(final long offset, final int size) {
-        if (offset >= this.getMinOffset()) {
+        if (offset >= this.getMinOffset() && offset + size <= this.getMaxOffset()) {
             SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
                 try {
@@ -1261,7 +1257,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + CommitRealTimeService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerIdentity().getIdentifier() + CommitRealTimeService.class.getSimpleName();
             }
             return CommitRealTimeService.class.getSimpleName();
         }
@@ -1379,7 +1375,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + FlushRealTimeService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + FlushRealTimeService.class.getSimpleName();
             }
             return FlushRealTimeService.class.getSimpleName();
         }
@@ -1437,11 +1433,11 @@ public class CommitLog implements Swappable {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
-        private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<GroupCommitRequest>();
-        private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<GroupCommitRequest>();
+        private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
+        private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
 
-        public synchronized void putRequest(final GroupCommitRequest request) {
+        public void putRequest(final GroupCommitRequest request) {
             lock.lock();
             try {
                 this.requestsWrite.add(request);
@@ -1489,6 +1485,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1509,10 +1506,7 @@ public class CommitLog implements Swappable {
                 CommitLog.log.warn("GroupCommitService Exception, ", e);
             }
 
-            synchronized (this) {
-                this.swapRequests();
-            }
-
+            this.swapRequests();
             this.doCommit();
 
             CommitLog.log.info(this.getServiceName() + " service end");
@@ -1526,7 +1520,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCommitService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + GroupCommitService.class.getSimpleName();
             }
             return GroupCommitService.class.getSimpleName();
         }
@@ -1538,8 +1532,8 @@ public class CommitLog implements Swappable {
     }
 
     class GroupCheckService extends FlushCommitLogService {
-        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
-        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
+        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<>();
+        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<>();
 
         public boolean isAsyncRequestsFull() {
             return requestsWrite.size() > CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests() * 2;
@@ -1637,7 +1631,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCheckService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + GroupCheckService.class.getSimpleName();
             }
             return GroupCheckService.class.getSimpleName();
         }
@@ -1827,237 +1821,6 @@ public class CommitLog implements Swappable {
 
     }
 
-    public static class MessageExtEncoder {
-        private ByteBuf byteBuf;
-        // The maximum length of the message body.
-        private int maxMessageBodySize;
-        // The maximum length of the full message.
-        private int maxMessageSize;
-        MessageExtEncoder(final int maxMessageBodySize) {
-            ByteBufAllocator alloc = UnpooledByteBufAllocator.DEFAULT;
-            //Reserve 64kb for encoding buffer outside body
-            int maxMessageSize = Integer.MAX_VALUE - maxMessageBodySize >= 64 * 1024 ?
-                    maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
-            byteBuf = alloc.directBuffer(maxMessageSize);
-            this.maxMessageBodySize = maxMessageBodySize;
-            this.maxMessageSize = maxMessageSize;
-        }
-
-        protected PutMessageResult encode(MessageExtBrokerInner msgInner) {
-            this.byteBuf.clear();
-            /**
-             * Serialize message
-             */
-            final byte[] propertiesData =
-                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
-
-            final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
-
-            if (propertiesLength > Short.MAX_VALUE) {
-                log.warn("putMessage message properties length too long. length={}", propertiesData.length);
-                return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
-            }
-
-            final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-            final int topicLength = topicData.length;
-
-            final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
-
-            final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
-
-            // Exceeds the maximum message body
-            if (bodyLength > this.maxMessageBodySize) {
-                CommitLog.log.warn("message body size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageSize: " + this.maxMessageBodySize);
-                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-            }
-
-            final long queueOffset = msgInner.getQueueOffset();
-
-            // Exceeds the maximum message
-            if (msgLen > this.maxMessageSize) {
-                CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageSize: " + this.maxMessageSize);
-                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-            }
-
-            // 1 TOTALSIZE
-            this.byteBuf.writeInt(msgLen);
-            // 2 MAGICCODE
-            this.byteBuf.writeInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC
-            this.byteBuf.writeInt(msgInner.getBodyCRC());
-            // 4 QUEUEID
-            this.byteBuf.writeInt(msgInner.getQueueId());
-            // 5 FLAG
-            this.byteBuf.writeInt(msgInner.getFlag());
-            // 6 QUEUEOFFSET
-            this.byteBuf.writeLong(queueOffset);
-            // 7 PHYSICALOFFSET, need update later
-            this.byteBuf.writeLong(0);
-            // 8 SYSFLAG
-            this.byteBuf.writeInt(msgInner.getSysFlag());
-            // 9 BORNTIMESTAMP
-            this.byteBuf.writeLong(msgInner.getBornTimestamp());
-
-            // 10 BORNHOST
-            ByteBuffer bornHostBytes = msgInner.getBornHostBytes();
-            this.byteBuf.writeBytes(bornHostBytes.array());
-
-            // 11 STORETIMESTAMP
-            this.byteBuf.writeLong(msgInner.getStoreTimestamp());
-
-            // 12 STOREHOSTADDRESS
-            ByteBuffer storeHostBytes = msgInner.getStoreHostBytes();
-            this.byteBuf.writeBytes(storeHostBytes.array());
-
-            // 13 RECONSUMETIMES
-            this.byteBuf.writeInt(msgInner.getReconsumeTimes());
-            // 14 Prepared Transaction Offset
-            this.byteBuf.writeLong(msgInner.getPreparedTransactionOffset());
-            // 15 BODY
-            this.byteBuf.writeInt(bodyLength);
-            if (bodyLength > 0)
-                this.byteBuf.writeBytes(msgInner.getBody());
-            // 16 TOPIC
-            this.byteBuf.writeByte((byte) topicLength);
-            this.byteBuf.writeBytes(topicData);
-            // 17 PROPERTIES
-            this.byteBuf.writeShort((short) propertiesLength);
-            if (propertiesLength > 0)
-                this.byteBuf.writeBytes(propertiesData);
-
-            return null;
-        }
-
-        protected ByteBuffer encode(final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
-            this.byteBuf.clear();
-
-            ByteBuffer messagesByteBuff = messageExtBatch.wrap();
-
-            int totalLength = messagesByteBuff.limit();
-            if (totalLength > this.maxMessageBodySize) {
-                CommitLog.log.warn("message body size exceeded, msg body size: " + totalLength + ", maxMessageSize: " + this.maxMessageBodySize);
-                throw new RuntimeException("message body size exceeded");
-            }
-
-            // properties from MessageExtBatch
-            String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
-            final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
-            int batchPropDataLen = batchPropData.length;
-            if (batchPropDataLen > Short.MAX_VALUE) {
-                CommitLog.log.warn("Properties size of messageExtBatch exceeded, properties size: {}, maxSize: {}.", batchPropDataLen, Short.MAX_VALUE);
-                throw new RuntimeException("Properties size of messageExtBatch exceeded!");
-            }
-            final short batchPropLen = (short) batchPropDataLen;
-
-            int batchSize = 0;
-            while (messagesByteBuff.hasRemaining()) {
-                batchSize++;
-                // 1 TOTALSIZE
-                messagesByteBuff.getInt();
-                // 2 MAGICCODE
-                messagesByteBuff.getInt();
-                // 3 BODYCRC
-                messagesByteBuff.getInt();
-                // 4 FLAG
-                int flag = messagesByteBuff.getInt();
-                // 5 BODY
-                int bodyLen = messagesByteBuff.getInt();
-                int bodyPos = messagesByteBuff.position();
-                int bodyCrc = UtilAll.crc32(messagesByteBuff.array(), bodyPos, bodyLen);
-                messagesByteBuff.position(bodyPos + bodyLen);
-                // 6 properties
-                short propertiesLen = messagesByteBuff.getShort();
-                int propertiesPos = messagesByteBuff.position();
-                messagesByteBuff.position(propertiesPos + propertiesLen);
-                boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
-                    && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
-
-                final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-
-                final int topicLength = topicData.length;
-
-                int totalPropLen = needAppendLastPropertySeparator ? propertiesLen + batchPropLen + 1
-                    : propertiesLen + batchPropLen;
-                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
-
-                // 1 TOTALSIZE
-                this.byteBuf.writeInt(msgLen);
-                // 2 MAGICCODE
-                this.byteBuf.writeInt(CommitLog.MESSAGE_MAGIC_CODE);
-                // 3 BODYCRC
-                this.byteBuf.writeInt(bodyCrc);
-                // 4 QUEUEID
-                this.byteBuf.writeInt(messageExtBatch.getQueueId());
-                // 5 FLAG
-                this.byteBuf.writeInt(flag);
-                // 6 QUEUEOFFSET
-                this.byteBuf.writeLong(0);
-                // 7 PHYSICALOFFSET
-                this.byteBuf.writeLong(0);
-                // 8 SYSFLAG
-                this.byteBuf.writeInt(messageExtBatch.getSysFlag());
-                // 9 BORNTIMESTAMP
-                this.byteBuf.writeLong(messageExtBatch.getBornTimestamp());
-
-                // 10 BORNHOST
-                ByteBuffer bornHostBytes = messageExtBatch.getBornHostBytes();
-                this.byteBuf.writeBytes(bornHostBytes.array());
-
-                // 11 STORETIMESTAMP
-                this.byteBuf.writeLong(messageExtBatch.getStoreTimestamp());
-
-                // 12 STOREHOSTADDRESS
-                ByteBuffer storeHostBytes = messageExtBatch.getStoreHostBytes();
-                this.byteBuf.writeBytes(storeHostBytes.array());
-
-                // 13 RECONSUMETIMES
-                this.byteBuf.writeInt(messageExtBatch.getReconsumeTimes());
-                // 14 Prepared Transaction Offset, batch does not support transaction
-                this.byteBuf.writeLong(0);
-                // 15 BODY
-                this.byteBuf.writeInt(bodyLen);
-                if (bodyLen > 0)
-                    this.byteBuf.writeBytes(messagesByteBuff.array(), bodyPos, bodyLen);
-                // 16 TOPIC
-                this.byteBuf.writeByte((byte) topicLength);
-                this.byteBuf.writeBytes(topicData);
-                // 17 PROPERTIES
-                this.byteBuf.writeShort((short) totalPropLen);
-                if (propertiesLen > 0) {
-                    this.byteBuf.writeBytes(messagesByteBuff.array(), propertiesPos, propertiesLen);
-                }
-                if (batchPropLen > 0) {
-                    if (needAppendLastPropertySeparator) {
-                        this.byteBuf.writeByte((byte) MessageDecoder.PROPERTY_SEPARATOR);
-                    }
-                    this.byteBuf.writeBytes(batchPropData, 0, batchPropLen);
-                }
-            }
-            putMessageContext.setBatchSize(batchSize);
-            putMessageContext.setPhyPos(new long[batchSize]);
-
-            return this.byteBuf.nioBuffer();
-        }
-
-        public ByteBuffer getEncoderBuffer() {
-            return this.byteBuf.nioBuffer();
-        }
-
-        public int getMaxMessageBodySize() {
-            return this.maxMessageBodySize;
-        }
-
-        public void updateEncoderBufferCapacity(int newMaxMessageBodySize) {
-            this.maxMessageBodySize = newMaxMessageBodySize;
-            //Reserve 64kb for encoding buffer outside body
-            this.maxMessageSize = Integer.MAX_VALUE - newMaxMessageBodySize >= 64 * 1024 ?
-                    this.maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
-            this.byteBuf.capacity(this.maxMessageSize);
-        }
-    }
-
     interface FlushManager {
         void start();
 
@@ -2200,21 +1963,4 @@ public class CommitLog implements Swappable {
         this.getMappedFileQueue().cleanSwappedMap(forceCleanSwapIntervalMs);
     }
 
-    static class PutMessageThreadLocal {
-        private MessageExtEncoder encoder;
-        private StringBuilder keyBuilder;
-
-        PutMessageThreadLocal(int maxMessageBodySize) {
-            encoder = new MessageExtEncoder(maxMessageBodySize);
-            keyBuilder = new StringBuilder();
-        }
-
-        public MessageExtEncoder getEncoder() {
-            return encoder;
-        }
-
-        public StringBuilder getKeyBuilder() {
-            return keyBuilder;
-        }
-    }
 }

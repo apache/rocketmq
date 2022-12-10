@@ -19,17 +19,16 @@ package org.apache.rocketmq.store;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
@@ -38,6 +37,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 /**
@@ -69,9 +69,9 @@ public interface MessageStore {
      */
     void destroy();
 
-    /** Store a message into store in async manner, the processor can process the next request
-     *  rather than wait for result
-     *  when result is completed, notify the client in async manner
+    /**
+     * Store a message into store in async manner, the processor can process the next request rather than wait for
+     * result when result is completed, notify the client in async manner
      *
      * @param msg MessageInstance to store
      * @return a CompletableFuture for the result of store operation
@@ -82,6 +82,7 @@ public interface MessageStore {
 
     /**
      * Store a batch of messages in async manner
+     *
      * @param messageExtBatch the message batch
      * @return a CompletableFuture for the result of store operation
      */
@@ -150,8 +151,7 @@ public interface MessageStore {
      *
      * @param topic Topic name.
      * @param queueId Queue ID.
-     * @param committed return the max offset in ConsumeQueue if true,
-     *                  or the max offset in CommitLog if false
+     * @param committed return the max offset in ConsumeQueue if true, or the max offset in CommitLog if false
      * @return Maximum offset at present.
      */
     long getMaxOffsetInQueue(final String topic, final int queueId, final boolean committed);
@@ -164,6 +164,10 @@ public interface MessageStore {
      * @return Minimum offset at present.
      */
     long getMinOffsetInQueue(final String topic, final int queueId);
+
+    TimerMessageStore getTimerMessageStore();
+
+    void setTimerMessageStore(TimerMessageStore timerMessageStore);
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
@@ -225,7 +229,7 @@ public interface MessageStore {
      * @return message store running info.
      */
     String getRunningDataInfo();
-
+    long getTimingMessageCount(String topic);
     /**
      * Message store runtime information, which should generally contains various statistical information.
      *
@@ -305,7 +309,6 @@ public interface MessageStore {
      */
     List<SelectMappedBufferResult> getBulkCommitLogData(final long offset, final int size);
 
-
     /**
      * Append data to commit log.
      *
@@ -340,7 +343,6 @@ public interface MessageStore {
      * @param newAddr new address.
      */
     void updateHaMasterAddress(final String newAddr);
-
 
     /**
      * Update master address.
@@ -483,6 +485,7 @@ public interface MessageStore {
 
     /**
      * Will be triggered when a new message is appended to commit log.
+     *
      * @param msg the msg that is appended to commit log
      * @param result append message result
      * @param commitLogFile commit log file
@@ -491,70 +494,82 @@ public interface MessageStore {
 
     /**
      * Will be triggered when a new dispatch request is sent to message store.
+     *
      * @param dispatchRequest dispatch request
      * @param doDispatch do dispatch if true
      * @param commitLogFile commit log file
      * @param isRecover is from recover process
      * @param isFileEnd if the dispatch request represents 'file end'
      */
-    void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile, boolean isRecover, boolean isFileEnd);
+    void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
+        boolean isRecover, boolean isFileEnd);
 
     /**
      * Get the message store config
+     *
      * @return the message store config
      */
     MessageStoreConfig getMessageStoreConfig();
 
     /**
      * Get the statistics service
+     *
      * @return the statistics service
      */
     StoreStatsService getStoreStatsService();
 
     /**
      * Get the store checkpoint component
+     *
      * @return the checkpoint component
      */
     StoreCheckpoint getStoreCheckpoint();
 
     /**
      * Get the system clock
+     *
      * @return the system clock
      */
     SystemClock getSystemClock();
 
     /**
      * Get the commit log
+     *
      * @return the commit log
      */
     CommitLog getCommitLog();
 
     /**
      * Get running flags
+     *
      * @return running flags
      */
     RunningFlags getRunningFlags();
 
     /**
      * Get the transient store pool
+     *
      * @return the transient store pool
      */
     TransientStorePool getTransientStorePool();
 
     /**
      * Get the HA service
+     *
      * @return the HA service
      */
     HAService getHaService();
 
     /**
      * Get the allocate-mappedFile service
+     *
      * @return the allocate-mappedFile service
      */
     AllocateMappedFileService getAllocateMappedFileService();
 
     /**
      * Truncate dirty logic files
+     *
      * @param phyOffset physical offset
      */
     void truncateDirtyLogicFiles(long phyOffset);
@@ -566,37 +581,42 @@ public interface MessageStore {
 
     /**
      * Unlock mappedFile
+     *
      * @param unlockMappedFile the file that needs to be unlocked
      */
     void unlockMappedFile(MappedFile unlockMappedFile);
 
     /**
      * Get the perf counter component
+     *
      * @return the perf counter component
      */
     PerfCounter.Ticks getPerfCounter();
 
     /**
      * Get the queue store
+     *
      * @return the queue store
      */
     ConsumeQueueStore getQueueStore();
 
     /**
      * If 'sync disk flush' is configured in this message store
+     *
      * @return yes if true, no if false
      */
     boolean isSyncDiskFlush();
 
     /**
      * If this message store is sync master role
+     *
      * @return yes if true, no if false
      */
     boolean isSyncMaster();
 
     /**
-     * Assign an queue offset and increase it.
-     * If there is a race condition, you need to lock/unlock this method yourself.
+     * Assign an queue offset and increase it. If there is a race condition, you need to lock/unlock this method
+     * yourself.
      *
      * @param msg message
      * @param messageNum message num
@@ -605,6 +625,7 @@ public interface MessageStore {
 
     /**
      * get topic config
+     *
      * @param topic topic name
      * @return topic config info
      */
@@ -626,6 +647,7 @@ public interface MessageStore {
 
     /**
      * Use FileChannel to get data
+     *
      * @param offset
      * @param size
      * @param byteBuffer
@@ -651,7 +673,6 @@ public interface MessageStore {
      * Wake up AutoRecoverHAClient to start HA connection.
      */
     void wakeupHAClient();
-
 
     /**
      * Get master flushed offset.
@@ -738,6 +759,7 @@ public interface MessageStore {
 
     /**
      * Get last mapped file
+     *
      * @param startOffset
      * @return true when get the last mapped file, false when get null
      */
@@ -803,4 +825,16 @@ public interface MessageStore {
      * @return whether shutdown
      */
     boolean isShutdown();
+
+    /**
+     * Estimate number of messages, within [from, to], which match given filter
+     *
+     * @param topic   Topic name
+     * @param queueId Queue ID
+     * @param from    Lower boundary of the range, inclusive.
+     * @param to      Upper boundary of the range, inclusive.
+     * @param filter  The message filter.
+     * @return Estimate number of messages matching given filter.
+     */
+    long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter);
 }

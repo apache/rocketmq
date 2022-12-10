@@ -62,13 +62,13 @@ import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -89,7 +89,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
@@ -105,7 +105,7 @@ public class DefaultMQConsumerWithTraceTest {
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
     private DefaultMQPushConsumer normalPushConsumer;
-    private DefaultMQPushConsumer customTraceTopicpushConsumer;
+    private DefaultMQPushConsumer customTraceTopicPushConsumer;
 
     private AsyncTraceDispatcher asyncTraceDispatcher;
     private MQClientInstance mQClientTraceFactory;
@@ -126,7 +126,7 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer = new DefaultMQPushConsumer(consumerGroup, true, "");
         consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
         normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal, false, "");
-        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
+        customTraceTopicPushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
@@ -205,7 +205,7 @@ public class DefaultMQConsumerWithTraceTest {
             });
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
     }
@@ -220,7 +220,7 @@ public class DefaultMQConsumerWithTraceTest {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -239,7 +239,7 @@ public class DefaultMQConsumerWithTraceTest {
         assertThat(msg.getTopic()).isEqualTo(topic);
         assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
-    
+
     @Test
     public void testPushConsumerWithTraceTLS() {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup", true);
@@ -278,18 +278,18 @@ public class DefaultMQConsumerWithTraceTest {
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);
@@ -314,18 +314,18 @@ public class DefaultMQConsumerWithTraceTest {
     public static TopicRouteData createTraceTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("broker-trace");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "127.0.0.1:10912");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("broker-trace");
         queueData.setPerm(6);

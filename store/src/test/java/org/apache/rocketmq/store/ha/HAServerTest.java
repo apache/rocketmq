@@ -114,7 +114,7 @@ public class HAServerTest {
     }
 
     @Test
-    public void inSyncSlaveNums() throws IOException {
+    public void inSyncReplicasNums() throws IOException {
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -140,13 +140,13 @@ public class HAServerTest {
         await().atMost(Duration.ofMinutes(1)).until(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                return HAServerTest.this.haService.inSyncSlaveNums(haSlaveFallbehindMax) == 4;
+                return HAServerTest.this.haService.inSyncReplicasNums(haSlaveFallbehindMax) == 5;
             }
         });
 
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(123L + haSlaveFallbehindMax)).isEqualTo(2);
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(124L + haSlaveFallbehindMax)).isEqualTo(1);
-        assertThat(HAServerTest.this.haService.inSyncSlaveNums(125L + haSlaveFallbehindMax)).isEqualTo(0);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(123L + haSlaveFallbehindMax)).isEqualTo(3);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(124L + haSlaveFallbehindMax)).isEqualTo(2);
+        assertThat(HAServerTest.this.haService.inSyncReplicasNums(125L + haSlaveFallbehindMax)).isEqualTo(1);
     }
 
     @Test
@@ -176,7 +176,7 @@ public class HAServerTest {
 
     @Test
     public void putRequest_SingleAck() throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000,1);
+        CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
 
         assertThat(request.future().get()).isEqualTo(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
@@ -186,17 +186,17 @@ public class HAServerTest {
         doReturn(124L).when(messageStore).getMasterFlushedOffset();
         setUpOneHAClient(messageStore);
 
-        request = new CommitLog.GroupCommitRequest(124, 4000,1);
+        request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
         assertThat(request.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
     }
 
     @Test
     public void putRequest_MultipleAckAndRequests() throws IOException, ExecutionException, InterruptedException {
-        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000,1);
+        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000, 2);
         this.haService.putRequest(oneAck);
 
-        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124,4000, 2);
+        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124, 4000, 3);
         this.haService.putRequest(twoAck);
 
         DefaultMessageStore messageStore = mockMessageStore();
@@ -207,13 +207,12 @@ public class HAServerTest {
         assertThat(oneAck.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
         assertThat(twoAck.future().get()).isEqualTo(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 
-
         messageStore = mockMessageStore();
         doReturn(128L).when(messageStore).getMaxPhyOffset();
         doReturn(128L).when(messageStore).getMasterFlushedOffset();
         setUpOneHAClient(messageStore);
 
-        twoAck = new CommitLog.GroupCommitRequest(124, 4000,2);
+        twoAck = new CommitLog.GroupCommitRequest(124, 4000, 3);
         this.haService.putRequest(twoAck);
         assertThat(twoAck.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
     }
@@ -262,7 +261,7 @@ public class HAServerTest {
         BrokerConfig brokerConfig = mock(BrokerConfig.class);
 
         doReturn(true).when(brokerConfig).isInBrokerContainer();
-        doReturn("mock").when(brokerConfig).getLoggerIdentifier();
+        doReturn("mock").when(brokerConfig).getIdentifier();
         doReturn(brokerConfig).when(messageStore).getBrokerConfig();
         doReturn(new SystemClock()).when(messageStore).getSystemClock();
         doAnswer(invocation -> System.currentTimeMillis()).when(messageStore).now();

@@ -31,42 +31,43 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class DefaultHAService implements HAService {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private final AtomicInteger connectionCount = new AtomicInteger(0);
+    protected final AtomicInteger connectionCount = new AtomicInteger(0);
 
-    private final List<HAConnection> connectionList = new LinkedList<>();
+    protected final List<HAConnection> connectionList = new LinkedList<>();
 
-    private AcceptSocketService acceptSocketService;
+    protected AcceptSocketService acceptSocketService;
 
-    private DefaultMessageStore defaultMessageStore;
+    protected DefaultMessageStore defaultMessageStore;
 
-    private WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-    private AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
+    protected WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
+    protected AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
 
-    private GroupTransferService groupTransferService;
+    protected GroupTransferService groupTransferService;
 
-    private DefaultHAClient haClient;
+    protected HAClient haClient;
 
-    private HAConnectionStateNotificationService haConnectionStateNotificationService;
+    protected HAConnectionStateNotificationService haConnectionStateNotificationService;
 
     public DefaultHAService() {
     }
 
+    @Override
     public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
-        this.acceptSocketService =
-            new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        this.acceptSocketService = new DefaultAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
             this.haClient = new DefaultHAClient(this.defaultMessageStore);
@@ -74,28 +75,32 @@ public class DefaultHAService implements HAService {
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
 
+    @Override
     public void updateMasterAddress(final String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateMasterAddress(newAddr);
         }
     }
 
+    @Override
     public void updateHaMasterAddress(String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateHaMasterAddress(newAddr);
         }
     }
 
+    @Override
     public void putRequest(final CommitLog.GroupCommitRequest request) {
         this.groupTransferService.putRequest(request);
     }
 
+    @Override
     public boolean isSlaveOK(final long masterPutWhere) {
         boolean result = this.connectionCount.get() > 0;
         result =
             result
-                && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
-                .getMessageStoreConfig().getHaMaxGapNotInSync());
+                && masterPutWhere - this.push2SlaveMaxOffset.get() < this.defaultMessageStore
+                .getMessageStoreConfig().getHaMaxGapNotInSync();
         return result;
     }
 
@@ -111,10 +116,12 @@ public class DefaultHAService implements HAService {
         }
     }
 
+    @Override
     public AtomicInteger getConnectionCount() {
         return connectionCount;
     }
 
+    @Override
     public void start() throws Exception {
         this.acceptSocketService.beginAccept();
         this.acceptSocketService.start();
@@ -125,19 +132,20 @@ public class DefaultHAService implements HAService {
         }
     }
 
-    public void addConnection(final DefaultHAConnection conn) {
+    public void addConnection(final HAConnection conn) {
         synchronized (this.connectionList) {
             this.connectionList.add(conn);
         }
     }
 
-    public void removeConnection(final DefaultHAConnection conn) {
+    public void removeConnection(final HAConnection conn) {
         this.haConnectionStateNotificationService.checkConnectionStateAndNotify(conn);
         synchronized (this.connectionList) {
             this.connectionList.remove(conn);
         }
     }
 
+    @Override
     public void shutdown() {
         if (this.haClient != null) {
             this.haClient.shutdown();
@@ -162,16 +170,19 @@ public class DefaultHAService implements HAService {
         return defaultMessageStore;
     }
 
+    @Override
     public WaitNotifyObject getWaitNotifyObject() {
         return waitNotifyObject;
     }
 
+    @Override
     public AtomicLong getPush2SlaveMaxOffset() {
         return push2SlaveMaxOffset;
     }
 
-    public int inSyncSlaveNums(final long masterPutWhere) {
-        int inSyncNums = 0;
+    @Override
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        int inSyncNums = 1;
         for (HAConnection conn : this.connectionList) {
             if (this.isInSyncSlave(masterPutWhere, conn)) {
                 inSyncNums++;
@@ -180,7 +191,7 @@ public class DefaultHAService implements HAService {
         return inSyncNums;
     }
 
-    private boolean isInSyncSlave(final long masterPutWhere, HAConnection conn) {
+    protected boolean isInSyncSlave(final long masterPutWhere, HAConnection conn) {
         if (masterPutWhere - conn.getSlaveAckOffset() < this.defaultMessageStore.getMessageStoreConfig()
             .getHaMaxGapNotInSync()) {
             return true;
@@ -188,19 +199,23 @@ public class DefaultHAService implements HAService {
         return false;
     }
 
-    @Override public void putGroupConnectionStateRequest(HAConnectionStateNotificationRequest request) {
+    @Override
+    public void putGroupConnectionStateRequest(HAConnectionStateNotificationRequest request) {
         this.haConnectionStateNotificationService.setRequest(request);
     }
 
-    @Override public List<HAConnection> getConnectionList() {
+    @Override
+    public List<HAConnection> getConnectionList() {
         return connectionList;
     }
 
-    @Override public HAClient getHAClient() {
+    @Override
+    public HAClient getHAClient() {
         return this.haClient;
     }
 
-    @Override public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
+    @Override
+    public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
         HARuntimeInfo info = new HARuntimeInfo();
 
         if (BrokerRole.SLAVE.equals(this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole())) {
@@ -241,16 +256,39 @@ public class DefaultHAService implements HAService {
         return info;
     }
 
+    class DefaultAcceptSocketService extends AcceptSocketService {
+
+        public DefaultAcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            super(messageStoreConfig);
+        }
+
+        @Override
+        protected HAConnection createConnection(SocketChannel sc) throws IOException {
+            return new DefaultHAConnection(DefaultHAService.this, sc);
+        }
+
+        @Override
+        public String getServiceName() {
+            if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+                return defaultMessageStore.getBrokerConfig().getIdentifier() + AcceptSocketService.class.getSimpleName();
+            }
+            return DefaultAcceptSocketService.class.getSimpleName();
+        }
+    }
+
     /**
      * Listens to slave connections to create {@link HAConnection}.
      */
-    class AcceptSocketService extends ServiceThread {
+    protected abstract class AcceptSocketService extends ServiceThread {
         private final SocketAddress socketAddressListen;
         private ServerSocketChannel serverSocketChannel;
         private Selector selector;
 
-        public AcceptSocketService(final int port) {
-            this.socketAddressListen = new InetSocketAddress(port);
+        private final MessageStoreConfig messageStoreConfig;
+
+        public AcceptSocketService(final MessageStoreConfig messageStoreConfig) {
+            this.messageStoreConfig = messageStoreConfig;
+            this.socketAddressListen = new InetSocketAddress(messageStoreConfig.getHaListenPort());
         }
 
         /**
@@ -260,9 +298,13 @@ public class DefaultHAService implements HAService {
          */
         public void beginAccept() throws Exception {
             this.serverSocketChannel = ServerSocketChannel.open();
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.serverSocketChannel.socket().setReuseAddress(true);
             this.serverSocketChannel.socket().bind(this.socketAddressListen);
+            if (0 == messageStoreConfig.getHaListenPort()) {
+                messageStoreConfig.setHaListenPort(this.serverSocketChannel.socket().getLocalPort());
+                log.info("OS picked up {} to listen for HA", messageStoreConfig.getHaListenPort());
+            }
             this.serverSocketChannel.configureBlocking(false);
             this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         }
@@ -274,8 +316,13 @@ public class DefaultHAService implements HAService {
         public void shutdown(final boolean interrupt) {
             super.shutdown(interrupt);
             try {
-                this.serverSocketChannel.close();
-                this.selector.close();
+                if (null != this.serverSocketChannel) {
+                    this.serverSocketChannel.close();
+                }
+
+                if (null != this.selector) {
+                    this.selector.close();
+                }
             } catch (IOException e) {
                 log.error("AcceptSocketService shutdown exception", e);
             }
@@ -302,7 +349,7 @@ public class DefaultHAService implements HAService {
                                     DefaultHAService.log.info("HAService receive new connection, "
                                         + sc.socket().getRemoteSocketAddress());
                                     try {
-                                        DefaultHAConnection conn = new DefaultHAConnection(DefaultHAService.this, sc);
+                                        HAConnection conn = createConnection(sc);
                                         conn.start();
                                         DefaultHAService.this.addConnection(conn);
                                     } catch (Exception e) {
@@ -326,14 +373,8 @@ public class DefaultHAService implements HAService {
         }
 
         /**
-         * {@inheritDoc}
+         * Create ha connection
          */
-        @Override
-        public String getServiceName() {
-            if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
-            }
-            return AcceptSocketService.class.getSimpleName();
-        }
+        protected abstract HAConnection createConnection(final SocketChannel sc) throws IOException;
     }
 }

@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -44,15 +53,16 @@ import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -60,16 +70,6 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -104,6 +104,11 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
     private String customerTraceTopic = "rmq_trace_topic_12345";
 
+    @BeforeClass
+    public static void setUpEnv() {
+        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+    }
+
     @Before
     public void init() throws Exception {
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
@@ -118,7 +123,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     public void testSubscribe_PollMessageSuccess_WithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithDefaultTraceTopic();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -134,7 +139,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     public void testSubscribe_PollMessageSuccess_WithCustomizedTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithCustomizedTraceTopic();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -267,18 +272,18 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     private TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);

@@ -25,25 +25,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.RegisterBrokerBody;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.DeleteKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetKVConfigResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.PutKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +67,7 @@ public class RequestProcessorTest {
 
     private RouteInfoManager routeInfoManager;
 
-    private InternalLogger logger;
+    private Logger logger;
 
     @Before
     public void init() throws Exception {
@@ -86,7 +88,7 @@ public class RequestProcessorTest {
 
         registerRouteInfoManager();
 
-        logger = mock(InternalLogger.class);
+        logger = mock(Logger.class);
         setFinalStatic(DefaultRequestProcessor.class.getDeclaredField("log"), logger);
     }
 
@@ -519,12 +521,23 @@ public class RequestProcessorTest {
         request.addExtField("clusterName", "cluster");
         request.addExtField("haServerAddr", "10.10.2.1");
         request.addExtField("brokerId", "2333");
-        request.addExtField("topic", "unit-test");
+        request.addExtField("topic", "unit-test0");
         return request;
     }
 
     private static RemotingCommand genSampleRegisterCmd(boolean reg) {
         RegisterBrokerRequestHeader header = new RegisterBrokerRequestHeader();
+        byte[] body = null;
+        if (reg) {
+            TopicConfigAndMappingSerializeWrapper topicConfigWrapper = new TopicConfigAndMappingSerializeWrapper();
+            topicConfigWrapper.getTopicConfigTable().put("unit-test1", new TopicConfig());
+            topicConfigWrapper.getTopicConfigTable().put("unit-test2", new TopicConfig());
+            RegisterBrokerBody requestBody = new RegisterBrokerBody();
+            requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
+            body = requestBody.encode(false);
+            final int bodyCrc32 = UtilAll.crc32(body);
+            header.setBodyCrc32(bodyCrc32);
+        }
         header.setBrokerName("broker");
         RemotingCommand request = RemotingCommand.createRequestCommand(
             reg ? RequestCode.REGISTER_BROKER : RequestCode.UNREGISTER_BROKER, header);
@@ -533,6 +546,7 @@ public class RequestProcessorTest {
         request.addExtField("clusterName", "cluster");
         request.addExtField("haServerAddr", "10.10.2.1");
         request.addExtField("brokerId", "2333");
+        request.setBody(body);
         return request;
     }
 
@@ -547,17 +561,20 @@ public class RequestProcessorTest {
     private void registerRouteInfoManager() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
-        TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setWriteQueueNums(8);
-        topicConfig.setTopicName("unit-test");
-        topicConfig.setPerm(6);
-        topicConfig.setReadQueueNums(8);
-        topicConfig.setOrder(false);
-        topicConfigConcurrentHashMap.put("unit-test", topicConfig);
+        for (int i = 0; i < 2; i++) {
+            TopicConfig topicConfig = new TopicConfig();
+            topicConfig.setWriteQueueNums(8);
+            topicConfig.setTopicName("unit-test" + i);
+            topicConfig.setPerm(6);
+            topicConfig.setReadQueueNums(8);
+            topicConfig.setOrder(false);
+            topicConfigConcurrentHashMap.put(topicConfig.getTopicName(), topicConfig);
+        }
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
-            null, topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001", "",
+            null, topicConfigSerializeWrapper, new ArrayList<>(), channel);
 
     }
+
 }

@@ -21,20 +21,19 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
@@ -42,10 +41,11 @@ import org.apache.rocketmq.store.queue.QueueOffsetAssigner;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final int CQ_STORE_UNIT_SIZE = 20;
-    private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
+    public static final int MSG_TAG_OFFSET_INDEX = 12;
+    private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final MessageStore messageStore;
 
@@ -57,6 +57,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
+
+    /**
+     * Minimum offset of the consume file queue that points to valid commit log record.
+     */
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
@@ -171,12 +175,18 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
     }
 
+    @Override
     public long getTotalSize() {
         long totalSize = this.mappedFileQueue.getTotalFileSize();
         if (isExtReadEnable()) {
             totalSize += this.consumeQueueExt.getTotalSize();
         }
         return totalSize;
+    }
+
+    @Override
+    public int getUnitSize() {
+        return CQ_STORE_UNIT_SIZE;
     }
 
     @Override
@@ -382,26 +392,125 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return cnt;
     }
 
+    /**
+     * Update minLogicOffset such that entries after it would point to valid commit log address.
+     *
+     * @param minCommitLogOffset Minimum commit log offset
+     */
     @Override
-    public void correctMinOffset(long phyMinOffset) {
+    public void correctMinOffset(long minCommitLogOffset) {
+        // Check if the consume queue is the state of deprecation.
+        if (minLogicOffset >= mappedFileQueue.getMaxOffset()) {
+            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
+            return;
+        }
+
+        // Check whether the consume queue maps no valid data at all. This check may cost 1 IO operation.
+        // The rationale is that consume queue always preserves the last file. In case there are many deprecated topics,
+        // This check would save a lot of efforts.
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (null == lastMappedFile) {
+            return;
+        }
+
+        SelectMappedBufferResult lastRecord = null;
+        try {
+            int maxReadablePosition = lastMappedFile.getReadPosition();
+            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            if (null != lastRecord) {
+                ByteBuffer buffer = lastRecord.getByteBuffer();
+                long commitLogOffset = buffer.getLong();
+                if (commitLogOffset < minCommitLogOffset) {
+                    // Keep the largest known consume offset, even if this consume-queue contains no valid entries at
+                    // all. Let minLogicOffset point to a future slot.
+                    this.minLogicOffset = lastMappedFile.getFileFromOffset() + maxReadablePosition;
+                    log.info("ConsumeQueue[topic={}, queue-id={}] contains no valid entries. Min-offset is assigned as: {}.",
+                        topic, queueId, getMinOffsetInQueue());
+                    return;
+                }
+            }
+        } finally {
+            if (null != lastRecord) {
+                lastRecord.release();
+            }
+        }
+
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         long minExtAddr = 1;
         if (mappedFile != null) {
-            SelectMappedBufferResult result = mappedFile.selectMappedBuffer(0);
-            if (result == null) {
+            // Search from previous min logical offset. Typically, a consume queue file segment contains 300,000 entries
+            // searching from previous position saves significant amount of comparisons and IOs
+            boolean intact = true; // Assume previous value is still valid
+            long start = this.minLogicOffset - mappedFile.getFileFromOffset();
+            if (start < 0) {
+                intact = false;
+                start = 0;
+            }
+
+            if (start > mappedFile.getReadPosition()) {
+                log.error("[Bug][InconsistentState] ConsumeQueue file {} should have been deleted",
+                    mappedFile.getFileName());
                 return;
             }
-            try {
-                for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                    long offsetPy = result.getByteBuffer().getLong();
-                    result.getByteBuffer().getInt();
-                    long tagsCode = result.getByteBuffer().getLong();
 
-                    if (offsetPy >= phyMinOffset) {
-                        this.minLogicOffset = mappedFile.getFileFromOffset() + i;
+            SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) start);
+            if (result == null) {
+                log.warn("[Bug] Failed to scan consume queue entries from file on correcting min offset: {}",
+                    mappedFile.getFileName());
+                return;
+            }
+
+            try {
+                // No valid consume entries
+                if (result.getSize() == 0) {
+                    log.debug("ConsumeQueue[topic={}, queue-id={}] contains no valid entries", topic, queueId);
+                    return;
+                }
+
+                ByteBuffer buffer = result.getByteBuffer().slice();
+                // Verify whether the previous value is still valid or not before conducting binary search
+                long commitLogOffset = buffer.getLong();
+                if (intact && commitLogOffset >= minCommitLogOffset) {
+                    log.info("Abort correction as previous min-offset points to {}, which is greater than {}",
+                        commitLogOffset, minCommitLogOffset);
+                    return;
+                }
+
+                // Binary search between range [previous_min_logic_offset, first_file_from_offset + file_size)
+                // Note the consume-queue deletion procedure ensures the last entry points to somewhere valid.
+                int low = 0;
+                int high = result.getSize() - ConsumeQueue.CQ_STORE_UNIT_SIZE;
+                while (true) {
+                    if (high - low <= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                        break;
+                    }
+                    int mid = (low + high) / 2 / ConsumeQueue.CQ_STORE_UNIT_SIZE * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+                    buffer.position(mid);
+                    commitLogOffset = buffer.getLong();
+                    if (commitLogOffset > minCommitLogOffset) {
+                        high = mid;
+                    } else if (commitLogOffset == minCommitLogOffset) {
+                        low = mid;
+                        high = mid;
+                        break;
+                    } else {
+                        low = mid;
+                    }
+                }
+
+                // Examine the last one or two entries
+                for (int i = low; i <= high; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                    buffer.position(i);
+                    long offsetPy = buffer.getLong();
+                    buffer.position(i + 12);
+                    long tagsCode = buffer.getLong();
+
+                    if (offsetPy >= minCommitLogOffset) {
+                        this.minLogicOffset = mappedFile.getFileFromOffset() + start + i;
                         log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
                             this.getMinOffsetInQueue(), this.topic, this.queueId);
-                        // This maybe not take effect, when not every consume queue has extend file.
+                        // This maybe not take effect, when not every consume queue has an extended file.
                         if (isExtAddr(tagsCode)) {
                             minExtAddr = tagsCode;
                         }
@@ -480,7 +589,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
-        if (prop == null && prop.isEmpty()) {
+        if (prop == null || prop.isEmpty()) {
             return false;
         }
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -655,7 +764,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
     }
 
-    private SelectMappedBufferResult getIndexBuffer(final long startIndex) {
+    public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
@@ -891,5 +1000,92 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
         mappedFileQueue.cleanSwappedMap(forceCleanSwapIntervalMs);
+    }
+
+    @Override
+    public long estimateMessageCount(long from, long to, MessageFilter filter) {
+        long physicalOffsetFrom = from * CQ_STORE_UNIT_SIZE;
+        long physicalOffsetTo = to * CQ_STORE_UNIT_SIZE;
+        List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
+        if (mappedFiles.isEmpty()) {
+            return -1;
+        }
+
+        boolean sample = false;
+        long match = 0;
+        long raw = 0;
+
+        for (MappedFile mappedFile : mappedFiles) {
+            int start = 0;
+            int len = mappedFile.getFileSize();
+
+            // calculate start and len for first segment and last segment to reduce scanning
+            // first file segment
+            if (mappedFile.getFileFromOffset() <= physicalOffsetFrom) {
+                start = (int) (physicalOffsetFrom - mappedFile.getFileFromOffset());
+                if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() >= physicalOffsetTo) {
+                    // current mapped file covers search range completely.
+                    len = (int) (physicalOffsetTo - physicalOffsetFrom);
+                } else {
+                    len = mappedFile.getFileSize() - start;
+                }
+            }
+
+            // last file segment
+            if (0 == start && mappedFile.getFileFromOffset() + mappedFile.getFileSize() > physicalOffsetTo) {
+                len = (int) (physicalOffsetTo - mappedFile.getFileFromOffset());
+            }
+
+            // select partial data to scan
+            SelectMappedBufferResult slice = mappedFile.selectMappedBuffer(start, len);
+            if (null != slice) {
+                try {
+                    ByteBuffer buffer = slice.getByteBuffer();
+                    int current = 0;
+                    while (current < len) {
+                        // skip physicalOffset and message length fields.
+                        buffer.position(current + MSG_TAG_OFFSET_INDEX);
+                        long tagCode = buffer.getLong();
+                        ConsumeQueueExt.CqExtUnit ext = null;
+                        if (isExtWriteEnable()) {
+                            ext = consumeQueueExt.get(tagCode);
+                            tagCode = ext.getTagsCode();
+                        }
+                        if (filter.isMatchedByConsumeQueue(tagCode, ext)) {
+                            match++;
+                        }
+                        raw++;
+                        current += CQ_STORE_UNIT_SIZE;
+
+                        if (raw >= messageStore.getMessageStoreConfig().getMaxConsumeQueueScan()) {
+                            sample = true;
+                            break;
+                        }
+
+                        if (match > messageStore.getMessageStoreConfig().getSampleCountThreshold()) {
+                            sample = true;
+                            break;
+                        }
+                    }
+                } finally {
+                    slice.release();
+                }
+            }
+            // we have scanned enough entries, now is the time to return an educated guess.
+            if (sample) {
+                break;
+            }
+        }
+
+        long result = match;
+        if (sample) {
+            if (0 == raw) {
+                log.error("[BUG]. Raw should NOT be 0");
+                return 0;
+            }
+            result = (long) (match * (to - from) * 1.0 / raw);
+        }
+        log.debug("Result={}, raw={}, match={}, sample={}", result, raw, match, sample);
+        return result;
     }
 }

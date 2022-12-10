@@ -18,8 +18,6 @@ package org.apache.rocketmq.client.consumer.rebalance;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
@@ -27,19 +25,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
  */
 public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueStrategy {
 
-    public AllocateMessageQueueAveragely() {
-        log = ClientLogger.getLog();
-    }
-
-    public AllocateMessageQueueAveragely(InternalLogger log) {
-        this.log = log;
-    }
-
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
             return result;
         }

@@ -19,7 +19,7 @@ package org.apache.rocketmq.test.container;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -110,7 +110,7 @@ public class SlaveBrokerIT extends ContainerIntegrationTestBase {
             .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().getConnectionCount().get() == 2);
 
         await().atMost(100, TimeUnit.SECONDS)
-            .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().inSyncSlaveNums(0) == 2);
+            .until(() -> ((DefaultMessageStore) master3With3Replicas.getMessageStore()).getHaService().inSyncReplicasNums(0) == 3);
 
         Thread.sleep(1000 * 101);
     }

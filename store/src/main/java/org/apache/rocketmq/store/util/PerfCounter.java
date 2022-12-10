@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store.util;
 
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 import java.sql.Timestamp;
 import java.util.Iterator;
@@ -38,7 +38,7 @@ public class PerfCounter {
         }
     };
 
-    private final InternalLogger logger;
+    private final Logger logger;
     private String prefix = "DEFAULT";
 
     public float getLastTps() {
@@ -59,7 +59,7 @@ public class PerfCounter {
         this(5001, null, null, 1000 * 1000, 10 * 1000);
     }
 
-    public PerfCounter(int slots, InternalLogger logger, String prefix, int maxNumPerCount, int maxTimeMsPerCount) {
+    public PerfCounter(int slots, Logger logger, String prefix, int maxNumPerCount, int maxTimeMsPerCount) {
         if (slots < 3000) {
             throw new RuntimeException("slots must bigger than 3000, but:%s" + slots);
         }
@@ -218,7 +218,7 @@ public class PerfCounter {
     }
 
     public static class Ticks extends ServiceThread {
-        private final InternalLogger logger;
+        private final Logger logger;
         private final Map<String, PerfCounter> perfs = new ConcurrentHashMap<>();
         private final Map<String, AtomicLong> keyFreqs = new ConcurrentHashMap<>();
         private final PerfCounter defaultPerf;
@@ -234,7 +234,7 @@ public class PerfCounter {
             this(null, 1000 * 1000, 10 * 1000, 20 * 1000, 100 * 1000);
         }
 
-        public Ticks(InternalLogger logger) {
+        public Ticks(Logger logger) {
             this(logger, 1000 * 1000, 10 * 1000, 20 * 1000, 100 * 1000);
         }
 
@@ -243,7 +243,7 @@ public class PerfCounter {
             return this.getClass().getName();
         }
 
-        public Ticks(InternalLogger logger, int maxNumPerCount, int maxTimeMsPerCount, int maxKeyNumPerf, int maxKeyNumDebug) {
+        public Ticks(Logger logger, int maxNumPerCount, int maxTimeMsPerCount, int maxKeyNumPerf, int maxKeyNumDebug) {
             this.logger = logger;
             this.maxNumPerCount = maxNumPerCount;
             this.maxTimeMsPerCount = maxTimeMsPerCount;

@@ -73,7 +73,7 @@
     </module>
 
     <module name="FileLength">
-        <property name="max" value="3000"/>
+        <property name="max" value="5000"/>
     </module>
 
     <module name="TreeWalker">

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
@@ -33,17 +33,17 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentRequestBody;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
-import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
@@ -66,7 +66,7 @@ public class QueryAssignmentProcessorTest {
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
 
     @Mock
-    private AssignmentManager assignmentManager;
+    private TopicRouteInfoManager topicRouteInfoManager;
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock
@@ -84,8 +84,8 @@ public class QueryAssignmentProcessorTest {
     public void init() throws IllegalAccessException, NoSuchFieldException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
-        doReturn(assignmentManager).when(brokerController).getAssignmentManager();
-        when(assignmentManager.getTopicSubscribeInfo(topic)).thenReturn(ImmutableSet.of(new MessageQueue(topic, "broker-1", 0), new MessageQueue(topic, "broker-2", 1)));
+        doReturn(topicRouteInfoManager).when(brokerController).getTopicRouteInfoManager();
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(ImmutableSet.of(new MessageQueue(topic, "broker-1", 0), new MessageQueue(topic, "broker-2", 1)));
         queryAssignmentProcessor = new QueryAssignmentProcessor(brokerController);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         ConsumerData consumerData = createConsumerData(group, topic);

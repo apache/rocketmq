@@ -18,10 +18,15 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
@@ -34,19 +39,19 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -56,22 +61,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
-
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -79,6 +75,8 @@ public class SendMessageProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
     @Mock
     private ChannelHandlerContext handlerContext;
+    @Mock
+    private Channel channel;
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
         new NettyClientConfig(), new MessageStoreConfig());
@@ -101,9 +99,8 @@ public class SendMessageProcessorTest {
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
-        Channel mockChannel = mock(Channel.class);
-        when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
-        when(handlerContext.channel()).thenReturn(mockChannel);
+        when(channel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
+        when(handlerContext.channel()).thenReturn(channel);
         when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
         sendMessageProcessor = new SendMessageProcessor(brokerController);
     }
@@ -140,7 +137,6 @@ public class SendMessageProcessorTest {
         sendMessageHookList.add(sendMessageHook);
         sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
         assertPutResult(ResponseCode.SUCCESS);
-        System.out.println(sendMessageContext[0]);
         assertThat(sendMessageContext[0]).isNotNull();
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
@@ -221,13 +217,10 @@ public class SendMessageProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
+        doAnswer(invocation -> {
+            response[0] = invocation.getArgument(0);
+            return null;
+        }).when(channel).writeAndFlush(any(Object.class));
         await().atMost(Duration.ofSeconds(10)).until(() -> {
             RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
             if (responseToReturn != null) {
@@ -268,7 +261,6 @@ public class SendMessageProcessorTest {
         sendMessageHookList.add(sendMessageHook);
         sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
         assertPutResult(ResponseCode.FLOW_CONTROL);
-        System.out.println(sendMessageContext[0]);
         assertThat(sendMessageContext[0]).isNotNull();
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
@@ -368,13 +360,10 @@ public class SendMessageProcessorTest {
     private void assertPutResult(int responseCode) throws RemotingCommandException {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
+        doAnswer(invocation -> {
+            response[0] = invocation.getArgument(0);
+            return null;
+        }).when(channel).writeAndFlush(any(Object.class));
         await().atMost(Duration.ofSeconds(10)).until(() -> {
             RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
             if (responseToReturn != null) {

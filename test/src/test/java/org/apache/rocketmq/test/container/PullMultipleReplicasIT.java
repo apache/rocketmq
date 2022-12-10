@@ -20,6 +20,7 @@ package org.apache.rocketmq.test.container;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
@@ -56,10 +57,10 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer producer;
     private static MQClientInstance mqClientInstance;
 
-    private final String MESSAGE_STRING = RandomStringUtils.random(1024);
-    private final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(RemotingHelper.DEFAULT_CHARSET);
+    private static final String MESSAGE_STRING = RandomStringUtils.random(1024);
+    private static final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(StandardCharsets.UTF_8);
 
-    public PullMultipleReplicasIT() throws UnsupportedEncodingException {
+    public PullMultipleReplicasIT() {
     }
 
     @BeforeClass
@@ -166,7 +167,7 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
 
         await().atMost(Duration.ofSeconds(60)).until(() -> {
             DefaultMessageStore messageStore = (DefaultMessageStore) master3With3Replicas.getMessageStore();
-            return messageStore.getHaService().inSyncSlaveNums(messageStore.getMaxPhyOffset()) == 2;
+            return messageStore.getHaService().inSyncReplicasNums(messageStore.getMaxPhyOffset()) == 3;
         });
 
         InnerSalveBrokerController slaveBroker = null;

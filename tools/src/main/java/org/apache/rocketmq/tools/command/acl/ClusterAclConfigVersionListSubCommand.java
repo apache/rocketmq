@@ -27,11 +27,11 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -40,15 +40,18 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
-    @Override public String commandName() {
+    @Override
+    public String commandName() {
         return "clusterAclConfigVersion";
     }
 
-    @Override public String commandDesc() {
+    @Override
+    public String commandDesc() {
         return "List all of acl config version information in cluster";
     }
 
-    @Override public Options buildCommandlineOptions(Options options) {
+    @Override
+    public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
         Option opt = new Option("b", "brokerAddr", true, "query acl config version for which broker");
@@ -63,7 +66,8 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
@@ -76,7 +80,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
                 printClusterBaseInfo(defaultMQAdminExt, addr);
 
-                System.out.printf("get broker's plain access config version success.%n", addr);
+                System.out.printf("get broker's plain access config version success. Address:%s %n", addr);
                 return;
 
             } else if (commandLine.hasOption('c')) {

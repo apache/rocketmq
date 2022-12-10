@@ -16,21 +16,20 @@
  */
 package org.apache.rocketmq.client.trace.hook;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
+import org.apache.rocketmq.client.trace.TraceBean;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceBean;
 import org.apache.rocketmq.client.trace.TraceType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
 
@@ -54,7 +53,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.SubBefore);//
         traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getConsumerGroup()));//
-        List<TraceBean> beans = new ArrayList<TraceBean>();
+        List<TraceBean> beans = new ArrayList<>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;

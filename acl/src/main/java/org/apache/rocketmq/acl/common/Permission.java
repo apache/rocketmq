@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
-import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 public class Permission {
 
@@ -30,7 +30,7 @@ public class Permission {
     public static final byte PUB = 1 << 2;
     public static final byte SUB = 1 << 3;
 
-    public static final Set<Integer> ADMIN_CODE = new HashSet<Integer>();
+    public static final Set<Integer> ADMIN_CODE = new HashSet<>();
 
     static {
         // UPDATE_AND_CREATE_TOPIC
@@ -50,7 +50,7 @@ public class Permission {
             return false;
         }
         if ((neededPerm & ANY) > 0) {
-            return ((ownedPerm & PUB) > 0) || ((ownedPerm & SUB) > 0);
+            return (ownedPerm & PUB) > 0 || (ownedPerm & SUB) > 0;
         }
         return (neededPerm & ownedPerm) > 0;
     }

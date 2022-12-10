@@ -17,38 +17,37 @@
 
 package org.apache.rocketmq.broker.filter;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.filter.util.BloomFilterData;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 /**
  * Consumer filter data manager.Just manage the consumers use expression filter.
  */
 public class ConsumerFilterManager extends ConfigManager {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
     private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
-        filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);
+        filterDataByTopic = new ConcurrentHashMap<>(256);
 
     private transient BrokerController brokerController;
     private transient BloomFilter bloomFilter;
@@ -176,7 +175,7 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public Collection<ConsumerFilterData> getByGroup(final String consumerGroup) {
-        Collection<ConsumerFilterData> ret = new HashSet<ConsumerFilterData>();
+        Collection<ConsumerFilterData> ret = new HashSet<>();
 
         Iterator<FilterDataMapByTopic> topicIterator = this.filterDataByTopic.values().iterator();
         while (topicIterator.hasNext()) {
@@ -324,7 +323,7 @@ public class ConsumerFilterManager extends ConfigManager {
     public static class FilterDataMapByTopic {
 
         private ConcurrentMap<String/*consumer group*/, ConsumerFilterData>
-            groupFilterData = new ConcurrentHashMap<String, ConsumerFilterData>();
+            groupFilterData = new ConcurrentHashMap<>();
 
         private String topic;
 

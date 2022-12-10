@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.producer.async;
 
-import org.apache.log4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
@@ -31,7 +32,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendWithOnlySendCallBackIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
 
@@ -39,7 +40,7 @@ public class AsyncSendWithOnlySendCallBackIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("user topic[%s]!", topic));
-        producer = getAsyncProducer(nsAddr, topic);
+        producer = getAsyncProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -50,12 +51,12 @@ public class AsyncSendWithOnlySendCallBackIT extends BaseConf {
     @Test
     public void testSendWithOnlyCallBack() {
         int msgSize = 20;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
         producer.asyncSend(msgSize);
         producer.waitForResponse(10 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

@@ -24,15 +24,15 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.GroupList;
+import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -91,8 +91,8 @@ public class StatsAllSubCommand implements SubCommand {
                 } catch (Exception e) {
                 }
 
-                if (!activeTopic || (inMsgCntToday > 0) ||
-                    (outMsgCntToday > 0)) {
+                if (!activeTopic || inMsgCntToday > 0 ||
+                    outMsgCntToday > 0) {
 
                     System.out.printf("%-64s  %-64s %12d %11.2f %11.2f %14d %14d%n",
                         UtilAll.frontStringAtLeast(topic, 64),
@@ -106,7 +106,7 @@ public class StatsAllSubCommand implements SubCommand {
                 }
             }
         } else {
-            if (!activeTopic || (inMsgCntToday > 0)) {
+            if (!activeTopic || inMsgCntToday > 0) {
 
                 System.out.printf("%-64s  %-64s %12d %11.2f %11s %14d %14s%n",
                     UtilAll.frontStringAtLeast(topic, 64),

@@ -25,9 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
-    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
+    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
 
-    private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
+    private final ThreadLocalIndex randomItem = new ThreadLocalIndex();
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
@@ -65,7 +65,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     @Override
     public String pickOneAtLeast() {
         final Enumeration<FaultItem> elements = this.faultItemTable.elements();
-        List<FaultItem> tmpList = new LinkedList<FaultItem>();
+        List<FaultItem> tmpList = new LinkedList<>();
         while (elements.hasMoreElements()) {
             final FaultItem faultItem = elements.nextElement();
             tmpList.add(faultItem);
@@ -76,7 +76,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             if (half <= 0) {
                 return tmpList.get(0).getName();
             } else {
-                final int i = this.whichItemWorst.incrementAndGet() % half;
+                final int i = this.randomItem.incrementAndGet() % half;
                 return tmpList.get(i).getName();
             }
         }
@@ -87,7 +87,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     public String toString() {
         return "LatencyFaultToleranceImpl{" +
             "faultItemTable=" + faultItemTable +
-            ", whichItemWorst=" + whichItemWorst +
+            ", whichItemWorst=" + randomItem +
             '}';
     }
 

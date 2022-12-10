@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -30,12 +35,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
@@ -53,7 +52,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "query a message trace";
+        return "Query a message trace";
     }
 
     @Override
@@ -75,6 +74,9 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
             String traceTopic = TopicValidator.RMQ_SYS_TRACE_TOPIC;
             if (commandLine.hasOption('t')) {
                 traceTopic = commandLine.getOptionValue('t').trim();
+            }
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
             }
             this.queryTraceByMsgId(defaultMQAdminExt, traceTopic, msgId);
         } catch (Exception e) {

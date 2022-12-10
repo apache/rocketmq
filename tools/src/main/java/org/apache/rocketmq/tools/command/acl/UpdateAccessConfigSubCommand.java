@@ -61,7 +61,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "secretKey", true, "set secretKey in acl config file");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file");
@@ -129,7 +129,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
             // TopicPerms list value
             if (commandLine.hasOption('t')) {
                 String[] topicPerms = commandLine.getOptionValue('t').trim().split(",");
-                List<String> topicPermList = new ArrayList<String>();
+                List<String> topicPermList = new ArrayList<>();
                 if (topicPerms != null) {
                     for (String topicPerm : topicPerms) {
                         topicPermList.add(topicPerm);
@@ -141,7 +141,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
             // GroupPerms list value
             if (commandLine.hasOption('g')) {
                 String[] groupPerms = commandLine.getOptionValue('g').trim().split(",");
-                List<String> groupPermList = new ArrayList<String>();
+                List<String> groupPermList = new ArrayList<>();
                 if (groupPerms != null) {
                     for (String groupPerm : groupPerms) {
                         groupPermList.add(groupPerm);

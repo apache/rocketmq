@@ -27,8 +27,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
-import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.loadbalance.MessageRequestModeManager;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
@@ -37,25 +37,25 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentRequestBody;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
-import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class QueryAssignmentProcessor implements NettyRequestProcessor {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final BrokerController brokerController;
 
-    private final ConcurrentHashMap<String, AllocateMessageQueueStrategy> name2LoadStrategy = new ConcurrentHashMap<String, AllocateMessageQueueStrategy>();
+    private final ConcurrentHashMap<String, AllocateMessageQueueStrategy> name2LoadStrategy = new ConcurrentHashMap<>();
 
     private MessageRequestModeManager messageRequestModeManager;
 
@@ -64,9 +64,9 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
         //register strategy
         //NOTE: init with broker's log instead of init with ClientLogger.getLog();
-        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely(log);
+        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely();
         name2LoadStrategy.put(allocateMessageQueueAveragely.getName(), allocateMessageQueueAveragely);
-        AllocateMessageQueueAveragelyByCircle allocateMessageQueueAveragelyByCircle = new AllocateMessageQueueAveragelyByCircle(log);
+        AllocateMessageQueueAveragelyByCircle allocateMessageQueueAveragelyByCircle = new AllocateMessageQueueAveragelyByCircle();
         name2LoadStrategy.put(allocateMessageQueueAveragelyByCircle.getName(), allocateMessageQueueAveragelyByCircle);
 
         this.messageRequestModeManager = new MessageRequestModeManager(brokerController);
@@ -130,7 +130,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
         Set<MessageQueueAssignment> assignments = null;
         if (messageQueues != null) {
-            assignments = new HashSet<MessageQueueAssignment>();
+            assignments = new HashSet<>();
             for (MessageQueue messageQueue : messageQueues) {
                 MessageQueueAssignment messageQueueAssignment = new MessageQueueAssignment();
                 messageQueueAssignment.setMessageQueue(messageQueue);
@@ -163,18 +163,18 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final MessageModel messageModel, final String strategyName,
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody, final ChannelHandlerContext ctx) {
         Set<MessageQueue> assignedQueueSet = null;
-        AssignmentManager assignmentManager = brokerController.getAssignmentManager();
+        final TopicRouteInfoManager topicRouteInfoManager = this.brokerController.getTopicRouteInfoManager();
 
         switch (messageModel) {
             case BROADCASTING: {
-                assignedQueueSet = assignmentManager.getTopicSubscribeInfo(topic);
+                assignedQueueSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
                 if (assignedQueueSet == null) {
                     log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
                 }
                 break;
             }
             case CLUSTERING: {
-                Set<MessageQueue> mqSet = assignmentManager.getTopicSubscribeInfo(topic);
+                Set<MessageQueue> mqSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
@@ -196,7 +196,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return null;
                 }
 
-                List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                List<MessageQueue> mqAll = new ArrayList<>();
                 mqAll.addAll(mqSet);
                 Collections.sort(mqAll);
                 Collections.sort(cidAll);
@@ -221,7 +221,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return null;
                 }
 
-                assignedQueueSet = new HashSet<MessageQueue>();
+                assignedQueueSet = new HashSet<>();
                 if (allocateResult != null) {
                     assignedQueueSet.addAll(allocateResult);
                 }
@@ -282,7 +282,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,

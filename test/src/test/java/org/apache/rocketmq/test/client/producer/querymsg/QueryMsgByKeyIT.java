@@ -19,9 +19,10 @@ package org.apache.rocketmq.test.client.producer.querymsg;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
@@ -34,7 +35,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class QueryMsgByKeyIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(QueryMsgByKeyIT.class);
+    private static Logger logger = LoggerFactory.getLogger(QueryMsgByKeyIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -42,7 +43,7 @@ public class QueryMsgByKeyIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -74,7 +75,7 @@ public class QueryMsgByKeyIT extends BaseConf {
     @Test
     public void testQueryMax() {
         int msgSize = 500;
-        int max = 64 * brokerNum;
+        int max = 64 * BROKER_NUM;
         String key = "jueyin";
         long begin = System.currentTimeMillis();
         List<Object> msgs = MQMessageFactory.getKeyMsg(topic, key, msgSize);
@@ -87,13 +88,13 @@ public class QueryMsgByKeyIT extends BaseConf {
                 System.currentTimeMillis() + 15000).getMessageList();
 
             int i = 3;
-            while (queryMsgs == null || queryMsgs.size() != brokerNum) {
+            while (queryMsgs == null || queryMsgs.size() != BROKER_NUM) {
                 i--;
                 queryMsgs = producer.getProducer().queryMessage(topic, key, msgSize, begin - 15000,
                     System.currentTimeMillis() + 15000).getMessageList();
                 TestUtils.waitForMoment(1000);
 
-                if (i == 0 || (queryMsgs != null && queryMsgs.size() == max)) {
+                if (i == 0 || queryMsgs != null && queryMsgs.size() == max) {
                     break;
                 }
             }
@@ -116,8 +117,8 @@ public class QueryMsgByKeyIT extends BaseConf {
         initTopicWithName(topicA);
         initTopicWithName(topicB);
 
-        RMQNormalProducer producerA = getProducer(nsAddr, topicA);
-        RMQNormalProducer producerB = getProducer(nsAddr, topicB);
+        RMQNormalProducer producerA = getProducer(NAMESRV_ADDR, topicA);
+        RMQNormalProducer producerB = getProducer(NAMESRV_ADDR, topicB);
 
         List<Object> msgA = MQMessageFactory.getKeyMsg(topicA, keyA, msgSize);
         List<Object> msgB = MQMessageFactory.getKeyMsg(topicB, keyB, msgSize);
@@ -142,8 +143,8 @@ public class QueryMsgByKeyIT extends BaseConf {
         initTopicWithName(topicA);
         initTopicWithName(topicB);
 
-        RMQNormalProducer producerA = getProducer(nsAddr, topicA);
-        RMQNormalProducer producerB = getProducer(nsAddr, topicB);
+        RMQNormalProducer producerA = getProducer(NAMESRV_ADDR, topicA);
+        RMQNormalProducer producerB = getProducer(NAMESRV_ADDR, topicB);
 
         List<Object> msgA = MQMessageFactory.getKeyMsg(topicA, keyA, msgSize);
         List<Object> msgB = MQMessageFactory.getKeyMsg(topicB, keyB, msgSize);

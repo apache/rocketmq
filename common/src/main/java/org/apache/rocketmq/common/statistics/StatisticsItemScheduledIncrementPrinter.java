@@ -27,16 +27,16 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
 
     public static final int TPS_INITIAL_DELAY = 0;
     public static final int TPS_INTREVAL = 1000;
-    public static final String SEPERATOR = "|";
+    public static final String SEPARATOR = "|";
 
     /**
      * last snapshots of all scheduled items
      */
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> lastItemSnapshots
-        = new ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>>();
+        = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItemSampleBrief>> sampleBriefs
-        = new ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItemSampleBrief>>();
+        = new ConcurrentHashMap<>();
 
     public StatisticsItemScheduledIncrementPrinter(String name, StatisticsItemPrinter printer,
                                                    ScheduledExecutorService executor, InitialDelay initialDelay,
@@ -140,7 +140,7 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
         String key = item.getStatObject();
         ConcurrentHashMap<String, StatisticsItem> itemMap = snapshots.get(kind);
         if (itemMap == null) {
-            itemMap = new ConcurrentHashMap<String, StatisticsItem>();
+            itemMap = new ConcurrentHashMap<>();
             ConcurrentHashMap<String, StatisticsItem> oldItemMap = snapshots.putIfAbsent(kind, itemMap);
             if (oldItemMap != null) {
                 itemMap = oldItemMap;
@@ -154,7 +154,7 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
                                     StatisticsItemSampleBrief brief) {
         ConcurrentHashMap<String, StatisticsItemSampleBrief> itemMap = sampleBriefs.get(kind);
         if (itemMap == null) {
-            itemMap = new ConcurrentHashMap<String, StatisticsItemSampleBrief>();
+            itemMap = new ConcurrentHashMap<>();
             ConcurrentHashMap<String, StatisticsItemSampleBrief> oldItemMap = sampleBriefs.putIfAbsent(kind, itemMap);
             if (oldItemMap != null) {
                 itemMap = oldItemMap;
@@ -175,11 +175,11 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
             for (StatisticsBrief brief : briefInterceptor.getStatisticsBriefs()) {
                 long max = brief.getMax();
                 long tp999 = Math.min(brief.tp999(), max);
-                //sb.append(SEPERATOR).append(brief.getTotal());
-                sb.append(SEPERATOR).append(max);
-                //sb.append(SEPERATOR).append(brief.getMin());
-                sb.append(SEPERATOR).append(String.format("%.2f", brief.getAvg()));
-                sb.append(SEPERATOR).append(tp999);
+                //sb.append(SEPARATOR).append(brief.getTotal());
+                sb.append(SEPARATOR).append(max);
+                //sb.append(SEPARATOR).append(brief.getMin());
+                sb.append(SEPARATOR).append(String.format("%.2f", brief.getAvg()));
+                sb.append(SEPARATOR).append(tp999);
             }
             return sb.toString();
         }
@@ -227,9 +227,9 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < briefs.length; i++) {
                 ItemSampleBrief brief = briefs[i];
-                sb.append(SEPERATOR).append(brief.getMax());
-                //sb.append(SEPERATOR).append(brief.getMin());
-                sb.append(SEPERATOR).append(String.format("%.2f", brief.getAvg()));
+                sb.append(SEPARATOR).append(brief.getMax());
+                //sb.append(SEPARATOR).append(brief.getMin());
+                sb.append(SEPARATOR).append(String.format("%.2f", brief.getAvg()));
             }
             return sb.toString();
         }

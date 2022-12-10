@@ -49,12 +49,12 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "send msg to broker.";
+        return "Send msg to broker.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerName", true, "Broker Name");
+        Option opt = new Option("b", "brokerName", true, "Broker Name e.g. clusterName_brokerName as DefaultCluster_broker-a");
         opt.setRequired(true);
         options.addOption(opt);
 
