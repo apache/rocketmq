@@ -26,7 +26,7 @@ import java.nio.ByteBuffer;
 
 import static java.lang.String.format;
 
-public class StoreUtil {
+public final class StoreUtil {
 
     private StoreUtil() { }
 
@@ -77,3 +77,4 @@ public class StoreUtil {
         return new FileQueueSnapshot();
     }
 }
+
