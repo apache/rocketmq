@@ -59,7 +59,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToC
  * be called sequentially
  */
 public class ReplicasInfoManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
@@ -86,7 +86,7 @@ public class ReplicasInfoManager {
             final Set<String> oldSyncStateSet = syncStateInfo.getSyncStateSet();
             if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
-                log.warn("{}", err);
+                LOGGER.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -95,7 +95,7 @@ public class ReplicasInfoManager {
             if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
                     syncStateInfo.getMasterAddress(), request.getMasterAddress());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
                 return result;
             }
@@ -104,7 +104,7 @@ public class ReplicasInfoManager {
             if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
                     syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
                 return result;
             }
@@ -113,7 +113,7 @@ public class ReplicasInfoManager {
             if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
                     syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
                 return result;
             }
@@ -122,13 +122,13 @@ public class ReplicasInfoManager {
             for (String replicas : newSyncStateSet) {
                 if (!brokerInfo.isBrokerExist(replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't exist", replicas);
-                    log.error("{}", err);
+                    LOGGER.error("{}", err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REPLICAS, err);
                     return result;
                 }
                 if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't alive", replicas);
-                    log.error(err);
+                    LOGGER.error(err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE, err);
                     return result;
                 }
@@ -136,7 +136,7 @@ public class ReplicasInfoManager {
 
             if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
-                log.error(err);
+                LOGGER.error(err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -170,7 +170,7 @@ public class ReplicasInfoManager {
             if (StringUtils.isNotEmpty(newMaster) && newMaster.equals(oldMaster)) {
                 // old master still valid, change nothing
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
-                log.warn("{}", err);
+                LOGGER.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, err);
                 return result;
             }
@@ -259,8 +259,8 @@ public class ReplicasInfoManager {
                     canBeElectedAsMaster = true;
                 } else {
                     // If the master is not alive and all slave is not alive, we should elect a new master:
-                    // Case2: This replicas was in sync state set list
-                    // Case3: The option {EnableElectUncleanMaster} is true
+                    // Case1: This replicas was in sync state set list
+                    // Case2: The option {EnableElectUncleanMaster} is true
                     canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster();
                 }
                 if (!canBeElectedAsMaster) {
@@ -271,8 +271,8 @@ public class ReplicasInfoManager {
                 }
             } else {
                 // If the master is not alive, we should elect a new master:
-                // Case2: This replicas was in sync state set list
-                // Case3: The option {EnableElectUncleanMaster} is true
+                // Case1: This replicas was in sync state set list
+                // Case2: The option {EnableElectUncleanMaster} is true
                 canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster();
             }
         } else {
