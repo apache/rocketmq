@@ -380,9 +380,4 @@ public class DLedgerControllerTest {
         syncStateSet.add("127.0.0.1:9002");
         assertEquals(syncStateSetResult.getSyncStateSet(), syncStateSet);
     }
-
-    @Test
-    public void testRestartControllerWithSnapshotFile() {
-
-    }
 }
