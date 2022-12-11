@@ -221,14 +221,19 @@ public class DLedgerControllerTest {
         DLedgerController leader = waitLeader(controllers);
 
         // Register some brokers, which will trigger the statemachine snapshot.
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 11; i++) {
             assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:" + (9000 + i), true));
         }
-//        Boolean flag = await().atMost(Duration.ofSeconds(5)).until(() ->
-//                ((DLedgerControllerStateMachine) leader.getDLedgerServer().getStateMachine()).getAppliedIndex() == 9, item -> item);
-//        assertTrue(flag);
-
-        Thread.sleep(2000);
+        Boolean flag = await().atMost(Duration.ofSeconds(5)).until(() -> {
+            for (DLedgerController controller : controllers) {
+                DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
+                if (stateMachine.getAppliedIndex() != 11) {
+                    return false;
+                }
+            }
+            return true;
+        }, item -> item);
+        assertTrue(flag);
 
         for (DLedgerController controller : controllers) {
             DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
@@ -246,11 +251,17 @@ public class DLedgerControllerTest {
         controllers.add(launchController(group, peers, "n0", DLedgerConfig.MEMORY, false, snapshotThreshold));
         controllers.add(launchController(group, peers, "n1", DLedgerConfig.MEMORY, false, snapshotThreshold));
         controllers.add(launchController(group, peers, "n2", DLedgerConfig.MEMORY, false, snapshotThreshold));
-        DLedgerController newLeader = waitLeader(controllers);
 
-//        flag = await().atMost(Duration.ofSeconds(5)).until(() ->
-//                ((DLedgerControllerStateMachine) newLeader.getDLedgerServer().getStateMachine()).getAppliedIndex() == 9, item -> item);
-//        assertTrue(flag);
+        flag = await().atMost(Duration.ofSeconds(5)).until(() -> {
+            for (DLedgerController controller : controllers) {
+                DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
+                if (stateMachine.getAppliedIndex() != 11) {
+                    return false;
+                }
+            }
+            return true;
+        }, item -> item);
+        assertTrue(flag);
 
         // Check correctness
         for (DLedgerController controller : controllers) {
