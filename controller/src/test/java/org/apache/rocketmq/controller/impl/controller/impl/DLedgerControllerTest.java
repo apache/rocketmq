@@ -61,7 +61,7 @@ public class DLedgerControllerTest {
     private List<DLedgerController> controllers;
 
     public DLedgerController launchController(final String group, final String peers, final String selfId,
-        String storeType, final boolean isEnableElectUncleanMaster, final int snapshotThreshold) {
+                                              String storeType, final boolean isEnableElectUncleanMaster, final int snapshotThreshold) {
         String tmpdir = System.getProperty("java.io.tmpdir");
         final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
@@ -98,7 +98,7 @@ public class DLedgerControllerTest {
     }
 
     public boolean registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
-        boolean isFirstRegisteredBroker) throws Exception {
+                                     boolean isFirstRegisteredBroker) throws Exception {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
         RemotingCommand response = await().atMost(Duration.ofSeconds(20)).until(() -> {
@@ -123,9 +123,9 @@ public class DLedgerControllerTest {
     }
 
     private boolean alterNewInSyncSet(Controller leader, String brokerName, String masterAddress, int masterEpoch,
-        Set<String> newSyncStateSet, int syncStateSetEpoch) throws Exception {
+                                      Set<String> newSyncStateSet, int syncStateSetEpoch) throws Exception {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
+                new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch)).get(10, TimeUnit.SECONDS);
         if (null == response || response.getCode() != ResponseCode.SUCCESS) {
             return false;
@@ -299,7 +299,7 @@ public class DLedgerControllerTest {
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
         final RemotingCommand resp = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).
-            get(10, TimeUnit.SECONDS);
+                get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
         assertEquals(syncStateSet.getSyncStateSet(), newSyncStateSet);
@@ -308,7 +308,7 @@ public class DLedgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
         final RegisterBrokerToControllerRequestHeader request1 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+                new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
         final RegisterBrokerToControllerResponseHeader r1 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getBrokerId(), 2);
         assertEquals(r1.getMasterAddress(), "");
@@ -316,7 +316,7 @@ public class DLedgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
         final RegisterBrokerToControllerRequestHeader request2 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+                new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
         final RegisterBrokerToControllerResponseHeader r2 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getBrokerId(), 0);
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");
