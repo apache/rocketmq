@@ -17,20 +17,12 @@
 package org.apache.rocketmq.controller.impl.controller.impl;
 
 import io.openmessaging.storage.dledger.DLedgerConfig;
-import java.io.File;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
+import org.apache.rocketmq.controller.impl.statemachine.DLedgerControllerStateMachine;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -46,6 +38,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -59,7 +61,7 @@ public class DLedgerControllerTest {
     private List<DLedgerController> controllers;
 
     public DLedgerController launchController(final String group, final String peers, final String selfId,
-        String storeType, final boolean isEnableElectUncleanMaster) {
+        String storeType, final boolean isEnableElectUncleanMaster, final int snapshotThreshold) {
         String tmpdir = System.getProperty("java.io.tmpdir");
         final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
@@ -71,6 +73,7 @@ public class DLedgerControllerTest {
         config.setControllerStorePath(path);
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
+        config.setStatemachineSnapshotThreshold(snapshotThreshold);
 
         final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true);
 
@@ -158,9 +161,9 @@ public class DLedgerControllerTest {
     public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster, 1000);
+        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster, 1000);
+        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster, 1000);
         controllers.add(c0);
         controllers.add(c1);
         controllers.add(c2);
@@ -204,6 +207,58 @@ public class DLedgerControllerTest {
             }
             return true;
         }, null));
+    }
+
+    @Test
+    public void testRecoverControllerFromStatemachineSnapshot() throws Exception {
+        int snapshotThreshold = 10;
+        String group = UUID.randomUUID().toString();
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
+        controllers.add(launchController(group, peers, "n0", DLedgerConfig.MEMORY, false, snapshotThreshold));
+        controllers.add(launchController(group, peers, "n1", DLedgerConfig.MEMORY, false, snapshotThreshold));
+        controllers.add(launchController(group, peers, "n2", DLedgerConfig.MEMORY, false, snapshotThreshold));
+
+        DLedgerController leader = waitLeader(controllers);
+
+        // Register some brokers, which will trigger the statemachine snapshot.
+        for (int i = 0; i < 12; i++) {
+            assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:" + (9000 + i), true));
+        }
+//        Boolean flag = await().atMost(Duration.ofSeconds(5)).until(() ->
+//                ((DLedgerControllerStateMachine) leader.getDLedgerServer().getStateMachine()).getAppliedIndex() == 9, item -> item);
+//        assertTrue(flag);
+
+        Thread.sleep(2000);
+
+        for (DLedgerController controller : controllers) {
+            DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
+            assertEquals(11, stateMachine.getAppliedIndex());
+            assertEquals(1, stateMachine.getSaveSnapshotTimes());
+            assertEquals(0, stateMachine.getLoadSnapshotTimes());
+        }
+
+        // Shutdown and restart controllers
+        for (DLedgerController controller : controllers) {
+            controller.shutdown();
+        }
+        controllers.clear();
+
+        controllers.add(launchController(group, peers, "n0", DLedgerConfig.MEMORY, false, snapshotThreshold));
+        controllers.add(launchController(group, peers, "n1", DLedgerConfig.MEMORY, false, snapshotThreshold));
+        controllers.add(launchController(group, peers, "n2", DLedgerConfig.MEMORY, false, snapshotThreshold));
+        DLedgerController newLeader = waitLeader(controllers);
+
+//        flag = await().atMost(Duration.ofSeconds(5)).until(() ->
+//                ((DLedgerControllerStateMachine) newLeader.getDLedgerServer().getStateMachine()).getAppliedIndex() == 9, item -> item);
+//        assertTrue(flag);
+
+        // Check correctness
+        for (DLedgerController controller : controllers) {
+            DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
+            assertEquals(11, stateMachine.getAppliedIndex());
+            assertEquals(0, stateMachine.getSaveSnapshotTimes());
+            assertEquals(1, stateMachine.getLoadSnapshotTimes());
+        }
     }
 
     @Test
@@ -313,5 +368,10 @@ public class DLedgerControllerTest {
         syncStateSet.add("127.0.0.1:9001");
         syncStateSet.add("127.0.0.1:9002");
         assertEquals(syncStateSetResult.getSyncStateSet(), syncStateSet);
+    }
+
+    @Test
+    public void testRestartControllerWithSnapshotFile() {
+
     }
 }

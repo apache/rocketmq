@@ -59,6 +59,11 @@ public class ControllerConfig {
      */
     private volatile boolean notifyBrokerRoleChanged = true;
 
+    /**
+     * How many DLedger logs are committed to trigger a snapshot
+     */
+    private int statemachineSnapshotThreshold = 1000;
+
     public String getRocketmqHome() {
         return rocketmqHome;
     }
@@ -161,5 +166,13 @@ public class ControllerConfig {
 
     public void setNotifyBrokerRoleChanged(boolean notifyBrokerRoleChanged) {
         this.notifyBrokerRoleChanged = notifyBrokerRoleChanged;
+    }
+
+    public int getStatemachineSnapshotThreshold() {
+        return statemachineSnapshotThreshold;
+    }
+
+    public void setStatemachineSnapshotThreshold(int statemachineSnapshotThreshold) {
+        this.statemachineSnapshotThreshold = statemachineSnapshotThreshold;
     }
 }

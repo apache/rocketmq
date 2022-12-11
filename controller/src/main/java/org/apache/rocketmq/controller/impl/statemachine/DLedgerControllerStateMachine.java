@@ -31,6 +31,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The state machine implementation of the DLedger controller
@@ -41,6 +42,9 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private final EventSerializer eventSerializer;
     private final String dLedgerId;
     private final StatemachineSnapshotFileGenerator snapshotFileGenerator;
+    private volatile long appliedIndex = -1L;
+    private AtomicInteger snapshotSaveTimes = new AtomicInteger(0);
+    private AtomicInteger snapshotLoadTimes = new AtomicInteger(0);
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
                                          final EventSerializer eventSerializer, final String dLedgerId) {
@@ -55,6 +59,11 @@ public class DLedgerControllerStateMachine implements StateMachine {
         int applyingSize = 0;
         while (iterator.hasNext()) {
             final DLedgerEntry entry = iterator.next();
+            if (entry == null || entry.getIndex() <= this.appliedIndex) {
+                continue;
+            }
+            this.appliedIndex = entry.getIndex();
+
             final byte[] body = entry.getBody();
             if (body != null && body.length > 0) {
                 final EventMessage event = this.eventSerializer.deserialize(body);
@@ -70,6 +79,10 @@ public class DLedgerControllerStateMachine implements StateMachine {
         final String snapshotStorePath = writer.getSnapshotStorePath();
         try {
             this.snapshotFileGenerator.generateSnapshot(snapshotStorePath);
+            if (this.snapshotSaveTimes.incrementAndGet() % 10 == 0) {
+                log.info("Controller statemachine generate snapshot {} times, current apply index {}",
+                        this.snapshotSaveTimes.get(), this.appliedIndex);
+            }
             return true;
         } catch (IOException e) {
             log.error("Failed to generate controller statemachine snapshot", e);
@@ -80,11 +93,18 @@ public class DLedgerControllerStateMachine implements StateMachine {
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
         try {
-            return this.snapshotFileGenerator.loadSnapshot(reader.getSnapshotStorePath());
+            if (this.snapshotFileGenerator.loadSnapshot(reader.getSnapshotStorePath())) {
+                this.appliedIndex = reader.getSnapshotMeta().getLastIncludedIndex();
+                if (this.snapshotLoadTimes.incrementAndGet() % 10 == 0) {
+                    log.info("Controller statemachine load snapshot {} times, current apply index {}",
+                            this.snapshotLoadTimes.get(), this.appliedIndex);
+                }
+                return true;
+            }
         } catch (IOException e) {
             log.error("Failed to load controller statemachine snapshot", e);
-            return false;
         }
+        return false;
     }
 
 
@@ -101,5 +121,17 @@ public class DLedgerControllerStateMachine implements StateMachine {
     @Override
     public String getBindDLedgerId() {
         return dLedgerId;
+    }
+
+    public long getAppliedIndex() {
+        return appliedIndex;
+    }
+
+    public int getSaveSnapshotTimes() {
+        return this.snapshotSaveTimes.get();
+    }
+
+    public int getLoadSnapshotTimes() {
+        return this.snapshotLoadTimes.get();
     }
 }

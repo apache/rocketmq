@@ -106,6 +106,7 @@ public class DLedgerController implements Controller {
         this.dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
         this.dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
         this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
+        this.dLedgerConfig.setSnapshotThreshold(controllerConfig.getStatemachineSnapshotThreshold());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
@@ -237,6 +238,10 @@ public class DLedgerController implements Controller {
 
     public void setElectPolicy(ElectPolicy electPolicy) {
         this.electPolicy = electPolicy;
+    }
+
+    public DLedgerServer getDLedgerServer() {
+        return dLedgerServer;
     }
 
     /**
