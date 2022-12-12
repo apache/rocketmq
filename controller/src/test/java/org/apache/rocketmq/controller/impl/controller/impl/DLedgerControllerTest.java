@@ -237,7 +237,6 @@ public class DLedgerControllerTest {
 
         for (DLedgerController controller : controllers) {
             DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
-            assertEquals(11, stateMachine.getAppliedIndex());
             assertEquals(1, stateMachine.getSaveSnapshotTimes());
             assertEquals(0, stateMachine.getLoadSnapshotTimes());
         }
@@ -252,10 +251,10 @@ public class DLedgerControllerTest {
         controllers.add(launchController(group, peers, "n1", DLedgerConfig.MEMORY, false, snapshotThreshold));
         controllers.add(launchController(group, peers, "n2", DLedgerConfig.MEMORY, false, snapshotThreshold));
 
-        flag = await().atMost(Duration.ofSeconds(5)).until(() -> {
+        flag = await().atMost(Duration.ofSeconds(10)).until(() -> {
             for (DLedgerController controller : controllers) {
                 DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
-                if (stateMachine.getAppliedIndex() != 11) {
+                if (stateMachine.getLoadSnapshotTimes() != 1) {
                     return false;
                 }
             }
@@ -266,7 +265,7 @@ public class DLedgerControllerTest {
         // Check correctness
         for (DLedgerController controller : controllers) {
             DLedgerControllerStateMachine stateMachine = (DLedgerControllerStateMachine) controller.getDLedgerServer().getStateMachine();
-            assertEquals(11, stateMachine.getAppliedIndex());
+            assert stateMachine.getAppliedIndex() >= 11;
             assertEquals(0, stateMachine.getSaveSnapshotTimes());
             assertEquals(1, stateMachine.getLoadSnapshotTimes());
         }
