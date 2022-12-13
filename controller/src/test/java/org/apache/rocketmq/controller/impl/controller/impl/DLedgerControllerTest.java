@@ -20,22 +20,28 @@ import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
+import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
@@ -57,9 +63,10 @@ import static org.junit.Assert.assertTrue;
 public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
+    private Map<DLedgerController, BrokerHeartbeatManager> dbMaps = new HashMap<>();
 
     public DLedgerController launchController(final String group, final String peers, final String selfId,
-        String storeType, final boolean isEnableElectUncleanMaster) {
+        String storeType, final boolean isEnableElectUncleanMaster, boolean preferredMaster) {
         String tmpdir = System.getProperty("java.io.tmpdir");
         final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
@@ -71,9 +78,11 @@ public class DLedgerControllerTest {
         config.setControllerStorePath(path);
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
+        config.setEnablePreferredMaster(preferredMaster);
 
-        final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true);
-
+        BrokerHeartbeatManager manager = new DefaultBrokerHeartbeatManager(config);
+        final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true, manager);
+        dbMaps.put(controller, manager);
         controller.startup();
         return controller;
     }
@@ -88,6 +97,7 @@ public class DLedgerControllerTest {
     public void tearDown() {
         for (Controller controller : this.controllers) {
             controller.shutdown();
+            dbMaps.get(controller).shutdown();
         }
         for (String dir : this.baseDirs) {
             new File(dir).delete();
@@ -95,9 +105,9 @@ public class DLedgerControllerTest {
     }
 
     public boolean registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
-        boolean isFirstRegisteredBroker) throws Exception {
+        boolean isFirstRegisteredBroker, Integer electionPriority) throws Exception {
         // Register new broker
-        final RegisterBrokerToControllerRequestHeader registerRequest = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
+        final RegisterBrokerToControllerRequestHeader registerRequest = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress, Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE));
         RemotingCommand response = await().atMost(Duration.ofSeconds(20)).until(() -> {
             try {
                 final RemotingCommand responseInner = leader.registerBroker(registerRequest).get(2, TimeUnit.SECONDS);
@@ -119,10 +129,11 @@ public class DLedgerControllerTest {
         return true;
     }
 
-    private boolean alterNewInSyncSet(Controller leader, String brokerName, String masterAddress, int masterEpoch,
+    private boolean alterNewInSyncSet(Controller leader, String clusterName, String brokerName, String masterAddress,
+        int masterEpoch,
         Set<String> newSyncStateSet, int syncStateSetEpoch) throws Exception {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
+            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch, clusterName);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch)).get(10, TimeUnit.SECONDS);
         if (null == response || response.getCode() != ResponseCode.SUCCESS) {
             return false;
@@ -155,21 +166,21 @@ public class DLedgerControllerTest {
         return dLedgerController;
     }
 
-    public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
+    public DLedgerController mockMetaData(boolean enableElectUncleanMaster, boolean preferredMaster) throws Exception {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster, preferredMaster);
+        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster, preferredMaster);
+        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster, preferredMaster);
         controllers.add(c0);
         controllers.add(c1);
         controllers.add(c2);
 
         DLedgerController leader = waitLeader(controllers);
 
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true));
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true));
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9002", true));
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true, null));
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true, null));
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9002", true, null));
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         assertEquals(replicaInfo.getMasterEpoch(), 1);
@@ -180,7 +191,7 @@ public class DLedgerControllerTest {
         newSyncStateSet.add("127.0.0.1:9000");
         newSyncStateSet.add("127.0.0.1:9001");
         newSyncStateSet.add("127.0.0.1:9002");
-        assertTrue(alterNewInSyncSet(leader, "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 1));
+        assertTrue(alterNewInSyncSet(leader, "cluster1", "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 1));
         return leader;
     }
 
@@ -207,8 +218,46 @@ public class DLedgerControllerTest {
     }
 
     @Test
+    public void testPreferredMaster() throws Exception {
+
+        String group = UUID.randomUUID().toString();
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
+        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, false, true);
+        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, false, true);
+        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, false, true);
+        controllers.add(c0);
+        controllers.add(c1);
+        controllers.add(c2);
+
+        DLedgerController leader = waitLeader(controllers);
+        BrokerHeartbeatManager manager = dbMaps.get(leader);
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true, 1));
+        manager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1, 10000L, null, 1, 1L, 1);
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true, 0));
+        manager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 2, 10000L, null, 1, 1L, 0);
+        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9002", true, 2));
+        manager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 3, 10000L, null, 1, 1L, 2);
+        final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
+        final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
+        assertEquals(replicaInfo.getMasterEpoch(), 1);
+        assertEquals(replicaInfo.getMasterAddress(), "127.0.0.1:9000");
+
+        // Try alter sync state set
+        final HashSet<String> newSyncStateSet = new HashSet<>();
+        newSyncStateSet.add("127.0.0.1:9000");
+        newSyncStateSet.add("127.0.0.1:9001");
+        newSyncStateSet.add("127.0.0.1:9002");
+        final AlterSyncStateSetRequestHeader alterRequest =
+            new AlterSyncStateSetRequestHeader("broker1", "127.0.0.1:9000", 1, "cluster1");
+        final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, 1)).get(10, TimeUnit.SECONDS);
+        final AlterSyncStateSetResponseHeader header = (AlterSyncStateSetResponseHeader) response.readCustomHeader();
+        assertTrue(header != null);
+        assertEquals("127.0.0.1:9001", header.getNewMasterAddress());
+    }
+
+    @Test
     public void testElectMaster() throws Exception {
-        final DLedgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false, false);
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
@@ -220,11 +269,11 @@ public class DLedgerControllerTest {
 
     @Test
     public void testAllReplicasShutdownAndRestartWithUnEnableElectUnCleanMaster() throws Exception {
-        final DLedgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false, false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
 
-        assertTrue(alterNewInSyncSet(leader, "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
+        assertTrue(alterNewInSyncSet(leader, "cluster1", "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
@@ -259,11 +308,11 @@ public class DLedgerControllerTest {
 
     @Test
     public void testEnableElectUnCleanMaster() throws Exception {
-        final DLedgerController leader = mockMetaData(true);
+        final DLedgerController leader = mockMetaData(true, false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
 
-        assertTrue(alterNewInSyncSet(leader, "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
+        assertTrue(alterNewInSyncSet(leader, "cluster1", "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, event if the syncStateSet in statemachine is {"127.0.0.1:9000"}
@@ -287,7 +336,7 @@ public class DLedgerControllerTest {
 
     @Test
     public void testChangeControllerLeader() throws Exception {
-        final DLedgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false, false);
         leader.shutdown();
         this.controllers.remove(leader);
         // Wait leader again

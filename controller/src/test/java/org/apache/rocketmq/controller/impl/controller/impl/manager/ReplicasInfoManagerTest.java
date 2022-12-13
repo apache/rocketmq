@@ -60,9 +60,9 @@ public class ReplicasInfoManagerTest {
         final ControllerConfig config = new ControllerConfig();
         config.setEnableElectUncleanMaster(false);
         config.setScanNotActiveBrokerInterval(300000000);
-        this.replicasInfoManager = new ReplicasInfoManager(config);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(config);
         this.heartbeatManager.start();
+        this.replicasInfoManager = new ReplicasInfoManager(config, heartbeatManager);
     }
 
     @After

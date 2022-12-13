@@ -23,14 +23,22 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
     private String masterAddress;
     private int masterEpoch;
+    private String clusterName;
 
     public AlterSyncStateSetRequestHeader() {
+
     }
 
     public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
+        this(brokerName, masterAddress, masterEpoch, null);
+    }
+
+    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch,
+        String clusterName) {
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
+        this.clusterName = clusterName;
     }
 
     public String getBrokerName() {
@@ -57,12 +65,21 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
     @Override
     public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
+            ", clusterName=" + clusterName +
             '}';
     }
 

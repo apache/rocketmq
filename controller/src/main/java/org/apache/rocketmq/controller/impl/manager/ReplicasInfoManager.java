@@ -29,6 +29,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.controller.BrokerHeartbeatManager;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
 import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
@@ -63,11 +65,13 @@ public class ReplicasInfoManager {
     private final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+    private final BrokerHeartbeatManager brokerHeartbeatManager;
 
-    public ReplicasInfoManager(final ControllerConfig config) {
+    public ReplicasInfoManager(final ControllerConfig config, final BrokerHeartbeatManager brokerHeartbeatManager) {
         this.controllerConfig = config;
         this.replicaInfoTable = new HashMap<>();
         this.syncStateSetInfoTable = new HashMap<>();
+        this.brokerHeartbeatManager = brokerHeartbeatManager;
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
@@ -84,7 +88,7 @@ public class ReplicasInfoManager {
 
             // Check whether the oldSyncStateSet is equal with newSyncStateSet
             final Set<String> oldSyncStateSet = syncStateInfo.getSyncStateSet();
-            if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
+            if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet) && !controllerConfig.isEnablePreferredMaster()) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
                 LOGGER.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
@@ -141,8 +145,30 @@ public class ReplicasInfoManager {
                 return result;
             }
 
-            // Generate event
-            int epoch = syncStateInfo.getSyncStateSetEpoch() + 1;
+            //transfer master
+            boolean hasElectMasterEvent = false;
+            if (controllerConfig.isEnablePreferredMaster()) {
+                if (!newSyncStateSet.isEmpty()) {
+                    for (String brokerAddress : newSyncStateSet) {
+                        BrokerLiveInfo info = brokerHeartbeatManager.getBrokerLiveInfo(request.getClusterName(), brokerAddress);
+                        if (info != null && !StringUtils.equals(syncStateInfo.getMasterAddress(), info.getBrokerAddr()) && info.getElectionPriority() == MixAll.PREFERRED_MASTER_ID) {
+                            response.setNewMasterAddress(brokerAddress);
+                            LOGGER.info("Broker[name: {}, Address:{}] is marked as preferred master and it will elect as master.", info.getBrokerName(), brokerAddress);
+                            break;
+                        }
+                    }
+                }
+                if (StringUtils.isNotEmpty(response.getNewMasterAddress())) {
+                    BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
+                    response.setBrokerMemberGroup(brokerMemberGroup);
+                    //Generate ElectMasterEvent
+                    final ElectMasterEvent event = new ElectMasterEvent(brokerName, response.getNewMasterAddress());
+                    result.addEvent(event);
+                    hasElectMasterEvent = true;
+                }
+            }
+            // Generate  AlterSyncStateSetEvent
+            int epoch = syncStateInfo.getSyncStateSetEpoch() + (hasElectMasterEvent ? 2 : 1);
             response.setNewSyncStateSetEpoch(epoch);
             result.setBody(new SyncStateSet(newSyncStateSet, epoch).encode());
             final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(brokerName, newSyncStateSet);

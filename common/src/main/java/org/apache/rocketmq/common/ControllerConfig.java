@@ -59,6 +59,11 @@ public class ControllerConfig {
      */
     private volatile boolean notifyBrokerRoleChanged = true;
 
+    /**
+     * It is an important basis for the Preferred Master.
+     */
+    private boolean enablePreferredMaster = false;
+
     public String getRocketmqHome() {
         return rocketmqHome;
     }
@@ -161,5 +166,13 @@ public class ControllerConfig {
 
     public void setNotifyBrokerRoleChanged(boolean notifyBrokerRoleChanged) {
         this.notifyBrokerRoleChanged = notifyBrokerRoleChanged;
+    }
+
+    public boolean isEnablePreferredMaster() {
+        return enablePreferredMaster;
+    }
+
+    public void setEnablePreferredMaster(boolean enablePreferredMaster) {
+        this.enablePreferredMaster = enablePreferredMaster;
     }
 }

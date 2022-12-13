@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
@@ -86,13 +87,18 @@ public class DLedgerController implements Controller {
     private AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
-        this(config, brokerAlivePredicate, null, null, null, null);
+        this(config, brokerAlivePredicate, null, null, null, null, null);
+    }
+
+    public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate,
+        final BrokerHeartbeatManager brokerHeartbeatManager) {
+        this(config, brokerAlivePredicate, null, null, null, null, brokerHeartbeatManager);
     }
 
     public DLedgerController(final ControllerConfig controllerConfig,
         final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
-        final ElectPolicy electPolicy) {
+        final ElectPolicy electPolicy, final BrokerHeartbeatManager brokerHeartbeatManager) {
         this.controllerConfig = controllerConfig;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
@@ -106,7 +112,7 @@ public class DLedgerController implements Controller {
         this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
-        this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
+        this.replicasInfoManager = new ReplicasInfoManager(controllerConfig, brokerHeartbeatManager);
         this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.

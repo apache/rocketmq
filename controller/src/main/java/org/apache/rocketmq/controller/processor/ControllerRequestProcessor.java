@@ -34,15 +34,17 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
@@ -59,7 +61,7 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLE
  * Processor for controller request
  */
 public class ControllerRequestProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
@@ -72,10 +74,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
-            log.debug("Receive request, {} {} {}",
-                request.getCode(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                request);
+            LOGGER.debug("Receive request, {} {} {}", request.getCode(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()), request);
         }
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
@@ -83,7 +82,23 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
                 final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().alterSyncStateSet(controllerRequest, syncStateSet);
                 if (future != null) {
-                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                    final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                    final AlterSyncStateSetResponseHeader responseHeader = (AlterSyncStateSetResponseHeader) response.readCustomHeader();
+                    // notify broker role change
+                    if (controllerManager.getControllerConfig().isEnablePreferredMaster() && StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
+                        String clusterName = controllerRequest.getClusterName();
+                        if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
+                            heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                        }
+                        if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
+                            final BrokerMemberGroup memberGroup = responseHeader.getBrokerMemberGroup();
+                            final String newMasterAddress = responseHeader.getNewMasterAddress();
+                            final int masterEpoch = responseHeader.getMasterEpoch();
+                            final int syncStateSetEpoch = responseHeader.getNewSyncStateSetEpoch();
+                            this.controllerManager.notifyBrokerRoleChanged(memberGroup, clusterName, newMasterAddress, masterEpoch, syncStateSetEpoch);
+                        }
+                    }
+                    return response;
                 }
                 break;
             }
@@ -95,11 +110,16 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
 
                     if (null != responseHeader) {
+                        String clusterName = electMasterRequest.getClusterName();
                         if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                            heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                            heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
                         }
                         if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                            this.controllerManager.notifyBrokerRoleChanged(responseHeader, electMasterRequest.getClusterName());
+                            final BrokerMemberGroup memberGroup = responseHeader.getBrokerMemberGroup();
+                            final String newMasterAddress = responseHeader.getNewMasterAddress();
+                            final int masterEpoch = responseHeader.getMasterEpoch();
+                            final int syncStateSetEpoch = responseHeader.getSyncStateSetEpoch();
+                            this.controllerManager.notifyBrokerRoleChanged(memberGroup, clusterName, newMasterAddress, masterEpoch, syncStateSetEpoch);
                         }
                     }
                     return response;
@@ -114,8 +134,8 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
                     if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                         this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                                                             responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
-                                                             controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getElectionPriority());
+                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
+                            controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getElectionPriority());
                     }
                     return response;
                 }
@@ -135,7 +155,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
                 this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr(),
-                        requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
+                    requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
                 return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
             }
             case CONTROLLER_GET_SYNC_STATE_DATA: {
@@ -176,7 +196,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
 
     private RemotingCommand updateControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         if (ctx != null) {
-            log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            LOGGER.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -187,7 +207,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             try {
                 bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
             } catch (UnsupportedEncodingException e) {
-                log.error("updateConfig byte array to string error: ", e);
+                LOGGER.error("updateConfig byte array to string error: ", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
@@ -195,7 +215,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
 
             Properties properties = MixAll.string2Properties(bodyStr);
             if (properties == null) {
-                log.error("updateConfig MixAll.string2Properties error {}", bodyStr);
+                LOGGER.error("updateConfig MixAll.string2Properties error {}", bodyStr);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("string2Properties error");
                 return response;
@@ -217,7 +237,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
-                log.error("getConfig error, ", e);
+                LOGGER.error("getConfig error, ", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;

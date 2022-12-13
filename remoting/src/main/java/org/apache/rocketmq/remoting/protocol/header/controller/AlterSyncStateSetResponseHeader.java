@@ -18,11 +18,26 @@ package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 
 public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
     private int newSyncStateSetEpoch;
 
+    private String newMasterAddress;
+
+    private int masterEpoch;
+
+    private BrokerMemberGroup brokerMemberGroup;
+
     public AlterSyncStateSetResponseHeader() {
+    }
+
+    public String getNewMasterAddress() {
+        return newMasterAddress;
+    }
+
+    public void setNewMasterAddress(String newMasterAddress) {
+        this.newMasterAddress = newMasterAddress;
     }
 
     public int getNewSyncStateSetEpoch() {
@@ -33,10 +48,28 @@ public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
     }
 
+    public int getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public void setMasterEpoch(int masterEpoch) {
+        this.masterEpoch = masterEpoch;
+    }
+
+    public BrokerMemberGroup getBrokerMemberGroup() {
+        return brokerMemberGroup;
+    }
+
+    public void setBrokerMemberGroup(BrokerMemberGroup brokerMemberGroup) {
+        this.brokerMemberGroup = brokerMemberGroup;
+    }
+
     @Override
     public String toString() {
         return "AlterSyncStateSetResponseHeader{" +
             "newSyncStateSetEpoch=" + newSyncStateSetEpoch +
+            "masterEpoch=" + masterEpoch +
+            "brokerMemberGroup=" + brokerMemberGroup +
             '}';
     }
 

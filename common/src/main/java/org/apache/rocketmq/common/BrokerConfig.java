@@ -337,7 +337,9 @@ public class BrokerConfig extends BrokerIdentity {
     /**
      * It is an important basis for the controller to choose the broker master.
      * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
-     * You can set a lower priority for the broker with better machine conditions.
+     * You can set a lower value of priority for the broker with better machine conditions. And the recommended minimum
+     * value of brokerElectionPriority is greater than or equal to 0.When Preferred Master is enabled, brokerElectionPriority = 0
+     * means that the current Broker is marked as Preferred Master broker.
      */
     private int brokerElectionPriority = Integer.MAX_VALUE;
 

@@ -432,7 +432,9 @@ public class ReplicasManager {
 
     private void doReportSyncStateSetChanged(Set<String> newSyncStateSet) {
         try {
-            final SyncStateSet result = this.brokerOuterAPI.alterSyncStateSet(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
+            final SyncStateSet result = this.brokerOuterAPI.alterSyncStateSet(this.controllerLeaderAddress,
+                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.masterAddress,
+                this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
             if (result != null) {
                 changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
             }
