@@ -192,7 +192,6 @@ public class BrokerController {
     protected final PullRequestHoldService pullRequestHoldService;
     protected final MessageArrivingListener messageArrivingListener;
     protected final Broker2Client broker2Client;
-    protected final SubscriptionGroupManager subscriptionGroupManager;
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
     protected final EndTransactionProcessor endTransactionProcessor;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
@@ -224,6 +223,7 @@ public class BrokerController {
     protected CountDownLatch remotingServerStartLatch;
     protected RemotingServer fastRemotingServer;
     protected TopicConfigManager topicConfigManager;
+    protected SubscriptionGroupManager subscriptionGroupManager;
     protected TopicQueueMappingManager topicQueueMappingManager;
     protected ExecutorService sendMessageExecutor;
     protected ExecutorService pullMessageExecutor;
@@ -1214,6 +1214,10 @@ public class BrokerController {
 
     public PullRequestHoldService getPullRequestHoldService() {
         return pullRequestHoldService;
+    }
+
+    public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
+        this.subscriptionGroupManager = subscriptionGroupManager;
     }
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {

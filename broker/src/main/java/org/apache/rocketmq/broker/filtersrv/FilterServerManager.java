@@ -77,8 +77,8 @@ public class FilterServerManager {
 
     private String buildStartCommand() {
         String config = "";
-        if (BrokerStartup.configFile != null) {
-            config = String.format("-c %s", BrokerStartup.configFile);
+        if (BrokerStartup.CONFIG_FILE_HELPER.getFile() != null) {
+            config = String.format("-c %s", BrokerStartup.CONFIG_FILE_HELPER.getFile());
         }
 
         if (this.brokerController.getBrokerConfig().getNamesrvAddr() != null) {
