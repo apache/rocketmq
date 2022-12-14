@@ -23,7 +23,7 @@ public interface BrokerHeartbeatManager {
     /**
      * Broker new heartbeat.
      */
-    void onBrokerHeartbeat(final String clusterName, final String brokerAddr, final Integer epoch, final Long maxOffset, final Long confirmOffset);
+    void onBrokerHeartbeat(final String clusterName, final String brokerName, final Long brokerId, final String brokerAddr, final Integer epoch, final Long maxOffset, final Long confirmOffset);
 
     /**
      * Change the metadata(brokerId ..) for a broker.

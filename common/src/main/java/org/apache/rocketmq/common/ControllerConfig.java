@@ -27,6 +27,10 @@ public class ControllerConfig {
      * Interval of periodic scanning for non-active broker;
      */
     private long scanNotActiveBrokerInterval = 5 * 1000;
+    /**
+     * Interval of periodic scanning for non-active master broker;
+     */
+    private long scanNotActiveMasterInterval = 10 * 1000;
 
     /**
      * Indicates the nums of thread to handle broker or operation requests, like REGISTER_BROKER.
@@ -81,6 +85,14 @@ public class ControllerConfig {
 
     public void setScanNotActiveBrokerInterval(long scanNotActiveBrokerInterval) {
         this.scanNotActiveBrokerInterval = scanNotActiveBrokerInterval;
+    }
+
+    public long getScanNotActiveMasterInterval() {
+        return scanNotActiveMasterInterval;
+    }
+
+    public void setScanNotActiveMasterInterval(long scanNotActiveMasterInterval) {
+        this.scanNotActiveMasterInterval = scanNotActiveMasterInterval;
     }
 
     public int getControllerThreadPoolNums() {

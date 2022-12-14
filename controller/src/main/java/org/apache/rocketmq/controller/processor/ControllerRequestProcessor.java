@@ -134,7 +134,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr(),
+                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerId(), requestHeader.getBrokerAddr(),
                         requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
                 return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
             }

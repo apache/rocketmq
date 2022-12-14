@@ -29,6 +29,8 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     private String brokerAddr;
     @CFNotNull
     private String brokerName;
+    @CFNotNull
+    private Long brokerId;
     @CFNullable
     private Integer epoch;
     @CFNullable
@@ -63,6 +65,14 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
     }
 
     public Integer getEpoch() {

@@ -166,6 +166,7 @@ public class ControllerManagerTest {
             final BrokerHeartbeatRequestHeader heartbeatRequestHeader = new BrokerHeartbeatRequestHeader();
             heartbeatRequestHeader.setClusterName("cluster1");
             heartbeatRequestHeader.setBrokerName("broker1");
+            heartbeatRequestHeader.setBrokerId(2L);
             heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
             try {

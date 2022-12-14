@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,41 +28,71 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
-    private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
+    private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_1_"));
+    private final ScheduledExecutorService scanMasterScheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_2_"));
     private final ExecutorService executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
 
     private final ControllerConfig controllerConfig;
     private final Map<BrokerAddrInfo/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
     private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
     public DefaultBrokerHeartbeatManager(final ControllerConfig controllerConfig) {
         this.controllerConfig = controllerConfig;
         this.brokerLiveTable = new ConcurrentHashMap<>(256);
+        this.brokerAddrTable = new ConcurrentHashMap<>(256);
         this.brokerLifecycleListeners = new ArrayList<>();
     }
 
     @Override
     public void start() {
         this.scheduledService.scheduleAtFixedRate(this::scanNotActiveBroker, 2000, this.controllerConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
+        this.scheduledService.scheduleWithFixedDelay(this::scanNotActiveMaster, 2000, this.controllerConfig.getScanNotActiveMasterInterval(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void shutdown() {
         this.scheduledService.shutdown();
+        this.scanMasterScheduledService.shutdown();
         this.executor.shutdown();
+    }
+
+    public void scanNotActiveMaster() {
+        try {
+            log.info("start scanNotActiveMaster.");
+            final Iterator<Map.Entry<String, BrokerData>> iterator = this.brokerAddrTable.entrySet().iterator();
+            while (iterator.hasNext()) {
+                final Map.Entry<String, BrokerData> next = iterator.next();
+                final String clusterName = next.getValue().getCluster();
+                final Map<Long, String> brokerAddrs = next.getValue().getBrokerAddrs();
+                if (brokerAddrs.isEmpty()) {
+                    continue;
+                }
+                final String brokerAddr = brokerAddrs.get(MixAll.MASTER_ID);
+                if (StringUtils.isEmpty(brokerAddr) || !isBrokerActive(clusterName, brokerAddr)) {
+                    notifyBrokerInActive(clusterName, next.getKey(), brokerAddr, MixAll.MASTER_ID);
+                }
+            }
+        } catch (Exception e) {
+            log.error("scanNotActiveMaster exception", e);
+        }
     }
 
     public void scanNotActiveBroker() {
@@ -101,7 +132,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void registerBroker(String clusterName, String brokerName, String brokerAddr,
-        long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, final Integer electionPriority) {
+        long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset,
+        final Integer electionPriority) {
         final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
             new BrokerLiveInfo(brokerName,
@@ -129,8 +161,14 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerAddr, Integer epoch, Long maxOffset,
+    public void onBrokerHeartbeat(String clusterName, String brokerName, Long brokerId, String brokerAddr,
+        Integer epoch, Long maxOffset,
         Long confirmOffset) {
+        BrokerData brokerData = ConcurrentHashMapUtils.computeIfAbsent((ConcurrentHashMap<String, BrokerData>)brokerAddrTable, brokerName, name -> new BrokerData(clusterName, brokerName, new HashMap<>()));
+        //Switch slave to master: first remove <1, IP:PORT>, then add <0, IP:PORT>
+        brokerData.getBrokerAddrs().entrySet().removeIf(broker -> broker.getValue().equals(brokerAddr) && !broker.getKey().equals(brokerId));
+        brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
+
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         if (null == prev) {
@@ -141,6 +179,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         long realConfirmOffset = Optional.ofNullable(confirmOffset).orElse(-1L);
 
         prev.setLastUpdateTimestamp(System.currentTimeMillis());
+        prev.setBrokerId(brokerId);
         if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
             prev.setEpoch(realEpoch);
             prev.setMaxOffset(realMaxOffset);
@@ -151,10 +190,12 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     @Override
     public void onBrokerChannelClose(Channel channel) {
         BrokerAddrInfo addrInfo = null;
+        BrokerLiveInfo brokerLiveInfo = null;
         for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
             if (entry.getValue().getChannel() == channel) {
                 log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().getChannel(), entry.getValue().getBrokerName(), entry.getKey().getBrokerAddr(), entry.getValue().getBrokerId());
                 addrInfo = entry.getKey();
+                brokerLiveInfo = entry.getValue();
                 this.executor.submit(() ->
                     notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().getBrokerName(), entry.getKey().getBrokerAddr(), entry.getValue().getBrokerId()));
                 break;
@@ -163,6 +204,14 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         if (addrInfo != null) {
             this.brokerLiveTable.remove(addrInfo);
         }
+        if (brokerLiveInfo != null) {
+            removeBrokerAddr(brokerLiveInfo.getBrokerName(), brokerLiveInfo.getBrokerAddr());
+        }
+    }
+
+    private void removeBrokerAddr(final String brokerName, final String brokerAddr) {
+        BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+        brokerData.getBrokerAddrs().entrySet().removeIf(broker -> broker.getValue().equals(brokerAddr));
     }
 
     @Override

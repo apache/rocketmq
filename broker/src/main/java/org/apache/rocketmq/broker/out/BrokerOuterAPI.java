@@ -1225,6 +1225,7 @@ public class BrokerOuterAPI {
         requestHeader.setClusterName(clusterName);
         requestHeader.setBrokerAddr(brokerAddr);
         requestHeader.setBrokerName(brokerName);
+        requestHeader.setBrokerId(brokerId);
         requestHeader.setEpoch(epoch);
         requestHeader.setMaxOffset(maxOffset);
         requestHeader.setConfirmOffset(confirmOffset);
