@@ -332,6 +332,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    private long controllerHeartBeatTimeoutMills = 10 * 1000;
+
     private boolean validateSystemTopicWhenUpdateTopic = true;
 
     /**
@@ -1441,6 +1443,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setBrokerElectionPriority(int brokerElectionPriority) {
         this.brokerElectionPriority = brokerElectionPriority;
+    }
+
+    public long getControllerHeartBeatTimeoutMills() {
+        return controllerHeartBeatTimeoutMills;
+    }
+
+    public void setControllerHeartBeatTimeoutMills(long controllerHeartBeatTimeoutMills) {
+        this.controllerHeartBeatTimeoutMills = controllerHeartBeatTimeoutMills;
     }
 
     public boolean isRecoverConcurrently() {
