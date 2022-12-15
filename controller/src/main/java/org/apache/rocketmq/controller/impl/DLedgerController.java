@@ -154,6 +154,10 @@ public class DLedgerController implements Controller {
         return controllerConfig;
     }
 
+    public DLedgerServer getDLedgerServer() {
+        return dLedgerServer;
+    }
+
     @Override
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
         final SyncStateSet syncStateSet) {

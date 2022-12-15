@@ -73,7 +73,7 @@ public class DLedgerControllerTest {
         config.setControllerStorePath(path);
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
-        config.setStatemachineSnapshotThreshold(snapshotThreshold);
+        config.setSnapshotThreshold(snapshotThreshold);
 
         final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true);
 
