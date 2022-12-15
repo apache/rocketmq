@@ -106,6 +106,8 @@ public class DLedgerController implements Controller {
         this.dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
         this.dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
         this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
+        this.dLedgerConfig.setSnapshotThreshold(controllerConfig.getSnapshotThreshold());
+        this.dLedgerConfig.setMaxSnapshotReservedNum(controllerConfig.getMaxSnapshotReservedNum());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
