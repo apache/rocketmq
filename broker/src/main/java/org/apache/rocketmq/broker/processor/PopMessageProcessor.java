@@ -369,6 +369,19 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 response.setRemark("parse the consumer's subscription failed");
                 return response;
             }
+        } else {
+            try {
+                SubscriptionData subscriptionData = FilterAPI.build(requestHeader.getTopic(), "*", ExpressionType.TAG);
+                brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), subscriptionData);
+
+                String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup());
+                SubscriptionData retrySubscriptionData = FilterAPI.build(retryTopic, "*", ExpressionType.TAG);
+                brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
+                    retryTopic, retrySubscriptionData);
+            } catch (Exception e) {
+                POP_LOGGER.warn("Build default subscription error, group: {}", requestHeader.getConsumerGroup());
+            }
         }
 
         int randomQ = random.nextInt(100);
