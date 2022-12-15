@@ -93,7 +93,6 @@ public class NamesrvStartup {
         nettyServerConfig = new NettyServerConfig();
         nettyClientConfig = new NettyClientConfig();
         nettyServerConfig.setListenPort(9876);
-        controllerConfig = new ControllerConfig();
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -103,8 +102,10 @@ public class NamesrvStartup {
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
-                MixAll.properties2Object(properties, controllerConfig);
-
+                if (namesrvConfig.isEnableControllerInNamesrv()) {
+                    controllerConfig = new ControllerConfig();
+                    MixAll.properties2Object(properties, controllerConfig);
+                }
                 namesrvConfig.setConfigStorePath(file);
 
                 System.out.printf("load config properties file OK, %s%n", file);
