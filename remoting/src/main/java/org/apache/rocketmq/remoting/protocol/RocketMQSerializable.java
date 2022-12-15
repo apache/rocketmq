@@ -22,8 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 import io.netty.buffer.ByteBuf;
@@ -242,9 +240,5 @@ public class RocketMQSerializable {
             map.put(k, v);
         }
         return map;
-    }
-
-    public static boolean isBlank(String str) {
-        return StringUtils.isBlank(str);
     }
 }
