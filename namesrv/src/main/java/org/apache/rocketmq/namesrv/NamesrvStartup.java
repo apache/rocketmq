@@ -42,7 +42,8 @@ import org.apache.rocketmq.srvutil.ShutdownHookThread;
 
 public class NamesrvStartup {
 
-    private static Logger log;
+    private static Logger LOGGER;
+    private static Logger LOGGER_CONSOLE = LoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_LOGGER_NAME);
     private static Properties properties = null;
     private static NamesrvConfig namesrvConfig = null;
     private static NettyServerConfig nettyServerConfig = null;
@@ -112,25 +113,26 @@ public class NamesrvStartup {
             }
         }
 
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
         if (commandLine.hasOption('p')) {
-            MixAll.printObjectProperties(null, namesrvConfig);
-            MixAll.printObjectProperties(null, nettyServerConfig);
-            MixAll.printObjectProperties(null, nettyClientConfig);
-            MixAll.printObjectProperties(null, controllerConfig);
+            MixAll.printObjectProperties(LOGGER_CONSOLE, namesrvConfig);
+            MixAll.printObjectProperties(LOGGER_CONSOLE, nettyServerConfig);
+            MixAll.printObjectProperties(LOGGER_CONSOLE, nettyClientConfig);
+            if (namesrvConfig.isEnableControllerInNamesrv()) {
+                MixAll.printObjectProperties(LOGGER_CONSOLE, controllerConfig);
+            }
             System.exit(0);
         }
-
-        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
         }
 
-        log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+        LOGGER = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
-        MixAll.printObjectProperties(log, namesrvConfig);
-        MixAll.printObjectProperties(log, nettyServerConfig);
+        MixAll.printObjectProperties(LOGGER, namesrvConfig);
+        MixAll.printObjectProperties(LOGGER, nettyServerConfig);
 
     }
 
@@ -140,7 +142,7 @@ public class NamesrvStartup {
         start(controller);
         NettyServerConfig serverConfig = controller.getNettyServerConfig();
         String tip = String.format("The Name Server boot success. serializeType=%s, address %s:%d", RemotingCommand.getSerializeTypeConfigInThisServer(), serverConfig.getBindAddress(), serverConfig.getListenPort());
-        log.info(tip);
+        LOGGER.info(tip);
         System.out.printf("%s%n", tip);
         return controller;
     }
@@ -165,7 +167,7 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(LOGGER, (Callable<Void>) () -> {
             controller.shutdown();
             return null;
         }));
@@ -179,7 +181,7 @@ public class NamesrvStartup {
         ControllerManager controllerManager = createControllerManager();
         start(controllerManager);
         String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
-        log.info(tip);
+        LOGGER.info(tip);
         System.out.printf("%s%n", tip);
         return controllerManager;
     }
@@ -204,7 +206,7 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(LOGGER, (Callable<Void>) () -> {
             controllerManager.shutdown();
             return null;
         }));
