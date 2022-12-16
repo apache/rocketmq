@@ -26,5 +26,4 @@ public class DefaultStoreMetricsConstant {
     public static final String DEFAULT_STORAGE_TYPE = "local";
     public static final String LABEL_STORAGE_MEDIUM = "storage_medium";
     public static final String DEFAULT_STORAGE_MEDIUM = "disk";
-    public static final String LABEL_TOPIC = "topic";
 }
