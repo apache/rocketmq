@@ -1544,7 +1544,7 @@ public class CommitLog implements Swappable {
                 this.requestsWrite.add(request);
             }
             if (hasNotified.compareAndSet(false, true)) {
-                waitPoint.countDown(); // notify
+                signalWaitPoint();
             }
             boolean flag = this.requestsWrite.size() >
                 CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests();

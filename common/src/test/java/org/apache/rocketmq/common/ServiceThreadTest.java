@@ -49,7 +49,6 @@ public class ServiceThreadTest {
         ServiceThread testServiceThread = startTestServiceThread();
         testServiceThread.wakeup();
         assertEquals(true, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
     }
 
     @Test
@@ -58,19 +57,15 @@ public class ServiceThreadTest {
         // test waitForRunning
         testServiceThread.waitForRunning(1000);
         assertEquals(false, testServiceThread.hasNotified.get());
-        assertEquals(1, testServiceThread.waitPoint.getCount());
         // test wake up
         testServiceThread.wakeup();
         assertEquals(true, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
         // repeat waitForRunning
         testServiceThread.waitForRunning(1000);
         assertEquals(false, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
         // repeat waitForRunning again
         testServiceThread.waitForRunning(1000);
         assertEquals(false, testServiceThread.hasNotified.get());
-        assertEquals(1, testServiceThread.waitPoint.getCount());
     }
 
     private ServiceThread startTestServiceThread() {
@@ -114,7 +109,6 @@ public class ServiceThreadTest {
         }
         assertEquals(true, testServiceThread.isStopped());
         assertEquals(true, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
     }
 
     public void stop(boolean interrupt) {
@@ -132,7 +126,6 @@ public class ServiceThreadTest {
         }
         assertEquals(true, testServiceThread.isStopped());
         assertEquals(true, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
     }
 
 }

@@ -18,6 +18,9 @@ package org.apache.rocketmq.common;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -28,7 +31,10 @@ public abstract class ServiceThread implements Runnable {
     private static final long JOIN_TIME = 90 * 1000;
 
     protected Thread thread;
-    protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
+
+    protected final ReentrantLock lock = new ReentrantLock();
+
+    protected final Condition waitPoint = lock.newCondition();
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
     protected boolean isDaemon = false;
@@ -66,7 +72,7 @@ public abstract class ServiceThread implements Runnable {
         log.info("shutdown thread " + this.getServiceName() + " interrupt " + interrupt);
 
         if (hasNotified.compareAndSet(false, true)) {
-            waitPoint.countDown(); // notify
+            signalWaitPoint();
         }
 
         try {
@@ -104,11 +110,21 @@ public abstract class ServiceThread implements Runnable {
         log.info("stop thread " + this.getServiceName() + " interrupt " + interrupt);
 
         if (hasNotified.compareAndSet(false, true)) {
-            waitPoint.countDown(); // notify
+            signalWaitPoint();
         }
 
         if (interrupt) {
             this.thread.interrupt();
+        }
+    }
+
+    // signal the waiters when hasNotified has changed into true.
+    protected void signalWaitPoint() {
+        lock.lock();
+        try {
+            waitPoint.signalAll(); // notify
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -122,7 +138,7 @@ public abstract class ServiceThread implements Runnable {
 
     public void wakeup() {
         if (hasNotified.compareAndSet(false, true)) {
-            waitPoint.countDown(); // notify
+            signalWaitPoint();
         }
     }
 
@@ -133,14 +149,18 @@ public abstract class ServiceThread implements Runnable {
         }
 
         //entry to wait
-        waitPoint.reset();
-
+        lock.lock();
         try {
-            waitPoint.await(interval, TimeUnit.MILLISECONDS);
+            if (!hasNotified.get())
+            {
+                //ignore return value
+                waitPoint.await(interval, TimeUnit.MILLISECONDS);
+            }
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         } finally {
             hasNotified.set(false);
+            lock.unlock();
             this.onWaitEnd();
         }
     }
