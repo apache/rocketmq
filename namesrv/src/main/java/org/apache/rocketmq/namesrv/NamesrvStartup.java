@@ -42,7 +42,7 @@ import org.apache.rocketmq.srvutil.ShutdownHookThread;
 
 public class NamesrvStartup {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);;
+    private final static Logger LOGGER = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static Logger LOGGER_CONSOLE = LoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_LOGGER_NAME);
     private static Properties properties = null;
     private static NamesrvConfig namesrvConfig = null;
