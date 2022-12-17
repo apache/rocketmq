@@ -1854,7 +1854,7 @@ public class CommitLog implements Swappable {
         public void start() {
             this.flushCommitLogService.start();
 
-            if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
                 this.commitLogService.start();
             }
         }
@@ -1886,7 +1886,7 @@ public class CommitLog implements Swappable {
             }
             // Asynchronous flush
             else {
-                if (!CommitLog.this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
                     flushCommitLogService.wakeup();
                 } else {
                     commitLogService.wakeup();
@@ -1911,7 +1911,7 @@ public class CommitLog implements Swappable {
             }
             // Asynchronous flush
             else {
-                if (!CommitLog.this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
                     flushCommitLogService.wakeup();
                 } else {
                     commitLogService.wakeup();
@@ -1928,7 +1928,7 @@ public class CommitLog implements Swappable {
 
         @Override
         public void shutdown() {
-            if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
                 this.commitLogService.shutdown();
             }
 
