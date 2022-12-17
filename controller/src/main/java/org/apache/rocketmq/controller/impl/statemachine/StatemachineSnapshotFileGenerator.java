@@ -22,13 +22,13 @@ import org.apache.rocketmq.controller.impl.manager.SnapshotAbleMetadataManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
@@ -91,8 +91,12 @@ public class StatemachineSnapshotFileGenerator {
      * Generate snapshot and write the data to snapshot file.
      */
     public synchronized void generateSnapshot(final String snapshotPath) throws IOException {
-        try (final FileChannel fileChannel = FileChannel.open(Paths.get(snapshotPath),
-                StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+        final File file = new File(snapshotPath);
+        if (!file.exists() && !file.createNewFile()) {
+            log.error("Failed to create snapshot file");
+            return;
+        }
+        try (final FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE)) {
             // Write Snapshot Header
             SnapshotFileHeader header = new SnapshotFileHeader(this.metadataManagerTable.size());
 
@@ -123,7 +127,12 @@ public class StatemachineSnapshotFileGenerator {
      * Read snapshot from snapshot file and load the metadata into corresponding metadataManager
      */
     public synchronized boolean loadSnapshot(final String snapshotPath) throws IOException {
-        try (ReadableByteChannel channel = Channels.newChannel(Files.newInputStream(Paths.get(snapshotPath)))) {
+        File file = new File(snapshotPath);
+        if (!file.exists()) {
+            log.error("Snapshot file is not existed");
+            return false;
+        }
+        try (ReadableByteChannel channel = Channels.newChannel(Files.newInputStream(file.toPath()))) {
             // Read snapshot Header
             ByteBuffer header = ByteBuffer.allocate(SnapshotFileHeader.HEADER_LENGTH);
             if (channel.read(header) < 0) {
