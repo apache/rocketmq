@@ -109,6 +109,16 @@ public class MixAll {
     public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
     public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
+    public static final String RUNNING_MODULE = "running_module";
+    public static final String TOOLS_MODULE = "tools";
+    public static final String PROXY_MODULE = "proxy";
+    public static final String BROKER_MODULE = "broker";
+    public static final String NAMESRV_MODULE = "namesrv";
+    public static final String CONTROLLER_MODULE = "controller";
+    public static final String CLIENT_MODULE = "client";
+
+
+
     private static final String OS = System.getProperty("os.name").toLowerCase();
 
     public static boolean isWindows() {

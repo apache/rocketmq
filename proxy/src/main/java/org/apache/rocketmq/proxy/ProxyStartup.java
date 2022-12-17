@@ -52,6 +52,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class ProxyStartup {
+
+    private static final String RUNNING_MODULE = System.setProperty(MixAll.RUNNING_MODULE, MixAll.PROXY_MODULE);
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 

@@ -22,8 +22,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.logging.ch.qos.logback.classic.ClassicConstants;
 import org.apache.rocketmq.logging.ch.qos.logback.classic.LoggerContext;
 import org.apache.rocketmq.logging.ch.qos.logback.classic.util.DefaultJoranConfigurator;
@@ -48,18 +52,28 @@ public class DefaultJoranConfiguratorExt extends DefaultJoranConfigurator {
 
     final public static String CLIENT_AUTOCONFIG_FILE = "rmq.client.logback.xml";
 
+    private static final Map<String, String> COMPONENTS_LOGCONFIG_MAP = new HashMap<>();
+
     private final List<String> configFiles;
+
+    static {
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.BROKER_MODULE, BROKER_AUTOCONFIG_FILE);
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.CLIENT_MODULE, CLIENT_AUTOCONFIG_FILE);
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.CONTROLLER_MODULE, CONTROLLER_AUTOCONFIG_FILE);
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.NAMESRV_MODULE, NAMESRV_AUTOCONFIG_FILE);
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.PROXY_MODULE, PROXY_AUTOCONFIG_FILE);
+        COMPONENTS_LOGCONFIG_MAP.put(MixAll.TOOLS_MODULE, TOOLS_AUTOCONFIG_FILE);
+    }
 
     public DefaultJoranConfiguratorExt() {
         this.configFiles = new ArrayList<>();
         configFiles.add(TEST_AUTOCONFIG_FILE);
         configFiles.add(AUTOCONFIG_FILE);
-        configFiles.add(PROXY_AUTOCONFIG_FILE);
-        configFiles.add(BROKER_AUTOCONFIG_FILE);
-        configFiles.add(NAMESRV_AUTOCONFIG_FILE);
-        configFiles.add(CONTROLLER_AUTOCONFIG_FILE);
-        configFiles.add(TOOLS_AUTOCONFIG_FILE);
-        configFiles.add(CLIENT_AUTOCONFIG_FILE);
+        String moduleLogConfig = COMPONENTS_LOGCONFIG_MAP.get(System.getProperty(MixAll.RUNNING_MODULE));
+        if (StringUtils.isNotEmpty(moduleLogConfig)) {
+            configFiles.add(moduleLogConfig);
+        }
+
     }
 
     @Override

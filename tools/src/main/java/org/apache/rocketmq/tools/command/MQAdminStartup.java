@@ -101,6 +101,8 @@ import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 public class MQAdminStartup {
+
+    private static final String RUNNING_MODULE = System.setProperty(MixAll.RUNNING_MODULE, MixAll.TOOLS_MODULE);
     protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
 
     private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,

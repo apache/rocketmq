@@ -18,6 +18,7 @@ package org.apache.rocketmq.client;
 
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -28,11 +29,14 @@ import java.util.Map;
  * Base interface for MQ management
  */
 public interface MQAdmin {
+    String RUNNING_MODULE = System.setProperty(MixAll.RUNNING_MODULE, MixAll.CLIENT_MODULE);
+
     /**
      * Creates an topic
-     *  @param key accesskey
-     * @param newTopic topic name
-     * @param queueNum topic's queue number
+     *
+     * @param key        accesskey
+     * @param newTopic   topic name
+     * @param queueNum   topic's queue number
      * @param attributes
      */
     void createTopic(final String key, final String newTopic, final int queueNum, Map<String, String> attributes)
@@ -40,9 +44,10 @@ public interface MQAdmin {
 
     /**
      * Creates an topic
-     *  @param key accesskey
-     * @param newTopic topic name
-     * @param queueNum topic's queue number
+     *
+     * @param key          accesskey
+     * @param newTopic     topic name
+     * @param queueNum     topic's queue number
      * @param topicSysFlag topic system flag
      * @param attributes
      */
@@ -53,7 +58,7 @@ public interface MQAdmin {
      * Gets the message queue offset according to some time in milliseconds<br>
      * be cautious to call because of more IO overhead
      *
-     * @param mq Instance of MessageQueue
+     * @param mq        Instance of MessageQueue
      * @param timestamp from when in milliseconds.
      * @return offset
      */
@@ -95,11 +100,11 @@ public interface MQAdmin {
     /**
      * Query messages
      *
-     * @param topic message topic
-     * @param key message key index word
+     * @param topic  message topic
+     * @param key    message key index word
      * @param maxNum max message number
-     * @param begin from when
-     * @param end to when
+     * @param begin  from when
+     * @param end    to when
      * @return Instance of QueryResult
      */
     QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,

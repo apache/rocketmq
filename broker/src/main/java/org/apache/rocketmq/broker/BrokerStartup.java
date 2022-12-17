@@ -43,6 +43,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerStartup {
 
+    private static final String RUNNING_MODULE = System.setProperty(MixAll.RUNNING_MODULE, MixAll.BROKER_MODULE);
     public static Logger log;
     public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
 
@@ -130,7 +131,7 @@ public class BrokerStartup {
                 }
             } catch (Exception e) {
                 System.out.printf("The Name Server Address[%s] illegal, please set it as follows, " +
-                        "\"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
+                    "\"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
                 System.exit(-3);
             }
         }

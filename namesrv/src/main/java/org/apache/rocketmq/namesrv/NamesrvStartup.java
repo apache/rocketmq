@@ -42,6 +42,7 @@ import org.apache.rocketmq.srvutil.ShutdownHookThread;
 
 public class NamesrvStartup {
 
+    private static final String RUNNING_MODULE = System.setProperty(MixAll.RUNNING_MODULE, MixAll.NAMESRV_MODULE);
     private static Logger log;
     private static Properties properties = null;
     private static NamesrvConfig namesrvConfig = null;
