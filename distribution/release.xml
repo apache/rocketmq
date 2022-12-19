@@ -75,6 +75,10 @@
             <source>../tools/src/main/resources/rmq.tools.logback.xml</source>
             <destName>conf/rmq.tools.logback.xml</destName>
         </file>
+        <file>
+            <source>../proxy/src/main/resources/rmq.proxy.logback.xml</source>
+            <destName>conf/rmq.proxy.logback.xml</destName>
+        </file>
     </files>
 
     <moduleSets>
