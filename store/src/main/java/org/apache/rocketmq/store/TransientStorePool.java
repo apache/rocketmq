@@ -85,4 +85,8 @@ public class TransientStorePool {
         }
         return Integer.MAX_VALUE;
     }
+
+    public boolean enableControllerMode() {
+        return messageStore.getBrokerConfig().isEnableControllerMode();
+    }
 }
