@@ -37,11 +37,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             faultItem.setCurrentLatency(currentLatency);
             faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
 
-            old = this.faultItemTable.putIfAbsent(name, faultItem);
-            if (old != null) {
-                old.setCurrentLatency(currentLatency);
-                old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-            }
+            this.faultItemTable.putIfAbsent(name, faultItem);
         } else {
             old.setCurrentLatency(currentLatency);
             old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
