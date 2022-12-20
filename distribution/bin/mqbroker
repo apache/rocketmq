@@ -68,11 +68,11 @@ if [ "$enable_proxy" = true ]; then
   if [ "$broker_config" != "" ]; then
       args_for_proxy=${args_for_proxy}" -bc "${broker_config}
   fi
-  sh ${ROCKETMQ_HOME}/bin/runserver.sh org.apache.rocketmq.proxy.ProxyStartup ${args_for_proxy}
+  sh ${ROCKETMQ_HOME}/bin/runserver.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.proxy.logback.xml org.apache.rocketmq.proxy.ProxyStartup ${args_for_proxy}
 else
   args_for_broker=$other_args
   if [ "$broker_config" != "" ]; then
       args_for_broker=${args_for_broker}" -c "${broker_config}
   fi
-  sh ${ROCKETMQ_HOME}/bin/runbroker.sh org.apache.rocketmq.broker.BrokerStartup ${args_for_broker}
+  sh ${ROCKETMQ_HOME}/bin/runbroker.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.broker.logback.xml org.apache.rocketmq.broker.BrokerStartup ${args_for_broker}
 fi
