@@ -655,7 +655,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void truncateDirtyFiles(long offsetToTruncate) {
-        if (offsetToTruncate >= this.getMaxPhyOffset()) {
+        if (offsetToTruncate >= this.getMaxWrotePhyOffset()) {
             return;
         }
 
@@ -678,7 +678,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean truncateFiles(long offsetToTruncate) {
-        if (offsetToTruncate >= this.getMaxPhyOffset()) {
+        if (offsetToTruncate >= this.getMaxWrotePhyOffset()) {
             return true;
         }
 

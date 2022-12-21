@@ -121,7 +121,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         // Append new epoch to epochFile
-        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
+        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxWrotePhyOffset());
         if (this.epochCache.lastEpoch() >= masterEpoch) {
             this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
@@ -136,7 +136,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
 
-        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
+        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxWrotePhyOffset());
 
         this.defaultMessageStore.recoverTopicQueueTable();
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
@@ -248,7 +248,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     public long getConfirmOffset() {
         if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
             if (this.syncStateSet.size() == 1) {
-                return this.defaultMessageStore.getMaxPhyOffset();
+                return this.defaultMessageStore.getMaxWrotePhyOffset();
             }
             // First time compute confirmOffset.
             if (this.confirmOffset <= 0) {
@@ -277,7 +277,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             info.setMaster(false);
 
             info.getHaClientRuntimeInfo().setMasterAddr(this.haClient.getHaMasterAddress());
-            info.getHaClientRuntimeInfo().setMaxOffset(this.getDefaultMessageStore().getMaxPhyOffset());
+            info.getHaClientRuntimeInfo().setMaxOffset(this.getDefaultMessageStore().getMaxWrotePhyOffset());
             info.getHaClientRuntimeInfo().setLastReadTimestamp(this.haClient.getLastReadTimestamp());
             info.getHaClientRuntimeInfo().setLastWriteTimestamp(this.haClient.getLastWriteTimestamp());
             info.getHaClientRuntimeInfo().setTransferredByteInSecond(this.haClient.getTransferredByteInSecond());
@@ -312,7 +312,7 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private long computeConfirmOffset() {
         final Set<String> currentSyncStateSet = getSyncStateSet();
-        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        long confirmOffset = this.defaultMessageStore.getMaxWrotePhyOffset();
         for (HAConnection connection : this.connectionList) {
             final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
@@ -355,7 +355,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         boolean doNext = true;
-        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
+        long reputFromOffset = this.defaultMessageStore.getMaxWrotePhyOffset() - dispatchBehind;
         do {
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
@@ -385,7 +385,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             } finally {
                 result.release();
             }
-        } while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
+        } while (reputFromOffset < this.defaultMessageStore.getMaxWrotePhyOffset() && doNext);
 
         LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);

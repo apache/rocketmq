@@ -213,13 +213,13 @@ public class AutoSwitchHAConnection implements HAConnection {
     }
 
     private synchronized void updateLastTransferInfo() {
-        this.lastMasterMaxOffset = this.haService.getDefaultMessageStore().getMaxPhyOffset();
+        this.lastMasterMaxOffset = this.haService.getDefaultMessageStore().getMaxWrotePhyOffset();
         this.lastTransferTimeMs = System.currentTimeMillis();
     }
 
     private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
         if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
-            long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxPhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
+            long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxWrotePhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
             this.haService.updateConnectionLastCaughtUpTime(this.slaveAddress, caughtUpTimeMs);
             this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
         }
@@ -488,7 +488,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         private boolean buildHandshakeBuffer() {
             final List<EpochEntry> epochEntries = AutoSwitchHAConnection.this.epochCache.getAllEntries();
             final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();
-            final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
+            final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxWrotePhyOffset();
             this.byteBufferHeader.position(0);
             this.byteBufferHeader.limit(HANDSHAKE_HEADER_SIZE);
             // State
