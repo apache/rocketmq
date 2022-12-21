@@ -33,13 +33,13 @@ public enum MessageModel {
      */
     CLUSTERING("CLUSTERING");
 
-    private String modeCN;
+    private String mode;
 
-    MessageModel(String modeCN) {
-        this.modeCN = modeCN;
+    MessageModel(String mode) {
+        this.mode = mode;
     }
 
-    public String getModeCN() {
-        return modeCN;
+    public String getMode() {
+        return mode;
     }
 }
