@@ -2560,13 +2560,6 @@ public class DefaultMessageStore implements MessageStore {
                             DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                         int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
-                        if (!dispatchRequest.isSuccess()) {
-                            LOGGER.warn("reputFromOffset = " + reputFromOffset);
-                            LOGGER.warn("confirmOffset = " + DefaultMessageStore.this.getConfirmOffset());
-                            LOGGER.warn("maxOffset = " + DefaultMessageStore.this.getMaxPhyOffset());
-                            LOGGER.warn("" + dispatchRequest.toString());
-                        }
-
                         if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
                             doNext = false;
                             break;
