@@ -291,7 +291,7 @@ public class ReplicasManager {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
             final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
-                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress,
+                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress, this.brokerConfig.getControllerHeartBeatTimeoutMills(),
                 this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset(), this.brokerConfig.getBrokerElectionPriority());
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {

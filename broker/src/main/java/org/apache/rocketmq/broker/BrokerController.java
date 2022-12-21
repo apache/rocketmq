@@ -1747,7 +1747,9 @@ public class BrokerController {
                         this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                         this.brokerConfig.isInBrokerContainer(), this.replicasManager.getLastEpoch(),
                         this.messageStore.getMaxPhyOffset(),
-                        this.replicasManager.getConfirmOffset()
+                        this.replicasManager.getConfirmOffset(),
+                        this.brokerConfig.getControllerHeartBeatTimeoutMills(),
+                        this.brokerConfig.getBrokerElectionPriority()
                     );
                 }
             }

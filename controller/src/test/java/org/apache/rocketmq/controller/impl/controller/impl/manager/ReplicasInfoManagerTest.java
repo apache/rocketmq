@@ -150,39 +150,39 @@ public class ReplicasInfoManagerTest {
     }
 
     public void mockHeartbeatDataMasterStillAlive() {
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, 10000000000L, null,
-            1, 3L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-            1, 2L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-            1, 3L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9000", 1L, 10000000000L, null,
+            1, 1L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
+            1, 2L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
+            1, 3L, -1L, 0);
     }
 
     public void mockHeartbeatDataHigherEpoch() {
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-            1, 3L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-            1, 2L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-            0, 3L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
+            1, 3L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
+            1, 2L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
+            0, 3L, -1L, 0);
     }
 
     public void mockHeartbeatDataHigherOffset() {
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-            1, 3L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-            1, 2L, 0);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-            1, 3L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
+            1, 3L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
+            1, 2L, -1L, 0);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
+            1, 3L, -1L, 0);
     }
 
     public void mockHeartbeatDataHigherPriority() {
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
-            1, 3L, 3);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
-            1, 3L, 2);
-        this.heartbeatManager.registerBroker("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
-            1, 3L, 1);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9000", 1L, -10000L, null,
+            1, 3L, -1L, 3);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9001", 1L, 10000000000L, null,
+            1, 3L, -1L, 2);
+        this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:9002", 1L, 10000000000L, null,
+            1, 3L, -1L, 1);
     }
 
     @Test

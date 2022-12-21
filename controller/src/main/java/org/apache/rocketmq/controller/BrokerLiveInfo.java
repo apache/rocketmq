@@ -16,15 +16,13 @@
  */
 package org.apache.rocketmq.controller;
 
-
 import io.netty.channel.Channel;
-
 
 public class BrokerLiveInfo {
     private final String brokerName;
 
     private final String brokerAddr;
-    private final long heartbeatTimeoutMillis;
+    private long heartbeatTimeoutMillis;
     private final Channel channel;
     private long brokerId;
     private long lastUpdateTimestamp;
@@ -33,8 +31,8 @@ public class BrokerLiveInfo {
     private long confirmOffset;
     private Integer electionPriority;
 
-    public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
-                          Channel channel, int epoch, long maxOffset, Integer electionPriority) {
+    public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
+        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -46,8 +44,8 @@ public class BrokerLiveInfo {
         this.maxOffset = maxOffset;
     }
 
-    public BrokerLiveInfo(String brokerName, String brokerAddr,long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
-                          Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
+    public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
+        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -63,16 +61,16 @@ public class BrokerLiveInfo {
     @Override
     public String toString() {
         return "BrokerLiveInfo{" +
-                "brokerName='" + brokerName + '\'' +
-                ", brokerAddr='" + brokerAddr + '\'' +
-                ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
-                ", channel=" + channel +
-                ", brokerId=" + brokerId +
-                ", lastUpdateTimestamp=" + lastUpdateTimestamp +
-                ", epoch=" + epoch +
-                ", maxOffset=" + maxOffset +
-                ", confirmOffset=" + confirmOffset +
-                '}';
+            "brokerName='" + brokerName + '\'' +
+            ", brokerAddr='" + brokerAddr + '\'' +
+            ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+            ", channel=" + channel +
+            ", brokerId=" + brokerId +
+            ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+            ", epoch=" + epoch +
+            ", maxOffset=" + maxOffset +
+            ", confirmOffset=" + confirmOffset +
+            '}';
     }
 
     public String getBrokerName() {
@@ -81,6 +79,10 @@ public class BrokerLiveInfo {
 
     public long getHeartbeatTimeoutMillis() {
         return heartbeatTimeoutMillis;
+    }
+
+    public void setHeartbeatTimeoutMillis(long heartbeatTimeoutMillis) {
+        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
     }
 
     public Channel getChannel() {
@@ -138,4 +140,5 @@ public class BrokerLiveInfo {
     public long getConfirmOffset() {
         return confirmOffset;
     }
+
 }
