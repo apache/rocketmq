@@ -1067,6 +1067,10 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMaxOffset();
     }
 
+    public long getMaxWrotePhyOffset() {
+        return this.commitLog.getMaxWroteOffset();
+    }
+
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();

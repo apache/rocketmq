@@ -102,7 +102,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize,
-                             final TransientStorePool transientStorePool) throws IOException {
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
 
@@ -116,7 +116,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public void init(final String fileName, final int fileSize,
-                     final TransientStorePool transientStorePool) throws IOException {
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
@@ -186,11 +186,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 }
             } else {
                 log.debug("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                        + this.fileFromOffset);
+                    + this.fileFromOffset);
             }
         } else {
             log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                    + ", fileFromOffset: " + this.fileFromOffset);
+                + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         return false;
@@ -225,18 +225,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb,
-                                             PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         return appendMessagesInner(msg, cb, putMessageContext);
     }
 
     @Override
     public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb,
-                                              PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         return appendMessagesInner(messageExtBatch, cb, putMessageContext);
     }
 
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb,
-                                                   PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         assert messageExt != null;
         assert cb != null;
 
@@ -249,11 +249,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
                 // traditional batch message
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
-                        (MessageExtBatch) messageExt, putMessageContext);
+                    (MessageExtBatch) messageExt, putMessageContext);
             } else if (messageExt instanceof MessageExtBrokerInner) {
                 // traditional single message or newly introduced inner-batch message
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
-                        (MessageExtBrokerInner) messageExt, putMessageContext);
+                    (MessageExtBrokerInner) messageExt, putMessageContext);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
@@ -459,11 +459,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                        + this.fileFromOffset);
+                    + this.fileFromOffset);
             }
         } else {
             log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                    + ", fileFromOffset: " + this.fileFromOffset);
+                + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         return null;
@@ -491,13 +491,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                    + " have not shutdown, stop unmapping.");
+                + " have not shutdown, stop unmapping.");
             return false;
         }
 
         if (this.isCleanupOver()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                    + " have cleanup, do not do it again.");
+                + " have cleanup, do not do it again.");
             return true;
         }
 
@@ -523,10 +523,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
-                        + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
-                        + this.getFlushedPosition() + ", "
-                        + UtilAll.computeElapsedTimeMilliseconds(beginTime)
-                        + "," + (System.currentTimeMillis() - lastModified));
+                    + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
+                    + this.getFlushedPosition() + ", "
+                    + UtilAll.computeElapsedTimeMilliseconds(beginTime)
+                    + "," + (System.currentTimeMillis() - lastModified));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
@@ -534,7 +534,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         } else {
             log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
-                    + " Failed. cleanupOver: " + this.cleanupOver);
+                + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
         return false;
@@ -555,11 +555,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int getReadPosition() {
-        if (this.transientStorePool == null || transientStorePool.enableControllerMode()) {
-            return WROTE_POSITION_UPDATER.get(this);
-        } else {
-            return COMMITTED_POSITION_UPDATER.get(this);
-        }
+//        if (this.transientStorePool == null || transientStorePool.enableControllerMode()) {
+//            return WROTE_POSITION_UPDATER.get(this);
+//        } else {
+//            return COMMITTED_POSITION_UPDATER.get(this);
+//        }
+        return writeBuffer == null ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 
     @Override
@@ -600,11 +601,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
             log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
-                    this.getFileName(), System.currentTimeMillis() - beginTime);
+                this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(),
-                System.currentTimeMillis() - beginTime);
+            System.currentTimeMillis() - beginTime);
 
         this.mlock();
     }

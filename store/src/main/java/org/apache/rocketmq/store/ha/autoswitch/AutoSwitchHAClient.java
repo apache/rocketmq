@@ -549,7 +549,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 byteBufferRead.get(bodyData);
                                 byteBufferRead.position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.TRANSFER_HEADER_SIZE + bodySize;
-                                long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxPhyOffset();
+                                long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxWrotePhyOffset();
                                 if (slavePhyOffset != 0) {
                                     if (slavePhyOffset != masterOffset) {
                                         LOGGER.error("master pushed offset not equal the max phy offset in slave, SLAVE: "

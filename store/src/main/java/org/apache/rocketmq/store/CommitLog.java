@@ -167,6 +167,10 @@ public class CommitLog implements Swappable {
         return this.mappedFileQueue.getMaxOffset();
     }
 
+    public long getMaxWroteOffset() {
+        return this.mappedFileQueue.getMaxWrotePosition();
+    }
+
     public long remainHowManyDataToCommit() {
         return this.mappedFileQueue.remainHowManyDataToCommit();
     }
@@ -1266,6 +1270,12 @@ public class CommitLog implements Swappable {
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
             while (!this.isStopped()) {
+
+                if (defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                    waitForRunning(5 * 1000);
+                    continue;
+                }
+
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
 
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
