@@ -127,6 +127,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
+        return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+    }
+
+    @Override
     public long getMaxOffsetInQueue(String topic, int queueId) {
         return next.getMaxOffsetInQueue(topic, queueId);
     }
@@ -192,8 +198,19 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
+        return next.getEarliestMessageTimeAsync(topic, queueId);
+    }
+
+    @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
         return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
+    }
+
+    @Override
+    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
+        long consumeQueueOffset) {
+        return next.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset);
     }
 
     @Override
@@ -220,6 +237,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin,
         long end) {
         return next.queryMessage(topic, key, maxNum, begin, end);
+    }
+
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+        int maxNum, long begin, long end) {
+        return next.queryMessageAsync(topic, key, maxNum, begin, end);
     }
 
     @Override
@@ -440,6 +463,13 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, int maxTotalMsgSize,
+        MessageFilter messageFilter) {
+        return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize, messageFilter);
+    }
+
+    @Override
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         return next.lookMessageByOffset(commitLogOffset, size);
     }
@@ -578,5 +608,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public boolean isShutdown() {
         return next.isShutdown();
+    }
+
+    @Override
+    public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
+        return next.estimateMessageCount(topic, queueId, from, to, filter);
     }
 }

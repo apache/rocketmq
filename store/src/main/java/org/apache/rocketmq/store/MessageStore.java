@@ -121,6 +121,9 @@ public interface MessageStore {
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final MessageFilter messageFilter);
+
     /**
      * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
      * from given <code>offset</code>. Resulting messages will further be screened using provided message filter.
@@ -135,6 +138,9 @@ public interface MessageStore {
      * @return Matched messages.
      */
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
+
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
 
     /**
@@ -273,6 +279,8 @@ public interface MessageStore {
      */
     long getEarliestMessageTime();
 
+    CompletableFuture<Long> getEarliestMessageTimeAsync(final String topic, final int queueId);
+
     /**
      * Get the store time of the message specified.
      *
@@ -282,6 +290,9 @@ public interface MessageStore {
      * @return store timestamp of the message.
      */
     long getMessageStoreTimeStamp(final String topic, final int queueId, final long consumeQueueOffset);
+
+    CompletableFuture<Long> getMessageStoreTimeStampAsync(final String topic, final int queueId,
+        final long consumeQueueOffset);
 
     /**
      * Get the total number of the messages in the specified queue.
@@ -336,6 +347,9 @@ public interface MessageStore {
      */
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
+
+    CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum,
+        final long begin, final long end);
 
     /**
      * Update HA master address.

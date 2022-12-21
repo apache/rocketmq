@@ -697,9 +697,14 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
-        final int maxMsgNums,
-        final MessageFilter messageFilter) {
+        final int maxMsgNums, final MessageFilter messageFilter) {
         return getMessage(group, topic, queueId, offset, maxMsgNums, MAX_PULL_MSG_SIZE, messageFilter);
+    }
+
+    @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
+        return CompletableFuture.completedFuture(getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter));
     }
 
     @Override
@@ -881,6 +886,12 @@ public class DefaultMessageStore implements MessageStore {
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
         return getResult;
+    }
+
+    @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, int maxTotalMsgSize, MessageFilter messageFilter) {
+        return CompletableFuture.completedFuture(getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize, messageFilter));
     }
 
     @Override
@@ -1074,6 +1085,11 @@ public class DefaultMessageStore implements MessageStore {
         return -1;
     }
 
+    @Override
+    public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
+        return CompletableFuture.completedFuture(getEarliestMessageTime(topic, queueId));
+    }
+
     protected long getStoreTime(CqUnit result) {
         if (result != null) {
             try {
@@ -1105,6 +1121,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return -1;
+    }
+
+    @Override public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
+        long consumeQueueOffset) {
+        return CompletableFuture.completedFuture(getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset));
     }
 
     @Override
@@ -1209,6 +1230,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return queryMessageResult;
+    }
+
+    @Override public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+        int maxNum, long begin, long end) {
+        return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end));
     }
 
     @Override

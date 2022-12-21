@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -283,6 +282,28 @@ public class EscapeBridge {
         }
     }
 
+    public CompletableFuture<MessageExt> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
+        MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
+        if (messageStore != null) {
+            return messageStore.getMessageAsync(innerConsumerGroupName, topic, queueId, offset, 1, null)
+                .thenApply(result -> {
+                    if (result == null) {
+                        LOG.warn("getMessageResult is null , innerConsumerGroupName {}, topic {}, offset {}, queueId {}", innerConsumerGroupName, topic, offset, queueId);
+                        return null;
+                    }
+                    List<MessageExt> list = decodeMsgList(result, deCompressBody);
+                    if (list == null || list.isEmpty()) {
+                        LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, result);
+                        return null;
+                    } else {
+                        return list.get(0);
+                    }
+                });
+        } else {
+            return getMessageFromRemoteAsync(topic, offset, queueId, brokerName);
+        }
+    }
+
     protected List<MessageExt> decodeMsgList(GetMessageResult getMessageResult, boolean deCompressBody) {
         List<MessageExt> foundList = new ArrayList<>();
         try {
@@ -337,4 +358,31 @@ public class EscapeBridge {
         return null;
     }
 
+    protected CompletableFuture<MessageExt> getMessageFromRemoteAsync(String topic, long offset, int queueId, String brokerName) {
+        try {
+            String brokerAddr = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
+            if (null == brokerAddr) {
+                this.brokerController.getTopicRouteInfoManager().updateTopicRouteInfoFromNameServer(topic, true, false);
+                brokerAddr = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
+
+                if (null == brokerAddr) {
+                    LOG.warn("can't find broker address for topic {}", topic);
+                    return CompletableFuture.completedFuture(null);
+                }
+            }
+
+            return this.brokerController.getBrokerOuterAPI().pullMessageFromSpecificBrokerAsync(brokerName,
+                brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS)
+                .thenApply(pullResult -> {
+                    if (pullResult.getPullStatus().equals(PullStatus.FOUND)) {
+                        return pullResult.getMsgFoundList().get(0);
+                    }
+                    return null;
+                });
+        } catch (Exception e) {
+            LOG.error("Get message from remote failed.", e);
+        }
+
+        return CompletableFuture.completedFuture(null);
+    }
 }
