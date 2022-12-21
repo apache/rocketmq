@@ -202,10 +202,16 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
             if (null != sbr) {
                 ByteBuffer byteBuffer = sbr.getByteBuffer();
-                high = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
+                high = byteBuffer.limit();
+                int endOffset = high;
                 try {
                     while (high >= low) {
                         midOffset = (low + high) / (2 * CQ_STORE_UNIT_SIZE) * CQ_STORE_UNIT_SIZE;
+                        if (midOffset == endOffset) {
+                            targetOffset = endOffset;
+                            break;
+                        }
+
                         byteBuffer.position(midOffset);
                         long phyOffset = byteBuffer.getLong();
                         int size = byteBuffer.getInt();
