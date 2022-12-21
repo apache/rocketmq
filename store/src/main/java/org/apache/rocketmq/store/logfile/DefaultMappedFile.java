@@ -50,6 +50,7 @@ import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
@@ -560,7 +561,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 //        } else {
 //            return COMMITTED_POSITION_UPDATER.get(this);
 //        }
-        return writeBuffer == null ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
+        return transientStorePool == null || transientStorePool.getMessageStore().getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 
     @Override
