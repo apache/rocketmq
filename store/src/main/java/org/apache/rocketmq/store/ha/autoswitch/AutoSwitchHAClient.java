@@ -343,7 +343,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     private boolean reportSlaveMaxOffset() throws IOException {
         boolean result = true;
-        final long maxPhyOffset = this.messageStore.getMaxWrotePhyOffset();
+        final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
         if (maxPhyOffset > this.currentReportedOffset) {
             this.currentReportedOffset = maxPhyOffset;
             result = reportSlaveOffset(this.currentReportedOffset);
@@ -363,7 +363,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     changeCurrentState(HAConnectionState.HANDSHAKE);
                 }
             }
-            this.currentReportedOffset = this.messageStore.getMaxWrotePhyOffset();
+            this.currentReportedOffset = this.messageStore.getMaxPhyOffset();
             this.lastReadTimestamp = System.currentTimeMillis();
         }
         return this.socketChannel != null;
@@ -455,7 +455,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             final List<EpochEntry> localEpochEntries = this.epochCache.getAllEntries();
             final EpochFileCache localEpochCache = new EpochFileCache();
             localEpochCache.initCacheFromEntries(localEpochEntries);
-            localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxWrotePhyOffset());
+            localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
 
             final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
             if (truncateOffset < 0) {
@@ -549,7 +549,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 byteBufferRead.get(bodyData);
                                 byteBufferRead.position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.TRANSFER_HEADER_SIZE + bodySize;
-                                long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxWrotePhyOffset();
+                                long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxPhyOffset();
                                 if (slavePhyOffset != 0) {
                                     if (slavePhyOffset != masterOffset) {
                                         LOGGER.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
@@ -568,7 +568,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
                                 }
 
-                                haService.updateConfirmOffset(Math.min(confirmOffset, messageStore.getMaxWrotePhyOffset()));
+                                haService.updateConfirmOffset(Math.min(confirmOffset, messageStore.getMaxPhyOffset()));
 
                                 if (!reportSlaveMaxOffset()) {
                                     LOGGER.error("AutoSwitchHAClient report max offset to master failed");

@@ -655,7 +655,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void truncateDirtyFiles(long offsetToTruncate) {
-        if (offsetToTruncate >= this.getMaxWrotePhyOffset()) {
+        if (offsetToTruncate >= this.getMaxPhyOffset()) {
             return;
         }
 
@@ -678,7 +678,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean truncateFiles(long offsetToTruncate) {
-        if (offsetToTruncate >= this.getMaxWrotePhyOffset()) {
+        if (offsetToTruncate >= this.getMaxPhyOffset()) {
             return true;
         }
 
@@ -1064,12 +1064,13 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMaxPhyOffset() {
-        return this.commitLog.getMaxOffset();
+        if (messageStoreConfig.isTransientStorePoolEnable() && messageStoreConfig.getBrokerRole() == BrokerRole.SLAVE) {
+            return this.commitLog.getMaxWroteOffset();
+        } else {
+            return this.commitLog.getMaxOffset();
+        }
     }
 
-    public long getMaxWrotePhyOffset() {
-        return this.commitLog.getMaxWroteOffset();
-    }
 
     @Override
     public long getMinPhyOffset() {
