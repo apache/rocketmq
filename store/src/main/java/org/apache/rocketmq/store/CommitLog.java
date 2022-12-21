@@ -531,7 +531,6 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
-            log.error("Check message and return size error", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
