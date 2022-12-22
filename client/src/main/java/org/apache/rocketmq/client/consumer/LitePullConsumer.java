@@ -45,6 +45,12 @@ public interface LitePullConsumer {
     boolean isRunning();
 
     /**
+     * Subscribe some topic with all tags
+     * @throws MQClientException if there is any client error.
+     */
+    void subscribe(final String topic) throws MQClientException;
+
+    /**
      * Subscribe some topic with subExpression
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
