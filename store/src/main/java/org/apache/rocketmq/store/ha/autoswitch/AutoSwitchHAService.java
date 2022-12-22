@@ -136,6 +136,11 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
 
+        if (defaultMessageStore.isTransientStorePoolEnable()) {
+            defaultMessageStore.getCommitLog().resetOffset(defaultMessageStore.getMaxPhyOffset());
+            defaultMessageStore.getCommitLog().getFlushManager().setShouldRunningCommit(true);
+        }
+
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
 
         this.defaultMessageStore.recoverTopicQueueTable();
@@ -162,6 +167,19 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
             this.haClient.start();
+
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
+                while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
+                    getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception e) {
+
+                    }
+                }
+                defaultMessageStore.getCommitLog().getFlushManager().setShouldRunningCommit(false);
+            }
+
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
         } catch (final Exception e) {
@@ -199,8 +217,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe shrink the inSyncStateSet.
-     * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
+     * Check and maybe shrink the inSyncStateSet. A slave will be removed from inSyncStateSet if (curTime -
+     * HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
     public Set<String> maybeShrinkInSyncStateSet() {
         final Set<String> newSyncStateSet = getSyncStateSet();
@@ -385,7 +403,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             } finally {
                 result.release();
             }
-        } while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
+        }
+        while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
 
         LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);

@@ -89,4 +89,8 @@ public class TransientStorePool {
     public DefaultMessageStore getMessageStore() {
         return messageStore;
     }
+
+    public boolean isRunningCommit() {
+        return messageStore.getCommitLog().getFlushManager().isRunningCommit();
+    }
 }
