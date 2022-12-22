@@ -364,7 +364,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return WROTE_POSITION_UPDATER.get(this);
         }
-        if (this.isAbleToCommit(commitLeastPages)) {
+
+        //no need to commit data to file channel, so just set committedPosition to wrotePosition.
+        if (transientStorePool != null && !transientStorePool.isRealCommit()) {
+            COMMITTED_POSITION_UPDATER.set(this, WROTE_POSITION_UPDATER.get(this));
+        } else if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
                 commit0();
                 this.release();
@@ -560,7 +564,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 //        } else {
 //            return COMMITTED_POSITION_UPDATER.get(this);
 //        }
-        return transientStorePool == null || !transientStorePool.isRunningCommit() ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
+        return transientStorePool == null || !transientStorePool.isRealCommit() ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 
     @Override

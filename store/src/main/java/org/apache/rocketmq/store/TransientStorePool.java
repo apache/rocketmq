@@ -34,6 +34,7 @@ public class TransientStorePool {
     private final int fileSize;
     private final Deque<ByteBuffer> availableBuffers;
     private final DefaultMessageStore messageStore;
+    private volatile boolean isRealCommit;
 
     public TransientStorePool(final DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
@@ -90,7 +91,11 @@ public class TransientStorePool {
         return messageStore;
     }
 
-    public boolean isRunningCommit() {
-        return messageStore.getCommitLog().getFlushManager().isRunningCommit();
+    public boolean isRealCommit() {
+        return isRealCommit;
+    }
+
+    public void setRealCommit(boolean realCommit) {
+        isRealCommit = realCommit;
     }
 }

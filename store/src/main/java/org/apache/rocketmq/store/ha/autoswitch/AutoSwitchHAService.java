@@ -137,9 +137,8 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         if (defaultMessageStore.isTransientStorePoolEnable()) {
-            defaultMessageStore.setPhysicalOffset(defaultMessageStore.getMaxPhyOffset());
-            defaultMessageStore.getCommitLog().resetOffset(defaultMessageStore.getMaxPhyOffset());
-            defaultMessageStore.getCommitLog().getFlushManager().setShouldRunningCommit(true);
+            waitingForAllCommit();
+            defaultMessageStore.getTransientStorePool().setRealCommit(true);
         }
 
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
@@ -170,15 +169,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient.start();
 
             if (defaultMessageStore.isTransientStorePoolEnable()) {
-                while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
-                    getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
-                    try {
-                        Thread.sleep(100);
-                    } catch (Exception e) {
-
-                    }
-                }
-                defaultMessageStore.getCommitLog().getFlushManager().setShouldRunningCommit(false);
+                waitingForAllCommit();
+                defaultMessageStore.getTransientStorePool().setRealCommit(false);
             }
 
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
@@ -186,6 +178,17 @@ public class AutoSwitchHAService extends DefaultHAService {
         } catch (final Exception e) {
             LOGGER.error("Error happen when change ha to slave", e);
             return false;
+        }
+    }
+
+    public void waitingForAllCommit() {
+        while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
+            getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
+            try {
+                Thread.sleep(100);
+            } catch (Exception e) {
+
+            }
         }
     }
 

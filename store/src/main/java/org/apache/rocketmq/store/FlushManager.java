@@ -30,10 +30,6 @@ public interface FlushManager {
 
     void wakeUpCommit();
 
-    void setShouldRunningCommit(boolean shouldRunningCommit);
-
-    boolean isRunningCommit();
-
     void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt);
 
     CompletableFuture<PutMessageStatus> handleDiskFlush(AppendMessageResult result, MessageExt messageExt);

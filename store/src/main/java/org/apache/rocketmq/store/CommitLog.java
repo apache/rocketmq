@@ -1214,8 +1214,6 @@ public class CommitLog implements Swappable {
 
         private long lastCommitTimestamp = 0;
 
-        private volatile boolean shouldRunningCommit = false;
-
         @Override public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
                 return CommitLog.this.defaultMessageStore.getBrokerIdentity().getIdentifier() + CommitRealTimeService.class.getSimpleName();
@@ -1226,11 +1224,6 @@ public class CommitLog implements Swappable {
         @Override public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
             while (!this.isStopped()) {
-
-                if (!shouldRunningCommit) {
-                    waitForRunning(5 * 1000);
-                    continue;
-                }
 
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
 
@@ -1267,14 +1260,6 @@ public class CommitLog implements Swappable {
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
             CommitLog.log.info(this.getServiceName() + " service end");
-        }
-
-        public void setShouldRunningCommit(boolean shouldRunningCommit) {
-            this.shouldRunningCommit = shouldRunningCommit;
-        }
-
-        public boolean isShouldRunningCommit() {
-            return shouldRunningCommit;
         }
     }
 
@@ -1869,15 +1854,6 @@ public class CommitLog implements Swappable {
         public void wakeUpCommit() {
             // now wake up commit log thread.
             commitRealTimeService.wakeup();
-        }
-
-        @Override
-        public void setShouldRunningCommit(boolean shouldRunningCommit) {
-            commitRealTimeService.setShouldRunningCommit(shouldRunningCommit);
-        }
-
-        @Override public boolean isRunningCommit() {
-            return commitRealTimeService.isShouldRunningCommit();
         }
 
         @Override public void shutdown() {
