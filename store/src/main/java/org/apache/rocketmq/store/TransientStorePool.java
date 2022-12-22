@@ -87,10 +87,6 @@ public class TransientStorePool {
         return Integer.MAX_VALUE;
     }
 
-    public DefaultMessageStore getMessageStore() {
-        return messageStore;
-    }
-
     public boolean isRealCommit() {
         return isRealCommit;
     }

@@ -1917,7 +1917,8 @@ public class CommitLog implements Swappable {
             commitRealTimeService.wakeup();
         }
 
-        @Override public void shutdown() {
+        @Override
+        public void shutdown() {
             if (defaultMessageStore.isTransientStorePoolEnable()) {
                 this.commitRealTimeService.shutdown();
             }
