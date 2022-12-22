@@ -348,7 +348,7 @@ public class EscapeBridge {
             PullResult pullResult = this.brokerController.getBrokerOuterAPI().pullMessageFromSpecificBroker(brokerName,
                 brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS);
 
-            if (pullResult.getPullStatus().equals(PullStatus.FOUND)) {
+            if (pullResult.getPullStatus().equals(PullStatus.FOUND) && !pullResult.getMsgFoundList().isEmpty()) {
                 return pullResult.getMsgFoundList().get(0);
             }
         } catch (Exception e) {
@@ -374,7 +374,7 @@ public class EscapeBridge {
             return this.brokerController.getBrokerOuterAPI().pullMessageFromSpecificBrokerAsync(brokerName,
                 brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS)
                 .thenApply(pullResult -> {
-                    if (pullResult.getPullStatus().equals(PullStatus.FOUND)) {
+                    if (pullResult.getPullStatus().equals(PullStatus.FOUND) && !pullResult.getMsgFoundList().isEmpty()) {
                         return pullResult.getMsgFoundList().get(0);
                     }
                     return null;

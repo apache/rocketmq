@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
+import io.netty.channel.embedded.EmbeddedChannel;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -53,7 +53,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -64,6 +63,7 @@ public class PopMessageProcessorTest {
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
+    private final EmbeddedChannel embeddedChannel = new EmbeddedChannel();
     @Mock
     private DefaultMessageStore messageStore;
     private ClientChannelInfo clientChannelInfo;
@@ -73,12 +73,11 @@ public class PopMessageProcessorTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
+        brokerController.getBrokerConfig().setEnablePopBufferMerge(true);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        Channel mockChannel = mock(Channel.class);
-        when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
-        when(handlerContext.channel()).thenReturn(mockChannel);
+        when(handlerContext.channel()).thenReturn(embeddedChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
-        clientChannelInfo = new ClientChannelInfo(mockChannel);
+        clientChannelInfo = new ClientChannelInfo(embeddedChannel);
         ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(
             consumerData.getGroupName(),
@@ -101,12 +100,13 @@ public class PopMessageProcessorTest {
     }
 
     @Test
-    public void testProcessRequest_Found() throws RemotingCommandException {
+    public void testProcessRequest_Found() throws RemotingCommandException, InterruptedException {
         GetMessageResult getMessageResult = createGetMessageResult(1);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
-        RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
+        popMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -115,10 +115,11 @@ public class PopMessageProcessorTest {
     public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult(1);
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
-        RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
+        popMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -127,7 +128,7 @@ public class PopMessageProcessorTest {
     public void testProcessRequest_NoMsgInQueue() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult(0);
         getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
         RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);

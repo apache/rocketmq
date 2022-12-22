@@ -1299,6 +1299,7 @@ public class BrokerOuterAPI {
         this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
             if (responseFuture.getCause() != null) {
                 pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+                return;
             }
             try {
                 PullResultExt pullResultExt = this.processPullResponse(responseFuture.getResponseCommand(), brokerAddr);

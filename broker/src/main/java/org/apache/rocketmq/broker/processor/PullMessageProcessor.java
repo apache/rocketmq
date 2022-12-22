@@ -531,7 +531,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         if (getMessageResult != null) {
-            response = this.pullMessageResultHandler.handle(
+            return this.pullMessageResultHandler.handle(
                 getMessageResult,
                 request,
                 requestHeader,
@@ -543,7 +543,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 response
             );
         }
-        return response;
+        return null;
     }
 
     public boolean hasConsumeMessageHook() {
