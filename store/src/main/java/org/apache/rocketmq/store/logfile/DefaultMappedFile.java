@@ -559,11 +559,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int getReadPosition() {
-//        if (this.transientStorePool == null || transientStorePool.enableControllerMode()) {
-//            return WROTE_POSITION_UPDATER.get(this);
-//        } else {
-//            return COMMITTED_POSITION_UPDATER.get(this);
-//        }
         return transientStorePool == null || !transientStorePool.isRealCommit() ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 

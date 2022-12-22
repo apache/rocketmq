@@ -1064,11 +1064,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMaxPhyOffset() {
-        if (messageStoreConfig.isTransientStorePoolEnable() && messageStoreConfig.getBrokerRole() == BrokerRole.SLAVE) {
-            return this.commitLog.getMaxWroteOffset();
-        } else {
-            return this.commitLog.getMaxOffset();
-        }
+        return this.commitLog.getMaxOffset();
     }
 
 

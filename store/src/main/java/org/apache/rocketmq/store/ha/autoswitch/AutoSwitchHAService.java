@@ -221,8 +221,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe shrink the inSyncStateSet. A slave will be removed from inSyncStateSet if (curTime -
-     * HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
+     * Check and maybe shrink the inSyncStateSet.
+     * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
     public Set<String> maybeShrinkInSyncStateSet() {
         final Set<String> newSyncStateSet = getSyncStateSet();
@@ -407,8 +407,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             } finally {
                 result.release();
             }
-        }
-        while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
+        } while (reputFromOffset < this.defaultMessageStore.getMaxPhyOffset() && doNext);
 
         LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);
