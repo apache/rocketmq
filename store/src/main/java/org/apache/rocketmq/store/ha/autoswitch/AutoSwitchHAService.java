@@ -137,6 +137,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         if (defaultMessageStore.isTransientStorePoolEnable()) {
+            defaultMessageStore.setPhysicalOffset(defaultMessageStore.getMaxPhyOffset());
             defaultMessageStore.getCommitLog().resetOffset(defaultMessageStore.getMaxPhyOffset());
             defaultMessageStore.getCommitLog().getFlushManager().setShouldRunningCommit(true);
         }
