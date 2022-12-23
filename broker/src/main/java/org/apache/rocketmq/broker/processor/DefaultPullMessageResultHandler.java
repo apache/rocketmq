@@ -97,7 +97,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
             return response;
         }
 
-        //rewrite the response for the
+        //rewrite the response for the static topic
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         RemotingCommand rewriteResult = processor.rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());

@@ -121,6 +121,18 @@ public interface MessageStore {
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
+    /**
+     * Asynchronous get message
+     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, MessageFilter) getMessage
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
     CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
@@ -133,13 +145,26 @@ public interface MessageStore {
      * @param queueId Queue ID to query.
      * @param offset Logical offset to start from.
      * @param maxMsgNums Maximum count of messages to query.
-     * @param maxTotalMsgSize Maxisum total msg size of the messages
+     * @param maxTotalMsgSize Maximum total msg size of the messages
      * @param messageFilter Message filter used to screen desired messages.
      * @return Matched messages.
      */
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
 
+    /**
+     * Asynchronous get message
+     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, int, MessageFilter) getMessage
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param maxTotalMsgSize Maximum total msg size of the messages
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
     CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
 
@@ -279,6 +304,12 @@ public interface MessageStore {
      */
     long getEarliestMessageTime();
 
+    /**
+     * Asynchronous get the store time of the earliest message in this store.
+     * @see org.apache.rocketmq.store.MessageStore#getEarliestMessageTime() getEarliestMessageTime
+     *
+     * @return timestamp of the earliest message in this store.
+     */
     CompletableFuture<Long> getEarliestMessageTimeAsync(final String topic, final int queueId);
 
     /**
@@ -291,6 +322,15 @@ public interface MessageStore {
      */
     long getMessageStoreTimeStamp(final String topic, final int queueId, final long consumeQueueOffset);
 
+    /**
+     * Asynchronous get the store time of the message specified.
+     * @see org.apache.rocketmq.store.MessageStore#getMessageStoreTimeStamp(String, int, long) getMessageStoreTimeStamp
+     *
+     * @param topic message topic.
+     * @param queueId queue ID.
+     * @param consumeQueueOffset consume queue offset.
+     * @return store timestamp of the message.
+     */
     CompletableFuture<Long> getMessageStoreTimeStampAsync(final String topic, final int queueId,
         final long consumeQueueOffset);
 
@@ -348,6 +388,16 @@ public interface MessageStore {
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
 
+    /**
+     * Asynchronous query messages by given key.
+     * @see org.apache.rocketmq.store.MessageStore#queryMessage(String, String, int, long, long) queryMessage
+     *
+     * @param topic topic of the message.
+     * @param key message key.
+     * @param maxNum maximum number of the messages possible.
+     * @param begin begin timestamp.
+     * @param end end timestamp.
+     */
     CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum,
         final long begin, final long end);
 

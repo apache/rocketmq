@@ -125,7 +125,7 @@ public class PopReviveService extends ServiceThread {
         }
         if (putMessageResult.getAppendMessageResult() == null ||
             putMessageResult.getAppendMessageResult().getStatus() != AppendMessageStatus.PUT_OK) {
-            POP_LOGGER.error("reviveQueueId=" + queueId + ", revive error, msg is: " + msgInner);
+            POP_LOGGER.error("reviveQueueId={}, revive error, msg is: {}", queueId, msgInner);
             return false;
         }
         this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(popCheckPoint);
@@ -490,10 +490,10 @@ public class PopReviveService extends ServiceThread {
                             queueId, popCheckPoint.getTopic(), msgOffset);
                         return new Pair<>(msgOffset, true);
                     }
-                    //skip ck from last epoch
+                    // skip ck from last epoch
                     if (popCheckPoint.getPopTime() < messageExt.getStoreTimestamp()) {
                         POP_LOGGER.warn("reviveQueueId={}, skip ck from last epoch {}", queueId, popCheckPoint);
-                        return new Pair<>(msgOffset, false);
+                        return new Pair<>(msgOffset, true);
                     }
                     boolean result = reviveRetry(popCheckPoint, messageExt);
                     return new Pair<>(msgOffset, result);
@@ -586,7 +586,7 @@ public class PopReviveService extends ServiceThread {
                 }
 
             } catch (Throwable e) {
-                POP_LOGGER.error("reviveQueueId=" + queueId + ", revive error", e);
+                POP_LOGGER.error("reviveQueueId={}, revive error", queueId, e);
             }
         }
     }

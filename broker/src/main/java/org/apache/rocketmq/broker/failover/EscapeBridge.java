@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
-import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
@@ -263,23 +262,7 @@ public class EscapeBridge {
     }
 
     public MessageExt getMessage(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
-        MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
-        if (messageStore != null) {
-            final GetMessageResult getMessageTmpResult = messageStore.getMessage(innerConsumerGroupName, topic, queueId, offset, 1, null);
-            if (getMessageTmpResult == null) {
-                LOG.warn("getMessageResult is null , innerConsumerGroupName {}, topic {}, offset {}, queueId {}", innerConsumerGroupName, topic, offset, queueId);
-                return null;
-            }
-            List<MessageExt> list = decodeMsgList(getMessageTmpResult, deCompressBody);
-            if (list == null || list.isEmpty()) {
-                LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, getMessageTmpResult);
-                return null;
-            } else {
-                return list.get(0);
-            }
-        } else {
-            return getMessageFromRemote(topic, offset, queueId, brokerName);
-        }
+        return getMessageAsync(topic, offset, queueId, brokerName, deCompressBody).join();
     }
 
     public CompletableFuture<MessageExt> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
@@ -295,9 +278,8 @@ public class EscapeBridge {
                     if (list == null || list.isEmpty()) {
                         LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, result);
                         return null;
-                    } else {
-                        return list.get(0);
                     }
+                    return list.get(0);
                 });
         } else {
             return getMessageFromRemoteAsync(topic, offset, queueId, brokerName);
@@ -333,29 +315,7 @@ public class EscapeBridge {
     }
 
     protected MessageExt getMessageFromRemote(String topic, long offset, int queueId, String brokerName) {
-        try {
-            String brokerAddr = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
-            if (null == brokerAddr) {
-                this.brokerController.getTopicRouteInfoManager().updateTopicRouteInfoFromNameServer(topic, true, false);
-                brokerAddr = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
-
-                if (null == brokerAddr) {
-                    LOG.warn("can't find broker address for topic {}", topic);
-                    return null;
-                }
-            }
-
-            PullResult pullResult = this.brokerController.getBrokerOuterAPI().pullMessageFromSpecificBroker(brokerName,
-                brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS);
-
-            if (pullResult.getPullStatus().equals(PullStatus.FOUND) && !pullResult.getMsgFoundList().isEmpty()) {
-                return pullResult.getMsgFoundList().get(0);
-            }
-        } catch (Exception e) {
-            LOG.error("Get message from remote failed.", e);
-        }
-
-        return null;
+        return getMessageFromRemoteAsync(topic, offset, queueId, brokerName).join();
     }
 
     protected CompletableFuture<MessageExt> getMessageFromRemoteAsync(String topic, long offset, int queueId, String brokerName) {
