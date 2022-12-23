@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.store.plugin;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -24,6 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -293,6 +299,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public LinkedList<CommitLogDispatcher> getDispatcherList() {
         return next.getDispatcherList();
+    }
+
+    @Override
+    public void addDispatcher(CommitLogDispatcher dispatcher) {
+        next.addDispatcher(dispatcher);
     }
 
     @Override
@@ -613,5 +624,15 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
         return next.estimateMessageCount(topic, queueId, from, to, filter);
+    }
+
+    @Override
+    public List<Pair<InstrumentSelector, View>> getMetricsView() {
+        return next.getMetricsView();
+    }
+
+    @Override
+    public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        next.initMetrics(meter, attributesBuilderSupplier);
     }
 }

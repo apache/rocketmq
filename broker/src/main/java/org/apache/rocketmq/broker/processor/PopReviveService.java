@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
@@ -50,6 +51,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
@@ -66,7 +68,7 @@ public class PopReviveService extends ServiceThread {
     private String reviveTopic;
     private volatile boolean shouldRunPopRevive = false;
 
-    private final TreeMap<PopCheckPoint/* oldCK */, Pair<Long/* timestamp */, Boolean/* result */>> inflightReviveRequestMap = new TreeMap<>();
+    private final NavigableMap<PopCheckPoint/* oldCK */, Pair<Long/* timestamp */, Boolean/* result */>> inflightReviveRequestMap = Collections.synchronizedNavigableMap(new TreeMap<>());
     private long reviveOffset;
 
     public PopReviveService(BrokerController brokerController, String reviveTopic, int queueId) {
@@ -193,7 +195,7 @@ public class PopReviveService extends ServiceThread {
             || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset();
     }
 
-    private CompletableFuture<MessageExt> getBizMessage(String topic, long offset, int queueId, String brokerName) {
+    private CompletableFuture<Pair<GetMessageStatus, MessageExt>> getBizMessage(String topic, long offset, int queueId, String brokerName) {
         return this.brokerController.getEscapeBridge().getMessageAsync(topic, offset, queueId, brokerName, false);
     }
 
@@ -484,18 +486,29 @@ public class PopReviveService extends ServiceThread {
             // retry msg
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
             CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint.getTopic(), msgOffset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName())
-                .thenApply(messageExt -> {
-                    if (messageExt == null) {
+                .thenApply(resultPair -> {
+                    GetMessageStatus getMessageStatus = resultPair.getObject1();
+                    MessageExt message = resultPair.getObject2();
+                    if (message == null) {
                         POP_LOGGER.warn("reviveQueueId={}, can not get biz msg topic is {}, offset is {}, then continue",
                             queueId, popCheckPoint.getTopic(), msgOffset);
-                        return new Pair<>(msgOffset, true);
+                        switch (getMessageStatus) {
+                            case MESSAGE_WAS_REMOVING:
+                            case OFFSET_TOO_SMALL:
+                            case NO_MATCHED_LOGIC_QUEUE:
+                            case NO_MESSAGE_IN_QUEUE:
+                                return new Pair<>(msgOffset, true);
+                            default:
+                                return new Pair<>(msgOffset, false);
+
+                        }
                     }
-                    // skip ck from last epoch
-                    if (popCheckPoint.getPopTime() < messageExt.getStoreTimestamp()) {
+                    //skip ck from last epoch
+                    if (popCheckPoint.getPopTime() < message.getStoreTimestamp()) {
                         POP_LOGGER.warn("reviveQueueId={}, skip ck from last epoch {}", queueId, popCheckPoint);
                         return new Pair<>(msgOffset, true);
                     }
-                    boolean result = reviveRetry(popCheckPoint, messageExt);
+                    boolean result = reviveRetry(popCheckPoint, message);
                     return new Pair<>(msgOffset, result);
                 });
             futureList.add(future);
@@ -534,7 +547,7 @@ public class PopReviveService extends ServiceThread {
         newCk.setStartOffset(pair.getObject1());
         newCk.setCId(oldCK.getCId());
         newCk.setTopic(oldCK.getTopic());
-        newCk.setQueueId((byte) queueId);
+        newCk.setQueueId(oldCK.getQueueId());
         newCk.addDiff(0);
         MessageExtBrokerInner ckMsg = brokerController.getPopMessageProcessor().buildCkMsg(newCk, queueId);
         brokerController.getMessageStore().putMessage(ckMsg);

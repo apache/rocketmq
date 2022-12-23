@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -23,6 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -524,6 +530,13 @@ public interface MessageStore {
     LinkedList<CommitLogDispatcher> getDispatcherList();
 
     /**
+     * Add dispatcher.
+     *
+     * @param dispatcher commit log dispatcher to add
+     */
+    void addDispatcher(CommitLogDispatcher dispatcher);
+
+    /**
      * Get consume queue of the topic/queue. If consume queue not exist, will return null
      *
      * @param topic Topic.
@@ -901,4 +914,19 @@ public interface MessageStore {
      * @return Estimate number of messages matching given filter.
      */
     long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter);
+
+    /**
+     * Get metrics view of store
+     *
+     * @return List of metrics selector and view pair
+     */
+    List<Pair<InstrumentSelector, View>> getMetricsView();
+
+    /**
+     * Init store metrics
+     *
+     * @param meter opentelemetry meter
+     * @param attributesBuilderSupplier metrics attributes builder
+     */
+    void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
 }

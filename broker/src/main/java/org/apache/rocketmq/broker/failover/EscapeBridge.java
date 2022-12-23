@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -46,6 +47,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -261,28 +263,34 @@ public class EscapeBridge {
         }
     }
 
-    public MessageExt getMessage(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
+    public Pair<GetMessageStatus, MessageExt> getMessage(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
         return getMessageAsync(topic, offset, queueId, brokerName, deCompressBody).join();
     }
 
-    public CompletableFuture<MessageExt> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
+    public CompletableFuture<Pair<GetMessageStatus, MessageExt>> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
         MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
         if (messageStore != null) {
             return messageStore.getMessageAsync(innerConsumerGroupName, topic, queueId, offset, 1, null)
                 .thenApply(result -> {
                     if (result == null) {
                         LOG.warn("getMessageResult is null , innerConsumerGroupName {}, topic {}, offset {}, queueId {}", innerConsumerGroupName, topic, offset, queueId);
-                        return null;
+                        return new Pair<>(GetMessageStatus.MESSAGE_WAS_REMOVING, null);
                     }
                     List<MessageExt> list = decodeMsgList(result, deCompressBody);
                     if (list == null || list.isEmpty()) {
                         LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, result);
-                        return null;
+                        return new Pair<>(result.getStatus(), null);
                     }
-                    return list.get(0);
+                    return new Pair<>(result.getStatus(), list.get(0));
                 });
         } else {
-            return getMessageFromRemoteAsync(topic, offset, queueId, brokerName);
+            return getMessageFromRemoteAsync(topic, offset, queueId, brokerName)
+                .thenApply(msg -> {
+                    if (msg == null) {
+                        return new Pair<>(GetMessageStatus.MESSAGE_WAS_REMOVING, null);
+                    }
+                    return new Pair<>(GetMessageStatus.FOUND, msg);
+                });
         }
     }
 
