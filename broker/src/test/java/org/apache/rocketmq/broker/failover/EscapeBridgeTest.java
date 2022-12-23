@@ -98,8 +98,6 @@ public class EscapeBridgeTest {
 
         BrokerOuterAPI brokerOuterAPI = mock(BrokerOuterAPI.class);
         when(brokerController.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
-        when(brokerOuterAPI.pullMessageFromSpecificBroker(anyString(), anyString(), anyString(), anyString(), anyInt(), anyLong(), anyInt(), anyLong()))
-            .thenReturn(new PullResult(PullStatus.FOUND, -1, -1, -1, new ArrayList<>()));
         when(brokerOuterAPI.pullMessageFromSpecificBrokerAsync(anyString(), anyString(), anyString(), anyString(), anyInt(), anyLong(), anyInt(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PullResult(PullStatus.FOUND, -1, -1, -1, new ArrayList<>())));
 
