@@ -26,6 +26,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -49,6 +50,20 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         MessageExt msg = admin.viewMessage(msgId);
 
         printMsg(admin, msg, msgBodyCharset);
+    }
+    
+    public static void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key, final long startMS, final long endMs)
+        throws MQClientException, InterruptedException {
+        admin.start();
+        
+        QueryResult queryResult = admin.queryMessage(topic, key, 64, startMS, endMs);
+        System.out.printf("%-50s %4s %40s%n",
+            "#Message ID",
+            "#QID",
+            "#Offset");
+        for (MessageExt msg : queryResult.getMessageList()) {
+            System.out.printf("%-50s %4d %40d%n", msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset());
+        }
     }
 
     public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
@@ -214,7 +229,25 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
         opt.setRequired(false);
         options.addOption(opt);
-
+        
+        opt = new Option("s", "startTimeMS", true, "startTime of key");
+        opt.setRequired(false);
+        options.addOption(opt);
+    
+        opt = new Option("e", "endTimeMS", true, "endTime of key");
+        opt.setRequired(false);
+        options.addOption(opt);
+    
+        opt = new Option("t", "topic", true, "topic name");
+        opt.setRequired(false);
+        options.addOption(opt);
+    
+        opt = new Option("k", "msgKey", true, "Message Key");
+        opt.setRequired(false);
+        options.addOption(opt);
+    
+    
+    
         return options;
     }
 
@@ -267,6 +300,24 @@ public class QueryMsgByIdSubCommand implements SubCommand {
                 }
 
             }
+    
+            final String topic = commandLine.getOptionValue('t').trim();
+            final String key = commandLine.getOptionValue('k').trim();
+    
+            long startTimeMS = 0;
+            long endTimeMS = Long.MAX_VALUE;
+            if(commandLine.hasOption("s")) {
+                startTimeMS = Long.parseLong(commandLine.getOptionValue("s").trim());
+            }
+            if(commandLine.hasOption("e")) {
+                endTimeMS = Long.parseLong(commandLine.getOptionValue("e").trim());
+            }
+            
+            if (StringUtils.isNotEmpty(topic) && StringUtils.isNotEmpty(key)) {
+                queryByKey(defaultMQAdminExt, topic, key, startTimeMS, endTimeMS);
+            }
+            
+            
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
