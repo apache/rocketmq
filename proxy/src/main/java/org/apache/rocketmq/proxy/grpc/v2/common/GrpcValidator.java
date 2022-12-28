@@ -100,17 +100,16 @@ public class GrpcValidator {
     }
 
     public void validateTag(String tag) {
-        if (StringUtils.isEmpty(tag)) {
-            return;
-        }
-        if (StringUtils.isBlank(tag)) {
-            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot be the char sequence of whitespace");
-        }
-        if (tag.contains("|")) {
-            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
-        }
-        if (containControlCharacter(tag)) {
-            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain control character");
+        if (StringUtils.isNotEmpty(tag)) {
+            if (StringUtils.isBlank(tag)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot be the char sequence of whitespace");
+            }
+            if (tag.contains("|")) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
+            }
+            if (containControlCharacter(tag)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain control character");
+            }
         }
     }
 

@@ -44,13 +44,4 @@ public class GrpcValidatorTest {
         assertThrows(GrpcProxyException.class, () -> grpcValidator.validateConsumerGroup("CID_RMQ_SYS_xxxx"));
         grpcValidator.validateConsumerGroup("consumerGroupName");
     }
-
-    @Test
-    public void testValidateTag() {
-        assertThrows(GrpcProxyException.class, () -> grpcValidator.validateTag("  "));
-        assertThrows(GrpcProxyException.class, () -> grpcValidator.validateTag("tag1|tag2"));
-        grpcValidator.validateTag("tag");
-        grpcValidator.validateTag(null);
-        grpcValidator.validateTag("");
-    }
 }
