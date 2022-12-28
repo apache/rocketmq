@@ -123,6 +123,7 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithSelectorIT",
         "src/test/java/org/apache/rocketmq/test/smoke/NormalMessageSendAndRecvIT",
         "src/test/java/org/apache/rocketmq/test/base/dledger/DLedgerProduceAndConsumeIT",
+	"src/test/java/org/apache/rocketmq/test/client/consumer/pop/PopOrderlyIT",
     ],
     test_files = glob(["src/test/java/**/*IT.java"]),
     deps = [
