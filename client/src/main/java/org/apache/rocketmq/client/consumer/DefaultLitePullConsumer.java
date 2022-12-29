@@ -39,6 +39,8 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData.SUB_ALL;
+
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultLitePullConsumer.class);
@@ -250,6 +252,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public boolean isRunning() {
         return this.defaultLitePullConsumerImpl.isRunning();
+    }
+
+    @Override
+    public void subscribe(String topic) throws MQClientException {
+        this.subscribe(topic, SUB_ALL);
     }
 
     @Override
