@@ -74,6 +74,7 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+	"//acl",
         ":proxy",
         "//:test_deps",
         "//broker",
@@ -99,6 +100,7 @@ java_library(
         "@maven//:org_checkerframework_checker_qual",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_springframework_spring_core",
+	"@maven//:org_jetbrains_annotations",
     ],
 )
 

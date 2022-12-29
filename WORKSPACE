@@ -94,6 +94,7 @@ maven_install(
         "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
+	"org.jetbrains:annotations:23.1.0",
     ],
     fetch_sources = True,
     repositories = [
