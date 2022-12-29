@@ -151,6 +151,17 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
+    public boolean renameTo(String fileName) {
+        File newFile = new File(fileName);
+        boolean rename = file.renameTo(newFile);
+        if (rename) {
+            this.fileName = fileName;
+            this.file = newFile;
+        }
+        return rename;
+    }
+
+    @Override
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }

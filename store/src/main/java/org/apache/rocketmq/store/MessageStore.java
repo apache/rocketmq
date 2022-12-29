@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -23,6 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -122,6 +128,21 @@ public interface MessageStore {
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
     /**
+     * Asynchronous get message
+     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, MessageFilter) getMessage
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final MessageFilter messageFilter);
+
+    /**
      * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
      * from given <code>offset</code>. Resulting messages will further be screened using provided message filter.
      *
@@ -130,11 +151,27 @@ public interface MessageStore {
      * @param queueId Queue ID to query.
      * @param offset Logical offset to start from.
      * @param maxMsgNums Maximum count of messages to query.
-     * @param maxTotalMsgSize Maxisum total msg size of the messages
+     * @param maxTotalMsgSize Maximum total msg size of the messages
      * @param messageFilter Message filter used to screen desired messages.
      * @return Matched messages.
      */
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
+
+    /**
+     * Asynchronous get message
+     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, int, MessageFilter) getMessage
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param maxTotalMsgSize Maximum total msg size of the messages
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
 
     /**
@@ -274,6 +311,14 @@ public interface MessageStore {
     long getEarliestMessageTime();
 
     /**
+     * Asynchronous get the store time of the earliest message in this store.
+     * @see org.apache.rocketmq.store.MessageStore#getEarliestMessageTime() getEarliestMessageTime
+     *
+     * @return timestamp of the earliest message in this store.
+     */
+    CompletableFuture<Long> getEarliestMessageTimeAsync(final String topic, final int queueId);
+
+    /**
      * Get the store time of the message specified.
      *
      * @param topic message topic.
@@ -282,6 +327,18 @@ public interface MessageStore {
      * @return store timestamp of the message.
      */
     long getMessageStoreTimeStamp(final String topic, final int queueId, final long consumeQueueOffset);
+
+    /**
+     * Asynchronous get the store time of the message specified.
+     * @see org.apache.rocketmq.store.MessageStore#getMessageStoreTimeStamp(String, int, long) getMessageStoreTimeStamp
+     *
+     * @param topic message topic.
+     * @param queueId queue ID.
+     * @param consumeQueueOffset consume queue offset.
+     * @return store timestamp of the message.
+     */
+    CompletableFuture<Long> getMessageStoreTimeStampAsync(final String topic, final int queueId,
+        final long consumeQueueOffset);
 
     /**
      * Get the total number of the messages in the specified queue.
@@ -336,6 +393,19 @@ public interface MessageStore {
      */
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
+
+    /**
+     * Asynchronous query messages by given key.
+     * @see org.apache.rocketmq.store.MessageStore#queryMessage(String, String, int, long, long) queryMessage
+     *
+     * @param topic topic of the message.
+     * @param key message key.
+     * @param maxNum maximum number of the messages possible.
+     * @param begin begin timestamp.
+     * @param end end timestamp.
+     */
+    CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum,
+        final long begin, final long end);
 
     /**
      * Update HA master address.
@@ -458,6 +528,13 @@ public interface MessageStore {
      * @return list of the dispatcher.
      */
     LinkedList<CommitLogDispatcher> getDispatcherList();
+
+    /**
+     * Add dispatcher.
+     *
+     * @param dispatcher commit log dispatcher to add
+     */
+    void addDispatcher(CommitLogDispatcher dispatcher);
 
     /**
      * Get consume queue of the topic/queue. If consume queue not exist, will return null
@@ -837,4 +914,19 @@ public interface MessageStore {
      * @return Estimate number of messages matching given filter.
      */
     long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter);
+
+    /**
+     * Get metrics view of store
+     *
+     * @return List of metrics selector and view pair
+     */
+    List<Pair<InstrumentSelector, View>> getMetricsView();
+
+    /**
+     * Init store metrics
+     *
+     * @param meter opentelemetry meter
+     * @param attributesBuilderSupplier metrics attributes builder
+     */
+    void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
 }

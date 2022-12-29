@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.store.plugin;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -24,6 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -127,6 +133,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
+        return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+    }
+
+    @Override
     public long getMaxOffsetInQueue(String topic, int queueId) {
         return next.getMaxOffsetInQueue(topic, queueId);
     }
@@ -192,8 +204,19 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
+        return next.getEarliestMessageTimeAsync(topic, queueId);
+    }
+
+    @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
         return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
+    }
+
+    @Override
+    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
+        long consumeQueueOffset) {
+        return next.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset);
     }
 
     @Override
@@ -220,6 +243,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin,
         long end) {
         return next.queryMessage(topic, key, maxNum, begin, end);
+    }
+
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+        int maxNum, long begin, long end) {
+        return next.queryMessageAsync(topic, key, maxNum, begin, end);
     }
 
     @Override
@@ -270,6 +299,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public LinkedList<CommitLogDispatcher> getDispatcherList() {
         return next.getDispatcherList();
+    }
+
+    @Override
+    public void addDispatcher(CommitLogDispatcher dispatcher) {
+        next.addDispatcher(dispatcher);
     }
 
     @Override
@@ -440,6 +474,13 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
+        int queueId, long offset, int maxMsgNums, int maxTotalMsgSize,
+        MessageFilter messageFilter) {
+        return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize, messageFilter);
+    }
+
+    @Override
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         return next.lookMessageByOffset(commitLogOffset, size);
     }
@@ -578,5 +619,20 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public boolean isShutdown() {
         return next.isShutdown();
+    }
+
+    @Override
+    public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
+        return next.estimateMessageCount(topic, queueId, from, to, filter);
+    }
+
+    @Override
+    public List<Pair<InstrumentSelector, View>> getMetricsView() {
+        return next.getMetricsView();
+    }
+
+    @Override
+    public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        next.initMetrics(meter, attributesBuilderSupplier);
     }
 }

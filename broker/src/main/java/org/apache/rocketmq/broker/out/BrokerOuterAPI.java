@@ -103,6 +103,12 @@ import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionRequestHeader;
@@ -110,12 +116,6 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResp
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -1249,9 +1249,7 @@ public class BrokerOuterAPI {
 
     public PullResult pullMessageFromSpecificBroker(String brokerName, String brokerAddr,
         String consumerGroup, String topic, int queueId, long offset,
-        int maxNums,
-        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
-
+        int maxNums, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(topic);
@@ -1260,7 +1258,7 @@ public class BrokerOuterAPI {
         requestHeader.setMaxMsgNums(maxNums);
         requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
         requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(10_0000L);
+        requestHeader.setSuspendTimeoutMillis(0L);
         requestHeader.setSubscription(SubscriptionData.SUB_ALL);
         requestHeader.setSubVersion(System.currentTimeMillis());
         requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
@@ -1272,6 +1270,42 @@ public class BrokerOuterAPI {
         PullResultExt pullResultExt = this.processPullResponse(response, brokerAddr);
         this.processPullResult(pullResultExt, brokerName, queueId);
         return pullResultExt;
+    }
+
+    public CompletableFuture<PullResult> pullMessageFromSpecificBrokerAsync(String brokerName, String brokerAddr,
+        String consumerGroup, String topic, int queueId, long offset,
+        int maxNums, long timeoutMillis) throws RemotingException, InterruptedException {
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setQueueOffset(offset);
+        requestHeader.setMaxMsgNums(maxNums);
+        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
+        requestHeader.setCommitOffset(0L);
+        requestHeader.setSuspendTimeoutMillis(0L);
+        requestHeader.setSubscription(SubscriptionData.SUB_ALL);
+        requestHeader.setSubVersion(System.currentTimeMillis());
+        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
+        requestHeader.setExpressionType(ExpressionType.TAG);
+        requestHeader.setBname(brokerName);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+        CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();
+        this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+            if (responseFuture.getCause() != null) {
+                pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+                return;
+            }
+            try {
+                PullResultExt pullResultExt = this.processPullResponse(responseFuture.getResponseCommand(), brokerAddr);
+                this.processPullResult(pullResultExt, brokerName, queueId);
+                pullResultFuture.complete(pullResultExt);
+            } catch (Exception e) {
+                pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+            }
+        });
+        return pullResultFuture;
     }
 
     private PullResultExt processPullResponse(

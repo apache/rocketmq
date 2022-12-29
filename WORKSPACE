@@ -119,7 +119,7 @@ buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
     name = "rbe_default",
-    sha256 = "bd55bd8b2ffa850b5683367e7ab0756d6f51088866b2a81e4c07b6e87d04d8c5",
+    sha256 = "6f2bd38cce60880fd05cf373b99118ad59a0fe7df88855e229e7a9b50a003af3",
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 

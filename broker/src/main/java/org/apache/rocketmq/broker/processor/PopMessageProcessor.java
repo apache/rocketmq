@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -394,19 +395,20 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         int commercialSizePerMsg = this.brokerController.getBrokerConfig().getCommercialSizePerMsg();
         GetMessageResult getMessageResult = new GetMessageResult(commercialSizePerMsg);
+        ExpressionMessageFilter finalMessageFilter = messageFilter;
+        StringBuilder finalOrderCountInfo = orderCountInfo;
 
-        long restNum = 0;
         boolean needRetry = randomQ % 5 == 0;
         long popTime = System.currentTimeMillis();
+        CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
         if (needRetry && !requestHeader.isOrder()) {
             TopicConfig retryTopicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                    restNum = popMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid,
-                        channel, popTime, messageFilter,
-                        startOffsetInfo, msgOffsetInfo, orderCountInfo);
+                    getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                        startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                 }
             }
         }
@@ -414,14 +416,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             // read all queue
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
-                restNum = popMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, messageFilter,
-                    startOffsetInfo, msgOffsetInfo, orderCountInfo);
+                getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                    startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
             }
         } else {
             int queueId = requestHeader.getQueueId();
-            restNum = popMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel,
-                popTime, messageFilter,
-                startOffsetInfo, msgOffsetInfo, orderCountInfo);
+            getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
         }
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
@@ -430,92 +431,92 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                    restNum = popMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid,
-                        channel, popTime, messageFilter,
-                        startOffsetInfo, msgOffsetInfo, orderCountInfo);
+                    getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                        startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                 }
             }
         }
-        if (!getMessageResult.getMessageBufferList().isEmpty()) {
-            response.setCode(ResponseCode.SUCCESS);
-            getMessageResult.setStatus(GetMessageStatus.FOUND);
-            if (restNum > 0) {
-                // all queue pop can not notify specified queue pop, and vice versa
-                notifyMessageArriving(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                    requestHeader.getQueueId());
-            }
-        } else {
-            int pollingResult = polling(channel, request, requestHeader);
-            if (POLLING_SUC == pollingResult) {
-                return null;
-            } else if (POLLING_FULL == pollingResult) {
-                response.setCode(ResponseCode.POLLING_FULL);
-            } else {
-                response.setCode(ResponseCode.POLLING_TIMEOUT);
-            }
-            getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
-        }
-        responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-        responseHeader.setPopTime(popTime);
-        responseHeader.setReviveQid(reviveQid);
-        responseHeader.setRestNum(restNum);
-        responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
-        responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
-        if (requestHeader.isOrder() && orderCountInfo != null) {
-            responseHeader.setOrderCountInfo(orderCountInfo.toString());
-        }
-        response.setRemark(getMessageResult.getStatus().name());
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS:
-                if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                    final long beginTimeMills = this.brokerController.getMessageStore().now();
-                    final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(),
-                        requestHeader.getTopic(), requestHeader.getQueueId());
-                    this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
-                        requestHeader.getTopic(), requestHeader.getQueueId(),
-                        (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
-                    response.setBody(r);
-                } else {
-                    final GetMessageResult tmpGetMessageResult = getMessageResult;
-                    try {
-                        FileRegion fileRegion =
-                            new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()),
-                                getMessageResult);
-                        RemotingCommand finalResponse = response;
-                        channel.writeAndFlush(fileRegion)
-                            .addListener((ChannelFutureListener) future -> {
-                                tmpGetMessageResult.release();
-                                Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
-                                    .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
-                                    .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(finalResponse.getCode()))
-                                    .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
-                                    .build();
-                                RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
-                                if (!future.isSuccess()) {
-                                    POP_LOGGER.error("Fail to transfer messages from page cache to {}",
-                                        channel.remoteAddress(), future.cause());
-                                }
-                            });
-                    } catch (Throwable e) {
-                        POP_LOGGER.error("Error occurred when transferring messages from page cache", e);
-                        getMessageResult.release();
-                    }
 
-                    response = null;
+        final RemotingCommand finalResponse = response;
+        getMessageFuture.thenApply(restNum -> {
+            if (!getMessageResult.getMessageBufferList().isEmpty()) {
+                finalResponse.setCode(ResponseCode.SUCCESS);
+                getMessageResult.setStatus(GetMessageStatus.FOUND);
+                if (restNum > 0) {
+                    // all queue pop can not notify specified queue pop, and vice versa
+                    notifyMessageArriving(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
+                        requestHeader.getQueueId());
                 }
-                break;
-            case ResponseCode.POLLING_TIMEOUT:
-                return response;
-            default:
-                assert false;
-        }
-        return response;
+            } else {
+                int pollingResult = polling(channel, request, requestHeader);
+                if (POLLING_SUC == pollingResult) {
+                    return null;
+                } else if (POLLING_FULL == pollingResult) {
+                    finalResponse.setCode(ResponseCode.POLLING_FULL);
+                } else {
+                    finalResponse.setCode(ResponseCode.POLLING_TIMEOUT);
+                }
+                getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
+            }
+            responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+            responseHeader.setPopTime(popTime);
+            responseHeader.setReviveQid(reviveQid);
+            responseHeader.setRestNum(restNum);
+            responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
+            responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
+            if (requestHeader.isOrder() && finalOrderCountInfo != null) {
+                responseHeader.setOrderCountInfo(finalOrderCountInfo.toString());
+            }
+            finalResponse.setRemark(getMessageResult.getStatus().name());
+            switch (finalResponse.getCode()) {
+                case ResponseCode.SUCCESS:
+                    if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
+                        final long beginTimeMills = this.brokerController.getMessageStore().now();
+                        final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(),
+                            requestHeader.getTopic(), requestHeader.getQueueId());
+                        this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
+                            requestHeader.getTopic(), requestHeader.getQueueId(),
+                            (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
+                        finalResponse.setBody(r);
+                    } else {
+                        final GetMessageResult tmpGetMessageResult = getMessageResult;
+                        try {
+                            FileRegion fileRegion =
+                                new ManyMessageTransfer(finalResponse.encodeHeader(getMessageResult.getBufferTotalSize()),
+                                    getMessageResult);
+                            channel.writeAndFlush(fileRegion)
+                                .addListener((ChannelFutureListener) future -> {
+                                    tmpGetMessageResult.release();
+                                    Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                                        .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
+                                        .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(finalResponse.getCode()))
+                                        .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                                        .build();
+                                    RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                    if (!future.isSuccess()) {
+                                        POP_LOGGER.error("Fail to transfer messages from page cache to {}",
+                                            channel.remoteAddress(), future.cause());
+                                    }
+                                });
+                        } catch (Throwable e) {
+                            POP_LOGGER.error("Error occurred when transferring messages from page cache", e);
+                            getMessageResult.release();
+                        }
+
+                        return null;
+                    }
+                    break;
+                default:
+                    return finalResponse;
+            }
+            return finalResponse;
+        }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+        return null;
     }
 
-    private long popMsgFromQueue(boolean isRetry, GetMessageResult getMessageResult,
+    private CompletableFuture<Long> popMsgFromQueue(boolean isRetry, GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
-        Channel channel, long popTime,
-        ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
+        Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo) {
         String topic = isRetry ? KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(),
             requestHeader.getConsumerGroup()) : requestHeader.getTopic();
@@ -526,16 +527,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             false, lockKey, false);
         if (!queueLockManager.tryLock(lockKey)) {
             restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
-            return restNum;
+            return CompletableFuture.completedFuture(restNum);
         }
-        offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
-            true, lockKey, true);
 
-        GetMessageResult getMessageTmpResult = null;
         try {
+            offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
+                true, lockKey, true);
             if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(topic,
                 requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
-                return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+                return CompletableFuture.completedFuture(this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum);
             }
 
             if (isOrder) {
@@ -547,120 +547,133 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
 
             if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
-                restNum =
-                    this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
-                return restNum;
-            }
-            getMessageTmpResult = this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup()
-                , topic, queueId, offset,
-                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
-            if (getMessageTmpResult == null) {
-                return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
-            }
-            // maybe store offset is not correct.
-            if (GetMessageStatus.OFFSET_TOO_SMALL.equals(getMessageTmpResult.getStatus())
-                || GetMessageStatus.OFFSET_OVERFLOW_BADLY.equals(getMessageTmpResult.getStatus())
-                || GetMessageStatus.OFFSET_FOUND_NULL.equals(getMessageTmpResult.getStatus())) {
-                // commit offset, because the offset is not correct
-                // If offset in store is greater than cq offset, it will cause duplicate messages,
-                // because offset in PopBuffer is not committed.
-                POP_LOGGER.warn("Pop initial offset, because store is no correct, {}, {}->{}",
-                    lockKey, offset, getMessageTmpResult.getNextBeginOffset());
-                offset = getMessageTmpResult.getNextBeginOffset();
-                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
-                    queueId, offset);
-                getMessageTmpResult =
-                    this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), topic,
-                        queueId, offset,
-                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
-            }
-
-            restNum = getMessageTmpResult.getMaxOffset() - getMessageTmpResult.getNextBeginOffset() + restNum;
-            if (!getMessageTmpResult.getMessageMapedList().isEmpty()) {
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageTmpResult.getMessageCount());
-                this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
-                    getMessageTmpResult.getMessageCount());
-                this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
-                    getMessageTmpResult.getBufferTotalSize());
-
-                if (!isRetry) {
-                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                        .put(LABEL_TOPIC, requestHeader.getTopic())
-                        .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
-                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
-                        .build();
-                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
-                }
-
-                if (isOrder) {
-                    this.brokerController.getConsumerOrderInfoManager().update(isRetry, topic,
-                        requestHeader.getConsumerGroup(),
-                        queueId, popTime, requestHeader.getInvisibleTime(), getMessageTmpResult.getMessageQueueOffset(),
-                        orderCountInfo);
-                    this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
-                        requestHeader.getConsumerGroup(), topic, queueId, offset);
-                } else {
-                    appendCheckPoint(requestHeader, topic, reviveQid, queueId, offset, getMessageTmpResult, popTime, this.brokerController.getBrokerConfig().getBrokerName());
-                }
-                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, isRetry, queueId, offset);
-                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, isRetry, queueId,
-                    getMessageTmpResult.getMessageQueueOffset());
-            } else if ((GetMessageStatus.NO_MATCHED_MESSAGE.equals(getMessageTmpResult.getStatus())
-                || GetMessageStatus.OFFSET_FOUND_NULL.equals(getMessageTmpResult.getStatus())
-                || GetMessageStatus.MESSAGE_WAS_REMOVING.equals(getMessageTmpResult.getStatus())
-                || GetMessageStatus.NO_MATCHED_LOGIC_QUEUE.equals(getMessageTmpResult.getStatus()))
-                && getMessageTmpResult.getNextBeginOffset() > -1) {
-                popBufferMergeService.addCkMock(requestHeader.getConsumerGroup(), topic, queueId, offset,
-                    requestHeader.getInvisibleTime(), popTime, reviveQid, getMessageTmpResult.getNextBeginOffset(), brokerController.getBrokerConfig().getBrokerName());
-//                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
-//                        queueId, getMessageTmpResult.getNextBeginOffset());
+                restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+                return CompletableFuture.completedFuture(restNum);
             }
         } catch (Exception e) {
             POP_LOGGER.error("Exception in popMsgFromQueue", e);
-        } finally {
             queueLockManager.unLock(lockKey);
+            return CompletableFuture.completedFuture(restNum);
         }
 
-        if (getMessageTmpResult != null) {
-            String brokerName = brokerController.getBrokerConfig().getBrokerName();
-            for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
-                // We should not recode buffer for normal topic message
-                if (!isRetry) {
-                    getMessageResult.addMessage(mapedBuffer);
-                } else {
-                    List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
-                        true, false, true);
-                    mapedBuffer.release();
-                    for (MessageExt messageExt : messageExtList) {
-                        try {
-                            String ckInfo = ExtraInfoUtil.buildExtraInfo(offset, popTime, requestHeader.getInvisibleTime(),
-                                reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
-                            messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
+        AtomicLong atomicRestNum = new AtomicLong(restNum);
+        AtomicLong atomicOffset = new AtomicLong(offset);
+        long finalOffset = offset;
+        return this.brokerController.getMessageStore()
+            .getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, offset,
+                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter)
+            .thenCompose(result -> {
+                if (result == null) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                // maybe store offset is not correct.
+                if (GetMessageStatus.OFFSET_TOO_SMALL.equals(result.getStatus())
+                    || GetMessageStatus.OFFSET_OVERFLOW_BADLY.equals(result.getStatus())
+                    || GetMessageStatus.OFFSET_FOUND_NULL.equals(result.getStatus())) {
+                    // commit offset, because the offset is not correct
+                    // If offset in store is greater than cq offset, it will cause duplicate messages,
+                    // because offset in PopBuffer is not committed.
+                    POP_LOGGER.warn("Pop initial offset, because store is no correct, {}, {}->{}",
+                        lockKey, atomicOffset.get(), result.getNextBeginOffset());
+                    this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
+                        queueId, result.getNextBeginOffset());
+                    atomicOffset.set(result.getNextBeginOffset());
+                    return this.brokerController.getMessageStore().getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, atomicOffset.get(),
+                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
+                }
+                return CompletableFuture.completedFuture(result);
+            }).thenApply(result -> {
+                atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
+                if (result == null) {
+                    return atomicRestNum.get();
+                }
+                if (!result.getMessageMapedList().isEmpty()) {
+                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(result.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
+                        result.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
+                        result.getBufferTotalSize());
 
-                            // Set retry message topic to origin topic and clear message store size to recode
-                            messageExt.setTopic(requestHeader.getTopic());
-                            messageExt.setStoreSize(0);
+                    if (!isRetry) {
+                        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                            .put(LABEL_TOPIC, requestHeader.getTopic())
+                            .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
+                            .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
+                            .build();
+                        BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
+                        BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+                    }
 
-                            byte[] encode = MessageDecoder.encode(messageExt, false);
-                            ByteBuffer buffer = ByteBuffer.wrap(encode);
-                            SelectMappedBufferResult result =
-                                new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
-                            getMessageResult.addMessage(result);
-                        } catch (Exception e) {
-                            POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
+                    if (isOrder) {
+                        this.brokerController.getConsumerOrderInfoManager().update(isRetry, topic,
+                            requestHeader.getConsumerGroup(),
+                            queueId, popTime, requestHeader.getInvisibleTime(), result.getMessageQueueOffset(),
+                            orderCountInfo);
+                        this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
+                            requestHeader.getConsumerGroup(), topic, queueId, finalOffset);
+                    } else {
+                        appendCheckPoint(requestHeader, topic, reviveQid, queueId, finalOffset, result, popTime, this.brokerController.getBrokerConfig().getBrokerName());
+                    }
+                    ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, isRetry, queueId, finalOffset);
+                    ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, isRetry, queueId,
+                        result.getMessageQueueOffset());
+                } else if ((GetMessageStatus.NO_MATCHED_MESSAGE.equals(result.getStatus())
+                    || GetMessageStatus.OFFSET_FOUND_NULL.equals(result.getStatus())
+                    || GetMessageStatus.MESSAGE_WAS_REMOVING.equals(result.getStatus())
+                    || GetMessageStatus.NO_MATCHED_LOGIC_QUEUE.equals(result.getStatus()))
+                    && result.getNextBeginOffset() > -1) {
+                    popBufferMergeService.addCkMock(requestHeader.getConsumerGroup(), topic, queueId, finalOffset,
+                        requestHeader.getInvisibleTime(), popTime, reviveQid, result.getNextBeginOffset(), brokerController.getBrokerConfig().getBrokerName());
+//                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
+//                        queueId, getMessageTmpResult.getNextBeginOffset());
+                }
+                atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
+
+                if (result != null) {
+                    String brokerName = brokerController.getBrokerConfig().getBrokerName();
+                    for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
+                        // We should not recode buffer for normal topic message
+                        if (!isRetry) {
+                            getMessageResult.addMessage(mapedBuffer);
+                        } else {
+                            List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
+                                true, false, true);
+                            mapedBuffer.release();
+                            for (MessageExt messageExt : messageExtList) {
+                                try {
+                                    String ckInfo = ExtraInfoUtil.buildExtraInfo(finalOffset, popTime, requestHeader.getInvisibleTime(),
+                                        reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
+                                    messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
+
+                                    // Set retry message topic to origin topic and clear message store size to recode
+                                    messageExt.setTopic(requestHeader.getTopic());
+                                    messageExt.setStoreSize(0);
+
+                                    byte[] encode = MessageDecoder.encode(messageExt, false);
+                                    ByteBuffer buffer = ByteBuffer.wrap(encode);
+                                    SelectMappedBufferResult tmpResult =
+                                        new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
+                                    getMessageResult.addMessage(tmpResult);
+                                } catch (Exception e) {
+                                    POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
+                                }
+                            }
                         }
                     }
+                    this.brokerController.getPopInflightMessageCounter().incrementInFlightMessageNum(
+                        topic,
+                        requestHeader.getConsumerGroup(),
+                        queueId,
+                        result.getMessageCount()
+                    );
                 }
-            }
-            this.brokerController.getPopInflightMessageCounter().incrementInFlightMessageNum(
-                topic,
-                requestHeader.getConsumerGroup(),
-                queueId,
-                getMessageTmpResult.getMessageCount()
-            );
-        }
-        return restNum;
+                return atomicRestNum.get();
+            }).whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    POP_LOGGER.error("Pop message error, {}", lockKey, throwable);
+                }
+                queueLockManager.unLock(lockKey);
+            });
     }
 
     private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
