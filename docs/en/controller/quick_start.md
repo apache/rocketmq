@@ -41,7 +41,7 @@ $ sh bin/mqadmin getControllerMetaData -a localhost:9878
 
 At this point, you can send and receive messages in the cluster and perform switch testing.
 
-If you need to shut down the quick cluster, you can execute：
+If you need to shut down the cluster quickly , you can execute：
 
 ```shell
 $ sh bin/controller/fast-try.sh stop
