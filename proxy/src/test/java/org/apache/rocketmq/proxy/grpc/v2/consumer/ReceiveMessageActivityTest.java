@@ -38,6 +38,7 @@ import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
@@ -71,6 +72,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
+        ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
