@@ -82,9 +82,13 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             }
 
             if (pollingTime > timeRemaining) {
-                writer.writeAndComplete(ctx, Code.ILLEGAL_POLLING_TIME, "The remaining time is not enough" +
-                    " for polling, please check await time or network");
-                return;
+                if (timeRemaining >= config.getGrpcClientConsumerMinLongPollingTimeoutMillis()) {
+                    pollingTime = timeRemaining;
+                } else {
+                    writer.writeAndComplete(ctx, Code.ILLEGAL_POLLING_TIME, "The deadline time remaining is not enough" +
+                        " for polling, please check network condition");
+                    return;
+                }
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
