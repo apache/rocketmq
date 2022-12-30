@@ -66,7 +66,7 @@ private int calcNeedAckNums(int inSyncReplicas) {
 
 ## 兼容性
 
-用户需要设置正确的参数才能完成正确的向后兼容。举个例子，假设用户原集群为两副本同步复制，在没有修改任何参数的情况下，升级到RocketMQ 5的版本，由于totalReplicas、inSyncReplicas默认都为1，将降级为异步复制，如果需要和以前行为保持一致，则需要将totalReplicas和inSyncReplicas均设置为2.
+用户需要设置正确的参数才能完成正确的向后兼容。举个例子，假设用户原集群为两副本同步复制，在没有修改任何参数的情况下，升级到RocketMQ 5的版本，由于totalReplicas、inSyncReplicas默认都为1，将降级为异步复制，如果需要和以前行为保持一致，则需要将totalReplicas和inSyncReplicas均设置为2。
 
 参考文档：
 
