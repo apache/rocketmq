@@ -76,7 +76,7 @@ Among the parameters such as inSyncReplicas and minInSyncReplicas, there are ove
 
 To summarize：
 - In a normal Master-Slave configuration, there is no ability for auto-degradation, and all parameters except for inSyncReplicas are invalid. inSyncReplicas indicates the number of replicas that need to be ACKed in synchronous replication.
-- In slaveActingMaster mode, enabling enableAutoInSyncReplicas enables the ability for degradation, and the minimum number of replicas that can be degraded to is minInSyncReplicas. The basis for degradation is the difference in Commitlog heights (haMaxGapNotInSync) and the survival of the replicas, refer to  [slaveActingMaster mode auto-degradation](https://chat.openai.com/QuorumACK.md).
+- In slaveActingMaster mode, enabling enableAutoInSyncReplicas enables the ability for degradation, and the minimum number of replicas that can be degraded to is minInSyncReplicas. The basis for degradation is the difference in Commitlog heights (haMaxGapNotInSync) and the survival of the replicas, refer to  [slaveActingMaster mode auto-degradation](../QuorumACK.md).
 - Automatic master-slave switching (Controller mode) relies on SyncStateSet contraction for auto-degradation. SyncStateSet replicas can work normally as long as they are contracted to a minimum of minInSyncReplicas. If it is less than minInSyncReplicas, it will return directly with insufficient number of replicas. One of the basis for contraction is the time interval (haMaxTimeSlaveNotCatchup) at which the Slave catches up, rather than the Commitlog height. If allAckInSyncStateSet=true, the inSyncReplicas parameter is invalid.
 
 ## Compatibility

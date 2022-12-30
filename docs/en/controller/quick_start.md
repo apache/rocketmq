@@ -6,9 +6,9 @@
 
 This document mainly introduces how to quickly build a RocketMQ cluster that supports automatic master-slave switch, as shown in the above diagram. The main addition is the Controller component, which can be deployed independently or embedded in the NameServer.
 
-For detailed design ideas, please refer to [Design Ideas](https://chat.openai.com/chat/design.md).
+For detailed design ideas, please refer to [Design Ideas](design.md).
 
-For detailed guidelines on new cluster deployment and old cluster upgrades, please refer to [Deployment Guide](https://chat.openai.com/chat/deploy.md).
+For detailed guidelines on new cluster deployment and old cluster upgrades, please refer to [Deployment Guide](deploy.md).
 
 ## Compile RocketMQ source code
 
