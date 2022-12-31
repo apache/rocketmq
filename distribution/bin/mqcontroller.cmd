@@ -16,7 +16,7 @@ rem limitations under the License.
 
 if not exist "%ROCKETMQ_HOME%\bin\runserver.cmd" echo Please set the ROCKETMQ_HOME variable in your environment! & EXIT /B 1
 
-call "%ROCKETMQ_HOME%\bin\runserver.cmd" org.apache.rocketmq.controller.ControllerStartup %*
+call "%ROCKETMQ_HOME%\bin\runserver.cmd" -Drmq.logback.configurationFile=%ROCKETMQ_HOME%\conf\rmq.controller.logback.xml org.apache.rocketmq.controller.ControllerStartup %*
 
 IF %ERRORLEVEL% EQU 0 (
     ECHO "Controller starts OK"
