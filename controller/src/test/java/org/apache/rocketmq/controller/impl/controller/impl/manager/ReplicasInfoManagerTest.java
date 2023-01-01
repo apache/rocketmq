@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.controller.impl.controller.impl.manager;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
@@ -42,6 +40,10 @@ import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToC
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
