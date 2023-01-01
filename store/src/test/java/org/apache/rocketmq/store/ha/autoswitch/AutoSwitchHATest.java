@@ -459,15 +459,15 @@ public class AutoSwitchHATest {
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
         Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
-        Set<String> syncStateSet = (masterHAService.getSyncStateSet());
+        Set<String> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
         Assert.assertTrue(syncStateSet.contains("127.0.0.1:8001"));
 
         // Step3: set new syncStateSet
         HashSet<String> newSyncStateSet = new HashSet<String>() {{
-            add("127.0.0.1:8000");
-            add("127.0.0.1:8001");
-        }};
+                add("127.0.0.1:8000");
+                add("127.0.0.1:8001");
+                }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
     }
