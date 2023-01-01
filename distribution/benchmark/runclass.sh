@@ -62,6 +62,19 @@ JAVA_OPT="${JAVA_OPT} -XX:+PerfDisableSharedMem"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
 
+find_java_home()
+{
+    case "`uname`" in
+        Darwin)
+            JAVA_HOME=$(/usr/libexec/java_home)
+        ;;
+        *)
+            JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+        ;;
+    esac
+}
+find_java_home
+
 if [ -z "$JAVA_HOME" ]; then
   JAVA_HOME=/usr/java
 fi
