@@ -16,17 +16,19 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class BrokerInfo {
-    private final String clusterName;
-    private final String brokerName;
+    private String clusterName;
+    private String brokerName;
     // Start from 1
-    private final AtomicLong brokerIdCount;
-    private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
+    private AtomicLong brokerIdCount;
+    private HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
 
     public BrokerInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
@@ -35,20 +37,20 @@ public class BrokerInfo {
         this.brokerIdTable = new HashMap<>();
     }
 
+    // This constructor is to adapt FastJSONSerializer
+    public BrokerInfo(String clusterName, String brokerName, Integer brokerIdCount, JSONObject brokerIdTable) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerIdCount = new AtomicLong(brokerIdCount);
+        this.brokerIdTable = new HashMap<>();
+        brokerIdTable.entrySet().forEach(entry -> {
+            Long brokerId = new Long((Integer) entry.getValue());
+            this.brokerIdTable.put(entry.getKey(), brokerId);
+        });
+    }
+
     public void removeBrokerAddress(final String address) {
         this.brokerIdTable.remove(address);
-    }
-
-    public long newBrokerId() {
-        return this.brokerIdCount.incrementAndGet();
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public String getBrokerName() {
-        return brokerName;
     }
 
     public void addBroker(final String address, final Long brokerId) {
@@ -59,18 +61,60 @@ public class BrokerInfo {
         return this.brokerIdTable.containsKey(address);
     }
 
-    public Set<String> getAllBroker() {
+    public Set<String> allBrokers() {
         return new HashSet<>(this.brokerIdTable.keySet());
+    }
+
+    public long newBrokerId() {
+        return this.brokerIdCount.incrementAndGet();
+    }
+
+    public Long getBrokerIdByAddress(final String address) {
+        if (this.brokerIdTable.containsKey(address)) {
+            return this.brokerIdTable.get(address);
+        }
+        return -1L;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public AtomicLong getBrokerIdCount() {
+        return brokerIdCount;
+    }
+
+    public void setBrokerIdCount(Long brokerIdCount) {
+        this.brokerIdCount = new AtomicLong(brokerIdCount);
     }
 
     public HashMap<String, Long> getBrokerIdTable() {
         return new HashMap<>(this.brokerIdTable);
     }
 
-    public Long getBrokerId(final String address) {
-        if (this.brokerIdTable.containsKey(address)) {
-            return this.brokerIdTable.get(address);
-        }
-        return -1L;
+    public void setBrokerIdTable(HashMap<String, Long> brokerIdTable) {
+        this.brokerIdTable = brokerIdTable;
+    }
+
+    @Override
+    public String toString() {
+        return "BrokerInfo{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerIdCount=" + brokerIdCount +
+                ", brokerIdTable=" + brokerIdTable +
+                '}';
     }
 }

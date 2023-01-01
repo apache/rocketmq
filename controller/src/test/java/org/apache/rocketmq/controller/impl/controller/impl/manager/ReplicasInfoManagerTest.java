@@ -19,7 +19,6 @@ package org.apache.rocketmq.controller.impl.controller.impl.manager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
@@ -332,5 +331,17 @@ public class ReplicasInfoManagerTest {
         ControllerResult<Void> result7 = this.replicasInfoManager.cleanBrokerData(header7, (cluster, brokerAddr) -> false);
         assertEquals(ResponseCode.SUCCESS, result7.getResponseCode());
 
+    }
+
+
+    @Test
+    public void testSnapshot() {
+        mockMetaData();
+        byte[] metadata = this.replicasInfoManager.encodeMetadata();
+
+        ReplicasInfoManager replicasInfoManager1 = new ReplicasInfoManager(null);
+        assertTrue(replicasInfoManager1.loadMetadata(metadata));
+
+        assertArrayEquals(metadata, replicasInfoManager1.encodeMetadata());
     }
 }

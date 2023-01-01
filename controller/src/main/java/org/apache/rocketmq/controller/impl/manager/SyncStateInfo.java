@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import com.alibaba.fastjson.JSONArray;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,14 +25,14 @@ import java.util.Set;
  * Manages the syncStateSet of broker replicas.
  */
 public class SyncStateInfo {
-    private final String clusterName;
-    private final String brokerName;
-
-    private Set<String/*Address*/> syncStateSet;
-    private int syncStateSetEpoch;
+    private String clusterName;
+    private String brokerName;
 
     private String masterAddress;
     private int masterEpoch;
+
+    private int syncStateSetEpoch;
+    private Set<String/*Address*/> syncStateSet;
 
     public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
         this.clusterName = clusterName;
@@ -40,6 +42,17 @@ public class SyncStateInfo {
         this.syncStateSet = new HashSet<>();
         this.syncStateSet.add(masterAddress);
         this.syncStateSetEpoch = 1;
+    }
+
+    // This constructor is to adapt FastJSONSerializer.
+    public SyncStateInfo(String clusterName, String brokerName, String masterAddress, int masterEpoch, int syncStateSetEpoch, JSONArray syncStateSet) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
+        this.syncStateSet = new HashSet<>();
+        syncStateSet.forEach(entry -> this.syncStateSet.add((String) entry));
     }
 
     public void updateMasterInfo(String masterAddress) {
@@ -56,31 +69,67 @@ public class SyncStateInfo {
         return !this.masterAddress.isEmpty();
     }
 
+    public void removeSyncState(final String address) {
+        syncStateSet.remove(address);
+    }
+
     public String getClusterName() {
         return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     public Set<String> getSyncStateSet() {
         return new HashSet<>(syncStateSet);
+    }
+
+    public void setSyncStateSet(Set<String> syncStateSet) {
+        this.syncStateSet = syncStateSet;
     }
 
     public int getSyncStateSetEpoch() {
         return syncStateSetEpoch;
     }
 
+    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
     public String getMasterAddress() {
         return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void removeSyncState(final String address) {
-        syncStateSet.remove(address);
+    public void setMasterEpoch(int masterEpoch) {
+        this.masterEpoch = masterEpoch;
+    }
+
+    @Override
+    public String toString() {
+        return "SyncStateInfo{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", masterAddress='" + masterAddress + '\'' +
+                ", masterEpoch=" + masterEpoch +
+                ", syncStateSetEpoch=" + syncStateSetEpoch +
+                ", syncStateSet=" + syncStateSet +
+                '}';
     }
 }

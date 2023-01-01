@@ -39,6 +39,7 @@ import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
@@ -58,11 +59,14 @@ import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToC
  * state machine It should be noted that this class is not thread safe, and the upper layer needs to ensure that it can
  * be called sequentially
  */
-public class ReplicasInfoManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final ControllerConfig controllerConfig;
-    private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
-    private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private ControllerConfig controllerConfig;
+    private Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
+    private Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+
+    public ReplicasInfoManager() {
+    }
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -86,7 +90,7 @@ public class ReplicasInfoManager {
             final Set<String> oldSyncStateSet = syncStateInfo.getSyncStateSet();
             if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
-                LOGGER.warn("{}", err);
+                log.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -95,7 +99,7 @@ public class ReplicasInfoManager {
             if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
                     syncStateInfo.getMasterAddress(), request.getMasterAddress());
-                LOGGER.error("{}", err);
+                log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
                 return result;
             }
@@ -104,7 +108,7 @@ public class ReplicasInfoManager {
             if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
                     syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
-                LOGGER.error("{}", err);
+                log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
                 return result;
             }
@@ -113,7 +117,7 @@ public class ReplicasInfoManager {
             if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
                     syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
-                LOGGER.error("{}", err);
+                log.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
                 return result;
             }
@@ -122,13 +126,13 @@ public class ReplicasInfoManager {
             for (String replicas : newSyncStateSet) {
                 if (!brokerInfo.isBrokerExist(replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't exist", replicas);
-                    LOGGER.error("{}", err);
+                    log.error("{}", err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REPLICAS, err);
                     return result;
                 }
                 if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't alive", replicas);
-                    LOGGER.error(err);
+                    log.error(err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE, err);
                     return result;
                 }
@@ -136,7 +140,7 @@ public class ReplicasInfoManager {
 
             if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
-                LOGGER.error(err);
+                log.error(err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -163,14 +167,14 @@ public class ReplicasInfoManager {
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
             final String oldMaster = syncStateInfo.getMasterAddress();
-            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.getAllBroker() : null;
+            Set<String> allReplicaBrokers = controllerConfig.isEnableElectUncleanMaster() ? brokerInfo.allBrokers() : null;
 
             // elect by policy
             String newMaster = electPolicy.elect(brokerInfo.getClusterName(), syncStateSet, allReplicaBrokers, oldMaster, assignBrokerAddress);
             if (StringUtils.isNotEmpty(newMaster) && newMaster.equals(oldMaster)) {
                 // old master still valid, change nothing
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
-                LOGGER.warn("{}", err);
+                log.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, err);
                 return result;
             }
@@ -489,5 +493,42 @@ public class ReplicasInfoManager {
      */
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
+    }
+
+
+    @Override
+    public byte[] encodeMetadata() {
+        String json = RemotingSerializable.toJson(this, true);
+        return json.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public boolean loadMetadata(byte[] data) {
+        String json = new String(data, StandardCharsets.UTF_8);
+        ReplicasInfoManager obj = RemotingSerializable.fromJson(json, ReplicasInfoManager.class);
+        this.syncStateSetInfoTable.putAll(obj.syncStateSetInfoTable);
+        this.replicaInfoTable.putAll(obj.replicaInfoTable);
+        return true;
+    }
+
+    @Override
+    public MetadataManagerType getMetadataManagerType() {
+        return MetadataManagerType.REPLICAS_INFO_MANAGER;
+    }
+
+    public Map<String, BrokerInfo> getReplicaInfoTable() {
+        return replicaInfoTable;
+    }
+
+    public void setReplicaInfoTable(Map<String, BrokerInfo> replicaInfoTable) {
+        this.replicaInfoTable = replicaInfoTable;
+    }
+
+    public Map<String, SyncStateInfo> getSyncStateSetInfoTable() {
+        return syncStateSetInfoTable;
+    }
+
+    public void setSyncStateSetInfoTable(Map<String, SyncStateInfo> syncStateSetInfoTable) {
+        this.syncStateSetInfoTable = syncStateSetInfoTable;
     }
 }

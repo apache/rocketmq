@@ -24,18 +24,6 @@ import io.openmessaging.storage.dledger.MemberState;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiPredicate;
-import java.util.function.Supplier;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -47,6 +35,7 @@ import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.impl.statemachine.DLedgerControllerStateMachine;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -63,6 +52,19 @@ import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterReques
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
 /**
  * The implementation of controller, based on DLedger (raft).
@@ -104,6 +106,8 @@ public class DLedgerController implements Controller {
         this.dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
         this.dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
         this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
+        this.dLedgerConfig.setSnapshotThreshold(controllerConfig.getSnapshotThreshold());
+        this.dLedgerConfig.setMaxSnapshotReservedNum(controllerConfig.getMaxSnapshotReservedNum());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
@@ -148,6 +152,10 @@ public class DLedgerController implements Controller {
 
     public ControllerConfig getControllerConfig() {
         return controllerConfig;
+    }
+
+    public DLedgerServer getDLedgerServer() {
+        return dLedgerServer;
     }
 
     @Override
