@@ -16,15 +16,6 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -53,6 +44,17 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoReq
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
@@ -240,7 +242,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
                 final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(brokerName, brokerAddress, brokerId);
                 result.addEvent(applyIdEvent);
             } else {
-                brokerId = brokerInfo.getBrokerId(brokerAddress);
+                brokerId = brokerInfo.getBrokerIdByAddress(brokerAddress);
             }
             response.setBrokerId(brokerId);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
@@ -315,7 +317,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             response.setMasterAddress(masterAddress);
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
-                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
+                response.setBrokerId(brokerInfo.getBrokerIdByAddress(request.getBrokerAddress()));
             }
             result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
             return result;
@@ -336,7 +338,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
                 final String master = syncStateInfo.getMasterAddress();
                 final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
                 syncStateSet.forEach(replicas -> {
-                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(replicas);
+                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerIdByAddress(replicas);
                     inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
                 });
 
