@@ -106,6 +106,14 @@ public class RouteInfoManager {
         return this.unRegisterService.submit(unRegisterRequest);
     }
 
+    public boolean submitUnRegisterBrokerRequestSet(Set<UnRegisterBrokerRequestHeader> unRegisterRequestSet) {
+        boolean flag = true;
+        for (UnRegisterBrokerRequestHeader header : unRegisterRequestSet) {
+            flag &= submitUnRegisterBrokerRequest(header);
+        }
+        return flag;
+    }
+
     // For test only
     int blockedUnRegisterRequests() {
         return this.unRegisterService.queueLength();
@@ -763,28 +771,38 @@ public class RouteInfoManager {
     public void scanNotActiveBroker() {
         try {
             log.info("start scanNotActiveBroker");
+            Set<BrokerAddrInfo> brokerAddrInfoSet = new HashSet<>(16);
             for (Entry<BrokerAddrInfo, BrokerLiveInfo> next : this.brokerLiveTable.entrySet()) {
                 long last = next.getValue().getLastUpdateTimestamp();
                 long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis();
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
                     RemotingHelper.closeChannel(next.getValue().getChannel());
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
-                    this.onChannelDestroy(next.getKey());
+                    brokerAddrInfoSet.add(next.getKey());
                 }
+            }
+            if (brokerAddrInfoSet.size() > 0) {
+                this.onChannelDestroy(brokerAddrInfoSet);
             }
         } catch (Exception e) {
             log.error("scanNotActiveBroker exception", e);
         }
     }
 
-    public void onChannelDestroy(BrokerAddrInfo brokerAddrInfo) {
-        UnRegisterBrokerRequestHeader unRegisterRequest = new UnRegisterBrokerRequestHeader();
-        boolean needUnRegister = false;
-        if (brokerAddrInfo != null) {
+    public void onChannelDestroy(Set<BrokerAddrInfo> brokerAddrInfoSet) {
+
+        Set<UnRegisterBrokerRequestHeader> requestHeaderSet = new HashSet<>();
+        if (brokerAddrInfoSet != null && brokerAddrInfoSet.size() > 0) {
             try {
                 try {
                     this.lock.readLock().lockInterruptibly();
-                    needUnRegister = setupUnRegisterRequest(unRegisterRequest, brokerAddrInfo);
+                    for (BrokerAddrInfo brokerAddrInfo : brokerAddrInfoSet) {
+                        UnRegisterBrokerRequestHeader unRegisterRequest = new UnRegisterBrokerRequestHeader();
+                        if (setupUnRegisterRequest(unRegisterRequest, brokerAddrInfo)) {
+                            requestHeaderSet.add(unRegisterRequest);
+                        }
+                    }
+
                 } finally {
                     this.lock.readLock().unlock();
                 }
@@ -793,10 +811,10 @@ public class RouteInfoManager {
             }
         }
 
-        if (needUnRegister) {
-            boolean result = this.submitUnRegisterBrokerRequest(unRegisterRequest);
+        if (requestHeaderSet.size() > 0) {
+            boolean result = this.submitUnRegisterBrokerRequestSet(requestHeaderSet);
             log.info("the broker's channel destroyed, submit the unregister request at once, " +
-                "broker info: {}, submit result: {}", unRegisterRequest, result);
+                "broker info: {}, submit result: {}", requestHeaderSet, result);
         }
     }
 
