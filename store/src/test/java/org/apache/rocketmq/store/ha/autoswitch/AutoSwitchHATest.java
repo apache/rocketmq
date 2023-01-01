@@ -17,21 +17,9 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
-import java.io.File;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -46,10 +34,24 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
-import org.junit.Test;
+import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Test;
+
+import java.io.File;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
@@ -442,6 +444,32 @@ public class AutoSwitchHATest {
         messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
 
         checkMessage(messageStore3, 10, 10);
+    }
+
+    @Test
+    public void testCheckSynchronizingSyncStateSetFlag() throws Exception {
+        // Step1: broker1 as leader, broker2 as follower
+        init(defaultMappedFileSize);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+        AutoSwitchHAService masterHAService = (AutoSwitchHAService) this.messageStore1.getHaService();
+
+        // Step2: check flag SynchronizingSyncStateSet
+        Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
+        Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
+        Set<String> syncStateSet = (masterHAService.getSyncStateSet());
+        Assert.assertEquals(syncStateSet.size(), 2);
+        Assert.assertTrue(syncStateSet.contains("127.0.0.1:8001"));
+
+        // Step3: set new syncStateSet
+        HashSet<String> newSyncStateSet = new HashSet<String>() {{
+            add("127.0.0.1:8000");
+            add("127.0.0.1:8001");
+        }};
+        masterHAService.setSyncStateSet(newSyncStateSet);
+        Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
     }
 
     @After
