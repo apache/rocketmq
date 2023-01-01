@@ -223,7 +223,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.reputMessageService = new ReputMessageService();
 
-        this.transientStorePool = new TransientStorePool(messageStoreConfig);
+        this.transientStorePool = new TransientStorePool(this);
 
         this.scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
@@ -338,7 +338,7 @@ public class DefaultMessageStore implements MessageStore {
             this.haService.init(this);
         }
 
-        if (messageStoreConfig.isTransientStorePoolEnable()) {
+        if (this.isTransientStorePoolEnable()) {
             this.transientStorePool.init();
         }
 
@@ -1066,6 +1066,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMaxPhyOffset() {
         return this.commitLog.getMaxOffset();
     }
+
 
     @Override
     public long getMinPhyOffset() {
@@ -2744,5 +2745,16 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         DefaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
+    }
+
+    /**
+     * Enable transient commitLog store pool only if transientStorePoolEnable is true and broker role is not SLAVE or
+     * enableControllerMode is true
+     *
+     * @return <tt>true</tt> or <tt>false</tt>
+     */
+    public boolean isTransientStorePoolEnable() {
+        return this.messageStoreConfig.isTransientStorePoolEnable() &&
+            (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
     }
 }

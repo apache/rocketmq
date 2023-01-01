@@ -174,6 +174,7 @@ import org.apache.rocketmq.remoting.rpc.RpcException;
 import org.apache.rocketmq.remoting.rpc.RpcRequest;
 import org.apache.rocketmq.remoting.rpc.RpcResponse;
 import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -2276,7 +2277,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         MessageStore messageStore = this.brokerController.getMessageStore();
         runtimeInfo.put("remainTransientStoreBufferNumbs", String.valueOf(messageStore.remainTransientStoreBufferNumbs()));
-        if (this.brokerController.getMessageStoreConfig().isTransientStorePoolEnable()) {
+        if (this.brokerController.getMessageStore() instanceof DefaultMessageStore && ((DefaultMessageStore) this.brokerController.getMessageStore()).isTransientStorePoolEnable()) {
             runtimeInfo.put("remainHowManyDataToCommit", MixAll.humanReadableByteCount(messageStore.remainHowManyDataToCommit(), false));
         }
         runtimeInfo.put("remainHowManyDataToFlush", MixAll.humanReadableByteCount(messageStore.remainHowManyDataToFlush(), false));
@@ -2605,7 +2606,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         return response;
     }
-
 
     private RemotingCommand resetMasterFlushOffset(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
