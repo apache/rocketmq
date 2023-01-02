@@ -125,7 +125,6 @@ public class ReplicasInfoManagerTest {
         apply(result.getEvents());
 
         final ControllerResult<GetReplicaInfoResponseHeader> resp = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
-        final GetReplicaInfoResponseHeader replicaInfo = resp.getResponse();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
 
         assertArrayEquals(syncStateSet.getSyncStateSet().toArray(), newSyncStateSet.toArray());
@@ -250,10 +249,6 @@ public class ReplicasInfoManagerTest {
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
 
-        final Set<String> brokerSet = new HashSet<>();
-        brokerSet.add("127.0.0.1:9000");
-        brokerSet.add("127.0.0.1:9001");
-        brokerSet.add("127.0.0.1:9002");
         final ElectMasterRequestHeader assignRequest = new ElectMasterRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
         final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest,
             new DefaultElectPolicy((clusterName, brokerAddress) -> brokerAddress.contains("127.0.0.1:9000"), null));
@@ -273,7 +268,6 @@ public class ReplicasInfoManagerTest {
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
         assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
-
     }
 
     @Test
