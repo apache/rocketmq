@@ -16,10 +16,12 @@
  */
 package org.apache.rocketmq.controller.impl.controller.impl.statemachine;
 
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.controller.impl.manager.BrokerInfo;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.controller.impl.manager.SyncStateInfo;
 import org.apache.rocketmq.controller.impl.statemachine.StatemachineSnapshotFileGenerator;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,6 +75,11 @@ public class StatemachineSnapshotFileGeneratorTest {
         }
         this.replicasInfoManager = new ReplicasInfoManager(null);
         this.snapshotGenerator = new StatemachineSnapshotFileGenerator(Collections.singletonList(this.replicasInfoManager));
+    }
+
+    @After
+    public void shutdown() {
+        UtilAll.deleteFile(new File(this.snapshotPath));
     }
 
     @Test
