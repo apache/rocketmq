@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StatemachineSnapshotFileGeneratorTest {
@@ -71,13 +72,21 @@ public class StatemachineSnapshotFileGeneratorTest {
             parentFile.mkdirs();
         }
         this.replicasInfoManager = new ReplicasInfoManager(null);
-        mockMetadata();
         this.snapshotGenerator = new StatemachineSnapshotFileGenerator(Collections.singletonList(this.replicasInfoManager));
     }
 
+    @Test
+    public void testGenerateAndLoadEmptySnapshot() throws IOException {
+        ReplicasInfoManager emptyManager = new ReplicasInfoManager(null);
+        StatemachineSnapshotFileGenerator generator1 = new StatemachineSnapshotFileGenerator(Collections.singletonList(emptyManager));
+        generator1.generateSnapshot(this.snapshotPath);
+
+        assertTrue(generator1.loadSnapshot(this.snapshotPath));
+    }
 
     @Test
     public void testGenerateAndLoadSnapshot() throws IOException {
+        mockMetadata();
         this.snapshotGenerator.generateSnapshot(this.snapshotPath);
 
         ReplicasInfoManager emptyManager = new ReplicasInfoManager(null);
@@ -85,5 +94,11 @@ public class StatemachineSnapshotFileGeneratorTest {
         assertTrue(generator1.loadSnapshot(this.snapshotPath));
 
         assertArrayEquals(emptyManager.encodeMetadata(), this.replicasInfoManager.encodeMetadata());
+    }
+
+    @Test
+    public void testLoadSnapshotFromNoneExistFile() throws IOException {
+        String path = Paths.get(File.separator + "tmp", "ControllerSnapshotTmp").toString();
+        assertFalse(this.snapshotGenerator.loadSnapshot(path));
     }
 }
