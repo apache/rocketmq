@@ -74,8 +74,8 @@ public class ReplicasInfoManagerTest {
         this.heartbeatManager = null;
     }
 
-    public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress,
-        boolean isFirstRegisteredBroker) {
+    public void registerNewBroker(String clusterName, String brokerName, String brokerAddress,
+                                  boolean isFirstRegisteredBroker) {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest =
             new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
@@ -91,7 +91,6 @@ public class ReplicasInfoManagerTest {
             final RegisterBrokerToControllerResponseHeader response = registerResult.getResponse();
             assertTrue(response.getBrokerId() > 0);
         }
-        return true;
     }
 
     @Test
