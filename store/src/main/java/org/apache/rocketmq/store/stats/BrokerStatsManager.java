@@ -67,7 +67,6 @@ public class BrokerStatsManager {
     @Deprecated public static final String COMMERCIAL_RCV_SIZE = Stats.COMMERCIAL_RCV_SIZE;
     @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
 
-
     // Send message latency
     public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
     public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
@@ -496,8 +495,14 @@ public class BrokerStatsManager {
     }
 
     public void incTopicPutLatency(final String topic, final int queueId, final int incValue) {
-        final String statsKey = String.format("%d@%s", queueId, topic);
-        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey, incValue, 1);
+        StringBuilder statsKey;
+        if (topic != null) {
+            statsKey = new StringBuilder(topic.length() + 6);
+        } else {
+            statsKey = new StringBuilder(6);
+        }
+        statsKey.append(queueId).append("@").append(topic);
+        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
     }
 
     public void incBrokerPutNums() {
