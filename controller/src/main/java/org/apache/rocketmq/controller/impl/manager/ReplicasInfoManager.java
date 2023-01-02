@@ -62,7 +62,7 @@ import java.util.stream.Stream;
  * be called sequentially
  */
 public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private ControllerConfig controllerConfig;
     private Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
     private Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
@@ -92,7 +92,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             final Set<String> oldSyncStateSet = syncStateInfo.getSyncStateSet();
             if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
                 String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
-                log.warn("{}", err);
+                LOGGER.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -101,7 +101,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
                     syncStateInfo.getMasterAddress(), request.getMasterAddress());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
                 return result;
             }
@@ -110,7 +110,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
                     syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
                 return result;
             }
@@ -119,7 +119,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
                 String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
                     syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
-                log.error("{}", err);
+                LOGGER.error("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
                 return result;
             }
@@ -128,13 +128,13 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             for (String replicas : newSyncStateSet) {
                 if (!brokerInfo.isBrokerExist(replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't exist", replicas);
-                    log.error("{}", err);
+                    LOGGER.error("{}", err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REPLICAS, err);
                     return result;
                 }
                 if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
                     String err = String.format("Rejecting alter syncStateSet request because the replicas {%s} don't alive", replicas);
-                    log.error(err);
+                    LOGGER.error(err);
                     result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE, err);
                     return result;
                 }
@@ -142,7 +142,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
 
             if (!newSyncStateSet.contains(syncStateInfo.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {%s}", syncStateInfo.getMasterAddress());
-                log.error(err);
+                LOGGER.error(err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ALTER_SYNC_STATE_SET_FAILED, err);
                 return result;
             }
@@ -176,7 +176,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
             if (StringUtils.isNotEmpty(newMaster) && newMaster.equals(oldMaster)) {
                 // old master still valid, change nothing
                 String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
-                log.warn("{}", err);
+                LOGGER.warn("{}", err);
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, err);
                 return result;
             }
@@ -258,7 +258,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
                 Set<String> aliveSlaveBrokerAddressSet = syncStateInfo.getSyncStateSet().stream()
                     .filter(brokerAddr -> brokerAlivePredicate.test(clusterName, brokerAddr) && !StringUtils.equals(brokerAddr, syncStateInfo.getMasterAddress()))
                     .collect(Collectors.toSet());
-                if (null != aliveSlaveBrokerAddressSet && aliveSlaveBrokerAddressSet.size() > 0) {
+                if (!aliveSlaveBrokerAddressSet.isEmpty()) {
                     if (!aliveSlaveBrokerAddressSet.contains(brokerAddress)) {
                         brokerAddress = aliveSlaveBrokerAddressSet.iterator().next();
                     }
