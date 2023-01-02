@@ -71,13 +71,21 @@ public class StatemachineSnapshotFileGeneratorTest {
             parentFile.mkdirs();
         }
         this.replicasInfoManager = new ReplicasInfoManager(null);
-        mockMetadata();
         this.snapshotGenerator = new StatemachineSnapshotFileGenerator(Collections.singletonList(this.replicasInfoManager));
     }
 
+    @Test
+    public void testGenerateAndLoadEmptySnapshot() throws IOException {
+        ReplicasInfoManager emptyManager = new ReplicasInfoManager(null);
+        StatemachineSnapshotFileGenerator generator1 = new StatemachineSnapshotFileGenerator(Collections.singletonList(emptyManager));
+        generator1.generateSnapshot(this.snapshotPath);
+
+        assertTrue(generator1.loadSnapshot(this.snapshotPath));
+    }
 
     @Test
     public void testGenerateAndLoadSnapshot() throws IOException {
+        mockMetadata();
         this.snapshotGenerator.generateSnapshot(this.snapshotPath);
 
         ReplicasInfoManager emptyManager = new ReplicasInfoManager(null);
