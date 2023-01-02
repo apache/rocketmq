@@ -32,8 +32,9 @@ public enum MetadataManagerType {
         switch (id) {
             case 1:
                 return REPLICAS_INFO_MANAGER;
+            default:
+                return null;
         }
-        return null;
     }
 
     public String getName() {
