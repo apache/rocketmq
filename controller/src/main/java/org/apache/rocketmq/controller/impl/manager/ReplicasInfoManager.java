@@ -258,7 +258,7 @@ public class ReplicasInfoManager implements SnapshotAbleMetadataManager {
                 Set<String> aliveSlaveBrokerAddressSet = syncStateInfo.getSyncStateSet().stream()
                     .filter(brokerAddr -> brokerAlivePredicate.test(clusterName, brokerAddr) && !StringUtils.equals(brokerAddr, syncStateInfo.getMasterAddress()))
                     .collect(Collectors.toSet());
-                if (null != aliveSlaveBrokerAddressSet && aliveSlaveBrokerAddressSet.size() > 0) {
+                if (!aliveSlaveBrokerAddressSet.isEmpty()) {
                     if (!aliveSlaveBrokerAddressSet.contains(brokerAddress)) {
                         brokerAddress = aliveSlaveBrokerAddressSet.iterator().next();
                     }
