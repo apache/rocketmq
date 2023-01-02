@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StatemachineSnapshotFileGeneratorTest {
@@ -93,5 +94,11 @@ public class StatemachineSnapshotFileGeneratorTest {
         assertTrue(generator1.loadSnapshot(this.snapshotPath));
 
         assertArrayEquals(emptyManager.encodeMetadata(), this.replicasInfoManager.encodeMetadata());
+    }
+
+    @Test
+    public void testLoadSnapshotFromNoneExistFile() throws IOException {
+        String path = Paths.get(File.separator + "tmp", "ControllerSnapshotTmp").toString();
+        assertFalse(this.snapshotGenerator.loadSnapshot(path));
     }
 }
