@@ -50,7 +50,7 @@ maven_install(
         "commons-validator:commons-validator:1.7",
         "org.apache.commons:commons-lang3:3.12.0",
         "org.hamcrest:hamcrest-core:1.3",
-        "io.openmessaging.storage:dledger:0.3.1",
+        "io.openmessaging.storage:dledger:0.3.2",
         "net.java.dev.jna:jna:4.2.2",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
