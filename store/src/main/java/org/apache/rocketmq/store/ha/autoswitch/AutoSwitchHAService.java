@@ -351,7 +351,9 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     public synchronized Set<String> getSyncStateSet() {
-        return new HashSet<>(this.syncStateSet);
+        HashSet<String> set = new HashSet<>(this.syncStateSet.size());
+        set.addAll(this.syncStateSet);
+        return set;
     }
 
     public void truncateEpochFilePrefix(final long offset) {
