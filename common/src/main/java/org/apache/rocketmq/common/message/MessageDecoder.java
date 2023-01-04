@@ -278,7 +278,7 @@ public class MessageDecoder {
     /**
      * Encode without store timestamp and store host, skip blank msg.
      *
-     * @param messageExt msg
+     * @param messageExt   msg
      * @param needCompress need compress or not
      * @return byte array
      * @throws IOException when compress failed
@@ -608,7 +608,7 @@ public class MessageDecoder {
     }
 
     public static Map<String, String> string2messageProperties(final String properties) {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new HashMap<>(128);
         if (properties != null) {
             int len = properties.length();
             int index = 0;

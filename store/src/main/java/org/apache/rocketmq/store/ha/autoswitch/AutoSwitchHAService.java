@@ -17,6 +17,21 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -34,19 +49,6 @@ import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
-
-import java.io.IOException;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 /**
  * SwitchAble ha service, support switch role to master or slave.
@@ -66,6 +68,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
+    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public AutoSwitchHAService() {
     }
@@ -313,11 +317,17 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public synchronized int inSyncReplicasNums(final long masterPutWhere) {
-        if (this.isSynchronizingSyncStateSet) {
-            return Math.max(this.syncStateSet.size(), this.remoteSyncStateSet.size());
-        } else {
-            return this.syncStateSet.size();
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            if (this.isSynchronizingSyncStateSet) {
+                return Math.max(this.syncStateSet.size(), this.remoteSyncStateSet.size());
+            } else {
+                return this.syncStateSet.size();
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
@@ -374,21 +384,33 @@ public class AutoSwitchHAService extends DefaultHAService {
         return confirmOffset;
     }
 
-    public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
-        markSynchronizingSyncStateSetDone();
-        this.syncStateSet.clear();
-        this.syncStateSet.addAll(syncStateSet);
-        this.confirmOffset = computeConfirmOffset();
+    public void setSyncStateSet(final Set<String> syncStateSet) {
+        final Lock writeLock = readWriteLock.writeLock();
+        try {
+            writeLock.lock();
+            markSynchronizingSyncStateSetDone();
+            this.syncStateSet.clear();
+            this.syncStateSet.addAll(syncStateSet);
+            this.confirmOffset = computeConfirmOffset();
+        } finally {
+            writeLock.unlock();
+        }
     }
 
-    public synchronized Set<String> getSyncStateSet() {
-        if (this.isSynchronizingSyncStateSet) {
-            // Return the union of the local and remote syncStateSets
-            Set<String> syncStateSet = new HashSet<>(this.syncStateSet);
-            syncStateSet.addAll(this.remoteSyncStateSet);
-            return syncStateSet;
-        } else {
-            return new HashSet<>(this.syncStateSet);
+    public Set<String> getSyncStateSet() {
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            if (this.isSynchronizingSyncStateSet) {
+                // Return the union of the local and remote syncStateSets
+                Set<String> syncStateSet = new HashSet<>(this.syncStateSet);
+                syncStateSet.addAll(this.remoteSyncStateSet);
+                return syncStateSet;
+            } else {
+                return new HashSet<>(this.syncStateSet);
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 

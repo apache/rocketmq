@@ -83,7 +83,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         final SubscriptionGroupConfig subscriptionGroupConfig,
         final boolean brokerAllowSuspend,
         final MessageFilter messageFilter,
-        RemotingCommand response) {
+        RemotingCommand response,
+        TopicQueueMappingContext mappingContext) {
         PullMessageProcessor processor = brokerController.getPullMessageProcessor();
         final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -98,7 +99,6 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         }
 
         //rewrite the response for the static topic
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         RemotingCommand rewriteResult = processor.rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
         if (rewriteResult != null) {

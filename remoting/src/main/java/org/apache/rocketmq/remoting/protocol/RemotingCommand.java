@@ -490,7 +490,7 @@ public class RemotingCommand {
         // header data
         result.put(headerData);
 
-        ((Buffer)result).flip();
+        ((Buffer) result).flip();
 
         return result;
     }
@@ -597,7 +597,7 @@ public class RemotingCommand {
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
-            extFields = new HashMap<>();
+            extFields = new HashMap<>(256);
         }
         extFields.put(key, value);
     }
