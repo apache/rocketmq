@@ -145,7 +145,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
             return RpcClientUtils.createCommandForRpcResponse(rpcResponse);
         } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            LOGGER.warn("", t);
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.toString());
         }
     }
 
@@ -274,7 +275,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 return null;
             }
         } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            LOGGER.warn("", t);
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.toString());
         }
     }
 
