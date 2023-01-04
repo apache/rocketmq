@@ -525,17 +525,21 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         boolean isOrder = requestHeader.isOrder();
         long offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
             false, lockKey, false);
+        CompletableFuture<Long> future = new CompletableFuture<>();
         if (!queueLockManager.tryLock(lockKey)) {
             restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
-            return CompletableFuture.completedFuture(restNum);
+            future.complete(restNum);
+            return future;
         }
 
         try {
+            future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
                 true, lockKey, true);
             if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(topic,
                 requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
-                return CompletableFuture.completedFuture(this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum);
+                future.complete(this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum);
+                return future;
             }
 
             if (isOrder) {
@@ -548,12 +552,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
             if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
                 restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
-                return CompletableFuture.completedFuture(restNum);
+                future.complete(restNum);
+                return future;
             }
         } catch (Exception e) {
             POP_LOGGER.error("Exception in popMsgFromQueue", e);
-            queueLockManager.unLock(lockKey);
-            return CompletableFuture.completedFuture(restNum);
+            future.complete(restNum);
+            return future;
         }
 
         AtomicLong atomicRestNum = new AtomicLong(restNum);
