@@ -523,7 +523,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             subscriptionGroupConfig,
                             brokerAllowSuspend,
                             messageFilter,
-                            finalResponse
+                            finalResponse,
+                            mappingContext
                         );
                     })
                     .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
@@ -531,6 +532,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         if (getMessageResult != null) {
+
             return this.pullMessageResultHandler.handle(
                 getMessageResult,
                 request,
@@ -540,7 +542,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 subscriptionGroupConfig,
                 brokerAllowSuspend,
                 messageFilter,
-                response
+                response,
+                mappingContext
             );
         }
         return null;
