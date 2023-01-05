@@ -257,8 +257,13 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(Set<String> topics) {
-        return next.cleanUnusedTopic(topics);
+    public int deleteTopics(final Set<String> deleteTopics) {
+        return next.deleteTopics(deleteTopics);
+    }
+
+    @Override
+    public int cleanUnusedTopic(final Set<String> retainTopics) {
+        return next.cleanUnusedTopic(retainTopics);
     }
 
     @Override

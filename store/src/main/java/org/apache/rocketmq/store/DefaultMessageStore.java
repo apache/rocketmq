@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -35,11 +36,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1295,35 +1294,69 @@ public class DefaultMessageStore implements MessageStore {
         return this.systemClock.now();
     }
 
+    /**
+     * Lazy clean queue offset table.
+     * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
+     * consume queue will be created with old offset, then later message with new offset table can not be
+     * dispatched to consume queue.
+     */
     @Override
-    public int cleanUnusedTopic(Set<String> topics) {
-        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> it = this.getConsumeQueueTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
-            String topic = next.getKey();
-
-            if (!topics.contains(topic) && !TopicValidator.isSystemTopic(topic) && !MixAll.isLmq(topic)) {
-                ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = next.getValue();
-                for (ConsumeQueueInterface cq : queueTable.values()) {
-                    this.consumeQueueStore.destroy(cq);
-                    LOGGER.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned",
-                        cq.getTopic(),
-                        cq.getQueueId()
-                    );
-
-                    this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
-                }
-                it.remove();
-
-                if (this.brokerConfig.isAutoDeleteUnusedStats()) {
-                    this.brokerStatsManager.onTopicDeleted(topic);
-                }
-
-                LOGGER.info("cleanUnusedTopic: {},topic destroyed", topic);
-            }
+    public int deleteTopics(final Set<String> deleteTopics) {
+        if (deleteTopics == null || deleteTopics.isEmpty()) {
+            return 0;
         }
 
-        return 0;
+        int deleteCount = 0;
+        for (String topic : deleteTopics) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> queueTable =
+                this.consumeQueueStore.getConsumeQueueTable().get(topic);
+
+            if (queueTable == null || queueTable.isEmpty()) {
+                continue;
+            }
+
+            for (ConsumeQueueInterface cq : queueTable.values()) {
+                this.consumeQueueStore.destroy(cq);
+                LOGGER.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}",
+                    cq.getTopic(), cq.getQueueId());
+                this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
+            }
+
+            if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                this.brokerStatsManager.onTopicDeleted(topic);
+            }
+
+            // destroy consume queue dir
+            String consumeQueueDir = StorePathConfigHelper.getStorePathConsumeQueue(
+                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
+            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueue(
+                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
+            String batchConsumeQueueDir = StorePathConfigHelper.getStorePathBatchConsumeQueue(
+                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
+
+            UtilAll.deleteEmptyDirectory(new File(consumeQueueDir));
+            UtilAll.deleteEmptyDirectory(new File(consumeQueueExtDir));
+            UtilAll.deleteEmptyDirectory(new File(batchConsumeQueueDir));
+
+            LOGGER.info("DeleteTopic: Topic has been destroyed, topic={}", topic);
+            deleteCount++;
+        }
+        return deleteCount;
+    }
+
+    @Override
+    public int cleanUnusedTopic(final Set<String> retainTopics) {
+        Set<String> consumeQueueTopicSet = this.getConsumeQueueTable().keySet();
+        int deleteCount = 0;
+        for (String topicName : Sets.difference(retainTopics, consumeQueueTopicSet)) {
+            if (retainTopics.contains(topicName) ||
+                TopicValidator.isSystemTopic(topicName) ||
+                MixAll.isLmq(topicName)) {
+                continue;
+            }
+            deleteCount += this.deleteTopics(Sets.newHashSet(topicName));
+        }
+        return deleteCount;
     }
 
     @Override
