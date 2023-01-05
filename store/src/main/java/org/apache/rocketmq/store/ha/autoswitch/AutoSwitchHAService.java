@@ -288,13 +288,9 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     private void markSynchronizingSyncStateSetDone() {
-        this.writeLock.lock();
-        try {
-            this.isSynchronizingSyncStateSet = false;
-            this.remoteSyncStateSet.clear();
-        } finally {
-            this.writeLock.unlock();
-        }
+        // No need to lock, because the upper-level calling method has already locked write lock
+        this.isSynchronizingSyncStateSet = false;
+        this.remoteSyncStateSet.clear();
     }
 
     public boolean isSynchronizingSyncStateSet() {
@@ -425,7 +421,9 @@ public class AutoSwitchHAService extends DefaultHAService {
                 unionSyncStateSet.addAll(this.remoteSyncStateSet);
                 return unionSyncStateSet;
             } else {
-                return new HashSet<>(this.syncStateSet);
+                HashSet<String> syncStateSet = new HashSet<>(this.syncStateSet.size());
+                syncStateSet.addAll(this.syncStateSet);
+                return syncStateSet;
             }
         } finally {
             this.readLock.unlock();
