@@ -1322,6 +1322,9 @@ public class DefaultMessageStore implements MessageStore {
                 this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
             }
 
+            // remove topic from cq table
+            this.consumeQueueStore.getConsumeQueueTable().remove(topic);
+
             if (this.brokerConfig.isAutoDeleteUnusedStats()) {
                 this.brokerStatsManager.onTopicDeleted(topic);
             }
@@ -1348,7 +1351,7 @@ public class DefaultMessageStore implements MessageStore {
     public int cleanUnusedTopic(final Set<String> retainTopics) {
         Set<String> consumeQueueTopicSet = this.getConsumeQueueTable().keySet();
         int deleteCount = 0;
-        for (String topicName : Sets.difference(retainTopics, consumeQueueTopicSet)) {
+        for (String topicName : Sets.difference(consumeQueueTopicSet, retainTopics)) {
             if (retainTopics.contains(topicName) ||
                 TopicValidator.isSystemTopic(topicName) ||
                 MixAll.isLmq(topicName)) {
