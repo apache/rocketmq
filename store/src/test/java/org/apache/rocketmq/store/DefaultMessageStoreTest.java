@@ -873,6 +873,28 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
+    public void testDeleteTopics() {
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
+            ((DefaultMessageStore) messageStore).getConsumeQueueTable();
+        for (int i = 0; i < 10; i++) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
+            String topicName = "topic-" + i;
+            for (int j = 0; j < 4; j++) {
+                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
+                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                cqTable.put(j, consumeQueue);
+            }
+            consumeQueueTable.put(topicName, cqTable);
+        }
+        Assert.assertEquals(consumeQueueTable.size(), 10);
+        HashSet<String> resultSet = Sets.newHashSet("topic-3", "topic-5");
+        messageStore.deleteTopics(Sets.difference(consumeQueueTable.keySet(), resultSet));
+        Assert.assertEquals(consumeQueueTable.size(), 2);
+        Assert.assertEquals(resultSet, consumeQueueTable.keySet());
+    }
+
+    @Test
     public void testCleanUnusedTopic() {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
