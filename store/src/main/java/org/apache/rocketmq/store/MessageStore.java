@@ -436,12 +436,21 @@ public interface MessageStore {
     long now();
 
     /**
-     * Clean unused topics.
+     * Delete topic's consume queue file and unused stats.
+     * This interface allows user delete system topic.
      *
-     * @param topics all valid topics.
+     * @param deleteTopics unused topic name set
+     * @return the number of the topics which has been deleted.
+     */
+    int deleteTopics(final Set<String> deleteTopics);
+
+    /**
+     * Clean unused topics which not in retain topic name set.
+     *
+     * @param retainTopics all valid topics.
      * @return number of the topics deleted.
      */
-    int cleanUnusedTopic(final Set<String> topics);
+    int cleanUnusedTopic(final Set<String> retainTopics);
 
     /**
      * Clean expired consume queues.
