@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common.message;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -210,7 +210,7 @@ public class Message implements Serializable {
             "topic='" + topic + '\'' +
             ", flag=" + flag +
             ", properties=" + properties +
-            ", body=" + Arrays.toString(body) +
+            ", body=" + getBodyStr(body) +
             ", transactionId='" + transactionId + '\'' +
             '}';
     }
@@ -227,5 +227,15 @@ public class Message implements Serializable {
 
     public long getDeliverTimeMs() {
         return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+    }
+
+    private String getBodyStr(byte[] body) {
+        if (body == null) {
+            return "body is null";
+        }
+        if (body.length > 3000) {
+            return "body size is " + body.length;
+        }
+        return new String(body, StandardCharsets.UTF_8);
     }
 }
