@@ -272,8 +272,19 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    @Deprecated
     public boolean checkInDiskByConsumeOffset(String topic, int queueId, long consumeOffset) {
         return next.checkInDiskByConsumeOffset(topic, queueId, consumeOffset);
+    }
+
+    @Override
+    public boolean checkInMemByConsumeOffset(String topic, int queueId, long consumeOffset, int batchSize) {
+        return next.checkInMemByConsumeOffset(topic, queueId, consumeOffset, batchSize);
+    }
+
+    @Override
+    public boolean checkInStoreByConsumeOffset(String topic, int queueId, long consumeOffset) {
+        return next.checkInStoreByConsumeOffset(topic, queueId, consumeOffset);
     }
 
     @Override

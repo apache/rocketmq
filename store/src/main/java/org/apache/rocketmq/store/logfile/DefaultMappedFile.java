@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -35,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -52,10 +55,15 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
+import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
 public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
+    public static final Unsafe UNSAFE = getUnsafe();
+    private static final Method IS_LOADED_METHOD;
+    public static final int UNSAFE_PAGE_SIZE = UNSAFE == null ? OS_PAGE_SIZE : UNSAFE.pageSize();
+
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
@@ -92,6 +100,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
         WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
         COMMITTED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "committedPosition");
         FLUSHED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "flushedPosition");
+
+        Method isLoaded0method = null;
+        // On the windows platform and openjdk 11 method isLoaded0 always returns false.
+        // see https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/19fb8f93c59dfd791f62d41f332db9e306bc1422/src/java.base/windows/native/libnio/MappedByteBuffer.c#L34
+        if (!SystemUtils.IS_OS_WINDOWS) {
+            try {
+                isLoaded0method = MappedByteBuffer.class.getDeclaredMethod("isLoaded0", long.class, long.class, int.class);
+                isLoaded0method.setAccessible(true);
+            } catch (NoSuchMethodException ignore) {
+            }
+        }
+        IS_LOADED_METHOD = isLoaded0method;
     }
 
     public DefaultMappedFile() {
@@ -794,6 +814,41 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     public Iterator<SelectMappedBufferResult> iterator(int startPos) {
         return new Itr(startPos);
+    }
+
+    public static Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ignore) {
+
+        }
+        return null;
+    }
+
+    public static long mappingAddr(long addr) {
+        long offset = addr % UNSAFE_PAGE_SIZE;
+        offset = (offset >= 0) ? offset : (UNSAFE_PAGE_SIZE + offset);
+        return addr - offset;
+    }
+
+    public static int pageCount(long size) {
+        return (int) (size + (long) UNSAFE_PAGE_SIZE - 1L) / UNSAFE_PAGE_SIZE;
+    }
+
+    @Override
+    public boolean isLoaded(long position, int size) {
+        if (IS_LOADED_METHOD == null) {
+            return true;
+        }
+        try {
+            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
+        } catch (Exception e) {
+            log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);
+        }
+        return true;
     }
 
     private class Itr implements Iterator<SelectMappedBufferResult> {

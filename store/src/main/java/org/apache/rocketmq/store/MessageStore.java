@@ -129,7 +129,7 @@ public interface MessageStore {
 
     /**
      * Asynchronous get message
-     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, MessageFilter) getMessage
+     * @see #getMessage(String, String, int, long, int, MessageFilter) getMessage
      *
      * @param group Consumer group that launches this query.
      * @param topic Topic to query.
@@ -160,7 +160,7 @@ public interface MessageStore {
 
     /**
      * Asynchronous get message
-     * @see org.apache.rocketmq.store.MessageStore#getMessage(String, String, int, long, int, int, MessageFilter) getMessage
+     * @see #getMessage(String, String, int, long, int, int, MessageFilter) getMessage
      *
      * @param group Consumer group that launches this query.
      * @param topic Topic to query.
@@ -312,7 +312,7 @@ public interface MessageStore {
 
     /**
      * Asynchronous get the store time of the earliest message in this store.
-     * @see org.apache.rocketmq.store.MessageStore#getEarliestMessageTime() getEarliestMessageTime
+     * @see #getEarliestMessageTime() getEarliestMessageTime
      *
      * @return timestamp of the earliest message in this store.
      */
@@ -330,7 +330,7 @@ public interface MessageStore {
 
     /**
      * Asynchronous get the store time of the message specified.
-     * @see org.apache.rocketmq.store.MessageStore#getMessageStoreTimeStamp(String, int, long) getMessageStoreTimeStamp
+     * @see #getMessageStoreTimeStamp(String, int, long) getMessageStoreTimeStamp
      *
      * @param topic message topic.
      * @param queueId queue ID.
@@ -396,7 +396,7 @@ public interface MessageStore {
 
     /**
      * Asynchronous query messages by given key.
-     * @see org.apache.rocketmq.store.MessageStore#queryMessage(String, String, int, long, long) queryMessage
+     * @see #queryMessage(String, String, int, long, long) queryMessage
      *
      * @param topic topic of the message.
      * @param key message key.
@@ -464,8 +464,30 @@ public interface MessageStore {
      * @param queueId queue ID.
      * @param consumeOffset consume queue offset.
      * @return true if the message is no longer in memory; false otherwise.
+     * @deprecated  As of RIP-57, replaced by {@link #checkInMemByConsumeOffset(String, int, long, int)}, see <a href="https://github.com/apache/rocketmq/issues/5837">this issue</a> for more details
      */
+    @Deprecated
     boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset);
+
+    /**
+     * Check if the given message is in the page cache.
+     *
+     * @param topic         topic.
+     * @param queueId       queue ID.
+     * @param consumeOffset consume queue offset.
+     * @return true if the message is in page cache; false otherwise.
+     */
+    boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize);
+
+    /**
+     * Check if the given message is in store.
+     *
+     * @param topic         topic.
+     * @param queueId       queue ID.
+     * @param consumeOffset consume queue offset.
+     * @return true if the message is in store; false otherwise.
+     */
+    boolean checkInStoreByConsumeOffset(final String topic, final int queueId, long consumeOffset);
 
     /**
      * Get number of the bytes that have been stored in commit log and not yet dispatched to consume queue.

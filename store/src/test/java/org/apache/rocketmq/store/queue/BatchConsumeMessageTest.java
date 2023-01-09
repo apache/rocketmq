@@ -281,7 +281,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
         Assert.assertEquals(commitLogMid, commitLogOffset);
 
-        Assert.assertFalse(messageStore.checkInDiskByConsumeOffset(topic, 0, 50));
+        Assert.assertTrue(messageStore.checkInMemByConsumeOffset(topic, 0, 50, 1));
     }
 
     @Test
@@ -331,7 +331,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertTrue(commitLogOffset >= messageStore.getMinPhyOffset());
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
 
-        Assert.assertFalse(messageStore.checkInDiskByConsumeOffset(topic, 0, 300));
+        Assert.assertTrue(messageStore.checkInMemByConsumeOffset(topic, 0, 300, 1));
 
         //get the message Normally
         GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 10 * batchNum, null);
