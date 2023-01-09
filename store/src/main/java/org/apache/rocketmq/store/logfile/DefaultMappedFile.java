@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -101,10 +102,14 @@ public class DefaultMappedFile extends AbstractMappedFile {
         FLUSHED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "flushedPosition");
 
         Method isLoaded0method = null;
-        try {
-            isLoaded0method = MappedByteBuffer.class.getDeclaredMethod("isLoaded0", long.class, long.class, int.class);
-            isLoaded0method.setAccessible(true);
-        } catch (NoSuchMethodException ignore) {
+        // On the windows platform and openjdk 11 method isLoaded0 always returns false.
+        // see https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/19fb8f93c59dfd791f62d41f332db9e306bc1422/src/java.base/windows/native/libnio/MappedByteBuffer.c#L34
+        if (!SystemUtils.IS_OS_WINDOWS) {
+            try {
+                isLoaded0method = MappedByteBuffer.class.getDeclaredMethod("isLoaded0", long.class, long.class, int.class);
+                isLoaded0method.setAccessible(true);
+            } catch (NoSuchMethodException ignore) {
+            }
         }
         IS_LOADED_METHOD = isLoaded0method;
     }

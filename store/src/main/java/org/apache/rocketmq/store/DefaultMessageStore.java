@@ -1635,7 +1635,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private boolean estimateInMemByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-        return (maxOffsetPy - offsetPy) < memory;
+        return (maxOffsetPy - offsetPy) <= memory;
     }
 
     private boolean checkInMemByCommitOffset(long offsetPy, int size) {
