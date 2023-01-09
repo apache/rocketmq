@@ -795,13 +795,13 @@ public class DefaultMessageStore implements MessageStore {
                             long offsetPy = cqUnit.getPos();
                             int sizePy = cqUnit.getSize();
 
-                            boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
+                            boolean isInMem = estimateInMemByCommitOffset(offsetPy, maxOffsetPy);
 
                             if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() > maxFilterMessageSize) {
                                 break;
                             }
 
-                            if (this.isTheBatchFull(sizePy, cqUnit.getBatchNum(), maxMsgNums, maxPullSize, getResult.getBufferTotalSize(), getResult.getMessageCount(), isInDisk)) {
+                            if (this.isTheBatchFull(sizePy, cqUnit.getBatchNum(), maxMsgNums, maxPullSize, getResult.getBufferTotalSize(), getResult.getMessageCount(), isInMem)) {
                                 break;
                             }
 
@@ -1418,6 +1418,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    @Deprecated
     public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset) {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
@@ -1428,12 +1429,44 @@ public class DefaultMessageStore implements MessageStore {
 
             if (cqUnit != null) {
                 long offsetPy = cqUnit.getPos();
-                return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
+                return !estimateInMemByCommitOffset(offsetPy, maxOffsetPy);
             } else {
                 return false;
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize) {
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
+        if (consumeQueue != null) {
+            CqUnit firstCQItem = consumeQueue.get(consumeOffset);
+            if (firstCQItem == null) {
+                return false;
+            }
+            long startOffsetPy = firstCQItem.getPos();
+            if (batchSize <= 1) {
+                int size = firstCQItem.getSize();
+                return checkInMemByCommitOffset(startOffsetPy, size);
+            }
+
+            CqUnit lastCQItem = consumeQueue.get(consumeOffset + batchSize);
+            if (lastCQItem == null) {
+                int size = firstCQItem.getSize();
+                return checkInMemByCommitOffset(startOffsetPy, size);
+            }
+            long endOffsetPy = lastCQItem.getPos();
+            int size = (int) (endOffsetPy - startOffsetPy) + lastCQItem.getSize();
+            return checkInMemByCommitOffset(startOffsetPy, size);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean checkInStoreByConsumeOffset(String topic, int queueId, long consumeOffset) {
+        long commitLogOffset = getCommitLogOffsetInQueue(topic, queueId, consumeOffset);
+        return checkInDiskByCommitOffset(commitLogOffset);
     }
 
     @Override
@@ -1600,13 +1633,29 @@ public class DefaultMessageStore implements MessageStore {
         return nextOffset;
     }
 
-    private boolean checkInDiskByCommitOffset(long offsetPy, long maxOffsetPy) {
+    private boolean estimateInMemByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-        return (maxOffsetPy - offsetPy) > memory;
+        return (maxOffsetPy - offsetPy) < memory;
+    }
+
+    private boolean checkInMemByCommitOffset(long offsetPy, int size) {
+        SelectMappedBufferResult message = this.commitLog.getMessage(offsetPy, size);
+        if (message != null) {
+            try {
+                return message.isInMem();
+            } finally {
+                message.release();
+            }
+        }
+        return false;
+    }
+
+    public boolean checkInDiskByCommitOffset(long offsetPy) {
+        return offsetPy >= commitLog.getMinOffset();
     }
 
     private boolean isTheBatchFull(int sizePy, int unitBatchNum, int maxMsgNums, long maxMsgSize, int bufferTotal,
-        int messageTotal, boolean isInDisk) {
+        int messageTotal, boolean isInMem) {
 
         if (0 == bufferTotal || 0 == messageTotal) {
             return false;
@@ -1620,25 +1669,19 @@ public class DefaultMessageStore implements MessageStore {
             return true;
         }
 
-        if (isInDisk) {
-            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
-                return true;
-            }
-
-            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1) {
-                return true;
-            }
-        } else {
+        if (isInMem) {
             if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()) {
                 return true;
             }
 
-            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1) {
+            return messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1;
+        } else {
+            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
                 return true;
             }
-        }
 
-        return false;
+            return messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1;
+        }
     }
 
     private void deleteFile(final String fileName) {
