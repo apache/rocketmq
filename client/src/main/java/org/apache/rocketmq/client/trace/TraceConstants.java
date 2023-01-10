@@ -34,8 +34,8 @@ public class TraceConstants {
     public static final String ROCKETMQ_KEYS = "rocketmq.keys";
     public static final String ROCKETMQ_SOTRE_HOST = "rocketmq.store_host";
     public static final String ROCKETMQ_BODY_LENGTH = "rocketmq.body_length";
-    public static final String ROCKETMQ_MSG_ID = "rocketmq.mgs_id";
-    public static final String ROCKETMQ_MSG_TYPE = "rocketmq.mgs_type";
+    public static final String ROCKETMQ_MSG_ID = "rocketmq.msg_id";
+    public static final String ROCKETMQ_MSG_TYPE = "rocketmq.msg_type";
     public static final String ROCKETMQ_REGION_ID = "rocketmq.region_id";
     public static final String ROCKETMQ_TRANSACTION_ID = "rocketmq.transaction_id";
     public static final String ROCKETMQ_TRANSACTION_STATE = "rocketmq.transaction_state";
