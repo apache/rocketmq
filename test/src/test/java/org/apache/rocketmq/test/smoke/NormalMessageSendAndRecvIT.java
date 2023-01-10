@@ -21,28 +21,28 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.awaitility.Awaitility;
 
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMessageSendAndRecvIT extends BaseConf {
-    private static final Logger logger = LoggerFactory.getLogger(NormalMessageSendAndRecvIT.class);
+    private static Logger logger = LoggerFactory.getLogger(NormalMessageSendAndRecvIT.class);
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;
@@ -54,9 +54,9 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         topic = initTopic();
         group = initConsumerGroup();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
-        defaultMQAdminExt = getAdmin(nsAddr);
+        producer = getProducer(NAMESRV_ADDR, topic);
+        consumer = getConsumer(NAMESRV_ADDR, group, topic, "*", new RMQNormalListener());
+        defaultMQAdminExt = getAdmin(NAMESRV_ADDR);
         defaultMQAdminExt.start();
     }
 
@@ -88,7 +88,7 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         }
         Assert.assertEquals("Not all sent succeeded", msgSize * messageQueueList.get().size(),
             producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

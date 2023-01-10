@@ -34,9 +34,9 @@ The broker[broker-a, 192.169.1.2:10911] boot success...
 
 Cluster contains Master node only, no Slave node, eg: 2 Master nodes, 3 Master nodes, advantages and disadvantages of this mode are shown below:
 
-- advantages：simple configuration, single Master node broke down or restart do not impact application. Under RAID10 disk config, even if machine broken down and cannot recover, message do not get lost because of RAID10's high reliable(async flush to disk lost little message, sync to disk do not lost message), this mode get highest performance.
+- advantages: simple configuration, single Master node broke down or restart do not impact application. Under RAID10 disk config, even if machine broken down and cannot recover, message do not get lost because of RAID10's high reliable(async flush to disk lost little message, sync to disk do not lost message), this mode get highest performance.
 
-- disadvantages：during the machine's down time, messages have not be consumed on this machine can not be subscribed before recovery. That will impacts message's instantaneity.
+- disadvantages: during the machine's down time, messages have not be consumed on this machine can not be subscribed before recovery. That will impacts message's instantaneity.
 
 ##### 1）Start NameServer
 
@@ -54,10 +54,10 @@ The Name Server boot success...
 ##### 2）start Broker cluster
 
 ```bash
-### start the first Master on machine A, eg:NameServer's IP is ：192.168.1.1
+### start the first Master on machine A, eg:NameServer's IP is 192.168.1.1
 $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
  
-### start the second Master on machine B, eg:NameServer's IP is ：192.168.1.1
+### start the second Master on machine B, eg:NameServer's IP is 192.168.1.1
 $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
 
 ...
@@ -139,9 +139,9 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
 
 ### 2 mqadmin management tool
 
-> Attentions：
+> Attentions:
 >
-> 1. execute command：`./mqadmin {command} {args}`
+> 1. execute command: `./mqadmin {command} {args}`
 > 2. almost all commands need -n indicates NameSerer address, format is ip:port
 > 3. almost all commands can get help info by -h
 > 4. if command contains both Broker address(-b) and cluster name(-c), it's prior to use broker address. If command do not contains broker address, it will executed on all hosts in this cluster. Support only one broker host. -b format is ip:port, default port is 10911
@@ -414,7 +414,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
   height:292.0pt;border-top:none;width:133pt'>clusterRT</td>
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>send message to detect each cluster's Broker RT. Message will be sent to ${BrokerName} Topic。</td>
+  border-top:none;width:131pt'>send message to detect each cluster's Broker RT. Message will be sent to ${BrokerName} Topic.</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
   <td class=xl66 width=185 style='width:139pt'>amount, count of detection, RT = sum time /
   amount</td>
@@ -1332,7 +1332,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
 
 #### 3.1 RocketMQ's mqadmin command error
 
->  question description：execute mqadmin occur below exception after deploy RocketMQ cluster.
+>  question description: execute mqadmin occur below exception after deploy RocketMQ cluster.
 >
 > ```java
 > org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <null> failed
@@ -1345,7 +1345,7 @@ Solution: execute command `export NAMESRV_ADDR=ip:9876` (ip is NameServer's ip a
 > question description: one producer produce message, consumer A can consume, consume B cannot consume, RocketMQ console print:
 >
 > ```java
-> Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message。
+> Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message.
 > ```
 
 Solution: make sure that producer and consumer has the same version of rocketmq-client.

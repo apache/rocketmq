@@ -23,9 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -36,19 +33,15 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
-import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrokerContainerStartup {
     private static final String BROKER_CONTAINER_CONFIG_OPTION = "c";
@@ -58,10 +51,9 @@ public class BrokerContainerStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
-    public static InternalLogger log;
+    public static Logger log;
     public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
     public static String rocketmqHome = null;
-    public static final JoranConfigurator CONFIGURATOR = new JoranConfigurator();
 
     public static void main(String[] args) {
         final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
@@ -176,7 +168,7 @@ public class BrokerContainerStartup {
 
         brokerConfig.setBrokerConfigPath(filePath);
 
-        log = InternalLoggerFactory.getLogger(brokerConfig.getLoggerIdentifier() + LoggerName.BROKER_LOGGER_NAME);
+        log = LoggerFactory.getLogger(brokerConfig.getIdentifier() + LoggerName.BROKER_LOGGER_NAME);
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 
@@ -272,9 +264,6 @@ public class BrokerContainerStartup {
             final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-
-            nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TlsSystemConfig.TLS_ENABLE,
-                String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
             nettyServerConfig.setListenPort(10811);
 
             if (commandLine.hasOption(BROKER_CONTAINER_CONFIG_OPTION)) {
@@ -307,7 +296,7 @@ public class BrokerContainerStartup {
                 try {
                     String[] addrArray = namesrvAddr.split(";");
                     for (String addr : addrArray) {
-                        RemotingUtil.string2SocketAddress(addr);
+                        NetworkUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
                     System.out.printf(
@@ -317,29 +306,21 @@ public class BrokerContainerStartup {
                 }
             }
 
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            CONFIGURATOR.setContext(lc);
-            lc.reset();
-            //https://logback.qos.ch/manual/configuration.html
-            lc.setPackagingDataEnabled(false);
-
-            CONFIGURATOR.doConfigure(rocketmqHome + "/conf/logback_broker.xml");
-
             if (commandLine.hasOption(PRINT_PROPERTIES_OPTION)) {
-                InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, containerConfig);
                 MixAll.printObjectProperties(console, nettyServerConfig);
                 MixAll.printObjectProperties(console, nettyClientConfig);
                 System.exit(0);
             } else if (commandLine.hasOption(PRINT_IMPORTANT_PROPERTIES_OPTION)) {
-                InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, containerConfig, true);
                 MixAll.printObjectProperties(console, nettyServerConfig, true);
                 MixAll.printObjectProperties(console, nettyClientConfig, true);
                 System.exit(0);
             }
 
-            log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, containerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);

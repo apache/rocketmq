@@ -17,40 +17,47 @@
 
 package org.apache.rocketmq.proxy.processor;
 
+import com.google.common.collect.Sets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +65,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
     private static final String CONSUMER_GROUP = "consumerGroup";
     private static final String TOPIC = "topic";
+    private static final String CLIENT_ID = "clientId";
 
     private ConsumerProcessor consumerProcessor;
 
@@ -172,5 +180,64 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
         assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
+    }
+
+    @Test
+    public void testLockBatch() throws Throwable {
+        Set<MessageQueue> mqSet = new HashSet<>();
+        MessageQueue mq1 = new MessageQueue(TOPIC, "broker1", 0);
+        AddressableMessageQueue addressableMessageQueue1 = new AddressableMessageQueue(mq1, "127.0.0.1");
+        MessageQueue mq2 = new MessageQueue(TOPIC, "broker2", 0);
+        AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
+        mqSet.add(mq1);
+        mqSet.add(mq2);
+        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq2)));
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+            .get();
+        assertThat(result).isEqualTo(mqSet);
+    }
+
+    @Test
+    public void testLockBatchPartialSuccess() throws Throwable {
+        Set<MessageQueue> mqSet = new HashSet<>();
+        MessageQueue mq1 = new MessageQueue(TOPIC, "broker1", 0);
+        AddressableMessageQueue addressableMessageQueue1 = new AddressableMessageQueue(mq1, "127.0.0.1");
+        MessageQueue mq2 = new MessageQueue(TOPIC, "broker2", 0);
+        AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
+        mqSet.add(mq1);
+        mqSet.add(mq2);
+        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet()));
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+            .get();
+        assertThat(result).isEqualTo(Sets.newHashSet(mq1));
+    }
+
+    @Test
+    public void testLockBatchPartialSuccessWithException() throws Throwable {
+        Set<MessageQueue> mqSet = new HashSet<>();
+        MessageQueue mq1 = new MessageQueue(TOPIC, "broker1", 0);
+        AddressableMessageQueue addressableMessageQueue1 = new AddressableMessageQueue(mq1, "127.0.0.1");
+        MessageQueue mq2 = new MessageQueue(TOPIC, "broker2", 0);
+        AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
+        mqSet.add(mq1);
+        mqSet.add(mq2);
+        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
+        CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
+        future.completeExceptionally(new MQBrokerException(1, "err"));
+        when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
+            .thenReturn(future);
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+            .get();
+        assertThat(result).isEqualTo(Sets.newHashSet(mq1));
     }
 }

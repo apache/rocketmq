@@ -27,14 +27,15 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.store.DefaultMessageStore;
 
 public class DefaultHAClient extends ServiceThread implements HAClient {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
     private final AtomicReference<String> masterHaAddress = new AtomicReference<>();
     private final AtomicReference<String> masterAddress = new AtomicReference<>();
@@ -59,7 +60,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
     private FlowMonitor flowMonitor;
 
     public DefaultHAClient(DefaultMessageStore defaultMessageStore) throws IOException {
-        this.selector = RemotingUtil.openSelector();
+        this.selector = NetworkUtil.openSelector();
         this.defaultMessageStore = defaultMessageStore;
         this.flowMonitor = new FlowMonitor(defaultMessageStore.getMessageStoreConfig());
     }
@@ -237,8 +238,8 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
         if (null == socketChannel) {
             String addr = this.masterHaAddress.get();
             if (addr != null) {
-                SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-                this.socketChannel = RemotingUtil.connect(socketAddress);
+                SocketAddress socketAddress = NetworkUtil.string2SocketAddress(addr);
+                this.socketChannel = RemotingHelper.connect(socketAddress);
                 if (this.socketChannel != null) {
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     log.info("HAClient connect to master {}", addr);
@@ -387,7 +388,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
     @Override
     public String getServiceName() {
         if (this.defaultMessageStore != null && this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return this.defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + DefaultHAClient.class.getSimpleName();
+            return this.defaultMessageStore.getBrokerIdentity().getIdentifier() + DefaultHAClient.class.getSimpleName();
         }
         return DefaultHAClient.class.getSimpleName();
     }

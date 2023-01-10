@@ -27,8 +27,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQNormalListener extends AbstractListener implements MessageListenerConcurrently {
+
     private ConsumeConcurrentlyStatus consumeStatus = ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-    private AtomicInteger msgIndex = new AtomicInteger(0);
+
+    private final AtomicInteger msgIndex = new AtomicInteger(0);
 
     public RMQNormalListener() {
         super();
@@ -47,6 +49,11 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
         super(originMsgCollector, msgBodyCollector);
     }
 
+    public AtomicInteger getMsgIndex() {
+        return msgIndex;
+    }
+
+    @Override
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
         ConsumeConcurrentlyContext consumeConcurrentlyContext) {
         for (MessageExt msg : msgs) {
@@ -58,7 +65,7 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
                         msg.getQueueOffset()));
                 } else {
-                    LOGGER.info(msg);
+                    LOGGER.info("{}", msg);
                 }
             }
 

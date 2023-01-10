@@ -23,50 +23,53 @@ java_library(
     deps = [
         "//common",
         "//remoting",
-        "//logging", 
         "//srvutil",
-        "@maven//:org_apache_commons_commons_lang3",
-        "@maven//:commons_validator_commons_validator",
-        "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
         "@maven//:com_alibaba_fastjson",
-        "@maven//:io_netty_netty_all",
-        "@maven//:org_yaml_snakeyaml",
-        "@maven//:commons_codec_commons_codec",
-        "@maven//:org_apache_rocketmq_rocketmq_proto",
-        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_github_luben_zstd_jni",
         "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:io_netty_netty_all",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:org_yaml_snakeyaml",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 
 java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
+    resources = glob(["src/test/resources/**/*.yml"]),
     visibility = ["//visibility:public"],
     deps = [
         ":acl",
+        "//:test_deps",
         "//common",
         "//remoting",
-        "//:test_deps",
-        "@maven//:org_apache_commons_commons_lang3", 
-        "@maven//:io_netty_netty_all", 
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_google_guava_guava",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:io_netty_netty_all",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_springframework_spring_core",
         "@maven//:org_yaml_snakeyaml",
-        "@maven//:commons_codec_commons_codec",   
-        "@maven//:com_alibaba_fastjson",           
     ],
-    resources = glob(["src/test/resources/**/*.yml"])
 )
 
 GenTestRules(
     name = "GeneratedTestRules",
+    # The following tests are not hermetic. Fix them later.
+    exclude_tests = [
+    ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
+    ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
         ":tests",
-    ],
-    # The following tests are not hermetic. Fix them later.
-    exclude_tests = [
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessControlFlowTest",
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainPermissionManagerTest",
-        "src/test/java/org/apache/rocketmq/acl/plain/PlainAccessValidatorTest",
     ],
 )

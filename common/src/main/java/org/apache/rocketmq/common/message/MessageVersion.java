@@ -40,6 +40,28 @@ public enum MessageVersion {
         public void putTopicLength(ByteBuffer buffer, int topicLength) {
             buffer.put((byte) topicLength);
         }
+    },
+
+    MESSAGE_VERSION_V2(MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
+        @Override
+        public int getTopicLengthSize() {
+            return 2;
+        }
+
+        @Override
+        public int getTopicLength(ByteBuffer buffer) {
+            return buffer.getShort();
+        }
+
+        @Override
+        public int getTopicLength(ByteBuffer buffer, int index) {
+            return buffer.getShort(index);
+        }
+
+        @Override
+        public void putTopicLength(ByteBuffer buffer, int topicLength) {
+            buffer.putShort((short) topicLength);
+        }
     };
 
     private final int magicCode;

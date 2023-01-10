@@ -24,13 +24,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
+import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.FlowMonitor;
@@ -40,14 +40,38 @@ import org.apache.rocketmq.store.ha.io.AbstractHAReader;
 import org.apache.rocketmq.store.ha.io.HAWriter;
 
 public class AutoSwitchHAConnection implements HAConnection {
+
     /**
-     * Header protocol in syncing msg from master. Format: current state + body size + offset + epoch  +
-     * epochStartOffset + additionalInfo(confirmOffset). If the msg is handShakeMsg, the body size = EpochEntrySize *
-     * EpochEntryNums, the offset is maxOffset in master.
+     * Handshake data protocol in syncing msg from master. Format:
+     * <pre>
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬────────────────────────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   EpochEntrySize * EpochEntryNums  │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (12bytes * EpochEntryNums)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┼────────────────────────────────────┤
+     * │                       Header                            │             Body                   │
+     * │                                                         │                                    │
+     * </pre>
+     * Handshake Header protocol Format:
+     * current state + body size + offset + epoch
      */
-    public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
+    public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
+
+    /**
+     * Transfer data protocol in syncing msg from master. Format:
+     * <pre>
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬─────────────────────┬──────────────────┬──────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   epochStartOffset  │   confirmOffset  │    log data      │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (8bytes)       │      (8bytes)    │   (data size)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┴─────────────────────┴──────────────────┼──────────────────┤
+     * │                                               Header                                             │       Body       │
+     * │                                                                                                  │                  │
+     * </pre>
+     * Transfer Header protocol Format:
+     * current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
+     */
+    public static final int TRANSFER_HEADER_SIZE = HANDSHAKE_HEADER_SIZE + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final AutoSwitchHAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddress;
@@ -211,7 +235,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.setDaemon(true);
@@ -276,7 +300,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + ReadSocketService.class.getSimpleName();
             }
             return ReadSocketService.class.getSimpleName();
         }
@@ -422,7 +446,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + WriteSocketService.class.getSimpleName();
             }
             return WriteSocketService.class.getSimpleName();
         }
@@ -433,7 +457,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         protected final SocketChannel socketChannel;
         protected final HAWriter haWriter;
 
-        protected final ByteBuffer byteBufferHeader = ByteBuffer.allocate(MSG_HEADER_SIZE);
+        protected final ByteBuffer byteBufferHeader = ByteBuffer.allocate(TRANSFER_HEADER_SIZE);
         // Store master epochFileCache: (Epoch + startOffset) * 1000
         private final ByteBuffer handShakeBuffer = ByteBuffer.allocate(EPOCH_ENTRY_SIZE * 1000);
         protected long nextTransferFromWhere = -1;
@@ -443,7 +467,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         protected long transferOffset = 0;
 
         public AbstractWriteSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
             this.setDaemon(true);
@@ -466,7 +490,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();
             final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
             this.byteBufferHeader.position(0);
-            this.byteBufferHeader.limit(MSG_HEADER_SIZE);
+            this.byteBufferHeader.limit(HANDSHAKE_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());
             // Body size
@@ -475,10 +499,6 @@ public class AutoSwitchHAConnection implements HAConnection {
             this.byteBufferHeader.putLong(maxPhyOffset);
             // Epoch
             this.byteBufferHeader.putInt(lastEpoch);
-            // EpochStartOffset (not needed in handshake)
-            this.byteBufferHeader.putLong(0L);
-            // Additional info (not needed in handshake)
-            this.byteBufferHeader.putLong(0L);
             this.byteBufferHeader.flip();
 
             // EpochEntries
@@ -527,7 +547,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             }
             // Build Header
             this.byteBufferHeader.position(0);
-            this.byteBufferHeader.limit(MSG_HEADER_SIZE);
+            this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());
             // Body size

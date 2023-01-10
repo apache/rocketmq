@@ -18,11 +18,12 @@
 package org.apache.rocketmq.test.client.producer.oneway;
 
 import java.util.List;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.factory.ProducerFactory;
@@ -32,7 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class OneWaySendExceptionIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private static boolean sendFail = false;
     private String topic = null;
 
@@ -50,7 +51,7 @@ public class OneWaySendExceptionIT extends BaseConf {
     @Test(expected = java.lang.NullPointerException.class)
     public void testSendMQNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         MessageQueue messageQueue = null;
         producer.sendOneway(msg, messageQueue);
     }
@@ -58,7 +59,7 @@ public class OneWaySendExceptionIT extends BaseConf {
     @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
     public void testSendSelectorNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         MessageQueueSelector selector = null;
         producer.sendOneway(msg, selector, 100);
     }
@@ -66,7 +67,7 @@ public class OneWaySendExceptionIT extends BaseConf {
     @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
     public void testSelectorThrowsException() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         producer.sendOneway(msg, new MessageQueueSelector() {
             @Override
             public MessageQueue select(List<MessageQueue> list, Message message, Object o) {

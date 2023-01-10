@@ -17,16 +17,18 @@
 package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
@@ -35,7 +37,7 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
 public class AclUtils {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
@@ -53,12 +55,11 @@ public class AclUtils {
     }
 
     public static byte[] combineBytes(byte[] b1, byte[] b2) {
-        int size = (null != b1 ? b1.length : 0) + (null != b2 ? b2.length : 0);
-        byte[] total = new byte[size];
-        if (null != b1)
-            System.arraycopy(b1, 0, total, 0, b1.length);
-        if (null != b2)
-            System.arraycopy(b2, 0, total, b1.length, b2.length);
+        if (b1 == null || b1.length == 0) return b2;
+        if (b2 == null || b2.length == 0) return b1;
+        byte[] total = new byte[b1.length + b2.length];
+        System.arraycopy(b1, 0, total, 0, b1.length);
+        System.arraycopy(b2, 0, total, b1.length, b2.length);
         return total;
     }
 
@@ -269,7 +270,7 @@ public class AclUtils {
         JSONObject yamlDataObject;
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
-                    JSONObject.class);
+                JSONObject.class);
         } catch (Exception e) {
             log.error("Convert yaml file to data object error, ", e);
             return null;

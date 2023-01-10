@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.namesrv;
 
+import java.util.HashMap;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
@@ -27,13 +29,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
-
 public class AddWritePermSubCommandTest {
-
-    private static final int NAME_SERVER_PORT = 45677;
-
-    private static final int BROKER_PORT = 45676;
 
     private ServerResponseMocker brokerMocker;
 
@@ -43,6 +39,7 @@ public class AddWritePermSubCommandTest {
     public void before() {
         brokerMocker = startOneBroker();
         nameServerMocker = startNameServer();
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "localhost:" + nameServerMocker.listenPort());
     }
 
     @After
@@ -57,7 +54,8 @@ public class AddWritePermSubCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[]{"-b default-broker"};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -65,11 +63,11 @@ public class AddWritePermSubCommandTest {
         HashMap<String, String> extMap = new HashMap<>();
         extMap.put("addTopicCount", "1");
         // start name server
-        return NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT, extMap);
+        return NameServerMocker.startByDefaultConf(brokerMocker.listenPort(), extMap);
     }
 
     private ServerResponseMocker startOneBroker() {
         // start broker
-        return ServerResponseMocker.startServer(BROKER_PORT, null);
+        return ServerResponseMocker.startServer(null);
     }
 }

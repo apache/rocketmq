@@ -19,22 +19,34 @@ package org.apache.rocketmq.common;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InnerLoggerFactory;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class BrokerIdentity {
     private static final String DEFAULT_CLUSTER_NAME = "DefaultCluster";
-    protected static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
+    private static String localHostName;
+
+    static {
+        try {
+            localHostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOGGER.error("Failed to obtain the host name", e);
+        }
+    }
+
+    // load it after the localHostName is initialized
     public static final BrokerIdentity BROKER_CONTAINER_IDENTITY = new BrokerIdentity(true);
 
     @ImportantField
-    private String brokerName = localHostName();
+    private String brokerName = defaultBrokerName();
     @ImportantField
     private String brokerClusterName = DEFAULT_CLUSTER_NAME;
     @ImportantField
@@ -98,24 +110,16 @@ public class BrokerIdentity {
         isInBrokerContainer = inBrokerContainer;
     }
 
-    protected static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            LOGGER.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
+    private String defaultBrokerName() {
+        return StringUtils.isEmpty(localHostName) ? "DEFAULT_BROKER" : localHostName;
     }
 
     public String getCanonicalName() {
-        if (isBrokerContainer) {
-            return InnerLoggerFactory.BROKER_CONTAINER_NAME;
-        }
-        return this.getBrokerClusterName() + "_" + this.getBrokerName() + "_" + this.getBrokerId();
+        return isBrokerContainer ? "BrokerContainer" : String.format("%s_%s_%d", brokerClusterName, brokerName,
+            brokerId);
     }
 
-    public String getLoggerIdentifier() {
+    public String getIdentifier() {
         return "#" + getCanonicalName() + "#";
     }
 

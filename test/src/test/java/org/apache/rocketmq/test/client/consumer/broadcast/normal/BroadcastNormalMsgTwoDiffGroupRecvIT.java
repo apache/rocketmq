@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.broadcast.normal;
 
-import org.apache.log4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadcast;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -32,7 +33,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class BroadcastNormalMsgTwoDiffGroupRecvIT extends BaseBroadcast {
-    private static Logger logger = Logger
+    private static Logger logger = LoggerFactory
         .getLogger(NormalMsgTwoSameGroupConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
@@ -42,7 +43,7 @@ public class BroadcastNormalMsgTwoDiffGroupRecvIT extends BaseBroadcast {
         printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -56,17 +57,17 @@ public class BroadcastNormalMsgTwoDiffGroupRecvIT extends BaseBroadcast {
 
         String group1 = initConsumerGroup();
         String group2 = initConsumerGroup();
-        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group1, topic, "*",
+        RMQBroadCastConsumer consumer1 = getBroadCastConsumer(NAMESRV_ADDR, group1, topic, "*",
             new RMQNormalListener(group1 + "_1"));
-        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr, group2, topic, "*",
+        RMQBroadCastConsumer consumer2 = getBroadCastConsumer(NAMESRV_ADDR, group2, topic, "*",
             new RMQNormalListener(group2 + "_2"));
-        TestUtils.waitForSeconds(waitTime);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))

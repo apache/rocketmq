@@ -27,17 +27,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 
 public class CommandUtil {
 
-    private static final String ERROR_MESSAGE = "Make sure the specified clusterName exists or the name server " +
-        "connected to is correct.";
+    private static final String ERROR_MESSAGE = "Make sure the specified clusterName exists or the name server connected to is correct.";
 
     public static final String NO_MASTER_PLACEHOLDER = "NO_MASTER";
 
@@ -46,7 +45,7 @@ public class CommandUtil {
         throws InterruptedException, RemotingConnectException,
         RemotingTimeoutException, RemotingSendRequestException,
         MQBrokerException {
-        Map<String, List<String>> masterAndSlaveMap = new HashMap<String, List<String>>(4);
+        Map<String, List<String>> masterAndSlaveMap = new HashMap<>(4);
 
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
@@ -68,7 +67,7 @@ public class CommandUtil {
             if (masterAddr == null) {
                 masterAndSlaveMap.putIfAbsent(NO_MASTER_PLACEHOLDER, new ArrayList<>());
             } else {
-                masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
+                masterAndSlaveMap.put(masterAddr, new ArrayList<>());
             }
 
             for (Entry<Long, String> brokerAddrEntry : brokerData.getBrokerAddrs().entrySet()) {
@@ -90,7 +89,7 @@ public class CommandUtil {
     public static Set<String> fetchMasterAddrByClusterName(final MQAdminExt adminExt, final String clusterName)
         throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
-        Set<String> masterSet = new HashSet<String>();
+        Set<String> masterSet = new HashSet<>();
 
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
 
@@ -117,7 +116,7 @@ public class CommandUtil {
     public static Set<String> fetchMasterAndSlaveAddrByClusterName(final MQAdminExt adminExt, final String clusterName)
         throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
-        Set<String> brokerAddressSet = new HashSet<String>();
+        Set<String> brokerAddressSet = new HashSet<>();
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
         if (brokerNameSet != null) {
@@ -133,6 +132,19 @@ public class CommandUtil {
         }
 
         return brokerAddressSet;
+    }
+
+    public static String fetchMasterAddrByBrokerName(final MQAdminExt adminExt,
+        final String brokerName) throws Exception {
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+        if (null != brokerData) {
+            String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (addr != null) {
+                return addr;
+            }
+        }
+        throw new Exception(String.format("No broker address for broker name %s.%n", brokerData));
     }
 
     public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)

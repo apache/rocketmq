@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,25 +27,23 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
-
-import com.google.common.collect.Lists;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 public class MappedFileQueue implements Swappable {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     protected final String storePath;
 
     protected final int mappedFileSize;
 
-    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
 
     protected final AllocateMappedFileService allocateMappedFileService;
 
@@ -107,7 +106,7 @@ public class MappedFileQueue implements Swappable {
     }
 
     public void truncateDirtyFiles(long offset) {
-        List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
+        List<MappedFile> willRemoveFiles = new ArrayList<>();
 
         for (MappedFile file : this.mappedFiles) {
             long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
@@ -164,6 +163,10 @@ public class MappedFileQueue implements Swappable {
         files.sort(Comparator.comparing(File::getName));
 
         for (File file : files) {
+            if (file.isDirectory()) {
+                continue;
+            }
+
             if (file.length() != this.mappedFileSize) {
                 log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
@@ -224,7 +227,29 @@ public class MappedFileQueue implements Swappable {
         return this.mappedFiles.isEmpty();
     }
 
-    protected MappedFile tryCreateMappedFile(long createOffset) {
+    public boolean isEmptyOrCurrentFileFull() {
+        MappedFile mappedFileLast = getLastMappedFile();
+        if (mappedFileLast == null) {
+            return true;
+        }
+        if (mappedFileLast.isFull()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean shouldRoll(final int msgSize) {
+        if (isEmptyOrCurrentFileFull()) {
+            return true;
+        }
+        MappedFile mappedFileLast = getLastMappedFile();
+        if (mappedFileLast.getWrotePosition() + msgSize > mappedFileLast.getFileSize()) {
+            return true;
+        }
+        return false;
+    }
+
+    public MappedFile tryCreateMappedFile(long createOffset) {
         String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
         String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
                 + this.mappedFileSize);
@@ -354,7 +379,7 @@ public class MappedFileQueue implements Swappable {
 
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int skipFileNum = 0;
         if (null != mfs) {
             //do check before deleting
@@ -399,7 +424,7 @@ public class MappedFileQueue implements Swappable {
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int deleteCount = 0;
         if (null != mfs) {
 
@@ -442,7 +467,7 @@ public class MappedFileQueue implements Swappable {
     public int deleteExpiredFileByOffsetForTimerLog(long offset, int checkOffset, int unitSize) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        List<MappedFile> files = new ArrayList<MappedFile>();
+        List<MappedFile> files = new ArrayList<>();
         int deleteCount = 0;
         if (null != mfs) {
 
@@ -621,7 +646,7 @@ public class MappedFileQueue implements Swappable {
                 boolean result = mappedFile.destroy(intervalForcibly);
                 if (result) {
                     log.info("the mappedFile re delete OK, " + mappedFile.getFileName());
-                    List<MappedFile> tmpFiles = new ArrayList<MappedFile>();
+                    List<MappedFile> tmpFiles = new ArrayList<>();
                     tmpFiles.add(mappedFile);
                     this.deleteExpiredFile(tmpFiles);
                 } else {
@@ -749,5 +774,31 @@ public class MappedFileQueue implements Swappable {
 
     public long getTotalFileSize() {
         return (long) mappedFileSize * mappedFiles.size();
+    }
+
+    public String getStorePath() {
+        return storePath;
+    }
+
+    public List<MappedFile> range(final long from, final long to) {
+        Object[] mfs = copyMappedFiles(0);
+        if (null == mfs) {
+            return new ArrayList<>();
+        }
+
+        List<MappedFile> result = new ArrayList<>();
+        for (Object mf : mfs) {
+            MappedFile mappedFile = (MappedFile) mf;
+            if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() <= from) {
+                continue;
+            }
+
+            if (to <= mappedFile.getFileFromOffset()) {
+                break;
+            }
+            result.add(mappedFile);
+        }
+
+        return result;
     }
 }

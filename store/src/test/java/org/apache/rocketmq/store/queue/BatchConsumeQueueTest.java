@@ -58,7 +58,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
 
     private int fileSize = BatchConsumeQueue.CQ_STORE_UNIT_SIZE * 20;
 
-    @Test(timeout = 2000)
+    @Test(timeout = 20000)
     public void testBuildAndIterateBatchConsumeQueue() {
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
         batchConsumeQueue.load();
@@ -108,7 +108,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         batchConsumeQueue.destroy();
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 20000)
     public void testBuildAndSearchBatchConsumeQueue() {
         // Preparing the data may take some time
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
@@ -158,7 +158,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         batchConsumeQueue.destroy();
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 20000)
     public void testBuildAndRecoverBatchConsumeQueue() {
         String tmpPath = createBaseDir();
         short batchSize = 10;
@@ -192,7 +192,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         }
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 20000)
     public void testTruncateBatchConsumeQueue() {
         String tmpPath = createBaseDir();
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(tmpPath);

@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.namesrv.routeinfo;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Random;
@@ -29,11 +26,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -46,7 +43,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.mock;
 
@@ -62,14 +58,7 @@ public class RegisterBrokerBenchmark {
     private AtomicLong brokerIndex = new AtomicLong(0);
 
     @Setup
-    public void setup() throws InterruptedException, JoranException {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        //https://logback.qos.ch/manual/configuration.html
-        lc.setPackagingDataEnabled(false);
-
+    public void setup() throws InterruptedException {
         routeInfoManager = new RouteInfoManager(new NamesrvConfig(), null);
 
         // Init 4 clusters and 8 brokers in each cluster
@@ -147,7 +136,7 @@ public class RegisterBrokerBenchmark {
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             "",
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
     }
 
     @Benchmark
@@ -170,7 +159,7 @@ public class RegisterBrokerBenchmark {
             "DefaultBroker" + index, 0, "127.0.0.1:400" + index,
             "",
             null,
-            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+            topicConfigSerializeWrapper, new ArrayList<>(), channel);
     }
 
     public static void main(String[] args) throws Exception {

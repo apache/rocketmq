@@ -18,39 +18,53 @@ package org.apache.rocketmq.store.logfile;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.function.Consumer;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
+import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
 public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    public static final Unsafe UNSAFE = getUnsafe();
+    private static final Method IS_LOADED_METHOD;
+    public static final int UNSAFE_PAGE_SIZE = UNSAFE == null ? OS_PAGE_SIZE : UNSAFE.pageSize();
+
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
@@ -86,6 +100,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
         WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
         COMMITTED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "committedPosition");
         FLUSHED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "flushedPosition");
+
+        Method isLoaded0method = null;
+        // On the windows platform and openjdk 11 method isLoaded0 always returns false.
+        // see https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/19fb8f93c59dfd791f62d41f332db9e306bc1422/src/java.base/windows/native/libnio/MappedByteBuffer.c#L34
+        if (!SystemUtils.IS_OS_WINDOWS) {
+            try {
+                isLoaded0method = MappedByteBuffer.class.getDeclaredMethod("isLoaded0", long.class, long.class, int.class);
+                isLoaded0method.setAccessible(true);
+            } catch (NoSuchMethodException ignore) {
+            }
+        }
+        IS_LOADED_METHOD = isLoaded0method;
     }
 
     public DefaultMappedFile() {
@@ -96,7 +122,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize,
-                             final TransientStorePool transientStorePool) throws IOException {
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
 
@@ -110,7 +136,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public void init(final String fileName, final int fileSize,
-                     final TransientStorePool transientStorePool) throws IOException {
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
@@ -145,6 +171,17 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
+    public boolean renameTo(String fileName) {
+        File newFile = new File(fileName);
+        boolean rename = file.renameTo(newFile);
+        if (rename) {
+            this.fileName = fileName;
+            this.file = newFile;
+        }
+        return rename;
+    }
+
+    @Override
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }
@@ -169,11 +206,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 }
             } else {
                 log.debug("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                        + this.fileFromOffset);
+                    + this.fileFromOffset);
             }
         } else {
             log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                    + ", fileFromOffset: " + this.fileFromOffset);
+                + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         return false;
@@ -189,20 +226,37 @@ public class DefaultMappedFile extends AbstractMappedFile {
         return fileChannel;
     }
 
+    public AppendMessageResult appendMessage(final ByteBuffer byteBufferMsg, final CompactionAppendMsgCallback cb) {
+        assert byteBufferMsg != null;
+        assert cb != null;
+
+        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        if (currentPos < this.fileSize) {
+            ByteBuffer byteBuffer = appendMessageBuffer().slice();
+            byteBuffer.position(currentPos);
+            AppendMessageResult result = cb.doAppend(byteBuffer, this.fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
+            WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
+            this.storeTimestamp = result.getStoreTimestamp();
+            return result;
+        }
+        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
+        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+    }
+
     @Override
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb,
-                                             PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         return appendMessagesInner(msg, cb, putMessageContext);
     }
 
     @Override
     public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb,
-                                              PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         return appendMessagesInner(messageExtBatch, cb, putMessageContext);
     }
 
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb,
-                                                   PutMessageContext putMessageContext) {
+        PutMessageContext putMessageContext) {
         assert messageExt != null;
         assert cb != null;
 
@@ -215,11 +269,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
                 // traditional batch message
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
-                        (MessageExtBatch) messageExt, putMessageContext);
+                    (MessageExtBatch) messageExt, putMessageContext);
             } else if (messageExt instanceof MessageExtBrokerInner) {
                 // traditional single message or newly introduced inner-batch message
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
-                        (MessageExtBrokerInner) messageExt, putMessageContext);
+                    (MessageExtBrokerInner) messageExt, putMessageContext);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
@@ -330,7 +384,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return WROTE_POSITION_UPDATER.get(this);
         }
-        if (this.isAbleToCommit(commitLeastPages)) {
+
+        //no need to commit data to file channel, so just set committedPosition to wrotePosition.
+        if (transientStorePool != null && !transientStorePool.isRealCommit()) {
+            COMMITTED_POSITION_UPDATER.set(this, WROTE_POSITION_UPDATER.get(this));
+        } else if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
                 commit0();
                 this.release();
@@ -425,11 +483,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                        + this.fileFromOffset);
+                    + this.fileFromOffset);
             }
         } else {
             log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                    + ", fileFromOffset: " + this.fileFromOffset);
+                + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         return null;
@@ -457,13 +515,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                    + " have not shutdown, stop unmapping.");
+                + " have not shutdown, stop unmapping.");
             return false;
         }
 
         if (this.isCleanupOver()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                    + " have cleanup, do not do it again.");
+                + " have cleanup, do not do it again.");
             return true;
         }
 
@@ -489,10 +547,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
-                        + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
-                        + this.getFlushedPosition() + ", "
-                        + UtilAll.computeElapsedTimeMilliseconds(beginTime)
-                        + "," + (System.currentTimeMillis() - lastModified));
+                    + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
+                    + this.getFlushedPosition() + ", "
+                    + UtilAll.computeElapsedTimeMilliseconds(beginTime)
+                    + "," + (System.currentTimeMillis() - lastModified));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
@@ -500,7 +558,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         } else {
             log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
-                    + " Failed. cleanupOver: " + this.cleanupOver);
+                + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
         return false;
@@ -521,7 +579,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int getReadPosition() {
-        return this.writeBuffer == null ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
+        return transientStorePool == null || !transientStorePool.isRealCommit() ? WROTE_POSITION_UPDATER.get(this) : COMMITTED_POSITION_UPDATER.get(this);
     }
 
     @Override
@@ -535,10 +593,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-        int flush = 0;
-        long time = System.currentTimeMillis();
-        for (int i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
-            byteBuffer.put(i, (byte) 0);
+        long flush = 0;
+        // long time = System.currentTimeMillis();
+        for (long i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
+            byteBuffer.put((int) i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
@@ -548,25 +606,25 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
 
             // prevent gc
-            if (j % 1000 == 0) {
-                log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
-                time = System.currentTimeMillis();
-                try {
-                    Thread.sleep(0);
-                } catch (InterruptedException e) {
-                    log.error("Interrupted", e);
-                }
-            }
+            // if (j % 1000 == 0) {
+            //     log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
+            //     time = System.currentTimeMillis();
+            //     try {
+            //         Thread.sleep(0);
+            //     } catch (InterruptedException e) {
+            //         log.error("Interrupted", e);
+            //     }
+            // }
         }
 
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
             log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
-                    this.getFileName(), System.currentTimeMillis() - beginTime);
+                this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(),
-                System.currentTimeMillis() - beginTime);
+            System.currentTimeMillis() - beginTime);
 
         this.mlock();
     }
@@ -694,8 +752,149 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
+    public void renameToDelete() {
+        //use Files.move
+        if (!fileName.endsWith(".delete")) {
+            String newFileName = this.fileName + ".delete";
+            try {
+                Path newFilePath = Paths.get(newFileName);
+                // https://bugs.openjdk.org/browse/JDK-4724038
+                // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
+                // Windows can't move the file when mmapped.
+                if (NetworkUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+                    long position = this.fileChannel.position();
+                    UtilAll.cleanBuffer(this.mappedByteBuffer);
+                    this.fileChannel.close();
+                    Files.move(Paths.get(fileName), newFilePath, StandardCopyOption.ATOMIC_MOVE);
+                    try (RandomAccessFile file = new RandomAccessFile(newFileName, "rw")) {
+                        this.fileChannel = file.getChannel();
+                        this.fileChannel.position(position);
+                        this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+                    }
+                } else {
+                    Files.move(Paths.get(fileName), newFilePath, StandardCopyOption.ATOMIC_MOVE);
+                }
+                this.fileName = newFileName;
+                this.file = new File(newFileName);
+            } catch (IOException e) {
+                log.error("move file {} failed", fileName, e);
+            }
+        }
+    }
+
+    @Override
+    public void moveToParent() throws IOException {
+        Path currentPath = Paths.get(fileName);
+        String baseName = currentPath.getFileName().toString();
+        Path parentPath = currentPath.getParent().getParent().resolve(baseName);
+        // https://bugs.openjdk.org/browse/JDK-4724038
+        // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
+        // Windows can't move the file when mmapped.
+        if (NetworkUtil.isWindowsPlatform() && mappedByteBuffer != null) {
+            long position = this.fileChannel.position();
+            UtilAll.cleanBuffer(this.mappedByteBuffer);
+            this.fileChannel.close();
+            Files.move(Paths.get(fileName), parentPath, StandardCopyOption.ATOMIC_MOVE);
+            try (RandomAccessFile file = new RandomAccessFile(parentPath.toFile(), "rw")) {
+                this.fileChannel = file.getChannel();
+                this.fileChannel.position(position);
+                this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+            }
+        } else {
+            Files.move(Paths.get(fileName), parentPath, StandardCopyOption.ATOMIC_MOVE);
+        }
+        this.file = parentPath.toFile();
+        this.fileName = parentPath.toString();
+    }
+
+    @Override
     public String toString() {
         return this.fileName;
+    }
+
+    public Iterator<SelectMappedBufferResult> iterator(int startPos) {
+        return new Itr(startPos);
+    }
+
+    public static Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ignore) {
+
+        }
+        return null;
+    }
+
+    public static long mappingAddr(long addr) {
+        long offset = addr % UNSAFE_PAGE_SIZE;
+        offset = (offset >= 0) ? offset : (UNSAFE_PAGE_SIZE + offset);
+        return addr - offset;
+    }
+
+    public static int pageCount(long size) {
+        return (int) (size + (long) UNSAFE_PAGE_SIZE - 1L) / UNSAFE_PAGE_SIZE;
+    }
+
+    @Override
+    public boolean isLoaded(long position, int size) {
+        if (IS_LOADED_METHOD == null) {
+            return true;
+        }
+        try {
+            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
+        } catch (Exception e) {
+            log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);
+        }
+        return true;
+    }
+
+    private class Itr implements Iterator<SelectMappedBufferResult> {
+        private int start;
+        private int current;
+        private ByteBuffer buf;
+
+        public Itr(int pos) {
+            this.start = pos;
+            this.current = pos;
+            this.buf = mappedByteBuffer.slice();
+            this.buf.position(start);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current < getReadPosition();
+        }
+
+        @Override
+        public SelectMappedBufferResult next() {
+            int readPosition = getReadPosition();
+            if (current < readPosition && current >= 0) {
+                if (hold()) {
+                    ByteBuffer byteBuffer = buf.slice();
+                    byteBuffer.position(current);
+                    int size = byteBuffer.getInt(current);
+                    ByteBuffer bufferResult = byteBuffer.slice();
+                    bufferResult.limit(size);
+                    current += size;
+                    return new SelectMappedBufferResult(fileFromOffset + current, bufferResult, size,
+                        DefaultMappedFile.this);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super SelectMappedBufferResult> action) {
+            Iterator.super.forEachRemaining(action);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 
 }

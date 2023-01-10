@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import java.util.HashMap;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -24,16 +27,12 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.Unpooled;
-
 public class RocketMQSerializableTest {
     @Test
     public void testRocketMQProtocolEncodeAndDecode_WithoutRemarkWithoutExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         int code = 103;
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, new SampleCommandCustomHeader());
         cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
@@ -71,7 +70,7 @@ public class RocketMQSerializableTest {
     public void testRocketMQProtocolEncodeAndDecode_WithRemarkWithoutExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         int code = 103;
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code,
             new SampleCommandCustomHeader());
@@ -115,7 +114,7 @@ public class RocketMQSerializableTest {
     public void testRocketMQProtocolEncodeAndDecode_WithoutRemarkWithExtFields() throws Exception {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        //org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_BROKER
         int code = 103;
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code,
             new SampleCommandCustomHeader());
@@ -153,19 +152,6 @@ public class RocketMQSerializableTest {
 
             Assert.fail("Should not throw IOException");
         }
-    }
-
-    @Test
-    public void testIsBlank_NotBlank() {
-        assertThat(RocketMQSerializable.isBlank("bar")).isFalse();
-        assertThat(RocketMQSerializable.isBlank("  A  ")).isFalse();
-    }
-
-    @Test
-    public void testIsBlank_Blank() {
-        assertThat(RocketMQSerializable.isBlank(null)).isTrue();
-        assertThat(RocketMQSerializable.isBlank("")).isTrue();
-        assertThat(RocketMQSerializable.isBlank("  ")).isTrue();
     }
 
     private short parseToShort(byte[] array, int index) {

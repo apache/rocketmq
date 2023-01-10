@@ -16,15 +16,11 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -71,6 +67,7 @@ import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
+import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
@@ -102,10 +99,9 @@ import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
-import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
-    protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<SubCommand>();
+    protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
 
     private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -122,7 +118,6 @@ public class MQAdminStartup {
         initCommand();
 
         try {
-            initLogback();
             switch (args.length) {
                 case 0:
                     printHelp();
@@ -150,7 +145,7 @@ public class MQAdminStartup {
                         Options options = ServerUtil.buildCommandlineOptions(new Options());
                         final CommandLine commandLine =
                             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
-                                new PosixParser());
+                                new DefaultParser());
                         if (null == commandLine) {
                             return;
                         }
@@ -267,19 +262,7 @@ public class MQAdminStartup {
         initCommand(new UpdateControllerConfigSubCommand());
         initCommand(new ReElectMasterSubCommand());
         initCommand(new CleanControllerBrokerDataSubCommand());
-    }
-
-    private static void initLogback() throws Exception {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-
-        //avoid the exception
-        if (ROCKETMQ_HOME != null
-            && Files.exists(Paths.get(ROCKETMQ_HOME + "/conf/logback_tools.xml"))) {
-            configurator.doConfigure(ROCKETMQ_HOME + "/conf/logback_tools.xml");
-        }
+        initCommand(new DumpCompactionLogCommand());
     }
 
     private static void printHelp() {
@@ -294,7 +277,7 @@ public class MQAdminStartup {
 
     private static SubCommand findSubCommand(final String name) {
         for (SubCommand cmd : SUB_COMMANDS) {
-            if (cmd.commandName().equalsIgnoreCase(name) || (cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name))) {
+            if (cmd.commandName().equalsIgnoreCase(name) || cmd.commandAlias() != null && cmd.commandAlias().equalsIgnoreCase(name)) {
                 return cmd;
             }
         }

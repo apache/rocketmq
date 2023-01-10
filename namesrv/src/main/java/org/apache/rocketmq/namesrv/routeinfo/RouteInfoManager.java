@@ -34,40 +34,40 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 public class RouteInfoManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
@@ -527,83 +527,82 @@ public class RouteInfoManager {
 
     public void unRegisterBroker(Set<UnRegisterBrokerRequestHeader> unRegisterRequests) {
         try {
-            try {
-                Set<String> removedBroker = new HashSet<>();
-                Set<String> reducedBroker = new HashSet<>();
-                Map<String, BrokerStatusChangeInfo> needNotifyBrokerMap = new HashMap<>();
+            Set<String> removedBroker = new HashSet<>();
+            Set<String> reducedBroker = new HashSet<>();
+            Map<String, BrokerStatusChangeInfo> needNotifyBrokerMap = new HashMap<>();
 
-                this.lock.writeLock().lockInterruptibly();
-                for (final UnRegisterBrokerRequestHeader unRegisterRequest : unRegisterRequests) {
-                    final String brokerName = unRegisterRequest.getBrokerName();
-                    final String clusterName = unRegisterRequest.getClusterName();
+            this.lock.writeLock().lockInterruptibly();
+            for (final UnRegisterBrokerRequestHeader unRegisterRequest : unRegisterRequests) {
+                final String brokerName = unRegisterRequest.getBrokerName();
+                final String clusterName = unRegisterRequest.getClusterName();
+                final String brokerAddr = unRegisterRequest.getBrokerAddr();
 
-                    BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, unRegisterRequest.getBrokerAddr());
+                BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
 
-                    BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddrInfo);
-                    log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
-                        brokerLiveInfo != null ? "OK" : "Failed",
+                BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddrInfo);
+                log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
+                    brokerLiveInfo != null ? "OK" : "Failed",
+                    brokerAddrInfo
+                );
+
+                this.filterServerTable.remove(brokerAddrInfo);
+
+                boolean removeBrokerName = false;
+                boolean isMinBrokerIdChanged = false;
+                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                if (null != brokerData) {
+                    if (!brokerData.getBrokerAddrs().isEmpty() &&
+                        unRegisterRequest.getBrokerId().equals(Collections.min(brokerData.getBrokerAddrs().keySet()))) {
+                        isMinBrokerIdChanged = true;
+                    }
+                    boolean removed = brokerData.getBrokerAddrs().entrySet().removeIf(item -> item.getValue().equals(brokerAddr));
+                    log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
+                        removed ? "OK" : "Failed",
                         brokerAddrInfo
                     );
-
-                    this.filterServerTable.remove(brokerAddrInfo);
-
-                    boolean removeBrokerName = false;
-                    boolean isMinBrokerIdChanged = false;
-                    BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                    if (null != brokerData) {
-                        if (!brokerData.getBrokerAddrs().isEmpty() &&
-                            unRegisterRequest.getBrokerId().equals(Collections.min(brokerData.getBrokerAddrs().keySet()))) {
-                            isMinBrokerIdChanged = true;
-                        }
-                        String addr = brokerData.getBrokerAddrs().remove(unRegisterRequest.getBrokerId());
-                        log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
-                            addr != null ? "OK" : "Failed",
-                            brokerAddrInfo
+                    if (brokerData.getBrokerAddrs().isEmpty()) {
+                        this.brokerAddrTable.remove(brokerName);
+                        log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
+                            brokerName
                         );
-                        if (brokerData.getBrokerAddrs().isEmpty()) {
-                            this.brokerAddrTable.remove(brokerName);
-                            log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
-                                brokerName
+
+                        removeBrokerName = true;
+                    } else if (isMinBrokerIdChanged) {
+                        needNotifyBrokerMap.put(brokerName, new BrokerStatusChangeInfo(
+                            brokerData.getBrokerAddrs(), brokerAddr, null));
+                    }
+                }
+
+                if (removeBrokerName) {
+                    Set<String> nameSet = this.clusterAddrTable.get(clusterName);
+                    if (nameSet != null) {
+                        boolean removed = nameSet.remove(brokerName);
+                        log.info("unregisterBroker, remove name from clusterAddrTable {}, {}",
+                            removed ? "OK" : "Failed",
+                            brokerName);
+
+                        if (nameSet.isEmpty()) {
+                            this.clusterAddrTable.remove(clusterName);
+                            log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
+                                clusterName
                             );
-
-                            removeBrokerName = true;
-                        } else if (isMinBrokerIdChanged) {
-                            needNotifyBrokerMap.put(brokerName, new BrokerStatusChangeInfo(
-                                brokerData.getBrokerAddrs(), addr, null));
                         }
                     }
-
-                    if (removeBrokerName) {
-                        Set<String> nameSet = this.clusterAddrTable.get(clusterName);
-                        if (nameSet != null) {
-                            boolean removed = nameSet.remove(brokerName);
-                            log.info("unregisterBroker, remove name from clusterAddrTable {}, {}",
-                                removed ? "OK" : "Failed",
-                                brokerName);
-
-                            if (nameSet.isEmpty()) {
-                                this.clusterAddrTable.remove(clusterName);
-                                log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
-                                    clusterName
-                                );
-                            }
-                        }
-                        removedBroker.add(brokerName);
-                    } else {
-                        reducedBroker.add(brokerName);
-                    }
+                    removedBroker.add(brokerName);
+                } else {
+                    reducedBroker.add(brokerName);
                 }
+            }
 
-                cleanTopicByUnRegisterRequests(removedBroker, reducedBroker);
+            cleanTopicByUnRegisterRequests(removedBroker, reducedBroker);
 
-                if (!needNotifyBrokerMap.isEmpty() && namesrvConfig.isNotifyMinBrokerIdChanged()) {
-                    notifyMinBrokerIdChanged(needNotifyBrokerMap);
-                }
-            } finally {
-                this.lock.writeLock().unlock();
+            if (!needNotifyBrokerMap.isEmpty() && namesrvConfig.isNotifyMinBrokerIdChanged()) {
+                notifyMinBrokerIdChanged(needNotifyBrokerMap);
             }
         } catch (Exception e) {
             log.error("unregisterBroker Exception", e);
+        } finally {
+            this.lock.writeLock().unlock();
         }
     }
 
@@ -707,10 +706,6 @@ public class RouteInfoManager {
 
         if (foundBrokerData && foundQueueData) {
 
-            if (topicRouteData == null) {
-                return null;
-            }
-
             topicRouteData.setTopicQueueMappingByBroker(this.topicQueueMappingInfoTable.get(topic));
 
             if (!namesrvConfig.isSupportActingMaster()) {
@@ -772,7 +767,7 @@ public class RouteInfoManager {
                 long last = next.getValue().getLastUpdateTimestamp();
                 long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis();
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
-                    RemotingUtil.closeChannel(next.getValue().getChannel());
+                    RemotingHelper.closeChannel(next.getValue().getChannel());
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
                     this.onChannelDestroy(next.getKey());
                 }
@@ -994,10 +989,7 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
                 for (String brokerName : brokerNameSet) {
-                    Iterator<Entry<String, Map<String, QueueData>>> topicTableIt =
-                        this.topicQueueTable.entrySet().iterator();
-                    while (topicTableIt.hasNext()) {
-                        Entry<String, Map<String, QueueData>> topicEntry = topicTableIt.next();
+                    for (Entry<String, Map<String, QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                         String topic = topicEntry.getKey();
                         Map<String, QueueData> queueDataMap = topicEntry.getValue();
                         final QueueData qd = queueDataMap.get(brokerName);

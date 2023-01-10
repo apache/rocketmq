@@ -576,7 +576,7 @@ public class ExpressionTest {
 
     class PropertyContext implements EvaluationContext {
 
-        public Map<String, Object> properties = new HashMap<String, Object>(8);
+        public Map<String, Object> properties = new HashMap<>(8);
 
         @Override
         public Object get(final String name) {

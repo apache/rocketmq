@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.controller;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,25 +23,24 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.srvutil.ShutdownHookThread;
-import org.slf4j.LoggerFactory;
 
 public class ControllerStartup {
 
-    private static InternalLogger log;
+    private static Logger log;
     private static Properties properties = null;
     private static CommandLine commandLine = null;
 
@@ -69,9 +65,9 @@ public class ControllerStartup {
         return null;
     }
 
-    public static ControllerManager createControllerManager(String[] args) throws IOException, JoranException {
+    public static ControllerManager createControllerManager(String[] args) throws IOException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        commandLine = ServerUtil.parseCmdLine("mqcontroller", args, buildCommandlineOptions(options), new PosixParser());
+        commandLine = ServerUtil.parseCmdLine("mqcontroller", args, buildCommandlineOptions(options), new DefaultParser());
         if (null == commandLine) {
             System.exit(-1);
             return null;
@@ -106,18 +102,12 @@ public class ControllerStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), controllerConfig);
 
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-
         if (StringUtils.isEmpty(controllerConfig.getRocketmqHome())) {
             System.out.printf("Please set the %s or %s variable in your environment!%n", MixAll.ROCKETMQ_HOME_ENV, MixAll.ROCKETMQ_HOME_PROPERTY);
             System.exit(-1);
         }
-        configurator.doConfigure(controllerConfig.getRocketmqHome() + "/conf/logback_controller.xml");
 
-        log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+        log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
         MixAll.printObjectProperties(log, controllerConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);

@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy.config;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -25,17 +27,44 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.ProxyMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 
 public class ProxyConfig implements ConfigFile {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
+    public final static String DEFAULT_CONFIG_FILE_NAME = "rmq-proxy.json";
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
+    private static final String DEFAULT_CLUSTER_NAME = "DefaultCluster";
 
-    private String rocketMQClusterName = "";
+    private static String localHostName;
+
+    static {
+        try {
+            localHostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+    }
+
+    private String rocketMQClusterName = DEFAULT_CLUSTER_NAME;
+    private String proxyClusterName = DEFAULT_CLUSTER_NAME;
+    private String proxyName = StringUtils.isEmpty(localHostName) ? "DEFAULT_PROXY" : localHostName;
+
+    private String localServeAddr = "";
+
+    private String heartbeatSyncerTopicClusterName = "";
+    private int heartbeatSyncerThreadPoolNums = 4;
+    private int heartbeatSyncerThreadPoolQueueCapacity = 100;
+
+    private String heartbeatSyncerTopicName = "DefaultHeartBeatSyncerTopic";
 
     /**
      * configuration for ThreadPoolMonitor
@@ -44,17 +73,20 @@ public class ProxyConfig implements ConfigFile {
     private long printJstackInMillis = Duration.ofSeconds(60).toMillis();
     private long printThreadPoolStatusInMillis = Duration.ofSeconds(3).toMillis();
 
-    private String nameSrvAddr = "";
-    private String nameSrvDomain = "";
-    private String nameSrvDomainSubgroup = "";
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvDomain = "";
+    private String namesrvDomainSubgroup = "";
+    /**
+     * TLS
+     */
+    private boolean tlsTestModeEnable = true;
+    private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
+    private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     /**
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Integer grpcServerPort = 8081;
-    private boolean grpcTlsTestModeEnable = true;
-    private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
-    private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
     private boolean enableGrpcEpoll = false;
@@ -89,7 +121,8 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientProducerBackoffInitialMillis = 10;
     private long grpcClientProducerBackoffMaxMillis = 1000;
     private int grpcClientProducerBackoffMultiplier = 2;
-    private long grpcClientConsumerLongPollingTimeoutMillis = Duration.ofSeconds(30).toMillis();
+    private long grpcClientConsumerMinLongPollingTimeoutMillis = Duration.ofSeconds(5).toMillis();
+    private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
 
@@ -160,9 +193,69 @@ public class ProxyConfig implements ConfigFile {
     // Example address: 127.0.0.1:1234
     private String metricCollectorAddress = "";
 
+    private String regionId = "";
+
+    private boolean traceOn = false;
+
+    private BrokerConfig.MetricsExporterType metricsExporterType = BrokerConfig.MetricsExporterType.DISABLE;
+
+    private String metricsGrpcExporterTarget = "";
+    private String metricsGrpcExporterHeader = "";
+    private long metricGrpcExporterTimeOutInMills = 3 * 1000;
+    private long metricGrpcExporterIntervalInMills = 60 * 1000;
+
+    private int metricsPromExporterPort = 5557;
+    private String metricsPromExporterHost = "";
+
+    // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
+    private String metricsLabel = "";
+
+    private boolean metricsInDelta = false;
+
+    private long channelExpiredTimeout = 1000 * 120;
+
+    // remoting
+    private boolean enableRemotingLocalProxyGrpc = true;
+    private int localProxyConnectTimeoutMs = 3000;
+    private String remotingAccessAddr = "";
+    private int remotingListenPort = 8080;
+
+    private int remotingHeartbeatThreadPoolNums = 2 * PROCESSOR_NUMBER;
+    private int remotingTopicRouteThreadPoolNums = 2 * PROCESSOR_NUMBER;
+    private int remotingSendMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingPullMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingUpdateOffsetThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    private int remotingDefaultThreadPoolNums = 4 * PROCESSOR_NUMBER;
+
+    private int remotingHeartbeatThreadPoolQueueCapacity = 50000;
+    private int remotingTopicRouteThreadPoolQueueCapacity = 50000;
+    private int remotingSendThreadPoolQueueCapacity = 10000;
+    private int remotingPullThreadPoolQueueCapacity = 50000;
+    private int remotingUpdateOffsetThreadPoolQueueCapacity = 10000;
+    private int remotingDefaultThreadPoolQueueCapacity = 50000;
+
+    private long remotingWaitTimeMillsInSendQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInPullQueue = 5 * 1000;
+    private long remotingWaitTimeMillsInHeartbeatQueue = 31 * 1000;
+    private long remotingWaitTimeMillsInUpdateOffsetQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInTopicRouteQueue = 3 * 1000;
+    private long remotingWaitTimeMillsInDefaultQueue = 3 * 1000;
+
     @Override
     public void initData() {
         parseDelayLevel();
+        if (StringUtils.isEmpty(localServeAddr)) {
+            this.localServeAddr = NetworkUtil.getLocalAddress();
+        }
+        if (StringUtils.isBlank(localServeAddr)) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "get local serve ip failed");
+        }
+        if (StringUtils.isBlank(remotingAccessAddr)) {
+            this.remotingAccessAddr = this.localServeAddr;
+        }
+        if (StringUtils.isBlank(heartbeatSyncerTopicClusterName)) {
+            this.heartbeatSyncerTopicClusterName = this.rocketMQClusterName;
+        }
     }
 
     public int computeDelayLevel(long timeMillis) {
@@ -210,6 +303,62 @@ public class ProxyConfig implements ConfigFile {
         this.rocketMQClusterName = rocketMQClusterName;
     }
 
+    public String getProxyClusterName() {
+        return proxyClusterName;
+    }
+
+    public void setProxyClusterName(String proxyClusterName) {
+        this.proxyClusterName = proxyClusterName;
+    }
+
+    public String getProxyName() {
+        return proxyName;
+    }
+
+    public void setProxyName(String proxyName) {
+        this.proxyName = proxyName;
+    }
+
+    public String getLocalServeAddr() {
+        return localServeAddr;
+    }
+
+    public void setLocalServeAddr(String localServeAddr) {
+        this.localServeAddr = localServeAddr;
+    }
+
+    public String getHeartbeatSyncerTopicClusterName() {
+        return heartbeatSyncerTopicClusterName;
+    }
+
+    public void setHeartbeatSyncerTopicClusterName(String heartbeatSyncerTopicClusterName) {
+        this.heartbeatSyncerTopicClusterName = heartbeatSyncerTopicClusterName;
+    }
+
+    public int getHeartbeatSyncerThreadPoolNums() {
+        return heartbeatSyncerThreadPoolNums;
+    }
+
+    public void setHeartbeatSyncerThreadPoolNums(int heartbeatSyncerThreadPoolNums) {
+        this.heartbeatSyncerThreadPoolNums = heartbeatSyncerThreadPoolNums;
+    }
+
+    public int getHeartbeatSyncerThreadPoolQueueCapacity() {
+        return heartbeatSyncerThreadPoolQueueCapacity;
+    }
+
+    public void setHeartbeatSyncerThreadPoolQueueCapacity(int heartbeatSyncerThreadPoolQueueCapacity) {
+        this.heartbeatSyncerThreadPoolQueueCapacity = heartbeatSyncerThreadPoolQueueCapacity;
+    }
+
+    public String getHeartbeatSyncerTopicName() {
+        return heartbeatSyncerTopicName;
+    }
+
+    public void setHeartbeatSyncerTopicName(String heartbeatSyncerTopicName) {
+        this.heartbeatSyncerTopicName = heartbeatSyncerTopicName;
+    }
+
     public boolean isEnablePrintJstack() {
         return enablePrintJstack;
     }
@@ -234,28 +383,28 @@ public class ProxyConfig implements ConfigFile {
         this.printThreadPoolStatusInMillis = printThreadPoolStatusInMillis;
     }
 
-    public String getNameSrvAddr() {
-        return nameSrvAddr;
+    public String getNamesrvAddr() {
+        return namesrvAddr;
     }
 
-    public void setNameSrvAddr(String nameSrvAddr) {
-        this.nameSrvAddr = nameSrvAddr;
+    public void setNamesrvAddr(String namesrvAddr) {
+        this.namesrvAddr = namesrvAddr;
     }
 
-    public String getNameSrvDomain() {
-        return nameSrvDomain;
+    public String getNamesrvDomain() {
+        return namesrvDomain;
     }
 
-    public void setNameSrvDomain(String nameSrvDomain) {
-        this.nameSrvDomain = nameSrvDomain;
+    public void setNamesrvDomain(String namesrvDomain) {
+        this.namesrvDomain = namesrvDomain;
     }
 
-    public String getNameSrvDomainSubgroup() {
-        return nameSrvDomainSubgroup;
+    public String getNamesrvDomainSubgroup() {
+        return namesrvDomainSubgroup;
     }
 
-    public void setNameSrvDomainSubgroup(String nameSrvDomainSubgroup) {
-        this.nameSrvDomainSubgroup = nameSrvDomainSubgroup;
+    public void setNamesrvDomainSubgroup(String namesrvDomainSubgroup) {
+        this.namesrvDomainSubgroup = namesrvDomainSubgroup;
     }
 
     public String getProxyMode() {
@@ -274,28 +423,28 @@ public class ProxyConfig implements ConfigFile {
         this.grpcServerPort = grpcServerPort;
     }
 
-    public boolean isGrpcTlsTestModeEnable() {
-        return grpcTlsTestModeEnable;
+    public boolean isTlsTestModeEnable() {
+        return tlsTestModeEnable;
     }
 
-    public void setGrpcTlsTestModeEnable(boolean grpcTlsTestModeEnable) {
-        this.grpcTlsTestModeEnable = grpcTlsTestModeEnable;
+    public void setTlsTestModeEnable(boolean tlsTestModeEnable) {
+        this.tlsTestModeEnable = tlsTestModeEnable;
     }
 
-    public String getGrpcTlsKeyPath() {
-        return grpcTlsKeyPath;
+    public String getTlsKeyPath() {
+        return tlsKeyPath;
     }
 
-    public void setGrpcTlsKeyPath(String grpcTlsKeyPath) {
-        this.grpcTlsKeyPath = grpcTlsKeyPath;
+    public void setTlsKeyPath(String tlsKeyPath) {
+        this.tlsKeyPath = tlsKeyPath;
     }
 
-    public String getGrpcTlsCertPath() {
-        return grpcTlsCertPath;
+    public String getTlsCertPath() {
+        return tlsCertPath;
     }
 
-    public void setGrpcTlsCertPath(String grpcTlsCertPath) {
-        this.grpcTlsCertPath = grpcTlsCertPath;
+    public void setTlsCertPath(String tlsCertPath) {
+        this.tlsCertPath = tlsCertPath;
     }
 
     public int getGrpcBossLoopNum() {
@@ -450,12 +599,20 @@ public class ProxyConfig implements ConfigFile {
         this.grpcClientProducerBackoffMultiplier = grpcClientProducerBackoffMultiplier;
     }
 
-    public long getGrpcClientConsumerLongPollingTimeoutMillis() {
-        return grpcClientConsumerLongPollingTimeoutMillis;
+    public long getGrpcClientConsumerMinLongPollingTimeoutMillis() {
+        return grpcClientConsumerMinLongPollingTimeoutMillis;
     }
 
-    public void setGrpcClientConsumerLongPollingTimeoutMillis(long grpcClientConsumerLongPollingTimeoutMillis) {
-        this.grpcClientConsumerLongPollingTimeoutMillis = grpcClientConsumerLongPollingTimeoutMillis;
+    public void setGrpcClientConsumerMinLongPollingTimeoutMillis(long grpcClientConsumerMinLongPollingTimeoutMillis) {
+        this.grpcClientConsumerMinLongPollingTimeoutMillis = grpcClientConsumerMinLongPollingTimeoutMillis;
+    }
+
+    public long getGrpcClientConsumerMaxLongPollingTimeoutMillis() {
+        return grpcClientConsumerMaxLongPollingTimeoutMillis;
+    }
+
+    public void setGrpcClientConsumerMaxLongPollingTimeoutMillis(long grpcClientConsumerMaxLongPollingTimeoutMillis) {
+        this.grpcClientConsumerMaxLongPollingTimeoutMillis = grpcClientConsumerMaxLongPollingTimeoutMillis;
     }
 
     public int getGrpcClientConsumerLongPollingBatchSize() {
@@ -908,5 +1065,285 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
         this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
+    }
+
+    public String getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(String regionId) {
+        this.regionId = regionId;
+    }
+
+    public boolean isTraceOn() {
+        return traceOn;
+    }
+
+    public void setTraceOn(boolean traceOn) {
+        this.traceOn = traceOn;
+    }
+
+    public String getRemotingAccessAddr() {
+        return remotingAccessAddr;
+    }
+
+    public void setRemotingAccessAddr(String remotingAccessAddr) {
+        this.remotingAccessAddr = remotingAccessAddr;
+    }
+
+    public BrokerConfig.MetricsExporterType getMetricsExporterType() {
+        return metricsExporterType;
+    }
+
+    public void setMetricsExporterType(BrokerConfig.MetricsExporterType metricsExporterType) {
+        this.metricsExporterType = metricsExporterType;
+    }
+
+    public void setMetricsExporterType(int metricsExporterType) {
+        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public void setMetricsExporterType(String metricsExporterType) {
+        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public String getMetricsGrpcExporterTarget() {
+        return metricsGrpcExporterTarget;
+    }
+
+    public void setMetricsGrpcExporterTarget(String metricsGrpcExporterTarget) {
+        this.metricsGrpcExporterTarget = metricsGrpcExporterTarget;
+    }
+
+    public String getMetricsGrpcExporterHeader() {
+        return metricsGrpcExporterHeader;
+    }
+
+    public void setMetricsGrpcExporterHeader(String metricsGrpcExporterHeader) {
+        this.metricsGrpcExporterHeader = metricsGrpcExporterHeader;
+    }
+
+    public long getMetricGrpcExporterTimeOutInMills() {
+        return metricGrpcExporterTimeOutInMills;
+    }
+
+    public void setMetricGrpcExporterTimeOutInMills(long metricGrpcExporterTimeOutInMills) {
+        this.metricGrpcExporterTimeOutInMills = metricGrpcExporterTimeOutInMills;
+    }
+
+    public long getMetricGrpcExporterIntervalInMills() {
+        return metricGrpcExporterIntervalInMills;
+    }
+
+    public void setMetricGrpcExporterIntervalInMills(long metricGrpcExporterIntervalInMills) {
+        this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
+    }
+
+    public int getMetricsPromExporterPort() {
+        return metricsPromExporterPort;
+    }
+
+    public void setMetricsPromExporterPort(int metricsPromExporterPort) {
+        this.metricsPromExporterPort = metricsPromExporterPort;
+    }
+
+    public String getMetricsPromExporterHost() {
+        return metricsPromExporterHost;
+    }
+
+    public void setMetricsPromExporterHost(String metricsPromExporterHost) {
+        this.metricsPromExporterHost = metricsPromExporterHost;
+    }
+
+    public String getMetricsLabel() {
+        return metricsLabel;
+    }
+
+    public void setMetricsLabel(String metricsLabel) {
+        this.metricsLabel = metricsLabel;
+    }
+
+    public boolean isMetricsInDelta() {
+        return metricsInDelta;
+    }
+
+    public void setMetricsInDelta(boolean metricsInDelta) {
+        this.metricsInDelta = metricsInDelta;
+    }
+
+    public long getChannelExpiredTimeout() {
+        return channelExpiredTimeout;
+    }
+
+    public boolean isEnableRemotingLocalProxyGrpc() {
+        return enableRemotingLocalProxyGrpc;
+    }
+
+    public void setChannelExpiredTimeout(long channelExpiredTimeout) {
+        this.channelExpiredTimeout = channelExpiredTimeout;
+    }
+
+    public void setEnableRemotingLocalProxyGrpc(boolean enableRemotingLocalProxyGrpc) {
+        this.enableRemotingLocalProxyGrpc = enableRemotingLocalProxyGrpc;
+    }
+
+    public int getLocalProxyConnectTimeoutMs() {
+        return localProxyConnectTimeoutMs;
+    }
+
+    public void setLocalProxyConnectTimeoutMs(int localProxyConnectTimeoutMs) {
+        this.localProxyConnectTimeoutMs = localProxyConnectTimeoutMs;
+    }
+
+    public int getRemotingListenPort() {
+        return remotingListenPort;
+    }
+
+    public void setRemotingListenPort(int remotingListenPort) {
+        this.remotingListenPort = remotingListenPort;
+    }
+
+    public int getRemotingHeartbeatThreadPoolNums() {
+        return remotingHeartbeatThreadPoolNums;
+    }
+
+    public void setRemotingHeartbeatThreadPoolNums(int remotingHeartbeatThreadPoolNums) {
+        this.remotingHeartbeatThreadPoolNums = remotingHeartbeatThreadPoolNums;
+    }
+
+    public int getRemotingTopicRouteThreadPoolNums() {
+        return remotingTopicRouteThreadPoolNums;
+    }
+
+    public void setRemotingTopicRouteThreadPoolNums(int remotingTopicRouteThreadPoolNums) {
+        this.remotingTopicRouteThreadPoolNums = remotingTopicRouteThreadPoolNums;
+    }
+
+    public int getRemotingSendMessageThreadPoolNums() {
+        return remotingSendMessageThreadPoolNums;
+    }
+
+    public void setRemotingSendMessageThreadPoolNums(int remotingSendMessageThreadPoolNums) {
+        this.remotingSendMessageThreadPoolNums = remotingSendMessageThreadPoolNums;
+    }
+
+    public int getRemotingPullMessageThreadPoolNums() {
+        return remotingPullMessageThreadPoolNums;
+    }
+
+    public void setRemotingPullMessageThreadPoolNums(int remotingPullMessageThreadPoolNums) {
+        this.remotingPullMessageThreadPoolNums = remotingPullMessageThreadPoolNums;
+    }
+
+    public int getRemotingUpdateOffsetThreadPoolNums() {
+        return remotingUpdateOffsetThreadPoolNums;
+    }
+
+    public void setRemotingUpdateOffsetThreadPoolNums(int remotingUpdateOffsetThreadPoolNums) {
+        this.remotingUpdateOffsetThreadPoolNums = remotingUpdateOffsetThreadPoolNums;
+    }
+
+    public int getRemotingDefaultThreadPoolNums() {
+        return remotingDefaultThreadPoolNums;
+    }
+
+    public void setRemotingDefaultThreadPoolNums(int remotingDefaultThreadPoolNums) {
+        this.remotingDefaultThreadPoolNums = remotingDefaultThreadPoolNums;
+    }
+
+    public int getRemotingHeartbeatThreadPoolQueueCapacity() {
+        return remotingHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingHeartbeatThreadPoolQueueCapacity(int remotingHeartbeatThreadPoolQueueCapacity) {
+        this.remotingHeartbeatThreadPoolQueueCapacity = remotingHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingTopicRouteThreadPoolQueueCapacity() {
+        return remotingTopicRouteThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingTopicRouteThreadPoolQueueCapacity(int remotingTopicRouteThreadPoolQueueCapacity) {
+        this.remotingTopicRouteThreadPoolQueueCapacity = remotingTopicRouteThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingSendThreadPoolQueueCapacity() {
+        return remotingSendThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingSendThreadPoolQueueCapacity(int remotingSendThreadPoolQueueCapacity) {
+        this.remotingSendThreadPoolQueueCapacity = remotingSendThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingPullThreadPoolQueueCapacity() {
+        return remotingPullThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingPullThreadPoolQueueCapacity(int remotingPullThreadPoolQueueCapacity) {
+        this.remotingPullThreadPoolQueueCapacity = remotingPullThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingUpdateOffsetThreadPoolQueueCapacity() {
+        return remotingUpdateOffsetThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingUpdateOffsetThreadPoolQueueCapacity(int remotingUpdateOffsetThreadPoolQueueCapacity) {
+        this.remotingUpdateOffsetThreadPoolQueueCapacity = remotingUpdateOffsetThreadPoolQueueCapacity;
+    }
+
+    public int getRemotingDefaultThreadPoolQueueCapacity() {
+        return remotingDefaultThreadPoolQueueCapacity;
+    }
+
+    public void setRemotingDefaultThreadPoolQueueCapacity(int remotingDefaultThreadPoolQueueCapacity) {
+        this.remotingDefaultThreadPoolQueueCapacity = remotingDefaultThreadPoolQueueCapacity;
+    }
+
+    public long getRemotingWaitTimeMillsInSendQueue() {
+        return remotingWaitTimeMillsInSendQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInSendQueue(long remotingWaitTimeMillsInSendQueue) {
+        this.remotingWaitTimeMillsInSendQueue = remotingWaitTimeMillsInSendQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInPullQueue() {
+        return remotingWaitTimeMillsInPullQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInPullQueue(long remotingWaitTimeMillsInPullQueue) {
+        this.remotingWaitTimeMillsInPullQueue = remotingWaitTimeMillsInPullQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInHeartbeatQueue() {
+        return remotingWaitTimeMillsInHeartbeatQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInHeartbeatQueue(long remotingWaitTimeMillsInHeartbeatQueue) {
+        this.remotingWaitTimeMillsInHeartbeatQueue = remotingWaitTimeMillsInHeartbeatQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInUpdateOffsetQueue() {
+        return remotingWaitTimeMillsInUpdateOffsetQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInUpdateOffsetQueue(long remotingWaitTimeMillsInUpdateOffsetQueue) {
+        this.remotingWaitTimeMillsInUpdateOffsetQueue = remotingWaitTimeMillsInUpdateOffsetQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInTopicRouteQueue() {
+        return remotingWaitTimeMillsInTopicRouteQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInTopicRouteQueue(long remotingWaitTimeMillsInTopicRouteQueue) {
+        this.remotingWaitTimeMillsInTopicRouteQueue = remotingWaitTimeMillsInTopicRouteQueue;
+    }
+
+    public long getRemotingWaitTimeMillsInDefaultQueue() {
+        return remotingWaitTimeMillsInDefaultQueue;
+    }
+
+    public void setRemotingWaitTimeMillsInDefaultQueue(long remotingWaitTimeMillsInDefaultQueue) {
+        this.remotingWaitTimeMillsInDefaultQueue = remotingWaitTimeMillsInDefaultQueue;
     }
 }

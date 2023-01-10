@@ -23,11 +23,11 @@ import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class ClientProcessor extends AbstractProcessor {
 
@@ -88,9 +88,9 @@ public class ClientProcessor extends AbstractProcessor {
     public ClientChannelInfo findConsumerChannel(
         ProxyContext ctx,
         String consumerGroup,
-        String clientId
+        Channel channel
     ) {
-        return this.serviceManager.getConsumerManager().findChannel(consumerGroup, clientId);
+        return this.serviceManager.getConsumerManager().findChannel(consumerGroup, channel);
     }
 
     public void unRegisterConsumer(
@@ -99,6 +99,11 @@ public class ClientProcessor extends AbstractProcessor {
         ClientChannelInfo clientChannelInfo
     ) {
         this.serviceManager.getConsumerManager().unregisterConsumer(consumerGroup, clientChannelInfo, false);
+    }
+
+    public void doChannelCloseEvent(String remoteAddr, Channel channel) {
+        this.serviceManager.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.serviceManager.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
     public void registerConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {

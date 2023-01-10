@@ -65,23 +65,45 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
-        byte[] msgBytes = new byte[0];
-        try {
-            msgBytes = MessageDecoder.encode(messageExt, false);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertThat(Boolean.FALSE).isTrue();
+        {
+            byte[] msgBytes = new byte[0];
+            try {
+                msgBytes = MessageDecoder.encode(messageExt, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertThat(Boolean.FALSE).isTrue();
+            }
+
+            ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
+            byteBuffer.put(msgBytes);
+
+            Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
+
+            assertThat(properties).isNotNull();
+            assertThat("123").isEqualTo(properties.get("a"));
+            assertThat("hello").isEqualTo(properties.get("b"));
+            assertThat("3.14").isEqualTo(properties.get("c"));
         }
 
-        ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
-        byteBuffer.put(msgBytes);
+        {
+            byte[] msgBytes = new byte[0];
+            try {
+                msgBytes = MessageDecoder.encode(messageExt, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertThat(Boolean.FALSE).isTrue();
+            }
 
-        Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
+            byteBuffer.put(msgBytes);
 
-        assertThat(properties).isNotNull();
-        assertThat("123").isEqualTo(properties.get("a"));
-        assertThat("hello").isEqualTo(properties.get("b"));
-        assertThat("3.14").isEqualTo(properties.get("c"));
+            Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
+
+            assertThat(properties).isNotNull();
+            assertThat("123").isEqualTo(properties.get("a"));
+            assertThat("hello").isEqualTo(properties.get("b"));
+            assertThat("3.14").isEqualTo(properties.get("c"));
+        }
     }
 
     @Test
@@ -383,7 +405,7 @@ public class MessageDecoderTest {
     }
 
     @Test
-    public void testMessageId() throws Exception{
+    public void testMessageId() throws Exception {
         // ipv4 messageId test
         MessageExt msgExt = new MessageExt();
         msgExt.setStoreHost(new InetSocketAddress("127.0.0.1", 9103));

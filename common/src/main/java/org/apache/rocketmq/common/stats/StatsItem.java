@@ -23,31 +23,30 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 public class StatsItem {
-
     private final LongAdder value = new LongAdder();
 
     private final LongAdder times = new LongAdder();
 
-    private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListMinute = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> csListHour = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListHour = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> csListDay = new LinkedList<>();
 
     private final String statsName;
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final InternalLogger log;
 
-    public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService,
-        InternalLogger log) {
+    private final Logger logger;
+
+    public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService, Logger logger) {
         this.statsName = statsName;
         this.statsKey = statsKey;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.log = log;
+        this.logger = logger;
     }
 
     private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {
@@ -194,18 +193,18 @@ public class StatsItem {
 
     public void printAtMinutes() {
         StatsSnapshot ss = computeStatsData(this.csListMinute);
-        log.info(String.format("[%s] [%s] Stats In One Minute, ", this.statsName, this.statsKey) + statPrintDetail(ss));
+        logger.info(String.format("[%s] [%s] Stats In One Minute, ", this.statsName, this.statsKey) + statPrintDetail(ss));
     }
 
     public void printAtHour() {
         StatsSnapshot ss = computeStatsData(this.csListHour);
-        log.info(String.format("[%s] [%s] Stats In One Hour, ", this.statsName, this.statsKey) + statPrintDetail(ss));
+        logger.info(String.format("[%s] [%s] Stats In One Hour, ", this.statsName, this.statsKey) + statPrintDetail(ss));
 
     }
 
     public void printAtDay() {
         StatsSnapshot ss = computeStatsData(this.csListDay);
-        log.info(String.format("[%s] [%s] Stats In One Day, ", this.statsName, this.statsKey) + statPrintDetail(ss));
+        logger.info(String.format("[%s] [%s] Stats In One Day, ", this.statsName, this.statsKey) + statPrintDetail(ss));
     }
 
     protected String statPrintDetail(StatsSnapshot ss) {

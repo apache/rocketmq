@@ -20,7 +20,8 @@ package org.apache.rocketmq.test.client.consumer.pop;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.logging.inner.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQPopConsumer;
@@ -39,7 +40,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class PopSubCheckIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(PopSubCheckIT.class);
+    private static final Logger log = LoggerFactory.getLogger(PopSubCheckIT.class);
     private String group;
 
     private DefaultMQAdminExt defaultMQAdminExt;
@@ -63,23 +64,23 @@ public class PopSubCheckIT extends BaseConf {
     @Test
     public void testNormalPopAck() throws Exception {
         String topic = initTopic();
-        logger.info(String.format("use topic: %s; group: %s !", topic, group));
+        log.info(String.format("use topic: %s; group: %s !", topic, group));
 
-        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         producer.getProducer().setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
         for (String brokerAddr : new String[]{brokerController1.getBrokerAddr(), brokerController2.getBrokerAddr()}) {
             defaultMQAdminExt.setMessageRequestMode(brokerAddr, topic, group, MessageRequestMode.POP, 8, 60_000);
         }
 
-        RMQPopConsumer consumer = ConsumerFactory.getRMQPopConsumer(nsAddr, group,
+        RMQPopConsumer consumer = ConsumerFactory.getRMQPopConsumer(NAMESRV_ADDR, group,
             topic, "*", new RMQNormalListener());
         mqClients.add(consumer);
 
         int msgNum = 1;
         producer.send(msgNum);
         Assert.assertEquals("Not all sent succeeded", msgNum, producer.getAllUndupMsgBody().size());
-        logger.info(producer.getFirstMsg());
+        log.info(producer.getFirstMsg().toString());
 
         TestUtils.waitForSeconds(10);
 

@@ -24,7 +24,7 @@ import java.util.Set;
  */
 public class TraceTransferBean {
     private String transData;
-    private Set<String> transKey = new HashSet<String>();
+    private Set<String> transKey = new HashSet<>();
 
     public String getTransData() {
         return transData;

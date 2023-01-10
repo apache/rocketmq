@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -32,8 +33,8 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -41,9 +42,20 @@ import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class HookUtils {
 
-    protected static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private static AtomicLong printTimes = new AtomicLong(0);
+    private static final AtomicLong PRINT_TIMES = new AtomicLong(0);
+
+    /**
+     * On Linux: The maximum length for a file name is 255 bytes.
+     * The maximum combined length of both the file name and path name is 4096 bytes.
+     * This length matches the PATH_MAX that is supported by the operating system.
+     * The Unicode representation of a character can occupy several bytes,
+     * so the maximum number of characters that comprises a path and file name can vary.
+     * The actual limitation is the number of bytes in the path and file components,
+     * which might correspond to an equal number of characters.
+     */
+    private static final Integer MAX_TOPIC_LENGTH = 255;
 
     public static PutMessageResult checkBeforePutMessage(BrokerController brokerController, final MessageExt msg) {
         if (brokerController.getMessageStore().isShutdown()) {
@@ -52,7 +64,7 @@ public class HookUtils {
         }
 
         if (!brokerController.getMessageStoreConfig().isDuplicationEnable() && BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
-            long value = printTimes.getAndIncrement();
+            long value = PRINT_TIMES.getAndIncrement();
             if ((value % 50000) == 0) {
                 LOG.warn("message store is in slave mode, so putMessage is forbidden ");
             }
@@ -61,32 +73,27 @@ public class HookUtils {
         }
 
         if (!brokerController.getMessageStore().getRunningFlags().isWriteable()) {
-            long value = printTimes.getAndIncrement();
+            long value = PRINT_TIMES.getAndIncrement();
             if ((value % 50000) == 0) {
                 LOG.warn("message store is not writeable, so putMessage is forbidden " + brokerController.getMessageStore().getRunningFlags().getFlagBits());
             }
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         } else {
-            printTimes.set(0);
+            PRINT_TIMES.set(0);
         }
 
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-        final int topicLength = topicData == null ? 0 : topicData.length;
-
-        if (topicLength > brokerController.getMessageStoreConfig().getMaxTopicLength()) {
-            LOG.warn("putMessage message topic[{}] length too long {}", msg.getTopic(), topicLength);
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (topicLength > Byte.MAX_VALUE) {
+        boolean retryTopic = msg.getTopic() != null && msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        if (!retryTopic && topicData.length > Byte.MAX_VALUE) {
             LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
-                msg.getTopic(), topicLength);
+                msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        if (msg.getBody() == null) {
-            LOG.warn("putMessage message topic[{}], but message body is null", msg.getTopic());
+        if (topicData.length > MAX_TOPIC_LENGTH) {
+            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
+                msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
@@ -123,26 +130,27 @@ public class HookUtils {
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             if (!isRolledTimerMessage(msg)) {
                 if (checkIfTimerMessage(msg)) {
                     if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }
-                    PutMessageResult tranformRes = transformTimerMessage(brokerController, msg);
-                    if (null != tranformRes) {
-                        return tranformRes;
+                    PutMessageResult transformRes = transformTimerMessage(brokerController, msg);
+                    if (null != transformRes) {
+                        return transformRes;
                     }
                 }
             }
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
-                transformDelayLevelMessage(brokerController,msg);
+                transformDelayLevelMessage(brokerController, msg);
             }
         }
         return null;
     }
+
     private static boolean isRolledTimerMessage(MessageExtBrokerInner msg) {
         return TimerMessageStore.TIMER_TOPIC.equals(msg.getTopic());
     }
@@ -155,6 +163,9 @@ public class HookUtils {
             if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) {
                 MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
             }
+            if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS)) {
+                MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_MS);
+            }
             return false;
             //return this.defaultMessageStore.getMessageStoreConfig().isTimerInterceptDelayLevel();
         }
@@ -164,7 +175,9 @@ public class HookUtils {
         }
         return null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
     }
-    private static PutMessageResult transformTimerMessage(BrokerController brokerController, MessageExtBrokerInner msg) {
+
+    private static PutMessageResult transformTimerMessage(BrokerController brokerController,
+        MessageExtBrokerInner msg) {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
         long deliverMs;
@@ -180,7 +193,7 @@ public class HookUtils {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
         if (deliverMs > System.currentTimeMillis()) {
-            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000) {
+            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 

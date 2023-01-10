@@ -18,7 +18,6 @@ package org.apache.rocketmq.acl.plain;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.PermissionChecker;
 import org.apache.rocketmq.acl.common.AclConstants;
@@ -43,18 +41,18 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.srvutil.AclFileWatchService;
 
 public class PlainPermissionManager {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -86,7 +84,7 @@ public class PlainPermissionManager {
 
     public PlainPermissionManager() {
         this.defaultAclDir = MixAll.dealFilePath(fileHome + File.separator + "conf" + File.separator + "acl");
-        this.defaultAclFile = MixAll.dealFilePath(fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml"));
+        this.defaultAclFile = MixAll.dealFilePath(fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf" + File.separator + "plain_acl.yml"));
         load();
         watch();
     }
@@ -96,7 +94,7 @@ public class PlainPermissionManager {
             log.info("The default acl dir {} is not exist", path);
             return new ArrayList<>();
         }
-        List<String>  allAclFileFullPath = new ArrayList<>();
+        List<String> allAclFileFullPath = new ArrayList<>();
         File file = new File(path);
         File[] files = file.listFiles();
         for (int i = 0; i < files.length; i++) {
@@ -165,7 +163,7 @@ public class PlainPermissionManager {
                         plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
                         accessKeyTable.put(plainAccessResource.getAccessKey(), currentFile);
                     } else {
-                        log.warn("The accesssKey {} is repeated in multiple ACL files", plainAccessResource.getAccessKey());
+                        log.warn("The accessKey {} is repeated in multiple ACL files", plainAccessResource.getAccessKey());
                     }
                 }
             }
@@ -239,7 +237,6 @@ public class PlainPermissionManager {
             this.globalWhiteRemoteAddressStrategyMap.put(aclFilePath, globalWhiteRemoteAddressStrategy);
         }
 
-
         JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
         if (accounts != null && !accounts.isEmpty()) {
             List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
@@ -270,7 +267,6 @@ public class PlainPermissionManager {
         }
     }
 
-
     @Deprecated
     public String getAclConfigDataVersion() {
         return this.dataVersion.toJson();
@@ -292,8 +288,8 @@ public class PlainPermissionManager {
             }
         }
         dataVersion.nextVersion();
-        List<Map<String, Object>> versionElement = new ArrayList<Map<String, Object>>();
-        Map<String, Object> accountsMap = new LinkedHashMap<String, Object>();
+        List<Map<String, Object>> versionElement = new ArrayList<>();
+        Map<String, Object> accountsMap = new LinkedHashMap<>();
         accountsMap.put(AclConstants.CONFIG_COUNTER, dataVersion.getCounter().longValue());
         accountsMap.put(AclConstants.CONFIG_TIME_STAMP, dataVersion.getTimestamp());
 
@@ -341,7 +337,7 @@ public class PlainPermissionManager {
             }
             Map<String, PlainAccessResource> accountMap = aclPlainAccessResourceMap.get(aclFileName);
             if (accountMap == null) {
-                accountMap = new HashMap<String, PlainAccessResource>(1);
+                accountMap = new HashMap<>(1);
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
             } else if (accountMap.size() == 0) {
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
@@ -400,7 +396,7 @@ public class PlainPermissionManager {
 
         Map<String, Object> newAccountsMap = null;
         if (existedAccountMap == null) {
-            newAccountsMap = new LinkedHashMap<String, Object>();
+            newAccountsMap = new LinkedHashMap<>();
         } else {
             newAccountsMap = existedAccountMap;
         }
@@ -646,7 +642,6 @@ public class PlainPermissionManager {
                 return;
             }
         }
-
 
         // Check perm of each resource
         checkPerm(plainAccessResource, ownedAccess);

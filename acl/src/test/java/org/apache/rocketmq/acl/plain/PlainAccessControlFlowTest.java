@@ -17,6 +17,17 @@
 
 package org.apache.rocketmq.acl.plain;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -24,30 +35,14 @@ import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.junit.After;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * <p> In this class, we'll test the following scenarios, each containing several consecutive operations on ACL,
@@ -68,122 +63,48 @@ public class PlainAccessControlFlowTest {
     public static final String DEFAULT_CONSUMER_AK = "ak22222";
 
     public static final String DEFAULT_GLOBAL_WHITE_ADDR = "172.16.123.123";
-    public static final List<String> DEFAULT_GLOBAL_WHITE_ADDRS_LIST = Arrays.asList(DEFAULT_GLOBAL_WHITE_ADDR);
+    public static final List<String> DEFAULT_GLOBAL_WHITE_ADDRS_LIST = Collections.singletonList(DEFAULT_GLOBAL_WHITE_ADDR);
 
-    public static final Path EMPTY_ACL_FOLDER_PLAIN_ACL_YML_PATH = Paths.get("src/test/resources/empty_acl_folder_conf/conf/plain_acl.yml");
-    private static final Path EMPTY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH = Paths.get("src/test/resources/empty_acl_folder_conf/conf/plain_acl.yml.bak");
-
-
-    public static final Path ONLY_ACL_FOLDER_DELETE_YML_PATH = Paths.get("src/test/resources/only_acl_folder_conf/conf/plain_acl.yml");
-    private static final Path ONLY_ACL_FOLDER_PLAIN_ACL_YML_PATH = Paths.get("src/test/resources/only_acl_folder_conf/conf/acl/plain_acl.yml");
-    private static final Path ONLY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH = Paths.get("src/test/resources/only_acl_folder_conf/conf/acl/plain_acl.yml.bak");
-
-    private static final Path BOTH_ACL_FOLDER_PLAIN_ACL_YML_PATH = Paths.get("src/test/resources/both_acl_file_folder_conf/conf/acl/plain_acl.yml");
-    private static final Path BOTH_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH = Paths.get("src/test/resources/both_acl_file_folder_conf/conf/acl/plain_acl.yml.bak");
-    private static final Path BOTH_CONF_FOLDER_PLAIN_ACL_YML_PATH = Paths.get("src/test/resources/both_acl_file_folder_conf/conf/plain_acl.yml");
-    private static final Path BOTH_CONF_FOLDER_PLAIN_ACL_YML_BAK_PATH = Paths.get("src/test/resources/both_acl_file_folder_conf/conf/plain_acl.yml.bak");
-
-    private boolean isCheckCase1 = false;
-    private boolean isCheckCase2 = false;
-    private boolean isCheckCase3 = false;
-
-
-
-    /**
-     * backup ACL config files
-     *
-     * @throws IOException
-     */
-    @Before
-    public void prepare() throws IOException {
-
-        Files.copy(EMPTY_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                EMPTY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                StandardCopyOption.REPLACE_EXISTING);
-
-
-        Files.copy(ONLY_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                ONLY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                StandardCopyOption.REPLACE_EXISTING);
-
-
-        Files.copy(BOTH_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                BOTH_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(BOTH_CONF_FOLDER_PLAIN_ACL_YML_PATH,
-                BOTH_CONF_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                StandardCopyOption.REPLACE_EXISTING);
-
-    }
-
-    /**
-     * restore ACL config files
-     *
-     * @throws IOException
-     */
-    @After
-    public void restore() throws IOException {
-        if (this.isCheckCase1) {
-            Files.copy(EMPTY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                    EMPTY_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                    StandardCopyOption.REPLACE_EXISTING);
-        }
-
-        if (this.isCheckCase2) {
-            Files.copy(ONLY_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                    ONLY_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                    StandardCopyOption.REPLACE_EXISTING);
-            Files.deleteIfExists(ONLY_ACL_FOLDER_DELETE_YML_PATH);
-        }
-
-        if (this.isCheckCase3) {
-            Files.copy(BOTH_ACL_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                    BOTH_ACL_FOLDER_PLAIN_ACL_YML_PATH,
-                    StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(BOTH_CONF_FOLDER_PLAIN_ACL_YML_BAK_PATH,
-                    BOTH_CONF_FOLDER_PLAIN_ACL_YML_PATH,
-                    StandardCopyOption.REPLACE_EXISTING);
-        }
-
+    @Test
+    public void testEmptyAclFolderCase() throws NoSuchFieldException, IllegalAccessException,
+        IOException {
+        String folder = "empty_acl_folder_conf";
+        File home = AclTestHelper.copyResources(folder);
+        System.setProperty("rocketmq.home.dir", home.getAbsolutePath());
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        checkDefaultAclFileExists();
+        testValidationAfterConsecutiveUpdates(plainAccessValidator);
+        testValidationAfterConfigFileChanged(plainAccessValidator);
+        AclTestHelper.recursiveDelete(home);
     }
 
     @Test
-    public void testEmptyAclFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
-        this.isCheckCase1 = true;
-        System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/empty_acl_folder_conf").toString());
+    public void testOnlyAclFolderCase() throws NoSuchFieldException, IllegalAccessException, IOException {
+        String folder = "only_acl_folder_conf";
+        File home = AclTestHelper.copyResources(folder);
+        System.setProperty("rocketmq.home.dir", home.getAbsolutePath());
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-
-        checkDefaultAclFileExists(plainAccessValidator);
+        checkDefaultAclFileExists();
         testValidationAfterConsecutiveUpdates(plainAccessValidator);
         testValidationAfterConfigFileChanged(plainAccessValidator);
-
+        AclTestHelper.recursiveDelete(home);
     }
 
     @Test
-    public void testOnlyAclFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
-        this.isCheckCase2 = true;
-        System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/only_acl_folder_conf").toString());
+    public void testBothAclFileAndFolderCase() throws NoSuchFieldException, IllegalAccessException,
+        IOException {
+        String folder = "both_acl_file_folder_conf";
+        File root = AclTestHelper.copyResources(folder);
+        System.setProperty("rocketmq.home.dir", root.getAbsolutePath());
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-
-        checkDefaultAclFileExists(plainAccessValidator);
+        checkDefaultAclFileExists();
         testValidationAfterConsecutiveUpdates(plainAccessValidator);
         testValidationAfterConfigFileChanged(plainAccessValidator);
+        AclTestHelper.recursiveDelete(root);
     }
 
-
-    @Test
-    public void testBothAclFileAndFolderCase() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
-        this.isCheckCase3 = true;
-        System.setProperty("rocketmq.home.dir", Paths.get("src/test/resources/both_acl_file_folder_conf").toString());
-        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-
-        checkDefaultAclFileExists(plainAccessValidator);
-        testValidationAfterConsecutiveUpdates(plainAccessValidator);
-        testValidationAfterConfigFileChanged(plainAccessValidator);
-
-    }
-
-    private void testValidationAfterConfigFileChanged(PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException, InterruptedException {
+    private void testValidationAfterConfigFileChanged(
+        PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException {
         PlainAccessConfig producerAccessConfig = generateProducerAccessConfig();
         PlainAccessConfig consumerAccessConfig = generateConsumerAccessConfig();
         List<PlainAccessConfig> plainAccessConfigList = new LinkedList<>();
@@ -229,8 +150,8 @@ public class PlainAccessControlFlowTest {
 
     }
 
-
-    private void testValidationAfterConsecutiveUpdates(PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException {
+    private void testValidationAfterConsecutiveUpdates(
+        PlainAccessValidator plainAccessValidator) throws NoSuchFieldException, IllegalAccessException {
         PlainAccessConfig producerAccessConfig = generateProducerAccessConfig();
         plainAccessValidator.updateAccessConfig(producerAccessConfig);
 
@@ -259,7 +180,7 @@ public class PlainAccessControlFlowTest {
 
         // load from file
         loadConfigFile(plainAccessValidator,
-                System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml");
+            System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml");
         SessionCredentials unmatchedCredential = new SessionCredentials("non_exists_sk", "non_exists_sk");
         AclClientRPCHook dummyHook = new AclClientRPCHook(unmatchedCredential);
         validateSendMessage(RequestCode.SEND_MESSAGE, DEFAULT_TOPIC, dummyHook, DEFAULT_GLOBAL_WHITE_ADDR, plainAccessValidator);
@@ -273,8 +194,9 @@ public class PlainAccessControlFlowTest {
 
     }
 
-    private void loadConfigFile(PlainAccessValidator plainAccessValidator, String configFileName) throws NoSuchFieldException, IllegalAccessException {
-        Class clazz = PlainAccessValidator.class;
+    private void loadConfigFile(PlainAccessValidator plainAccessValidator,
+        String configFileName) throws NoSuchFieldException, IllegalAccessException {
+        Class<PlainAccessValidator> clazz = PlainAccessValidator.class;
         Field f = clazz.getDeclaredField("aclPlugEngine");
         f.setAccessible(true);
         PlainPermissionManager aclPlugEngine = (PlainPermissionManager) f.get(plainAccessValidator);
@@ -283,41 +205,37 @@ public class PlainAccessControlFlowTest {
 
     private PlainAccessConfig generateConsumerAccessConfig() {
         PlainAccessConfig plainAccessConfig2 = new PlainAccessConfig();
-        String accessKey2 = DEFAULT_CONSUMER_AK;
-        String secretKey2 = DEFAULT_CONSUMER_SK;
-        plainAccessConfig2.setAccessKey(accessKey2);
-        plainAccessConfig2.setSecretKey(secretKey2);
+        plainAccessConfig2.setAccessKey(DEFAULT_CONSUMER_AK);
+        plainAccessConfig2.setSecretKey(DEFAULT_CONSUMER_SK);
         plainAccessConfig2.setAdmin(false);
         plainAccessConfig2.setDefaultTopicPerm(AclConstants.DENY);
         plainAccessConfig2.setDefaultGroupPerm(AclConstants.DENY);
-        plainAccessConfig2.setTopicPerms(Arrays.asList(DEFAULT_TOPIC + "=" + AclConstants.SUB));
-        plainAccessConfig2.setGroupPerms(Arrays.asList(DEFAULT_GROUP + "=" + AclConstants.SUB));
+        plainAccessConfig2.setTopicPerms(Collections.singletonList(DEFAULT_TOPIC + "=" + AclConstants.SUB));
+        plainAccessConfig2.setGroupPerms(Collections.singletonList(DEFAULT_GROUP + "=" + AclConstants.SUB));
         return plainAccessConfig2;
     }
 
     private PlainAccessConfig generateProducerAccessConfig() {
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
-        String accessKey = DEFAULT_PRODUCER_AK;
-        String secretKey = DEFAULT_PRODUCER_SK;
-        plainAccessConfig.setAccessKey(accessKey);
-        plainAccessConfig.setSecretKey(secretKey);
+        plainAccessConfig.setAccessKey(DEFAULT_PRODUCER_AK);
+        plainAccessConfig.setSecretKey(DEFAULT_PRODUCER_SK);
         plainAccessConfig.setAdmin(false);
         plainAccessConfig.setDefaultTopicPerm(AclConstants.DENY);
         plainAccessConfig.setDefaultGroupPerm(AclConstants.DENY);
-        plainAccessConfig.setTopicPerms(Arrays.asList(DEFAULT_TOPIC + "=" + AclConstants.PUB));
+        plainAccessConfig.setTopicPerms(Collections.singletonList(DEFAULT_TOPIC + "=" + AclConstants.PUB));
         return plainAccessConfig;
     }
 
     public void validatePullMessage(String topic,
-                                    String group,
-                                    AclClientRPCHook aclClientRPCHook,
-                                    String remoteAddr,
-                                    PlainAccessValidator plainAccessValidator) {
+        String group,
+        AclClientRPCHook aclClientRPCHook,
+        String remoteAddr,
+        PlainAccessValidator plainAccessValidator) {
         PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
         pullMessageRequestHeader.setTopic(topic);
         pullMessageRequestHeader.setConsumerGroup(group);
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE,
-                pullMessageRequestHeader);
+            pullMessageRequestHeader);
         aclClientRPCHook.doBeforeRequest(remoteAddr, remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
@@ -325,7 +243,7 @@ public class PlainAccessControlFlowTest {
         buf.position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(
-                    RemotingCommand.decode(buf), remoteAddr);
+                RemotingCommand.decode(buf), remoteAddr);
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -334,10 +252,10 @@ public class PlainAccessControlFlowTest {
     }
 
     public void validateSendMessage(int requestCode,
-                                    String topic,
-                                    AclClientRPCHook aclClientRPCHook,
-                                    String remoteAddr,
-                                    PlainAccessValidator plainAccessValidator) {
+        String topic,
+        AclClientRPCHook aclClientRPCHook,
+        String remoteAddr,
+        PlainAccessValidator plainAccessValidator) {
         SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
         messageRequestHeader.setTopic(topic);
         RemotingCommand remotingCommand;
@@ -345,7 +263,7 @@ public class PlainAccessControlFlowTest {
             remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         } else {
             remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2,
-                    SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(messageRequestHeader));
+                SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(messageRequestHeader));
         }
 
         aclClientRPCHook.doBeforeRequest(remoteAddr, remotingCommand);
@@ -356,8 +274,7 @@ public class PlainAccessControlFlowTest {
         buf.position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(
-                    RemotingCommand.decode(buf), remoteAddr);
-            System.out.println(accessResource.getWhiteRemoteAddress());
+                RemotingCommand.decode(buf), remoteAddr);
             plainAccessValidator.validate(accessResource);
         } catch (RemotingCommandException e) {
             e.printStackTrace();
@@ -365,8 +282,8 @@ public class PlainAccessControlFlowTest {
         }
     }
 
-
-    private void checkPlainAccessConfig(final PlainAccessConfig plainAccessConfig, final List<PlainAccessConfig> plainAccessConfigs) {
+    private void checkPlainAccessConfig(final PlainAccessConfig plainAccessConfig,
+        final List<PlainAccessConfig> plainAccessConfigs) {
         for (PlainAccessConfig config : plainAccessConfigs) {
             if (config.getAccessKey().equals(plainAccessConfig.getAccessKey())) {
                 Assert.assertEquals(plainAccessConfig.getSecretKey(), config.getSecretKey());
@@ -386,11 +303,10 @@ public class PlainAccessControlFlowTest {
         }
     }
 
-    private void checkDefaultAclFileExists(PlainAccessValidator plainAccessValidator) {
+    private void checkDefaultAclFileExists() {
         boolean isExists = Files.exists(Paths.get(System.getProperty("rocketmq.home.dir")
-                + File.separator + "conf/plain_acl.yml"));
+            + File.separator + "conf" + File.separator + "plain_acl.yml"));
         Assert.assertTrue("default acl config file should exist", isExists);
-
     }
 
 }

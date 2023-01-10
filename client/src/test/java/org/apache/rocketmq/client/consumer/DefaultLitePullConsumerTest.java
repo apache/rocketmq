@@ -52,9 +52,9 @@ import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -139,7 +139,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribeWithListener_PollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumerWithListener();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -147,14 +147,14 @@ public class DefaultLitePullConsumerTest {
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
             assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
 
-            Set<MessageQueue> assignment= litePullConsumer.assignment();
+            Set<MessageQueue> assignment = litePullConsumer.assignment();
             assertThat(assignment.stream().findFirst().get()).isEqualTo(messageQueueSet.stream().findFirst().get());
         } finally {
             litePullConsumer.shutdown();
         }
     }
 
-  
+
     @Test
     public void testAssign_PollMessageWithTagSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumerWithTag();
@@ -184,7 +184,7 @@ public class DefaultLitePullConsumerTest {
         offsetStore.set(litePullConsumerImpl, store);
 
         MessageQueue messageQueue = createMessageQueue();
-        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        HashSet<MessageQueue> set = new HashSet<>();
         set.add(messageQueue);
 
         //mock assign and reset offset
@@ -194,7 +194,7 @@ public class DefaultLitePullConsumerTest {
         //commit offset 1
         Map<MessageQueue, Long> commitOffset = new HashMap<>();
         commitOffset.put(messageQueue, 1L);
-        litePullConsumer.commitSync(commitOffset, true);
+        litePullConsumer.commit(commitOffset, true);
 
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(1);
     }
@@ -204,7 +204,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribe_PollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createSubscribeLitePullConsumer();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -220,7 +220,7 @@ public class DefaultLitePullConsumerTest {
     public void testSubscribe_BroadcastPollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createBroadcastLitePullConsumer();
         try {
-            Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+            Set<MessageQueue> messageQueueSet = new HashSet<>();
             messageQueueSet.add(createMessageQueue());
             litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
@@ -460,7 +460,7 @@ public class DefaultLitePullConsumerTest {
                 flag = true;
             }
         });
-        Set<MessageQueue> set = new HashSet<MessageQueue>();
+        Set<MessageQueue> set = new HashSet<>();
         set.add(createMessageQueue());
         doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
         Thread.sleep(11 * 1000);
@@ -633,7 +633,7 @@ public class DefaultLitePullConsumerTest {
         offsetStore.set(litePullConsumerImpl, store);
 
         MessageQueue messageQueue = createMessageQueue();
-        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        HashSet<MessageQueue> set = new HashSet<>();
         set.add(messageQueue);
 
         //mock assign and reset offset
@@ -775,7 +775,7 @@ public class DefaultLitePullConsumerTest {
                 });
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
-        
+
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
 
@@ -815,7 +815,7 @@ public class DefaultLitePullConsumerTest {
         return litePullConsumer;
     }
 
-          
+
     private DefaultLitePullConsumer createStartLitePullConsumerWithTag() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");

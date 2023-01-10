@@ -27,22 +27,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
-import org.apache.rocketmq.container.logback.BrokerLogbackConfigurator;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
-import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.container.logback.BrokerLogbackConfigurator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.Configuration;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -52,7 +51,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerContainer implements IBrokerContainer {
-    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
         new BasicThreadFactory.Builder()
@@ -112,6 +111,7 @@ public class BrokerContainer implements IBrokerContainer {
         return nettyServerConfig;
     }
 
+    @Override
     public NettyClientConfig getNettyClientConfig() {
         return nettyClientConfig;
     }
@@ -130,6 +130,14 @@ public class BrokerContainer implements IBrokerContainer {
         return this.configuration;
     }
 
+    private void updateNamesrvAddr() {
+        if (this.brokerContainerConfig.isFetchNameSrvAddrByDnsLookup()) {
+            this.brokerOuterAPI.updateNameServerAddressListByDnsLookup(this.brokerContainerConfig.getNamesrvAddr());
+        } else {
+            this.brokerOuterAPI.updateNameServerAddressList(this.brokerContainerConfig.getNamesrvAddr());
+        }
+    }
+
     public boolean initialize() {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.containerClientHouseKeepingService);
         this.fastRemotingServer = this.remotingServer.newRemotingServer(this.nettyServerConfig.getListenPort() - 2);
@@ -145,14 +153,14 @@ public class BrokerContainer implements IBrokerContainer {
         this.registerProcessor();
 
         if (this.brokerContainerConfig.getNamesrvAddr() != null) {
-            this.brokerOuterAPI.updateNameServerAddressList(this.brokerContainerConfig.getNamesrvAddr());
+            this.updateNamesrvAddr();
             LOG.info("Set user specified name server address: {}", this.brokerContainerConfig.getNamesrvAddr());
             // also auto update namesrv if specify
             this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
                 @Override
-                public void run2() {
+                public void run0() {
                     try {
-                        BrokerContainer.this.brokerOuterAPI.updateNameServerAddressList(BrokerContainer.this.brokerContainerConfig.getNamesrvAddr());
+                        BrokerContainer.this.updateNamesrvAddr();
                     } catch (Throwable e) {
                         LOG.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
@@ -162,7 +170,7 @@ public class BrokerContainer implements IBrokerContainer {
             this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
 
                 @Override
-                public void run2() {
+                public void run0() {
                     try {
                         BrokerContainer.this.brokerOuterAPI.fetchNameServerAddr();
                     } catch (Throwable e) {
@@ -174,7 +182,7 @@ public class BrokerContainer implements IBrokerContainer {
 
         this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
             @Override
-            public void run2() {
+            public void run0() {
                 try {
                     BrokerContainer.this.brokerOuterAPI.refreshMetadata();
                 } catch (Exception e) {

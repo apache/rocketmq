@@ -19,7 +19,13 @@ package org.apache.rocketmq.broker.failover;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.out.BrokerOuterAPI;
+import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -39,6 +45,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -79,6 +90,17 @@ public class EscapeBridgeTest {
         escapeBridge = new EscapeBridge(brokerController);
         messageExtBrokerInner = new MessageExtBrokerInner();
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        when(defaultMessageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
+
+        TopicRouteInfoManager topicRouteInfoManager = mock(TopicRouteInfoManager.class);
+        when(brokerController.getTopicRouteInfoManager()).thenReturn(topicRouteInfoManager);
+        when(topicRouteInfoManager.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn("");
+
+        BrokerOuterAPI brokerOuterAPI = mock(BrokerOuterAPI.class);
+        when(brokerController.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
+        when(brokerOuterAPI.pullMessageFromSpecificBrokerAsync(anyString(), anyString(), anyString(), anyString(), anyInt(), anyLong(), anyInt(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(new PullResult(PullStatus.FOUND, -1, -1, -1, new ArrayList<>())));
+
         brokerConfig.setEnableSlaveActingMaster(true);
         brokerConfig.setEnableRemoteEscape(true);
         escapeBridge.start();
@@ -145,12 +167,26 @@ public class EscapeBridgeTest {
         when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
         Assertions.assertThatCode(() -> escapeBridge.putMessage(messageExtBrokerInner)).doesNotThrowAnyException();
 
-        Assertions.assertThatCode(() -> escapeBridge.getMessage(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> escapeBridge.getMessage(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getMessageAsyncTest() {
+        when(brokerController.peekMasterBroker()).thenReturn(brokerController);
+        when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
+        Assertions.assertThatCode(() -> escapeBridge.putMessage(messageExtBrokerInner)).doesNotThrowAnyException();
+
+        Assertions.assertThatCode(() -> escapeBridge.getMessageAsync(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false)).doesNotThrowAnyException();
     }
 
     @Test
     public void getMessageFromRemoteTest() {
         Assertions.assertThatCode(() -> escapeBridge.getMessageFromRemote(TEST_TOPIC, 1, DEFAULT_QUEUE_ID, BROKER_NAME)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getMessageFromRemoteAsyncTest() {
+        Assertions.assertThatCode(() -> escapeBridge.getMessageFromRemoteAsync(TEST_TOPIC, 1, DEFAULT_QUEUE_ID, BROKER_NAME)).doesNotThrowAnyException();
     }
 
     @Test
@@ -160,7 +196,7 @@ public class EscapeBridgeTest {
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, 10, mappedFile);
 
         getMessageResult.addMessage(result);
-        Assertions.assertThatCode(() -> escapeBridge.decodeMsgList(getMessageResult)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> escapeBridge.decodeMsgList(getMessageResult, false)).doesNotThrowAnyException();
     }
 
 }

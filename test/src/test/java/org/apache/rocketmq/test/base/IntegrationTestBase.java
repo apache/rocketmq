@@ -24,19 +24,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -44,7 +44,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 
 public class IntegrationTestBase {
-    public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
+    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
 
     protected static final String SEP = File.separator;
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
@@ -53,10 +53,8 @@ public class IntegrationTestBase {
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
     protected static int topicCreateTime = (int) TimeUnit.SECONDS.toSeconds(30);
-    public static volatile int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
+    public static volatile int commitLogSize = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
-
-    protected static Random random = new Random();
 
     static {
 
@@ -87,6 +85,7 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         UtilAll.deleteFile(file);
                     }
+                    MQAdminTestUtils.shutdownAdmin();
                 } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
@@ -136,10 +135,12 @@ public class IntegrationTestBase {
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
+        brokerConfig.setEnableCalcFilterBitMap(true);
+        storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
+        storeConfig.setMappedFileSizeCommitLog(commitLogSize);
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
@@ -198,4 +199,12 @@ public class IntegrationTestBase {
         UtilAll.deleteFile(file);
     }
 
+    public static void initMQAdmin(String nsAddr) {
+        try {
+            MQAdminTestUtils.startAdmin(nsAddr);
+        } catch (MQClientException e) {
+            logger.info("MQAdmin start failed");
+            System.exit(1);
+        }
+    }
 }

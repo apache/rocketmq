@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.processor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Stopwatch;
+import io.netty.channel.Channel;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -37,8 +38,6 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.common.subscription.RetryPolicy;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
@@ -48,11 +47,14 @@ import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -104,7 +106,12 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                     }
                     if (args[0] instanceof ClientChannelInfo) {
                         ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                        clearGroup(new ReceiptHandleGroupKey(clientChannelInfo.getClientId(), group));
+                        if (ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
+                            // if the channel sync from other proxy is expired, not to clear data of connect to current proxy
+                            return;
+                        }
+                        clearGroup(new ReceiptHandleGroupKey(clientChannelInfo.getChannel(), group));
+                        log.info("clear handle of this client when client unregister. group:{}, clientChannelInfo:{}", group, clientChannelInfo);
                     }
                 }
             }
@@ -227,12 +234,12 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
     }
 
     protected boolean clientIsOffline(ReceiptHandleGroupKey groupKey) {
-        return this.messagingProcessor.findConsumerChannel(createContext("JudgeClientOnline"), groupKey.group, groupKey.clientId) == null;
+        return this.messagingProcessor.findConsumerChannel(createContext("JudgeClientOnline"), groupKey.group, groupKey.channel) == null;
     }
 
-    public void addReceiptHandle(String clientID, String group, String msgID, String receiptHandle,
+    public void addReceiptHandle(Channel channel, String group, String msgID, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
-        this.addReceiptHandle(new ReceiptHandleGroupKey(clientID, group), msgID, receiptHandle, messageReceiptHandle);
+        this.addReceiptHandle(new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle, messageReceiptHandle);
     }
 
     protected void addReceiptHandle(ReceiptHandleGroupKey key, String msgID, String receiptHandle,
@@ -244,8 +251,8 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
     }
 
-    public MessageReceiptHandle removeReceiptHandle(String clientID, String group, String msgID, String receiptHandle) {
-        return this.removeReceiptHandle(new ReceiptHandleGroupKey(clientID, group), msgID, receiptHandle);
+    public MessageReceiptHandle removeReceiptHandle(Channel channel, String group, String msgID, String receiptHandle) {
+        return this.removeReceiptHandle(new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle);
     }
 
     protected MessageReceiptHandle removeReceiptHandle(ReceiptHandleGroupKey key, String msgID, String receiptHandle) {
@@ -299,20 +306,24 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
     }
 
     public static class ReceiptHandleGroupKey {
-        private final String clientId;
-        private final String group;
+        protected final Channel channel;
+        protected final String group;
 
-        public ReceiptHandleGroupKey(String clientId, String group) {
-            this.clientId = clientId;
+        public ReceiptHandleGroupKey(Channel channel, String group) {
+            this.channel = channel;
             this.group = group;
         }
 
-        public String getClientId() {
-            return clientId;
+        protected String getChannelId() {
+            return channel.id().asLongText();
         }
 
         public String getGroup() {
             return group;
+        }
+
+        public Channel getChannel() {
+            return channel;
         }
 
         @Override
@@ -324,18 +335,18 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 return false;
             }
             ReceiptHandleGroupKey key = (ReceiptHandleGroupKey) o;
-            return Objects.equal(clientId, key.clientId) && Objects.equal(group, key.group);
+            return Objects.equal(getChannelId(), key.getChannelId()) && Objects.equal(group, key.group);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(clientId, group);
+            return Objects.hashCode(getChannelId(), group);
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                .add("clientId", clientId)
+                .add("channelId", getChannelId())
                 .add("group", group)
                 .toString();
         }

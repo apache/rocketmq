@@ -5,6 +5,7 @@ permissions:
   pull-requests: write
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"
 
@@ -14,6 +15,7 @@ jobs:
     steps:
       - uses: actions/stale@v5
         with:
+          operations-per-run: 128
           days-before-issue-stale: 365
           days-before-issue-close: 3
           exempt-issue-labels: "no stale"

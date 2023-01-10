@@ -2,8 +2,8 @@
 
 ## 背景
 
-在RocketMQ 4.x版本中，一个进程只有一个broker，通常会以主备或者DLedger（Raft）的形式部署，但是一个进程中只有一个broker，而slave一般只承担冷备或热备的作用，节点之间角色的不对等导致slave节点资源没有充分被利用。
-因此在RocketMQ 5.x版本中，提供一种新的模式BrokerContainer，在一个BrokerContainer进程中可以加入多个Broker（Master Broker、Slave Broker、DLedger Broker），来提高单个节点的资源利用率，并且可以通过各种形式的交叉部署来实现节点之间的对等部署。
+在RocketMQ 4.x 版本中，一个进程只有一个broker，通常会以主备或者DLedger（Raft）的形式部署，但是一个进程中只有一个broker，而slave一般只承担冷备或热备的作用，节点之间角色的不对等导致slave节点资源没有充分被利用。
+因此在RocketMQ 5.x 版本中，提供一种新的模式BrokerContainer，在一个BrokerContainer进程中可以加入多个Broker（Master Broker、Slave Broker、DLedger Broker），来提高单个节点的资源利用率，并且可以通过各种形式的交叉部署来实现节点之间的对等部署。
 该特性的优点包括：
 
 1. 一个BrokerContainer进程中可以加入多个broker，通过进程内混部来提高单个节点的资源利用率
@@ -104,7 +104,7 @@ replicasPerDiskPartition表示同一磁盘分区上有多少个副本，即该br
 
 e.g. replicasPerDiskPartition==2且broker所在磁盘空间为1T时，则该broker磁盘配额为512G，该broker的逻辑磁盘空间利用率基于512G的空间进行计算。
 
-logicalDiskSpaceCleanForciblyThreshold，该值只在quotaPercentForDiskPartition小于1时生效，表示逻辑磁盘空间强制清理阈值，默认为0.80（80%）， 逻辑磁盘空间利用率为该broker在自身磁盘配额内的空间利用率，物理磁盘空间利用率为该磁盘分区总空间利用率。由于在BrokerContainer实现中，考虑计算效率的情况下，仅统计了commitLog+consumeQueue（+ BCQ）+indexFile作为broker的存储空间占用，其余文件如元数据、消费进度、磁盘脏数据等未统计在内，故在多个broker存储空间达到动态平衡时，各broker所占空间可能有相差，以一个BrokerContainer中有两个broker为例，两broker存储空间差异可表示为：
+logicalDiskSpaceCleanForciblyThreshold，该值只在replicasPerDiskPartition大于1时生效，表示逻辑磁盘空间强制清理阈值，默认为0.80（80%）， 逻辑磁盘空间利用率为该broker在自身磁盘配额内的空间利用率，物理磁盘空间利用率为该磁盘分区总空间利用率。由于在BrokerContainer实现中，考虑计算效率的情况下，仅统计了commitLog+consumeQueue（+ BCQ）+indexFile作为broker的存储空间占用，其余文件如元数据、消费进度、磁盘脏数据等未统计在内，故在多个broker存储空间达到动态平衡时，各broker所占空间可能有相差，以一个BrokerContainer中有两个broker为例，两broker存储空间差异可表示为：
 ![](https://s4.ax1x.com/2022/01/26/7L14v4.png)
 其中，R_logical为logicalDiskSpaceCleanForciblyThreshold，R_phy为diskSpaceCleanForciblyRatio，T为磁盘分区总空间，x为除上述计算的broker存储空间外的其他文件所占磁盘总空间比例，可见，当
 ![](https://s4.ax1x.com/2022/01/26/7L1TbR.png)
@@ -119,34 +119,10 @@ eg.假设broker获取到的配额是500g（根据replicasPerDiskPartition计算�
 
 ## 日志变化
 
-在BrokerContainer模式下并开启日志分离后，日志的默认输出路径将发生变化，每个broker日志的具体路径变化为
+在BrokerContainer模式下日志的默认输出路径将发生变化，具体为：
+
 ```
-{user.home}/logs/{$brokerCanonicalName}_rocketmqlogs/
-```
-
-其中brokerCanonicalName为{BrokerClusterName_BrokerName_BrokerId}，{BrokerClusterName_BrokerName_BrokerId}。
-
-**开发者需要注意!**
-
-在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，BrokerContainer模式下将提供broker日志分离功能，不同broker的日志将会输出到不同文件中。
-
-主要通过线程名（ThreadName）或者通过设置线程本地变量（ThreadLocal）来区分不同broker线程，并且hack logback的logAppender将日志重定向到不同的文件中。
-
-通过设置线程名来区分不同broker线程，线程名前缀必须是#BrokerClusterName_BrokerName_BrokerId#
-
-通过设置线程本地变量区分不同broker线程，设置的变量为BrokerClusterName_BrokerName_BrokerId
-```java
-// set threadlocal broker identity to forward logging to corresponding broker
-InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName())
+{user.home}/logs/rocketmqlogs/${brokerCanonicalName}/
 ```
 
-如果线程没有上述区分，日志将仍然会输出在原来的目录下。
-
-以普通方式启动Broker（非BrokerContainer模式）时，日志将仍然会输出在原来的目录下。
-
-具体实现方式可以参考Slf4jLoggerFactory和BrokerLogbackConfigurator两个类。
-
-通过线程名和线程本地变量区分可以参考org.apache.rocketmq.common.AbstractBrokerRunnable、org.apache.rocketmq.common.ThreadFactoryImpl以及各个ServiceThread中getServiceName的实现。
-
-
-参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)
+其中 `brokerCanonicalName` 为 `{BrokerClusterName_BrokerName_BrokerId}`。

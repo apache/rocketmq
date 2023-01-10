@@ -56,16 +56,26 @@ public class UtilAllTest {
 
     @Test
     public void testProperties2String() {
-        DemoConfig demoConfig = new DemoConfig();
+        DemoSubConfig demoConfig = new DemoSubConfig();
         demoConfig.setDemoLength(123);
         demoConfig.setDemoWidth(456);
         demoConfig.setDemoName("TestDemo");
         demoConfig.setDemoOK(true);
+
+        demoConfig.setSubField0("1");
+        demoConfig.setSubField1(false);
+
         Properties properties = MixAll.object2Properties(demoConfig);
         assertThat(properties.getProperty("demoLength")).isEqualTo("123");
         assertThat(properties.getProperty("demoWidth")).isEqualTo("456");
         assertThat(properties.getProperty("demoOK")).isEqualTo("true");
         assertThat(properties.getProperty("demoName")).isEqualTo("TestDemo");
+
+        assertThat(properties.getProperty("subField0")).isEqualTo("1");
+        assertThat(properties.getProperty("subField1")).isEqualTo("false");
+
+        properties = MixAll.object2Properties(new Object());
+        assertEquals(0, properties.size());
     }
 
     @Test
@@ -170,6 +180,27 @@ public class UtilAllTest {
                 ", demoOK=" + demoOK +
                 ", demoName='" + demoName + '\'' +
                 '}';
+        }
+    }
+
+    static class DemoSubConfig extends DemoConfig {
+        private String subField0 = "0";
+        public boolean subField1 = true;
+
+        public String getSubField0() {
+            return subField0;
+        }
+
+        public void setSubField0(String subField0) {
+            this.subField0 = subField0;
+        }
+
+        public boolean isSubField1() {
+            return subField1;
+        }
+
+        public void setSubField1(boolean subField1) {
+            this.subField1 = subField1;
         }
     }
 

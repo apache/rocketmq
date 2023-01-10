@@ -19,9 +19,9 @@ package org.apache.rocketmq.test.offset;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -81,13 +81,13 @@ public class OffsetNotFoundIT extends BaseConf {
     @Test
     public void testConsumeStopAndResume() {
         String topic = initTopic();
-        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         int msgSize = 10;
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
         try {
             offsetRpcHook.throwException = true;
-            RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+            RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
             consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 15000);
             Assert.assertEquals(0, consumer.getListener().getAllMsgBody().size());
             consumer.shutdown();
@@ -95,7 +95,7 @@ public class OffsetNotFoundIT extends BaseConf {
             offsetRpcHook.throwException = false;
         }
         //test the normal
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 15000);
         Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
@@ -109,14 +109,14 @@ public class OffsetNotFoundIT extends BaseConf {
     public void testOffsetNotFoundException() {
         String topic = initTopic();
         String group = initConsumerGroup();
-        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         int msgSize = 10;
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
         try {
             offsetRpcHook.addSetZeroOfNotFound = true;
             //test the normal
-            RMQNormalConsumer consumer = new RMQNormalConsumer(nsAddr, topic, "*", group, new RMQNormalListener());
+            RMQNormalConsumer consumer = new RMQNormalConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener());
             consumer.create(false);
             consumer.getConsumer().setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
             consumer.start();

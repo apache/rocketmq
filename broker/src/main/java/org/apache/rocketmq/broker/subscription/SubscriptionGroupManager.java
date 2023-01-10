@@ -20,25 +20,26 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class SubscriptionGroupManager extends ConfigManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-        new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+    private ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
+        new ConcurrentHashMap<>(1024);
 
-    private final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
-        new ConcurrentHashMap<String, ConcurrentMap<String, Integer>>(4);
+    private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
+        new ConcurrentHashMap<>(4);
 
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
@@ -182,7 +183,7 @@ public class SubscriptionGroupManager extends ConfigManager {
 
         ConcurrentMap<String, Integer> topicsPermMap = this.forbiddenTable.get(group);
         if (topicsPermMap == null) {
-            this.forbiddenTable.putIfAbsent(group, new ConcurrentHashMap<String, Integer>());
+            this.forbiddenTable.putIfAbsent(group, new ConcurrentHashMap<>());
             topicsPermMap = this.forbiddenTable.get(group);
         }
         Integer old = topicsPermMap.put(topic, forbidden);
@@ -251,6 +252,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
@@ -269,6 +271,11 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
         return forbiddenTable;
+    }
+
+    public void setForbiddenTable(
+        ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable) {
+        this.forbiddenTable = forbiddenTable;
     }
 
     public DataVersion getDataVersion() {
@@ -293,5 +300,13 @@ public class SubscriptionGroupManager extends ConfigManager {
         for (String key : otherSubscriptionGroupTable.keySet()) {
             this.subscriptionGroupTable.put(key, otherSubscriptionGroupTable.get(key));
         }
+    }
+
+    public boolean containsSubscriptionGroup(String group) {
+        if (StringUtils.isBlank(group)) {
+            return false;
+        }
+
+        return subscriptionGroupTable.containsKey(group);
     }
 }

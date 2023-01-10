@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
 public class MessageQueueSelector {
     private static final int BROKER_ACTING_QUEUE_ID = -1;

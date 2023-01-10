@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.DeadLetterQueue;
 import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
@@ -39,15 +40,15 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class GrpcConverter {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected static final Object INSTANCE_CREATE_LOCK = new Object();
     protected static volatile GrpcConverter instance;
@@ -192,7 +193,7 @@ public class GrpcConverter {
         // store_host
         SocketAddress storeHost = messageExt.getStoreHost();
         if (storeHost != null) {
-            systemPropertiesBuilder.setStoreHost(RemotingUtil.socketAddress2String(storeHost));
+            systemPropertiesBuilder.setStoreHost(NetworkUtil.socketAddress2String(storeHost));
         }
 
         // delivery_timestamp
@@ -237,6 +238,15 @@ public class GrpcConverter {
             systemPropertiesBuilder.setTraceContext(traceContext);
         }
 
+        String dlqOriginTopic = messageExt.getProperty(MessageConst.PROPERTY_DLQ_ORIGIN_TOPIC);
+        String dlqOriginMessageId = messageExt.getProperty(MessageConst.PROPERTY_DLQ_ORIGIN_MESSAGE_ID);
+        if (dlqOriginTopic != null && dlqOriginMessageId != null) {
+            DeadLetterQueue dlq = DeadLetterQueue.newBuilder()
+                .setTopic(dlqOriginTopic)
+                .setMessageId(dlqOriginMessageId)
+                .build();
+            systemPropertiesBuilder.setDeadLetterQueue(dlq);
+        }
         return systemPropertiesBuilder.build();
     }
 

@@ -18,16 +18,12 @@ package org.apache.rocketmq.broker.processor;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.longpolling.NotificationRequest;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -36,20 +32,21 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.NotificationRequestHeader;
-import org.apache.rocketmq.common.protocol.header.NotificationResponseHeader;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class NotificationProcessor implements NettyRequestProcessor {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private Random random = new Random(System.currentTimeMillis());
     private static final String BORN_TIME = "bornTime";
@@ -60,7 +57,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
         this.checkNotificationPollingThread = new Thread(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
             @Override
-            public void run2() {
+            public void run0() {
                 while (true) {
                     if (Thread.currentThread().isInterrupted()) {
                         break;
@@ -148,31 +145,18 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (!request.getChannel().isActive()) {
             return;
         }
-        Runnable run = new Runnable() {
-            @Override
-            public void run() {
-                final RemotingCommand response = NotificationProcessor.this.responseNotification(request.getChannel(), hasMsg);
-
-                if (response != null) {
-                    response.setOpaque(request.getRemotingCommand().getOpaque());
-                    response.markResponseType();
-                    try {
-                        request.getChannel().writeAndFlush(response).addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                if (!future.isSuccess()) {
-                                    POP_LOGGER.error("ProcessRequestWrapper response to {} failed", future.channel().remoteAddress(), future.cause());
-                                    POP_LOGGER.error(request.toString());
-                                    POP_LOGGER.error(response.toString());
-                                }
-                            }
-                        });
-                    } catch (Throwable e) {
-                        POP_LOGGER.error("ProcessRequestWrapper process request over, but response failed", e);
+        Runnable run = () -> {
+            final RemotingCommand response = NotificationProcessor.this.responseNotification(request.getChannel(), hasMsg);
+            if (response != null) {
+                response.setOpaque(request.getRemotingCommand().getOpaque());
+                response.markResponseType();
+                NettyRemotingAbstract.writeResponse(request.getChannel(), request.getRemotingCommand(), response, future ->  {
+                    if (!future.isSuccess()) {
+                        POP_LOGGER.error("ProcessRequestWrapper response to {} failed", request.getChannel().remoteAddress(), future.cause());
                         POP_LOGGER.error(request.toString());
                         POP_LOGGER.error(response.toString());
                     }
-                }
+                });
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));

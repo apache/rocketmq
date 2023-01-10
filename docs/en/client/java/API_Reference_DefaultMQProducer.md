@@ -6,7 +6,7 @@
 extends ClientConfig 
 implements MQProducer`
 
->`DefaultMQProducer` is the entry point for an application to post messages, out of the box，ca  quickly create a producer with a no-argument construction. it is mainly responsible for message sending, support synchronous、asynchronous、one-way send. All of these send methods support batch send.  The parameters of the sender can be adjusted through the getter/setter methods , provided by this class. `DefaultMQProducer` has multi send method and each method is slightly different. Make  sure you know the usage before you use it . Blow is a producer example . [see more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/)。
+>`DefaultMQProducer` is the entry point for an application to post messages, out of the box, ca  quickly create a producer with a no-argument construction. it is mainly responsible for message sending, support synchronous、asynchronous、one-way send. All of these send methods support batch send.  The parameters of the sender can be adjusted through the getter/setter methods , provided by this class. `DefaultMQProducer` has multi send method and each method is slightly different. Make  sure you know the usage before you use it . Blow is a producer example . [see more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/).
 
 ``` java 
 public class Producer {
@@ -59,7 +59,7 @@ public class Producer {
 
 ### construction method 
 
-|方法名称|方法描述|
+|Method name|Method description|
 |-------|------------|
 |DefaultMQProducer()| creates a producer with default parameter values             |
 |DefaultMQProducer(final String producerGroup)| creates a producer with producer group name.                 |

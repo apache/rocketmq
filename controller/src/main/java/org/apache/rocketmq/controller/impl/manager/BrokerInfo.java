@@ -21,9 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Broker info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
- */
 public class BrokerInfo {
     private final String clusterName;
     private final String brokerName;
