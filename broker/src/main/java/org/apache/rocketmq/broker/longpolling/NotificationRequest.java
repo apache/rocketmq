@@ -43,7 +43,7 @@ public class NotificationRequest {
     }
 
     public boolean isTimeout() {
-        return System.currentTimeMillis() > (expired - 3000);
+        return System.currentTimeMillis() > (expired - 500);
     }
 
     public boolean complete() {
