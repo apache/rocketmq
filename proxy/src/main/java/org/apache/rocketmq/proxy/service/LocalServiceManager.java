@@ -25,6 +25,8 @@ import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.service.admin.AdminService;
+import org.apache.rocketmq.proxy.service.admin.DefaultAdminService;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.message.LocalMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
@@ -48,6 +50,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     private final TransactionService transactionService;
     private final ProxyRelayService proxyRelayService;
     private final MetadataService metadataService;
+    private final AdminService adminService;
 
     private final MQClientAPIFactory mqClientAPIFactory;
     private final ChannelManager channelManager;
@@ -60,7 +63,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
         this.channelManager = new ChannelManager();
         this.messageService = new LocalMessageService(brokerController, channelManager, rpcHook);
         this.mqClientAPIFactory = new MQClientAPIFactory(
-            "TopicRouteServiceClient_",
+            "LocalMQClient_",
             1,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
@@ -70,6 +73,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
         this.transactionService = new LocalTransactionService(brokerController.getBrokerConfig());
         this.proxyRelayService = new LocalProxyRelayService(brokerController, this.transactionService);
         this.metadataService = new LocalMetadataService(brokerController);
+        this.adminService = new DefaultAdminService(this.mqClientAPIFactory);
         this.init();
     }
 
@@ -112,6 +116,11 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     @Override
     public MetadataService getMetadataService() {
         return this.metadataService;
+    }
+
+    @Override
+    public AdminService getAdminService() {
+        return this.adminService;
     }
 
     private class LocalServiceManagerStartAndShutdown implements StartAndShutdown {

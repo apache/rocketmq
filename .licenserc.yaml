@@ -44,6 +44,7 @@ header:
     - 'distribution/NOTICE-BIN'
     - 'distribution/conf/rmq-proxy.json'
     - '.bazelversion'
+    - 'common/src/main/resources/META-INF/services/org.apache.rocketmq.logging.ch.qos.logback.classic.spi.Configurator'
 
 
   comment: on-failure

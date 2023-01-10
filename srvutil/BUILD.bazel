@@ -23,7 +23,6 @@ java_library(
     deps = [
         "//common",
         "//remoting",
-        "//logging",        
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
@@ -33,6 +32,8 @@ java_library(
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
         "@maven//:com_google_guava_guava",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 

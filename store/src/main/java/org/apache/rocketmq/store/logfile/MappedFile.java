@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.store.logfile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.Iterator;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.AppendMessageCallback;
@@ -26,13 +32,6 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.Iterator;
-
 public interface MappedFile {
     /**
      * Returns the file name of the {@code MappedFile}.
@@ -40,6 +39,13 @@ public interface MappedFile {
      * @return the file name
      */
     String getFileName();
+
+    /**
+     * Change the file name of the {@code MappedFile}.
+     *
+     * @param fileName the new file name
+     */
+    boolean renameTo(String fileName);
 
     /**
      * Returns the file size of the {@code MappedFile}.
@@ -354,4 +360,12 @@ public interface MappedFile {
     void init(String fileName, int fileSize, TransientStorePool transientStorePool) throws IOException;
 
     Iterator<SelectMappedBufferResult> iterator(int pos);
+
+    /**
+     * Check mapped file is loaded to memory with given position and size
+     * @param position start offset of data
+     * @param size data size
+     * @return data is resided in memory or not
+     */
+    boolean isLoaded(long position, int size);
 }

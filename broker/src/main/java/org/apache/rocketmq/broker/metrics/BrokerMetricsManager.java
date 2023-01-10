@@ -56,15 +56,14 @@ import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_MESSAGES_IN_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_MESSAGES_OUT_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_THROUGHPUT_IN_TOTAL;
@@ -76,7 +75,6 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_LAG_MESSAGES;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_QUEUEING_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_READY_MESSAGES;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PROCESSOR_WATERMARK;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_MESSAGE_SIZE;
@@ -84,6 +82,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGG
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUME_MODE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_LANGUAGE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
@@ -97,14 +96,13 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
 
 public class BrokerMetricsManager {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final BrokerConfig brokerConfig;
     private final MessageStore messageStore;
     private final BrokerController brokerController;
     private final ConsumerLagCalculator consumerLagCalculator;
     private final static Map<String, String> LABEL_MAP = new HashMap<>();
-    private final Map<String, Long> dlqOffsetMap = new HashMap<>();
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
@@ -131,7 +129,7 @@ public class BrokerMetricsManager {
     public static ObservableLongGauge consumerInflightMessages = new NopObservableLongGauge();
     public static ObservableLongGauge consumerQueueingLatency = new NopObservableLongGauge();
     public static ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
-    public static ObservableLongGauge sendToDlqMessages = new NopObservableLongGauge();
+    public static LongCounter sendToDlqMessages = new NopLongCounter();
 
     public BrokerMetricsManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -151,6 +149,7 @@ public class BrokerMetricsManager {
         AttributesBuilder attributesBuilder = newAttributesBuilder();
         attributesBuilder.put(LABEL_CONSUMER_GROUP, result.group);
         attributesBuilder.put(LABEL_TOPIC, result.topic);
+        attributesBuilder.put(LABEL_IS_RETRY, result.isRetry);
         attributesBuilder.put(LABEL_IS_SYSTEM, isSystem(result.topic, result.group));
         return attributesBuilder.build();
     }
@@ -334,7 +333,7 @@ public class BrokerMetricsManager {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
 
-        for (Pair<InstrumentSelector, View> selectorViewPair : DefaultStoreMetricsManager.getMetricsView()) {
+        for (Pair<InstrumentSelector, View> selectorViewPair : messageStore.getMetricsView()) {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
     }
@@ -487,28 +486,14 @@ public class BrokerMetricsManager {
             .buildWithCallback(measurement ->
                 consumerLagCalculator.calculateAvailable(result -> measurement.record(result.available, buildLagAttributes(result))));
 
-        sendToDlqMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
+        sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
             .setDescription("Consumer send to DLQ messages")
-            .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateSendToDLQ(result -> {
-                long val = result.dlqMessageCount;
-                if (brokerConfig.isMetricsInDelta()) {
-                    String key = result.group + "%%" + result.topic;
-                    Long lastOffset = dlqOffsetMap.computeIfAbsent(key, k -> result.dlqMessageCount);
-                    dlqOffsetMap.put(key, result.dlqMessageCount);
-                    val -= lastOffset;
-                }
-                AttributesBuilder attributesBuilder = newAttributesBuilder();
-                attributesBuilder.put(LABEL_CONSUMER_GROUP, result.group);
-                attributesBuilder.put(LABEL_TOPIC, result.topic);
-                attributesBuilder.put(LABEL_IS_SYSTEM, isSystem(result.topic, result.group));
-                measurement.record(val, attributesBuilder.build());
-            }));
+            .build();
     }
 
     private void initOtherMetrics() {
         RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
-        DefaultStoreMetricsManager.init(brokerMeter, BrokerMetricsManager::newAttributesBuilder, (DefaultMessageStore) messageStore);
+        messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
     }
 
     public void shutdown() {

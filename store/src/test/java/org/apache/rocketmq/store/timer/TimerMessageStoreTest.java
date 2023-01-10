@@ -226,10 +226,6 @@ public class TimerMessageStoreTest {
 
         int passFlowControlNum = 0;
         for (int i = 0; i < 500; i++) {
-            // Message with delayMs in getSlotIndex(delayMs - precisionMs).
-            long congestNum = timerMessageStore.getCongestNum(delayMs - precisionMs);
-            assertTrue(congestNum <= 220);
-
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
 
             PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,inner);
@@ -240,7 +236,9 @@ public class TimerMessageStoreTest {
                 putMessageResult = new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL,null);
             }
 
-
+            // Message with delayMs in getSlotIndex(delayMs - precisionMs).
+            long congestNum = timerMessageStore.getCongestNum(delayMs - precisionMs);
+            assertTrue(congestNum <= 220);
             if (congestNum < 100) {
                 assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             } else {

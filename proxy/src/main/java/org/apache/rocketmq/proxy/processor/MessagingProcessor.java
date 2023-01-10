@@ -230,6 +230,12 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
+
+    CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
+
     void registerProducer(
         ProxyContext ctx,
         String producerGroup,
@@ -278,6 +284,8 @@ public interface MessagingProcessor extends StartAndShutdown {
     void registerConsumerListener(
         ConsumerIdsChangeListener consumerIdsChangeListener
     );
+
+    void doChannelCloseEvent(String remoteAddr, Channel channel);
 
     ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup);
 

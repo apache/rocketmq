@@ -50,7 +50,7 @@ public class LitePullConsumerAssignWithSubExpression {
             while (running) {
                 List<MessageExt> messageExts = litePullConsumer.poll();
                 System.out.printf("%s %n", messageExts);
-                litePullConsumer.commitSync();
+                litePullConsumer.commit();
             }
         } finally {
             litePullConsumer.shutdown();

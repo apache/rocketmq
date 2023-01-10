@@ -91,9 +91,9 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     public String toString() {
         return "CleanControllerBrokerDataRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
-            "brokerName='" + brokerName + '\'' +
-            "brokerAddress='" + brokerAddress + '\'' +
-            "isCleanLivingBroker='" + isCleanLivingBroker + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", isCleanLivingBroker=" + isCleanLivingBroker +
             '}';
     }
 }

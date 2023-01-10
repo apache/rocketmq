@@ -20,7 +20,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PopCheckPoint {
+public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @JSONField(name = "so")
     private long startOffset;
     @JSONField(name = "pt")
@@ -57,10 +57,6 @@ public class PopCheckPoint {
     }
 
     public void setStartOffset(long startOffset) {
-        this.startOffset = startOffset;
-    }
-
-    public void getStartOffset(long startOffset) {
         this.startOffset = startOffset;
     }
 
@@ -181,4 +177,8 @@ public class PopCheckPoint {
             + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + "]";
     }
 
+    @Override
+    public int compareTo(PopCheckPoint o) {
+        return (int) (this.getStartOffset() - o.getStartOffset());
+    }
 }

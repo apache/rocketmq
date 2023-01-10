@@ -145,6 +145,10 @@ public interface MQAdminExt extends MQAdmin {
         final String topic) throws RemotingException, MQClientException,
         InterruptedException, MQBrokerException;
 
+    ConsumeStats examineConsumeStats(final String brokerAddr, final String consumerGroup, final String topicName,
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQBrokerException;
+
     AdminToolResult<ConsumeStats> examineConsumeStatsConcurrent(String consumerGroup, String topic);
 
     ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
@@ -462,9 +466,9 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * clean controller broker meta data
-     *
      */
     void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr, boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
+        String brokerAddr,
+        boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
 
 }

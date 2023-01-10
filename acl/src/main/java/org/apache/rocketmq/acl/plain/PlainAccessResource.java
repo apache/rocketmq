@@ -121,6 +121,7 @@ public class PlainAccessResource implements AccessResource {
                     }
                     break;
                 case RequestCode.SEND_MESSAGE_V2:
+                case RequestCode.SEND_BATCH_MESSAGE:
                     final String topicV2 = request.getExtFields().get("b");
                     if (PlainAccessResource.isRetryTopic(topicV2)) {
                         accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("a")), Permission.SUB);

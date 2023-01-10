@@ -287,8 +287,10 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
                 Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(groupConfig.getGroupRetryPolicy().getRetryPolicy().nextDelayDuration(RECONSUME_TIMES)));
 
-        ReceiptHandleGroup receiptHandleGroup = receiptHandleProcessor.receiptHandleGroupMap.values().stream().findFirst().get();
-        assertTrue(receiptHandleGroup.isEmpty());
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> {
+            ReceiptHandleGroup receiptHandleGroup = receiptHandleProcessor.receiptHandleGroupMap.values().stream().findFirst().get();
+            assertTrue(receiptHandleGroup.isEmpty());
+        });
     }
 
     @Test

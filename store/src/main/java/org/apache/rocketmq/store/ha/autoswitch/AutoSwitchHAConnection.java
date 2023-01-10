@@ -27,8 +27,8 @@ import java.util.List;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -44,34 +44,34 @@ public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Handshake data protocol in syncing msg from master. Format:
      * <pre>
-     * +----------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   EpochEntrySize * EpochEntryNums  |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (12bytes * EpochEntryNums)    |
-     * +----------------------------------------------------------------------------------------------+
-     * |                       Header                            |             Body                   |
-     * |                                                         |                                    |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬────────────────────────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   EpochEntrySize * EpochEntryNums  │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (12bytes * EpochEntryNums)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┼────────────────────────────────────┤
+     * │                       Header                            │             Body                   │
+     * │                                                         │                                    │
      * </pre>
      * Handshake Header protocol Format:
-     *  current state + body size + offset + epoch
+     * current state + body size + offset + epoch
      */
     public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
 
     /**
      * Transfer data protocol in syncing msg from master. Format:
      * <pre>
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   epochStartOffset  |   confirmOffset  |    log data      |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (8bytes)       |      (8bytes)    |   (data size)    |
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |                                               Header                                             |       Body       |
-     * |                                                                                                  |                  |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬─────────────────────┬──────────────────┬──────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   epochStartOffset  │   confirmOffset  │    log data      │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (8bytes)       │      (8bytes)    │   (data size)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┴─────────────────────┴──────────────────┼──────────────────┤
+     * │                                               Header                                             │       Body       │
+     * │                                                                                                  │                  │
      * </pre>
      * Transfer Header protocol Format:
-     *  current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
+     * current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
      */
     public static final int TRANSFER_HEADER_SIZE = HANDSHAKE_HEADER_SIZE + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final AutoSwitchHAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddress;
@@ -300,7 +300,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + ReadSocketService.class.getSimpleName();
             }
             return ReadSocketService.class.getSimpleName();
         }
@@ -446,7 +446,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + WriteSocketService.class.getSimpleName();
             }
             return WriteSocketService.class.getSimpleName();
         }

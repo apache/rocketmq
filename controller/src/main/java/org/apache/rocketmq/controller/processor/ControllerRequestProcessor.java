@@ -22,13 +22,14 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.ControllerManager;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -60,7 +61,7 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLE
  * Processor for controller request
  */
 public class ControllerRequestProcessor implements NettyRequestProcessor {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
@@ -138,8 +139,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return RemotingCommand.createResponseCommand(null);
     }
 
+
     private RemotingCommand handleControllerRegisterBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                           RemotingCommand request) throws Exception {
         final RegisterBrokerToControllerRequestHeader controllerRequest = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(controllerRequest);
         if (future != null) {
@@ -147,7 +149,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
             if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                 this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                    responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(), controllerRequest.getEpoch(), controllerRequest.getMaxOffset());
+                        responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(), controllerRequest.getEpoch(), controllerRequest.getMaxOffset());
             }
             return response;
         }
@@ -155,7 +157,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                           RemotingCommand request) throws Exception {
         final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
         if (future != null) {
@@ -171,12 +173,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand handleBrokerHeartbeat(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
         this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr(),
-            requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
+                requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
         return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
     }
 
     private RemotingCommand handleControllerGetSyncStateData(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                             RemotingCommand request) throws Exception {
         if (request.getBody() != null) {
             final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
             if (brokerNames != null && brokerNames.size() > 0) {

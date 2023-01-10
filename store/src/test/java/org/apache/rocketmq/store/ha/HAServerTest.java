@@ -261,7 +261,7 @@ public class HAServerTest {
         BrokerConfig brokerConfig = mock(BrokerConfig.class);
 
         doReturn(true).when(brokerConfig).isInBrokerContainer();
-        doReturn("mock").when(brokerConfig).getLoggerIdentifier();
+        doReturn("mock").when(brokerConfig).getIdentifier();
         doReturn(brokerConfig).when(messageStore).getBrokerConfig();
         doReturn(new SystemClock()).when(messageStore).getSystemClock();
         doAnswer(invocation -> System.currentTimeMillis()).when(messageStore).now();

@@ -27,17 +27,17 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.util.Arrays;
@@ -52,6 +52,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
+
+    private static final Logger log = LoggerFactory.getLogger(Producer.class);
 
     private static byte[] msgBody;
     private static final int MAX_LENGTH_ASYNC_QUEUE = 10000;
@@ -90,8 +92,6 @@ public class Producer {
             sb.append(RandomStringUtils.randomAlphanumeric(1));
         }
         msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
-
-        final InternalLogger log = ClientLogger.getLog();
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 

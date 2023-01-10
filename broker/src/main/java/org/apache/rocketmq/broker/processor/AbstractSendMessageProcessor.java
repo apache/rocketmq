@@ -17,17 +17,19 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -47,8 +49,8 @@ import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -63,9 +65,13 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
+
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
-    protected static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    protected static final InternalLogger DLQ_LOG = InternalLoggerFactory.getLogger(LoggerName.DLQ_LOGGER_NAME);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger DLQ_LOG = LoggerFactory.getLogger(LoggerName.DLQ_LOGGER_NAME);
 
     protected List<ConsumeMessageHook> consumeMessageHookList;
 
@@ -183,6 +189,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         boolean isDLQ = false;
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
+
+            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                .put(LABEL_CONSUMER_GROUP, requestHeader.getGroup())
+                .put(LABEL_TOPIC, requestHeader.getOriginTopic())
+                .put(LABEL_IS_SYSTEM, BrokerMetricsManager.isSystem(requestHeader.getOriginTopic(), requestHeader.getGroup()))
+                .build();
+            BrokerMetricsManager.sendToDlqMessages.add(1, attributes);
 
             isDLQ = true;
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
@@ -345,20 +358,25 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     }
 
     protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx,
-        SendMessageRequestHeader requestHeader) {
+        SendMessageRequestHeader requestHeader, RemotingCommand request) {
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
 
-        SendMessageContext traceContext;
-        traceContext = new SendMessageContext();
-        traceContext.setNamespace(namespace);
-        traceContext.setProducerGroup(requestHeader.getProducerGroup());
-        traceContext.setTopic(requestHeader.getTopic());
-        traceContext.setMsgProps(requestHeader.getProperties());
-        traceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-        traceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
-        traceContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
-        traceContext.setBornTimeStamp(requestHeader.getBornTimestamp());
-        traceContext.setRequestTimeStamp(System.currentTimeMillis());
+        SendMessageContext sendMessageContext;
+        sendMessageContext = new SendMessageContext();
+        sendMessageContext.setNamespace(namespace);
+        sendMessageContext.setProducerGroup(requestHeader.getProducerGroup());
+        sendMessageContext.setTopic(requestHeader.getTopic());
+        sendMessageContext.setBodyLength(request.getBody().length);
+        sendMessageContext.setMsgProps(requestHeader.getProperties());
+        sendMessageContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        sendMessageContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+        sendMessageContext.setQueueId(requestHeader.getQueueId());
+        sendMessageContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
+        sendMessageContext.setBornTimeStamp(requestHeader.getBornTimestamp());
+        sendMessageContext.setRequestTimeStamp(System.currentTimeMillis());
+
+        String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+        sendMessageContext.setCommercialOwner(owner);
 
         Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
@@ -369,14 +387,14 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (uniqueKey == null) {
             uniqueKey = "";
         }
-        traceContext.setMsgUniqueKey(uniqueKey);
+        sendMessageContext.setMsgUniqueKey(uniqueKey);
 
         if (properties.containsKey(MessageConst.PROPERTY_SHARDING_KEY)) {
-            traceContext.setMsgType(MessageType.Order_Msg);
+            sendMessageContext.setMsgType(MessageType.Order_Msg);
         } else {
-            traceContext.setMsgType(MessageType.Normal_Msg);
+            sendMessageContext.setMsgType(MessageType.Normal_Msg);
         }
-        return traceContext;
+        return sendMessageContext;
     }
 
     public boolean hasSendMessageHook() {
@@ -532,29 +550,11 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
     }
 
-    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
-        SendMessageContext context) {
+    public void executeSendMessageHookBefore(SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
-                    final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-
-                    String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
-                    if (null != requestHeader) {
-                        context.setNamespace(namespace);
-                        context.setProducerGroup(requestHeader.getProducerGroup());
-                        context.setTopic(requestHeader.getTopic());
-                        context.setBodyLength(request.getBody().length);
-                        context.setMsgProps(requestHeader.getProperties());
-                        context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                        context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                        context.setQueueId(requestHeader.getQueueId());
-                    }
-
                     hook.sendMessageBefore(context);
-                    if (requestHeader != null) {
-                        requestHeader.setProperties(context.getMsgProps());
-                    }
                 } catch (AbortProcessException e) {
                     throw e;
                 } catch (Throwable e) {

@@ -29,24 +29,33 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     @CFNullable
     private Long maxOffset;
     @CFNullable
+    private Long confirmOffset;
+    @CFNullable
     private Long heartbeatTimeoutMillis;
-
+    @CFNullable
+    private Integer electionPriority;
 
     public RegisterBrokerToControllerRequestHeader() {
     }
 
     public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this(clusterName, brokerName, brokerAddress, 0);
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, int epoch, long maxOffset) {
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress,
+        int electionPriority) {
+        this(clusterName, brokerName, brokerAddress, null, 0, 0, electionPriority);
+    }
+
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress,
+        Long heartbeatTimeoutMillis, int epoch, long maxOffset, int electionPriority) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
         this.epoch = epoch;
         this.maxOffset = maxOffset;
+        this.electionPriority = electionPriority;
     }
 
     public String getClusterName() {
@@ -81,16 +90,26 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
     }
 
+    public Integer getElectionPriority() {
+        return electionPriority;
+    }
+
+    public void setElectionPriority(Integer electionPriority) {
+        this.electionPriority = electionPriority;
+    }
+
     @Override
     public String toString() {
         return "RegisterBrokerToControllerRequestHeader{" +
-                "clusterName='" + clusterName + '\'' +
-                ", brokerName='" + brokerName + '\'' +
-                ", brokerAddress='" + brokerAddress + '\'' +
-                ", epoch=" + epoch +
-                ", maxOffset=" + maxOffset +
-                ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
-                '}';
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", epoch=" + epoch +
+            ", maxOffset=" + maxOffset +
+            ", confirmOffset=" + confirmOffset +
+            ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+            ", electionPriority=" + electionPriority +
+            '}';
     }
 
     public Integer getEpoch() {
@@ -107,6 +126,14 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     public void setMaxOffset(Long maxOffset) {
         this.maxOffset = maxOffset;
+    }
+
+    public Long getConfirmOffset() {
+        return confirmOffset;
+    }
+
+    public void setConfirmOffset(Long confirmOffset) {
+        this.confirmOffset = confirmOffset;
     }
 
     @Override

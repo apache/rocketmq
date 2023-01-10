@@ -119,33 +119,10 @@ eg.假设broker获取到的配额是500g（根据replicasPerDiskPartition计算�
 
 ## 日志变化
 
-在BrokerContainer模式下并开启日志分离后，日志的默认输出路径将发生变化，每个broker日志的具体路径变化为
+在BrokerContainer模式下日志的默认输出路径将发生变化，具体为：
+
 ```
-{user.home}/logs/{$brokerCanonicalName}_rocketmqlogs/
-```
-
-其中brokerCanonicalName为{BrokerClusterName_BrokerName_BrokerId}，{BrokerClusterName_BrokerName_BrokerId}。
-
-**开发者需要注意!**
-
-在BrokerContainer模式下，多个broker会在同一个BrokerContainer进程中，BrokerContainer模式下将提供broker日志分离功能，不同broker的日志将会输出到不同文件中。
-
-主要通过线程名（ThreadName）或者通过设置线程本地变量（ThreadLocal）来区分不同broker线程，并且hack logback的logAppender将日志重定向到不同的文件中。
-
-通过设置线程名来区分不同broker线程，线程名前缀必须是#BrokerClusterName_BrokerName_BrokerId#
-
-通过设置线程本地变量区分不同broker线程，设置的变量为BrokerClusterName_BrokerName_BrokerId
-```java
-// set threadlocal broker identity to forward logging to corresponding broker
-InnerLoggerFactory.brokerIdentity.set(brokerIdentity.getCanonicalName())
+{user.home}/logs/rocketmqlogs/${brokerCanonicalName}/
 ```
 
-如果线程没有上述区分，日志将仍然会输出在原来的目录下。
-
-以普通方式启动Broker（非BrokerContainer模式）时，日志将仍然会输出在原来的目录下。
-
-具体实现方式可以参考Slf4jLoggerFactory和BrokerLogbackConfigurator两个类。
-
-通过线程名和线程本地变量区分可以参考org.apache.rocketmq.common.AbstractBrokerRunnable、org.apache.rocketmq.common.ThreadFactoryImpl以及各个ServiceThread中getServiceName的实现。
-
-参考文档：[原RIP](https://github.com/apache/rocketmq/wiki/RIP-31-Support-RocketMQ-BrokerContainer)
+其中 `brokerCanonicalName` 为 `{BrokerClusterName_BrokerName_BrokerId}`。

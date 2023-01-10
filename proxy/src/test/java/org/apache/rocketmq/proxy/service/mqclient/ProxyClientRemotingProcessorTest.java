@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
@@ -64,6 +65,8 @@ public class ProxyClientRemotingProcessorTest {
     @Mock
     private ProducerManager producerManager;
     @Mock
+    private GrpcClientSettingsManager grpcClientSettingsManager;
+    @Mock
     private ProxyRelayService proxyRelayService;
 
     @Test
@@ -74,7 +77,7 @@ public class ProxyClientRemotingProcessorTest {
                 new TransactionData("brokerName", 0, 0, "id", System.currentTimeMillis(), 3000),
                 proxyRelayResultFuture));
 
-        GrpcClientChannel grpcClientChannel = new GrpcClientChannel(proxyRelayService, null,
+        GrpcClientChannel grpcClientChannel = new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, null,
             ProxyContext.create().setRemoteAddress("127.0.0.1:8888").setLocalAddress("127.0.0.1:10911"), "clientId");
         when(producerManager.getAvailableChannel(anyString()))
             .thenReturn(grpcClientChannel);

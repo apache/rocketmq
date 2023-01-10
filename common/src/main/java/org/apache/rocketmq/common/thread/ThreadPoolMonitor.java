@@ -28,12 +28,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ThreadPoolMonitor {
-    private static InternalLogger jstackLogger = InternalLoggerFactory.getLogger(ThreadPoolMonitor.class);
-    private static InternalLogger waterMarkLogger = InternalLoggerFactory.getLogger(ThreadPoolMonitor.class);
+    private static Logger jstackLogger = LoggerFactory.getLogger(ThreadPoolMonitor.class);
+    private static Logger waterMarkLogger = LoggerFactory.getLogger(ThreadPoolMonitor.class);
 
     private static final List<ThreadPoolWrapper> MONITOR_EXECUTOR = new CopyOnWriteArrayList<>();
     private static final ScheduledExecutorService MONITOR_SCHEDULED = Executors.newSingleThreadScheduledExecutor(
@@ -45,7 +45,7 @@ public class ThreadPoolMonitor {
     private static volatile long jstackPeriodTime = 60000;
     private static volatile long jstackTime = System.currentTimeMillis();
 
-    public static void config(InternalLogger jstackLoggerConfig, InternalLogger waterMarkLoggerConfig,
+    public static void config(Logger jstackLoggerConfig, Logger waterMarkLoggerConfig,
         boolean enablePrintJstack, long jstackPeriodTimeConfig, long threadPoolStatusPeriodTimeConfig) {
         jstackLogger = jstackLoggerConfig;
         waterMarkLogger = waterMarkLoggerConfig;
@@ -81,7 +81,7 @@ public class ThreadPoolMonitor {
         String name,
         int queueCapacity,
         List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+        ThreadPoolExecutor executor = new FutureTaskExtThreadPoolExecutor(
             corePoolSize,
             maximumPoolSize,
             keepAliveTime,
