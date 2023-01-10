@@ -63,7 +63,7 @@ public abstract class RebalanceImpl {
     private static final int TIMEOUT_CHECK_TIMES = 3;
     private static final int QUERY_ASSIGNMENT_TIMEOUT = 3000;
 
-    private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
+    private Map<String, Set<MessageQueueAssignment>> topicBrokerRebalance = new ConcurrentHashMap<>();
     private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
@@ -265,17 +265,16 @@ public abstract class RebalanceImpl {
             return false;
         }
 
-        if (topicBrokerRebalance.containsKey(topic)) {
-            return true;
-        }
         String strategyName = allocateMessageQueueStrategy != null ? allocateMessageQueueStrategy.getName() : null;
         int retryTimes = 0;
         while (retryTimes++ < TIMEOUT_CHECK_TIMES) {
             try {
                 Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
                     strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                topicBrokerRebalance.put(topic, topic);
-                return true;
+                if (null != resultSet){
+                    topicBrokerRebalance.put(topic,resultSet);
+                    return true;
+                }
             } catch (Throwable t) {
                 if (!(t instanceof RemotingTimeoutException)) {
                     log.error("tryQueryAssignment error.", t);
@@ -291,6 +290,7 @@ public abstract class RebalanceImpl {
         }
         return true;
     }
+
 
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
         return subscriptionInner;
@@ -377,14 +377,7 @@ public abstract class RebalanceImpl {
 
     private boolean getRebalanceResultFromBroker(final String topic, final boolean isOrder) {
         String strategyName = this.allocateMessageQueueStrategy.getName();
-        Set<MessageQueueAssignment> messageQueueAssignments;
-        try {
-            messageQueueAssignments = this.mQClientFactory.queryAssignment(topic, consumerGroup,
-                strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT);
-        } catch (Exception e) {
-            log.error("allocate message queue exception. strategy name: {}, ex: {}", strategyName, e);
-            return false;
-        }
+        Set<MessageQueueAssignment> messageQueueAssignments = this.topicBrokerRebalance.get(topic);
 
         // null means invalid result, we should skip the update logic
         if (messageQueueAssignments == null) {
@@ -462,7 +455,7 @@ public abstract class RebalanceImpl {
             }
         }
 
-        Iterator<Map.Entry<String, String>> brokerIter = topicBrokerRebalance.entrySet().iterator();
+        Iterator<Map.Entry<String, Set<MessageQueueAssignment>>> brokerIter = topicBrokerRebalance.entrySet().iterator();
         while (brokerIter.hasNext()) {
             if (!subTable.containsKey(brokerIter.next().getKey())) {
                 brokerIter.remove();
