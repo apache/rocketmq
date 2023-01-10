@@ -250,7 +250,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
             int queueId = requestHeader.getQueueId();
             hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
         }
-        // if it has message, fetch retry again
+        // if it doesn't have message, fetch retry again
         if (!needRetry && !hasMsg) {
             TopicConfig retryTopicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
