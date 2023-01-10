@@ -48,12 +48,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
-import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.remoting.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 

@@ -308,8 +308,8 @@ public class ReplicasInfoManagerTest {
             electPolicy);
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertEquals("127.0.0.1:9002", response.getNewMasterAddress());
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertEquals("127.0.0.1:9002", response.getMasterAddress());
     }
 
     @Test

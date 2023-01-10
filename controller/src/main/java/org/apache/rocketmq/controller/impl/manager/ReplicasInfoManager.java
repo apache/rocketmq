@@ -189,7 +189,7 @@ public class ReplicasInfoManager {
         if (StringUtils.isNotEmpty(newMaster) && newMaster.equals(oldMaster)) {
             // old master still valid, change nothing
             String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerReplicaInfo.getBrokerName());
-            log.warn("{}", err);
+            LOGGER.warn("{}", err);
             // the master still exist
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
@@ -444,7 +444,7 @@ public class ReplicasInfoManager {
             }
             return;
         }
-        log.error("Receive an ElectMasterEvent which contains the un-registered broker, event = {}", event);
+        LOGGER.error("Receive an ElectMasterEvent which contains the un-registered broker, event = {}", event);
     }
 
     private void handleCleanBrokerDataEvent(final CleanBrokerDataEvent event) {

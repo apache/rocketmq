@@ -116,12 +116,6 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResp
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
