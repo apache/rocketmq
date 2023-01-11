@@ -271,7 +271,7 @@ public abstract class RebalanceImpl {
             try {
                 Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
                     strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                if (null != resultSet){
+                if (null != resultSet) {
                     topicBrokerRebalance.put(topic,resultSet);
                     return true;
                 }
