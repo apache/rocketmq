@@ -290,7 +290,6 @@ public class AutoSwitchHAService extends DefaultHAService {
     private void markSynchronizingSyncStateSetDone() {
         // No need to lock, because the upper-level calling method has already locked write lock
         this.isSynchronizingSyncStateSet = false;
-        this.remoteSyncStateSet.clear();
     }
 
     public boolean isSynchronizingSyncStateSet() {
