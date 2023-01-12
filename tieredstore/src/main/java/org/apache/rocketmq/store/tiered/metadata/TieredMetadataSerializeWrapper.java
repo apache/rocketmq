@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class TieredStoreMetadataSerializeWrapper extends RemotingSerializable {
+public class TieredMetadataSerializeWrapper extends RemotingSerializable {
     private AtomicInteger maxTopicId;
     private Map<String /*topic*/, TopicMetadata> topicMetadataTable;
     private Map<String /*topic*/, Map<Integer /*queueId*/, QueueMetadata>> queueMetadataTable;

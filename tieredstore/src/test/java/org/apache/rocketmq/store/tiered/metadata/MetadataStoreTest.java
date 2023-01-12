@@ -18,10 +18,16 @@ package org.apache.rocketmq.store.tiered.metadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.store.tiered.container.TieredCommitLog;
+import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
+import org.apache.rocketmq.store.tiered.mock.MemoryFileSegment;
+import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,19 +36,20 @@ import org.junit.Test;
 public class MetadataStoreTest {
     MessageQueue mq;
     TieredMessageStoreConfig storeConfig;
-    TieredStoreMetadataStore metadataStore;
+    TieredMetadataStore metadataStore;
 
     @Before
     public void setUp() {
-        mq = new MessageQueue("MetadataStoreTest", "broker", 1);
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir("/tmp/rmqut");
-        metadataStore = new TieredStoreMetadataManager(storeConfig);
+        mq = new MessageQueue("MetadataStoreTest", storeConfig.getBrokerName(), 1);
+        metadataStore = new TieredMetadataManager(storeConfig);
     }
 
     @After
     public void tearDown() throws IOException {
         FileUtils.deleteDirectory(new File("/tmp/rmqut"));
+        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
     }
 
     @Test
@@ -121,14 +128,53 @@ public class MetadataStoreTest {
     }
 
     @Test
+    public void testFileSegment() {
+        MemoryFileSegment fileSegment1 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
+            mq,
+            100,
+            storeConfig);
+        fileSegment1.initPosition(fileSegment1.getSize());
+        FileSegmentMetadata metadata1 = metadataStore.updateFileSegment(fileSegment1);
+        Assert.assertEquals(mq, metadata1.getQueue());
+        Assert.assertEquals(TieredFileSegment.FileSegmentType.COMMIT_LOG, TieredFileSegment.FileSegmentType.valueOf(metadata1.getType()));
+        Assert.assertEquals(100, metadata1.getBaseOffset());
+        Assert.assertEquals(0, metadata1.getSealTimestamp());
+
+        fileSegment1.setFull();
+        metadata1 = metadataStore.updateFileSegment(fileSegment1);
+        Assert.assertEquals(1000, metadata1.getSize());
+        Assert.assertEquals(0, metadata1.getSealTimestamp());
+
+        fileSegment1.commit();
+        metadata1 = metadataStore.updateFileSegment(fileSegment1);
+        Assert.assertEquals(1000 + TieredCommitLog.CODA_SIZE, metadata1.getSize());
+        Assert.assertTrue(metadata1.getSealTimestamp() > 0);
+
+        MemoryFileSegment fileSegment2 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
+            mq,
+            1100,
+            storeConfig);
+        metadataStore.updateFileSegment(fileSegment2);
+        List<FileSegmentMetadata> list = new ArrayList<>();
+        metadataStore.iterateFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG, "MetadataStoreTest", 1, list::add);
+        Assert.assertEquals(2, list.size());
+        Assert.assertEquals(100, list.get(0).getBaseOffset());
+        Assert.assertEquals(1100, list.get(1).getBaseOffset());
+
+        Assert.assertNotNull(metadataStore.getFileSegment(fileSegment1));
+        metadataStore.deleteFileSegment(fileSegment1);
+        Assert.assertNull(metadataStore.getFileSegment(fileSegment1));
+    }
+
+    @Test
     public void testReload() {
-        TieredStoreMetadataManager metadataManager = (TieredStoreMetadataManager) metadataStore;
+        TieredMetadataManager metadataManager = (TieredMetadataManager) metadataStore;
         metadataManager.addTopic(mq.getTopic(), 1);
         metadataManager.addQueue(mq, 2);
         metadataManager.persist();
         Assert.assertTrue(new File(metadataManager.configFilePath()).exists());
 
-        metadataManager = new TieredStoreMetadataManager(storeConfig);
+        metadataManager = new TieredMetadataManager(storeConfig);
         metadataManager.load();
 
         TopicMetadata topicMetadata = metadataManager.getTopic(mq.getTopic());
