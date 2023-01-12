@@ -37,7 +37,7 @@ public class TieredFileQueueTest {
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir("/tmp/rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.store.tiered.mock.MemoryFileSegment");
         queue = new MessageQueue("TieredFileQueueTest", storeConfig.getBrokerName(), 0);
     }

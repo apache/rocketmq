@@ -41,7 +41,7 @@ public class MetadataStoreTest {
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir("/tmp/rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
         mq = new MessageQueue("MetadataStoreTest", storeConfig.getBrokerName(), 1);
         metadataStore = new TieredMetadataManager(storeConfig);
     }

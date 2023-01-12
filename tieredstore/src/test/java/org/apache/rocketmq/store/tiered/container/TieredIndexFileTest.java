@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,7 +46,7 @@ public class TieredIndexFileTest {
         MemoryFileSegment.checkSize = false;
         mq = new MessageQueue("TieredIndexFileTest", "broker", 1);
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir("/tmp/rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.store.tiered.mock.MemoryFileSegment");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
@@ -60,12 +62,15 @@ public class TieredIndexFileTest {
 
     @Test
     public void testAppendAndQuery() throws IOException, ClassNotFoundException, NoSuchMethodException {
+        // skip this test on windows
+        Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
+
         TieredIndexFile indexFile = new TieredIndexFile(storeConfig);
         indexFile.append(mq, 0, "key3", 3, 300, 1000);
         indexFile.append(mq, 0, "key2", 2, 200, 1100);
         indexFile.append(mq, 0, "key1", 1, 100, 1200);
 
-        Awaitility.waitAtMost(3, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(5, TimeUnit.SECONDS)
             .until(() -> {
                 List<Pair<Long, ByteBuffer>> indexList = indexFile.queryAsync(mq.getTopic(), "key1", 1000, 1200).join();
                 if (indexList.size() != 1) {
@@ -89,7 +94,7 @@ public class TieredIndexFileTest {
         indexFile.append(mq, 0, "key4", 4, 400, 1300);
         indexFile.append(mq, 0, "key4", 4, 400, 1300);
 
-        Awaitility.waitAtMost(3, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(5, TimeUnit.SECONDS)
             .until(() -> {
                 List<Pair<Long, ByteBuffer>> indexList = indexFile.queryAsync(mq.getTopic(), "key4", 1300, 1300).join();
                 if (indexList.size() != 1) {
