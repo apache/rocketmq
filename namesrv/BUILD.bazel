@@ -22,7 +22,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//remoting",
-        "//logging", 
         "//srvutil",
         "//tools",
         "//client",
@@ -40,6 +39,8 @@ java_library(
         "@maven//:org_bouncycastle_bcpkix_jdk15on",
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_google_guava_guava",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 
@@ -50,7 +51,6 @@ java_library(
     deps = [
         ":namesrv",
         "//remoting",
-        "//logging", 
         "//srvutil",
         "//tools",
         "//client",
@@ -61,8 +61,7 @@ java_library(
         "@maven//:io_netty_netty_all",    
         "@maven//:com_google_guava_guava",   
         "@maven//:com_alibaba_fastjson",      
-        "@maven//:org_slf4j_slf4j_api",
-        "@maven//:ch_qos_logback_logback_core",  
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

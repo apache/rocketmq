@@ -30,9 +30,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InnerLoggerFactory;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.logfile.MappedFile;
@@ -88,7 +87,7 @@ public class TimerMessageStore {
     public static final int MAGIC_DELETE = 1 << 2;
     public boolean debug = false;
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final PerfCounter.Ticks perfs = new PerfCounter.Ticks(LOGGER);
     private final BlockingQueue<TimerRequest> enqueuePutQueue;
     private final BlockingQueue<List<TimerRequest>> dequeueGetQueue;
@@ -439,7 +438,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+//                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     long minPy = messageStore.getMinPhyOffset();
@@ -455,7 +454,7 @@ public class TimerMessageStore {
             @Override public void run() {
                 if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore &&
                     ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
+//                    InnerLoggerFactory.BROKER_IDENTITY.set(((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier());
                 }
                 try {
                     if (storeConfig.isTimerEnableCheckMetrics()) {
@@ -1236,7 +1235,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1262,7 +1261,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1343,7 +1342,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1387,7 +1386,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1455,7 +1454,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1538,7 +1537,7 @@ public class TimerMessageStore {
         public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }
@@ -1573,7 +1572,7 @@ public class TimerMessageStore {
         @Override public String getServiceName() {
             String brokerIdentifier = "";
             if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore && ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().isInBrokerContainer()) {
-                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getLoggerIdentifier();
+                brokerIdentifier = ((DefaultMessageStore) TimerMessageStore.this.messageStore).getBrokerConfig().getIdentifier();
             }
             return brokerIdentifier + this.getClass().getSimpleName();
         }

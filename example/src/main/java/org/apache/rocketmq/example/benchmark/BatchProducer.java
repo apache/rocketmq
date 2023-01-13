@@ -35,17 +35,18 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class BatchProducer {
@@ -72,8 +73,8 @@ public class BatchProducer {
         final boolean msgTraceEnable = getOptionValue(commandLine, 'm', false);
         final boolean aclEnable = getOptionValue(commandLine, 'a', false);
 
-        System.out.printf("topic: %s threadCount: %d messageSize: %d batchSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s%n",
-                topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
+        System.out.printf("topic: %s, threadCount: %d, messageSize: %d, batchSize: %d, keyEnable: %s, propertySize: %d, tagCount: %d, traceEnable: %s, aclEnable: %s%n",
+            topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
 
         StringBuilder sb = new StringBuilder(messageSize);
         for (int i = 0; i < messageSize; i++) {
@@ -94,7 +95,7 @@ public class BatchProducer {
         final DefaultMQProducer producer = initInstance(namesrv, msgTraceEnable, rpcHook);
         producer.start();
 
-        final InternalLogger log = ClientLogger.getLog();
+        final Logger logger = LoggerFactory.getLogger(BatchProducer.class);
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
@@ -136,7 +137,7 @@ public class BatchProducer {
                         } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
@@ -151,15 +152,15 @@ public class BatchProducer {
                             }
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
                             statsBenchmark.getSendMessageFailedCount().add(msgs.size());
-                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                            logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException ignored) {
@@ -386,8 +387,8 @@ class StatsBenchmarkBatchProducer {
                     final double averageRT = (end[5] - begin[5]) / (double) (end[1] - begin[1]);
                     final double averageMsgRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
 
-                    System.out.printf("Current Time: %s Send TPS: %d Send MPS: %d Max RT(ms): %d Average RT(ms): %7.3f Average Message RT(ms): %7.3f Send Failed: %d Send Message Failed: %d%n",
-                            System.currentTimeMillis(), sendTps, sendMps, getSendMessageMaxRT().longValue(), averageRT, averageMsgRT, end[2], end[4]);
+                    System.out.printf("Current Time: %s | Send TPS: %d | Send MPS: %d | Max RT(ms): %d | Average RT(ms): %7.3f | Average Message RT(ms): %7.3f | Send Failed: %d | Send Message Failed: %d%n",
+                        UtilAll.timeMillisToHumanString2(System.currentTimeMillis()), sendTps, sendMps, getSendMessageMaxRT().longValue(), averageRT, averageMsgRT, end[2], end[4]);
                 }
             }
 

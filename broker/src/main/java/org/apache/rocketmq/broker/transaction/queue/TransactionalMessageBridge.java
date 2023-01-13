@@ -16,30 +16,7 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.PullStatus;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.logging.InnerLoggerFactory;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
-
+import io.opentelemetry.api.common.Attributes;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -49,9 +26,39 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 public class TransactionalMessageBridge {
-    private static final InternalLogger LOGGER = InnerLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private final ConcurrentHashMap<Integer, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
     private final BrokerController brokerController;
@@ -131,13 +138,22 @@ public class TransactionalMessageBridge {
                         getMessageResult.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(group, topic,
                         getMessageResult.getBufferTotalSize());
-                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(topic, getMessageResult.getMessageCount());
                     if (foundList == null || foundList.size() == 0) {
                         break;
                     }
                     this.brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId,
                         this.brokerController.getMessageStore().now() - foundList.get(foundList.size() - 1)
                             .getStoreTimestamp());
+
+                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                        .put(LABEL_TOPIC, topic)
+                        .put(LABEL_CONSUMER_GROUP, group)
+                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic) || MixAll.isSysConsumerGroup(group))
+                        .build();
+                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
+                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
@@ -302,10 +318,8 @@ public class TransactionalMessageBridge {
     }
 
     public boolean writeOp(Integer queueId,Message message) {
-        MessageQueue opQueue;
-        if (opQueueMap.containsKey(queueId)) {
-            opQueue = opQueueMap.get(queueId);
-        } else {
+        MessageQueue opQueue = opQueueMap.get(queueId);
+        if (opQueue == null) {
             opQueue = getOpQueueByHalf(queueId, this.brokerController.getBrokerConfig().getBrokerName());
             MessageQueue oldQueue = opQueueMap.putIfAbsent(queueId, opQueue);
             if (oldQueue != null) {
@@ -315,10 +329,6 @@ public class TransactionalMessageBridge {
 
         PutMessageResult result = putMessageReturnResult(makeOpMessageInner(message, opQueue));
         if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-            this.brokerController.getBrokerStatsManager().incTopicPutNums(message.getTopic());
-            this.brokerController.getBrokerStatsManager().incTopicPutSize(message.getTopic(),
-                    result.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums();
             return true;
         }
 

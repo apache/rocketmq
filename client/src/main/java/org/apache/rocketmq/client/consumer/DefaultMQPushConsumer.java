@@ -30,7 +30,6 @@ import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
@@ -40,11 +39,12 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * In most scenarios, this is the mostly recommended class to consume messages.
@@ -63,7 +63,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
 
-    private final InternalLogger log = ClientLogger.getLog();
+    private final Logger log = LoggerFactory.getLogger(DefaultMQPushConsumer.class);
 
     /**
      * Internal implementation. Most of the functions herein are delegated to it.
@@ -75,7 +75,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * load balance. It's required and needs to be globally unique.
      * </p>
      *
-     * See <a href="http://rocketmq.apache.org/docs/core-concept/">here</a> for further discussion.
+     * See <a href="https://rocketmq.apache.org/docs/introduction/02concepts">here</a> for further discussion.
      */
     private String consumerGroup;
 
@@ -246,7 +246,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private boolean unitMode = false;
 
     /**
-     * Max re-consume times. 
+     * Max re-consume times.
      * In concurrently mode, -1 means 16;
      * In orderly mode, -1 means Integer.MAX_VALUE.
      *
@@ -435,7 +435,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void createTopic(String key, String newTopic, int queueNum, Map<String, String> attributes) throws MQClientException {
         createTopic(key, withNamespace(newTopic), queueNum, 0, null);
     }
-    
+
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
@@ -443,7 +443,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
-    
+
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      */

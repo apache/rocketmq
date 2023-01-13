@@ -25,10 +25,10 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -63,7 +63,6 @@ public class ConsumerManagerTest {
 
     private BrokerStatsManager brokerStatsManager;
 
-
     private static final String GROUP = "DEFAULT_GROUP";
 
     private static final String CLIENT_ID = "1";
@@ -77,16 +76,43 @@ public class ConsumerManagerTest {
         clientChannelInfo = new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, VERSION);
         defaultConsumerIdsChangeListener = new DefaultConsumerIdsChangeListener(brokerController);
         brokerStatsManager = new BrokerStatsManager(brokerConfig);
-        consumerManager = new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager);
+        consumerManager = new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager, brokerConfig);
         broker2Client = new Broker2Client(brokerController);
         when(brokerController.getConsumerFilterManager()).thenReturn(consumerFilterManager);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getBroker2Client()).thenReturn(broker2Client);
-        register();
+    }
+
+    @Test
+    public void compensateBasicConsumerInfoTest() {
+        ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(GROUP, true);
+        Assertions.assertThat(consumerGroupInfo).isNull();
+
+        consumerManager.compensateBasicConsumerInfo(GROUP, ConsumeType.CONSUME_ACTIVELY, MessageModel.BROADCASTING);
+        consumerGroupInfo = consumerManager.getConsumerGroupInfo(GROUP, true);
+        Assertions.assertThat(consumerGroupInfo).isNotNull();
+        Assertions.assertThat(consumerGroupInfo.getConsumeType()).isEqualTo(ConsumeType.CONSUME_ACTIVELY);
+        Assertions.assertThat(consumerGroupInfo.getMessageModel()).isEqualTo(MessageModel.BROADCASTING);
+    }
+
+    @Test
+    public void compensateSubscribeDataTest() {
+        ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(GROUP, true);
+        Assertions.assertThat(consumerGroupInfo).isNull();
+
+        consumerManager.compensateSubscribeData(GROUP, TOPIC, new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
+        consumerGroupInfo = consumerManager.getConsumerGroupInfo(GROUP, true);
+        Assertions.assertThat(consumerGroupInfo).isNotNull();
+        Assertions.assertThat(consumerGroupInfo.getSubscriptionTable().size()).isEqualTo(1);
+        SubscriptionData subscriptionData = consumerGroupInfo.getSubscriptionTable().get(TOPIC);
+        Assertions.assertThat(subscriptionData).isNotNull();
+        Assertions.assertThat(subscriptionData.getTopic()).isEqualTo(TOPIC);
+        Assertions.assertThat(subscriptionData.getSubString()).isEqualTo(SubscriptionData.SUB_ALL);
     }
 
     @Test
     public void registerConsumerTest() {
+        register();
         final Set<SubscriptionData> subList = new HashSet<>();
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         subList.add(subscriptionData);
@@ -107,32 +133,50 @@ public class ConsumerManagerTest {
 
     @Test
     public void findChannelTest() {
-
+        register();
         final ClientChannelInfo consumerManagerChannel = consumerManager.findChannel(GROUP, CLIENT_ID);
         Assertions.assertThat(consumerManagerChannel).isNotNull();
     }
 
     @Test
     public void findSubscriptionDataTest() {
+        register();
         final SubscriptionData subscriptionData = consumerManager.findSubscriptionData(GROUP, TOPIC);
         Assertions.assertThat(subscriptionData).isNotNull();
     }
 
     @Test
     public void findSubscriptionDataCountTest() {
+        register();
         final int count = consumerManager.findSubscriptionDataCount(GROUP);
         assert count > 0;
     }
 
     @Test
+    public void findSubscriptionTest() {
+        SubscriptionData subscriptionData = consumerManager.findSubscriptionData(GROUP, TOPIC, true);
+        Assertions.assertThat(subscriptionData).isNull();
+
+        consumerManager.compensateSubscribeData(GROUP, TOPIC, new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
+        subscriptionData = consumerManager.findSubscriptionData(GROUP, TOPIC, true);
+        Assertions.assertThat(subscriptionData).isNotNull();
+        Assertions.assertThat(subscriptionData.getTopic()).isEqualTo(TOPIC);
+        Assertions.assertThat(subscriptionData.getSubString()).isEqualTo(SubscriptionData.SUB_ALL);
+
+        subscriptionData = consumerManager.findSubscriptionData(GROUP, TOPIC, false);
+        Assertions.assertThat(subscriptionData).isNull();
+    }
+
+    @Test
     public void scanNotActiveChannelTest() {
-        clientChannelInfo.setLastUpdateTimestamp(System.currentTimeMillis() - 1000 * 200);
+        clientChannelInfo.setLastUpdateTimestamp(System.currentTimeMillis() - brokerConfig.getChannelExpiredTimeout() * 2);
         consumerManager.scanNotActiveChannel();
-        assert consumerManager.getConsumerTable().size() == 0;
+        Assertions.assertThat(consumerManager.getConsumerTable().size()).isEqualTo(0);
     }
 
     @Test
     public void queryTopicConsumeByWhoTest() {
+        register();
         final HashSet<String> consumeGroup = consumerManager.queryTopicConsumeByWho(TOPIC);
         assert consumeGroup.size() > 0;
     }
@@ -152,4 +196,15 @@ public class ConsumerManagerTest {
             MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, subList, true);
     }
 
+    @Test
+    public void removeExpireConsumerGroupInfo() {
+        SubscriptionData subscriptionData = new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL);
+        subscriptionData.setSubVersion(System.currentTimeMillis() - brokerConfig.getSubscriptionExpiredTimeout() * 2);
+        consumerManager.compensateSubscribeData(GROUP, TOPIC, subscriptionData);
+        consumerManager.compensateSubscribeData(GROUP, TOPIC + "_1", new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
+        consumerManager.removeExpireConsumerGroupInfo();
+        Assertions.assertThat(consumerManager.getConsumerGroupInfo(GROUP, true)).isNotNull();
+        Assertions.assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC)).isNull();
+        Assertions.assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC + "_1")).isNotNull();
+    }
 }

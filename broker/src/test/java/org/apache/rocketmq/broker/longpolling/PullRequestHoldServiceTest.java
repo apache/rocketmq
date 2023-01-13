@@ -19,11 +19,13 @@ package org.apache.rocketmq.broker.longpolling;
 
 import io.netty.channel.Channel;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.processor.PullMessageProcessor;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.assertj.core.api.Assertions;
@@ -72,7 +74,8 @@ public class PullRequestHoldServiceTest {
     @Before
     public void before() {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
-        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        when(brokerController.getPullMessageProcessor()).thenReturn(new PullMessageProcessor(brokerController));
+        when(brokerController.getPullMessageExecutor()).thenReturn(Executors.newCachedThreadPool());
         pullRequestHoldService = new PullRequestHoldService(brokerController);
         subscriptionData = new SubscriptionData(TEST_TOPIC, "*");
         pullRequest = new PullRequest(remotingCommand, channel, 3000, 3000, 0L, subscriptionData, defaultMessageFilter);

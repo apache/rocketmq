@@ -31,8 +31,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -41,7 +41,7 @@ import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 public class PopBufferMergeService extends ServiceThread {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     ConcurrentHashMap<String/*mergeKey*/, PopCheckPointWrapper>
         buffer = new ConcurrentHashMap<>(1024 * 16);
     ConcurrentHashMap<String/*topic@cid@queueId*/, QueueWithTime<PopCheckPointWrapper>> commitOffsets =
@@ -77,7 +77,7 @@ public class PopBufferMergeService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerController != null && this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerIdentity().getLoggerIdentifier() + PopBufferMergeService.class.getSimpleName();
+            return brokerController.getBrokerIdentity().getIdentifier() + PopBufferMergeService.class.getSimpleName();
         }
         return PopBufferMergeService.class.getSimpleName();
     }
@@ -416,7 +416,7 @@ public class PopBufferMergeService extends ServiceThread {
         ck.setNum((byte) 0);
         ck.setPopTime(popTime);
         ck.setInvisibleTime(invisibleTime);
-        ck.getStartOffset(startOffset);
+        ck.setStartOffset(startOffset);
         ck.setCId(group);
         ck.setTopic(topic);
         ck.setQueueId((byte) queueId);

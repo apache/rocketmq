@@ -21,10 +21,9 @@ import io.grpc.Metadata;
 import java.time.Duration;
 import java.util.Random;
 import java.util.UUID;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -32,6 +31,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 @Ignore
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BaseActivityTest extends InitConfigAndLoggerTest {
+public class BaseActivityTest extends InitConfigTest {
     protected static final Random RANDOM = new Random();
     protected MessagingProcessor messagingProcessor;
     protected GrpcClientSettingsManager grpcClientSettingsManager;
@@ -71,7 +71,7 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
         when(messagingProcessor.getMetadataService()).thenReturn(metadataService);
-        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
+        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), grpcClientSettingsManager);
     }
 
     protected ProxyContext createContext() {

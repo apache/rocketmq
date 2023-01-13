@@ -20,8 +20,8 @@ package org.apache.rocketmq.store.ha;
 import java.net.InetSocketAddress;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 
@@ -30,7 +30,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
  */
 public class HAConnectionStateNotificationService extends ServiceThread {
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private static final long CONNECTION_ESTABLISH_TIMEOUT = 10 * 1000;
 
@@ -47,7 +47,7 @@ public class HAConnectionStateNotificationService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (defaultMessageStore != null && defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + HAConnectionStateNotificationService.class.getSimpleName();
+            return defaultMessageStore.getBrokerIdentity().getIdentifier() + HAConnectionStateNotificationService.class.getSimpleName();
         }
         return HAConnectionStateNotificationService.class.getSimpleName();
     }

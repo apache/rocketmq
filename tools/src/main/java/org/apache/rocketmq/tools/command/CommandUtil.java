@@ -27,11 +27,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 
 public class CommandUtil {
@@ -132,6 +132,19 @@ public class CommandUtil {
         }
 
         return brokerAddressSet;
+    }
+
+    public static String fetchMasterAddrByBrokerName(final MQAdminExt adminExt,
+        final String brokerName) throws Exception {
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+        if (null != brokerData) {
+            String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (addr != null) {
+                return addr;
+            }
+        }
+        throw new Exception(String.format("No broker address for broker name %s.%n", brokerData));
     }
 
     public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)

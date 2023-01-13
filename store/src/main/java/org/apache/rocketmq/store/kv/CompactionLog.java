@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 import static org.apache.rocketmq.common.message.MessageDecoder.BLANK_MAGIC_CODE;
 
 public class CompactionLog {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
     private static final int MAX_PULL_MSG_SIZE = 128 * 1024 * 1024;

@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.client;
 
-import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
-
 import java.util.Properties;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -26,8 +24,10 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+
+import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
 
 /**
  * Common Validator

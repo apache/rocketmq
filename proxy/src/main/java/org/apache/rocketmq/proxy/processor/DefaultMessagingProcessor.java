@@ -35,10 +35,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
@@ -52,6 +48,10 @@ import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class DefaultMessagingProcessor extends AbstractStartAndShutdown implements MessagingProcessor {
 
@@ -60,6 +60,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     protected ConsumerProcessor consumerProcessor;
     protected TransactionProcessor transactionProcessor;
     protected ClientProcessor clientProcessor;
+    protected RequestBrokerProcessor requestBrokerProcessor;
 
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
@@ -88,6 +89,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.consumerProcessor = new ConsumerProcessor(this, serviceManager, this.consumerProcessorExecutor);
         this.transactionProcessor = new TransactionProcessor(this, serviceManager);
         this.clientProcessor = new ClientProcessor(this, serviceManager);
+        this.requestBrokerProcessor = new RequestBrokerProcessor(this, serviceManager);
 
         this.init();
     }
@@ -219,6 +221,18 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        return this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis) {
+        return this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis);
+    }
+
+    @Override
     public void registerProducer(ProxyContext ctx, String producerGroup, ClientChannelInfo clientChannelInfo) {
         this.clientProcessor.registerProducer(ctx, producerGroup, clientChannelInfo);
     }
@@ -258,6 +272,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public void registerConsumerListener(ConsumerIdsChangeListener consumerIdsChangeListener) {
         this.clientProcessor.registerConsumerIdsChangeListener(consumerIdsChangeListener);
+    }
+
+    @Override
+    public void doChannelCloseEvent(String remoteAddr, Channel channel) {
+        this.clientProcessor.doChannelCloseEvent(remoteAddr, channel);
     }
 
     @Override

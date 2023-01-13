@@ -18,8 +18,8 @@ package org.apache.rocketmq.store;
 
 import com.google.common.base.Preconditions;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 import java.lang.management.ManagementFactory;
@@ -29,7 +29,7 @@ import java.nio.ByteBuffer;
 import static java.lang.String.format;
 
 public class StoreUtil {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final long TOTAL_PHYSICAL_MEMORY_SIZE = getTotalPhysicalMemorySize();
 

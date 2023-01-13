@@ -30,7 +30,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
@@ -41,11 +40,12 @@ import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * This class is the entry point for applications intending to send messages. </p>
@@ -65,7 +65,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Wrapping internal implementations for virtually all methods presented in this class.
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
-    private final InternalLogger log = ClientLogger.getLog();
+    private final Logger logger = LoggerFactory.getLogger(DefaultMQProducer.class);
     private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<>(Arrays.asList(
         ResponseCode.TOPIC_NOT_EXIST,
         ResponseCode.SERVICE_NOT_AVAILABLE,
@@ -81,7 +81,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * For non-transactional messages, it does not matter as long as it's unique per process. </p>
      *
-     * See <a href="http://rocketmq.apache.org/docs/core-concept/">core concepts</a> for more discussion.
+     * See <a href="https://rocketmq.apache.org/docs/introduction/02concepts">core concepts</a> for more discussion.
      */
     private String producerGroup;
 
@@ -272,7 +272,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 this.defaultMQProducerImpl.registerEndTransactionHook(
                     new EndTransactionTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
         }
     }
@@ -284,7 +284,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
-    
+
     /**
      * Start this producer instance. </p>
      *
@@ -301,7 +301,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
-                log.warn("trace dispatcher start failed ", e);
+                logger.warn("trace dispatcher start failed ", e);
             }
         }
     }

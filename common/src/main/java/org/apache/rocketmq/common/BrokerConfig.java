@@ -18,16 +18,12 @@ package org.apache.rocketmq.common;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 
 public class BrokerConfig extends BrokerIdentity {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String brokerConfigPath = null;
 
@@ -42,8 +38,8 @@ public class BrokerConfig extends BrokerIdentity {
     private int listenPort = 6888;
 
     @ImportantField
-    private String brokerIP1 = RemotingUtil.getLocalAddress();
-    private String brokerIP2 = RemotingUtil.getLocalAddress();
+    private String brokerIP1 = NetworkUtil.getLocalAddress();
+    private String brokerIP2 = NetworkUtil.getLocalAddress();
 
     @ImportantField
     private boolean recoverConcurrently = false;
@@ -225,6 +221,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkStayBufferTimeOut = 3 * 1000;
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
+    private boolean enableNotifyAfterPopOrderLockRelease = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -335,6 +332,17 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    private long controllerHeartBeatTimeoutMills = 10 * 1000;
+
+    private boolean validateSystemTopicWhenUpdateTopic = true;
+
+    /**
+     * It is an important basis for the controller to choose the broker master.
+     * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
+     * You can set a lower priority for the broker with better machine conditions.
+     */
+    private int brokerElectionPriority = Integer.MAX_VALUE;
+
     public enum MetricsExporterType {
         DISABLE(0),
         OTLP_GRPC(1),
@@ -380,6 +388,14 @@ public class BrokerConfig extends BrokerIdentity {
     private String metricsLabel = "";
 
     private boolean metricsInDelta = false;
+
+    private long channelExpiredTimeout = 1000 * 120;
+    private long subscriptionExpiredTimeout = 1000 * 60 * 10;
+
+    /**
+     * Estimate accumulation or not when subscription filter type is tag and is not SUB_ALL.
+     */
+    private boolean estimateAccumulation = true;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1253,6 +1269,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableNetWorkFlowControl = enableNetWorkFlowControl;
     }
 
+    public boolean isEnableNotifyAfterPopOrderLockRelease() {
+        return enableNotifyAfterPopOrderLockRelease;
+    }
+
+    public void setEnableNotifyAfterPopOrderLockRelease(boolean enableNotifyAfterPopOrderLockRelease) {
+        this.enableNotifyAfterPopOrderLockRelease = enableNotifyAfterPopOrderLockRelease;
+    }
+
     public boolean isRealTimeNotifyConsumerChange() {
         return realTimeNotifyConsumerChange;
     }
@@ -1413,6 +1437,22 @@ public class BrokerConfig extends BrokerIdentity {
         this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
     }
 
+    public int getBrokerElectionPriority() {
+        return brokerElectionPriority;
+    }
+
+    public void setBrokerElectionPriority(int brokerElectionPriority) {
+        this.brokerElectionPriority = brokerElectionPriority;
+    }
+
+    public long getControllerHeartBeatTimeoutMills() {
+        return controllerHeartBeatTimeoutMills;
+    }
+
+    public void setControllerHeartBeatTimeoutMills(long controllerHeartBeatTimeoutMills) {
+        this.controllerHeartBeatTimeoutMills = controllerHeartBeatTimeoutMills;
+    }
+
     public boolean isRecoverConcurrently() {
         return recoverConcurrently;
     }
@@ -1548,7 +1588,7 @@ public class BrokerConfig extends BrokerIdentity {
     public void setMetricsPromExporterHost(String metricsPromExporterHost) {
         this.metricsPromExporterHost = metricsPromExporterHost;
     }
-    
+
     public int getTransactionOpMsgMaxSize() {
         return transactionOpMsgMaxSize;
     }
@@ -1563,5 +1603,37 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTransactionOpBatchInterval(int transactionOpBatchInterval) {
         this.transactionOpBatchInterval = transactionOpBatchInterval;
+    }
+
+    public long getChannelExpiredTimeout() {
+        return channelExpiredTimeout;
+    }
+
+    public void setChannelExpiredTimeout(long channelExpiredTimeout) {
+        this.channelExpiredTimeout = channelExpiredTimeout;
+    }
+
+    public long getSubscriptionExpiredTimeout() {
+        return subscriptionExpiredTimeout;
+    }
+
+    public void setSubscriptionExpiredTimeout(long subscriptionExpiredTimeout) {
+        this.subscriptionExpiredTimeout = subscriptionExpiredTimeout;
+    }
+
+    public boolean isValidateSystemTopicWhenUpdateTopic() {
+        return validateSystemTopicWhenUpdateTopic;
+    }
+
+    public void setValidateSystemTopicWhenUpdateTopic(boolean validateSystemTopicWhenUpdateTopic) {
+        this.validateSystemTopicWhenUpdateTopic = validateSystemTopicWhenUpdateTopic;
+    }
+
+    public boolean isEstimateAccumulation() {
+        return estimateAccumulation;
+    }
+
+    public void setEstimateAccumulation(boolean estimateAccumulation) {
+        this.estimateAccumulation = estimateAccumulation;
     }
 }

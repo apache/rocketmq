@@ -18,13 +18,14 @@
 package org.apache.rocketmq.test.client.producer.async;
 
 import java.util.List;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.factory.ProducerFactory;
@@ -38,7 +39,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendExceptionIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private static boolean sendFail = false;
     private String topic = null;
 

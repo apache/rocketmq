@@ -18,8 +18,8 @@ package org.apache.rocketmq.store.timer;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,7 +31,7 @@ import java.nio.channels.FileChannel;
 
 public class TimerWheel {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     public static final int BLANK = -1, IGNORE = -2;
     public final int slotsTotal;
     public final int precisionMs;

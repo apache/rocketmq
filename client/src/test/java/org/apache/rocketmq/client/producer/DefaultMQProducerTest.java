@@ -44,12 +44,12 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -234,7 +234,7 @@ public class DefaultMQProducerTest {
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
 
-        // off enableBackpressureForAsyncMode 
+        // off enableBackpressureForAsyncMode
         producer.setEnableBackpressureForAsyncMode(false);
         producer.send(new Message(), sendCallback);
         producer.send(message, new MessageQueue(), sendCallback);
@@ -247,7 +247,7 @@ public class DefaultMQProducerTest {
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(10);
     }
-    
+
     @Test
     public void testBatchSendMessageAsync()
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {

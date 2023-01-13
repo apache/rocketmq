@@ -25,9 +25,9 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -116,15 +116,14 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
                     System.out.printf("specified timestamp invalid.%n");
                     return;
                 }
-
-                boolean force = true;
-                if (commandLine.hasOption('f')) {
-                    force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
-                }
-
-                defaultMQAdminExt.start();
-                resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
             }
+
+            boolean force = true;
+            if (commandLine.hasOption('f')) {
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
+            }
+            defaultMQAdminExt.start();
+            resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

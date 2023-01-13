@@ -32,8 +32,8 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * SimpleChannel is used to handle writeAndFlush situation in processor
@@ -42,7 +42,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
  * @see io.netty.channel.Channel#writeAndFlush
  */
 public class SimpleChannel extends AbstractChannel {
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final String remoteAddress;
     protected final String localAddress;
@@ -175,6 +175,11 @@ public class SimpleChannel extends AbstractChannel {
         return promise;
     }
 
+    @Override
+    public boolean isWritable() {
+        return true;
+    }
+
     public void updateLastAccessTime() {
         this.lastAccessTime = System.currentTimeMillis();
     }
@@ -189,6 +194,14 @@ public class SimpleChannel extends AbstractChannel {
 
     public void clearExpireContext() {
 
+    }
+
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
+
+    public String getLocalAddress() {
+        return localAddress;
     }
 
     public ChannelHandlerContext getChannelHandlerContext() {

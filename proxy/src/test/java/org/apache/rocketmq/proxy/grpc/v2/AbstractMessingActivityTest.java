@@ -20,7 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2;
 import apache.rocketmq.v2.Resource;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertThrows;
 
-public class AbstractMessingActivityTest extends InitConfigAndLoggerTest {
+public class AbstractMessingActivityTest extends InitConfigTest {
 
     public static class MockMessingActivity extends AbstractMessingActivity {
 

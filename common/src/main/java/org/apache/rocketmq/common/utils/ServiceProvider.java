@@ -20,8 +20,8 @@ package org.apache.rocketmq.common.utils;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -30,31 +30,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServiceProvider {
-
-    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     /**
      * A reference to the classloader that loaded this class. It's more efficient to compute it once and cache it here.
      */
     private static ClassLoader thisClassLoader;
-
+    
     /**
      * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider'
      * specification</a>.
      */
-    public static final String TRANSACTION_SERVICE_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService";
-
-    public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
-
-    public static final String HA_SERVICE_ID = "META-INF/service/org.apache.rocketmq.store.ha.HAService";
-
-    public static final String RPC_HOOK_ID = "META-INF/service/org.apache.rocketmq.remoting.RPCHook";
-
-    public static final String ACL_VALIDATOR_ID = "META-INF/service/org.apache.rocketmq.acl.AccessValidator";
-
+    public static final String PREFIX = "META-INF/service/";
+    
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);
     }
-
+    
     /**
      * Returns a string that uniquely identifies the specified object, including its class.
      * <p>
@@ -71,7 +62,7 @@ public class ServiceProvider {
             return o.getClass().getName() + "@" + System.identityHashCode(o);
         }
     }
-
+    
     protected static ClassLoader getClassLoader(Class<?> clazz) {
         try {
             return clazz.getClassLoader();
@@ -81,7 +72,7 @@ public class ServiceProvider {
             throw e;
         }
     }
-
+    
     protected static ClassLoader getContextClassLoader() {
         ClassLoader classLoader = null;
         try {
@@ -95,7 +86,7 @@ public class ServiceProvider {
         }
         return classLoader;
     }
-
+    
     protected static InputStream getResourceAsStream(ClassLoader loader, String name) {
         if (loader != null) {
             return loader.getResourceAsStream(name);
@@ -103,19 +94,27 @@ public class ServiceProvider {
             return ClassLoader.getSystemResourceAsStream(name);
         }
     }
-
+    
+    public static <T> List<T> load(Class<?> clazz) {
+        String fullName = PREFIX + clazz.getName();
+        return load(fullName, clazz);
+    }
+    
     public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         List<T> services = new ArrayList<>();
-        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-
+        InputStream is = getResourceAsStream(getContextClassLoader(), name);
+        if (is == null) {
+            LOG.warn("No resource file with name [{}] found.", name);
+            return services;
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String serviceName = reader.readLine();
             List<String> names = new ArrayList<>();
             while (serviceName != null && !"".equals(serviceName)) {
                 LOG.info(
-                        "Creating an instance as specified by file {} which was present in the path of the context classloader.",
-                        name);
+                    "Creating an instance as specified by file {} which was present in the path of the context classloader.",
+                    name);
                 if (!names.contains(serviceName)) {
                     names.add(serviceName);
                     services.add(initService(getContextClassLoader(), serviceName, clazz));
@@ -127,12 +126,21 @@ public class ServiceProvider {
         }
         return services;
     }
-
+    
+    public static <T> T loadClass(Class<?> clazz) {
+        String fullName = PREFIX + clazz.getName();
+        return loadClass(fullName, clazz);
+    }
+    
     public static <T> T loadClass(String name, Class<?> clazz) {
+        LOG.info("Looking for a resource file of name [{}] ...", name);
         T s = null;
-        try (InputStream is = getResourceAsStream(getContextClassLoader(), name);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-
+        InputStream is = getResourceAsStream(getContextClassLoader(), name);
+        if (is == null) {
+            LOG.warn("No resource file with name [{}] found.", name);
+            return null;
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String serviceName = reader.readLine();
             if (serviceName != null && !"".equals(serviceName)) {
                 s = initService(getContextClassLoader(), serviceName, clazz);

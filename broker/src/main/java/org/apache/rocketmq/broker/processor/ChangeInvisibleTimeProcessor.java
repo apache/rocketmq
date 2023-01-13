@@ -26,25 +26,25 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private final String reviveTopic;
 
@@ -206,7 +206,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setNum((byte) 1);
         ck.setPopTime(popTime);
         ck.setInvisibleTime(requestHeader.getInvisibleTime());
-        ck.getStartOffset(offset);
+        ck.setStartOffset(offset);
         ck.setCId(requestHeader.getConsumerGroup());
         ck.setTopic(requestHeader.getTopic());
         ck.setQueueId((byte) queueId);

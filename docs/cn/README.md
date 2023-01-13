@@ -34,7 +34,7 @@
 ### 6. RocketMQ 5.0 新特性
 
 - [POP消费](https://github.com/apache/rocketmq/wiki/%5BRIP-19%5D-Server-side-rebalance,--lightweight-consumer-client-support)
-- [StaticTopic](RocketMQ_Static_Topic_Logic_Queue_设计.md)
+- [StaticTopic](statictopic/RocketMQ_Static_Topic_Logic_Queue_设计.md)
 - [BatchConsumeQueue](https://github.com/apache/rocketmq/wiki/RIP-26-Improve-Batch-Message-Processing-Throughput)
 - [自动主从切换](controller/design.md)
 - [BrokerContainer](BrokerContainer.md)

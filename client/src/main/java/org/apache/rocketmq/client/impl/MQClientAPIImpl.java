@@ -50,19 +50,15 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -76,132 +72,7 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.DefaultTopAddressing;
 import org.apache.rocketmq.common.namesrv.NameServerUpdateCallback;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
-import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.body.EpochEntryCache;
-import org.apache.rocketmq.common.protocol.body.GetConsumerStatusBody;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.common.protocol.body.InSyncStateData;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
-import org.apache.rocketmq.common.protocol.body.ProducerConnection;
-import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentRequestBody;
-import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
-import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
-import org.apache.rocketmq.common.protocol.body.QuerySubscriptionResponseBody;
-import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
-import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
-import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.AddBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
-import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteAccessConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.common.protocol.header.GetAllProducerInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseBody;
-import org.apache.rocketmq.common.protocol.header.GetConsumeStatsInBrokerHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetSubscriptionGroupConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetTopicConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumeQueueRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
-import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QuerySubscriptionByConsumerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryTopicsByConsumerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.RemoveBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ResetMasterFlushOffsetHeader;
-import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
-import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.UpdateGroupForbiddenRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ViewMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.DeleteTopicFromNamesrvRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.CleanControllerBrokerDataRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.rpchook.DynamicalExtFieldRPCHook;
-import org.apache.rocketmq.common.rpchook.StreamTypeRPCHook;
-import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.subscription.GroupForbidden;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -216,14 +87,143 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
+import org.apache.rocketmq.remoting.protocol.body.GroupList;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
+import org.apache.rocketmq.remoting.protocol.body.KVTable;
+import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.LockBatchResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
+import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryAssignmentResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryConsumeQueueResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryConsumeTimeSpanBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.AddBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetBrokerClusterAclConfigResponseBody;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerConnectionListRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetProducerConnectionListRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumeQueueRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumeTimeSpanRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryCorrectionOffsetHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryTopicsByConsumerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RemoveBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.DeleteKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.DeleteTopicFromNamesrvRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetKVConfigResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.PutKVConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
+import org.apache.rocketmq.remoting.rpchook.StreamTypeRPCHook;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class MQClientAPIImpl implements NameServerUpdateCallback {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger log = LoggerFactory.getLogger(MQClientAPIImpl.class);
     private static boolean sendSmartMsg =
         Boolean.parseBoolean(System.getProperty("org.apache.rocketmq.client.sendSmartMsg", "true"));
 
@@ -1101,31 +1101,31 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         }
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, map.get(key) + MessageConst.KEY_SEPARATOR + messageExt.getQueueOffset());
                     } else {
-                        String queueIdKey = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
-                        String queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(messageExt.getTopic(), messageExt.getQueueId(), messageExt.getQueueOffset());
-                        int index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
-                        Long msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
-                        if (msgQueueOffset != messageExt.getQueueOffset()) {
-                            log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
-                        }
-
-                        messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                            ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(queueIdKey), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                                responseHeader.getReviveQid(), messageExt.getTopic(), brokerName, messageExt.getQueueId(), msgQueueOffset)
-                        );
-                        if (((PopMessageRequestHeader) requestHeader).isOrder() && orderCountInfo != null) {
-                            Integer count = orderCountInfo.get(queueOffsetKey);
-                            if (count == null) {
-                                count = orderCountInfo.get(queueIdKey);
+                        if (messageExt.getProperty(MessageConst.PROPERTY_POP_CK) == null) {
+                            String queueIdKey = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                            String queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(messageExt.getTopic(), messageExt.getQueueId(), messageExt.getQueueOffset());
+                            int index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
+                            Long msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
+                            if (msgQueueOffset != messageExt.getQueueOffset()) {
+                                log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
                             }
-                            if (count != null && count > 0) {
-                                messageExt.setReconsumeTimes(count);
+                            messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+                                ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(queueIdKey), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                    responseHeader.getReviveQid(), messageExt.getTopic(), brokerName, messageExt.getQueueId(), msgQueueOffset)
+                            );
+                            if (((PopMessageRequestHeader) requestHeader).isOrder() && orderCountInfo != null) {
+                                Integer count = orderCountInfo.get(queueOffsetKey);
+                                if (count == null) {
+                                    count = orderCountInfo.get(queueIdKey);
+                                }
+                                if (count != null && count > 0) {
+                                    messageExt.setReconsumeTimes(count);
+                                }
                             }
                         }
                     }
-                    if (messageExt.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
-                        messageExt.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(responseHeader.getPopTime()));
-                    }
+                    messageExt.getProperties().computeIfAbsent(
+                        MessageConst.PROPERTY_FIRST_POP_TIME, k -> String.valueOf(responseHeader.getPopTime()));
                 }
                 messageExt.setBrokerName(brokerName);
                 messageExt.setTopic(NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace()));

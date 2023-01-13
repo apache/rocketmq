@@ -17,20 +17,23 @@
 package org.apache.rocketmq.remoting.common;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RemotingHelper {
@@ -39,24 +42,8 @@ public class RemotingHelper {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final String DEFAULT_CIDR_ALL = "0.0.0.0/0";
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_REMOTING);
     private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
-
-    public static String exceptionSimpleDesc(final Throwable e) {
-        StringBuilder sb = new StringBuilder();
-        if (e != null) {
-            sb.append(e.toString());
-
-            StackTraceElement[] stackTrace = e.getStackTrace();
-            if (stackTrace != null && stackTrace.length > 0) {
-                StackTraceElement element = stackTrace[0];
-                sb.append(", ");
-                sb.append(element.toString());
-            }
-        }
-
-        return sb.toString();
-    }
 
     public static SocketAddress string2SocketAddress(final String addr) {
         int split = addr.lastIndexOf(":");
@@ -70,8 +57,8 @@ public class RemotingHelper {
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, RemotingCommandException {
         long beginTime = System.currentTimeMillis();
-        SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-        SocketChannel socketChannel = RemotingUtil.connect(socketAddress);
+        SocketAddress socketAddress = NetworkUtil.string2SocketAddress(addr);
+        SocketChannel socketChannel = connect(socketAddress);
         if (socketChannel != null) {
             boolean sendRequestOK = false;
 
@@ -238,5 +225,53 @@ public class RemotingHelper {
         int cidrIpAddr = ipToInt(cidrArr[0]);
 
         return (ipAddr & mask) == (cidrIpAddr & mask);
+    }
+
+    public static SocketChannel connect(SocketAddress remote) {
+        return connect(remote, 1000 * 5);
+    }
+
+    public static SocketChannel connect(SocketAddress remote, final int timeoutMillis) {
+        SocketChannel sc = null;
+        try {
+            sc = SocketChannel.open();
+            sc.configureBlocking(true);
+            sc.socket().setSoLinger(false, -1);
+            sc.socket().setTcpNoDelay(true);
+            if (NettySystemConfig.socketSndbufSize > 0) {
+                sc.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+            }
+            if (NettySystemConfig.socketRcvbufSize > 0) {
+                sc.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+            }
+            sc.socket().connect(remote, timeoutMillis);
+            sc.configureBlocking(false);
+            return sc;
+        } catch (Exception e) {
+            if (sc != null) {
+                try {
+                    sc.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static void closeChannel(Channel channel) {
+        final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
+        if ("".equals(addrRemote)) {
+            channel.close();
+        } else {
+            channel.close().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                        future.isSuccess());
+                }
+            });
+        }
     }
 }

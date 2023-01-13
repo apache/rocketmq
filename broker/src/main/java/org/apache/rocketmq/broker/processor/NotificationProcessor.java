@@ -18,16 +18,12 @@ package org.apache.rocketmq.broker.processor;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.longpolling.NotificationRequest;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -36,20 +32,21 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.NotificationRequestHeader;
-import org.apache.rocketmq.common.protocol.header.NotificationResponseHeader;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class NotificationProcessor implements NettyRequestProcessor {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private Random random = new Random(System.currentTimeMillis());
     private static final String BORN_TIME = "bornTime";
@@ -60,13 +57,13 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
         this.checkNotificationPollingThread = new Thread(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
             @Override
-            public void run2() {
+            public void run0() {
                 while (true) {
                     if (Thread.currentThread().isInterrupted()) {
                         break;
                     }
                     try {
-                        Thread.sleep(2000L);
+                        Thread.sleep(200L);
                         Collection<ArrayBlockingQueue<NotificationRequest>> pops = pollingMap.values();
                         for (ArrayBlockingQueue<NotificationRequest> popQ : pops) {
                             NotificationRequest tmPopRequest = popQ.peek();
@@ -76,15 +73,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
                                     if (tmPopRequest == null) {
                                         break;
                                     }
-                                    if (!tmPopRequest.isTimeout()) {
-                                        POP_LOGGER.info("not timeout , but wakeUp Notification in advance: {}", tmPopRequest);
-                                        wakeUp(tmPopRequest, false);
-                                        break;
-                                    } else {
-                                        POP_LOGGER.info("timeout , wakeUp Notification : {}", tmPopRequest);
-                                        wakeUp(tmPopRequest, false);
-                                        tmPopRequest = popQ.peek();
-                                    }
+                                    POP_LOGGER.info("timeout , wakeUp Notification : {}", tmPopRequest);
+                                    wakeUp(tmPopRequest, false);
+                                    tmPopRequest = popQ.peek();
                                 } else {
                                     break;
                                 }
@@ -148,31 +139,27 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (!request.getChannel().isActive()) {
             return;
         }
-        Runnable run = new Runnable() {
-            @Override
-            public void run() {
-                final RemotingCommand response = NotificationProcessor.this.responseNotification(request.getChannel(), hasMsg);
-
+        Runnable run = () -> {
+            try {
+                final RemotingCommand response;
+                if (hasMsg) {
+                    response = NotificationProcessor.this.responseNotification(request.getChannel(), true);
+                } else {
+                    response = NotificationProcessor.this.processRequest(request.getChannel(), request.getRemotingCommand());
+                }
                 if (response != null) {
                     response.setOpaque(request.getRemotingCommand().getOpaque());
                     response.markResponseType();
-                    try {
-                        request.getChannel().writeAndFlush(response).addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                if (!future.isSuccess()) {
-                                    POP_LOGGER.error("ProcessRequestWrapper response to {} failed", future.channel().remoteAddress(), future.cause());
-                                    POP_LOGGER.error(request.toString());
-                                    POP_LOGGER.error(response.toString());
-                                }
-                            }
-                        });
-                    } catch (Throwable e) {
-                        POP_LOGGER.error("ProcessRequestWrapper process request over, but response failed", e);
-                        POP_LOGGER.error(request.toString());
-                        POP_LOGGER.error(response.toString());
-                    }
+                    NettyRemotingAbstract.writeResponse(request.getChannel(), request.getRemotingCommand(), response, future -> {
+                        if (!future.isSuccess()) {
+                            POP_LOGGER.error("ProcessRequestWrapper response to {} failed", request.getChannel().remoteAddress(), future.cause());
+                            POP_LOGGER.error(request.toString());
+                            POP_LOGGER.error(response.toString());
+                        }
+                    });
                 }
+            } catch (RemotingCommandException e) {
+                POP_LOGGER.error("ExecuteRequestWhenWakeup run", e);
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
@@ -244,6 +231,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
                     hasMsg = hasMsgFromQueue(true, requestHeader, queueId);
+                    if (hasMsg) {
+                        break;
+                    }
                 }
             }
         }
@@ -259,6 +249,20 @@ public class NotificationProcessor implements NettyRequestProcessor {
         } else {
             int queueId = requestHeader.getQueueId();
             hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
+        }
+        // if it doesn't have message, fetch retry again
+        if (!needRetry && !hasMsg) {
+            TopicConfig retryTopicConfig =
+                this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+            if (retryTopicConfig != null) {
+                for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
+                    int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
+                    hasMsg = hasMsgFromQueue(true, requestHeader, queueId);
+                    if (hasMsg) {
+                        break;
+                    }
+                }
+            }
         }
 
         if (!hasMsg) {

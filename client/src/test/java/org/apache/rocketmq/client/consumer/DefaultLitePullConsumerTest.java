@@ -52,9 +52,9 @@ import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -154,7 +154,7 @@ public class DefaultLitePullConsumerTest {
         }
     }
 
-  
+
     @Test
     public void testAssign_PollMessageWithTagSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumerWithTag();
@@ -194,7 +194,7 @@ public class DefaultLitePullConsumerTest {
         //commit offset 1
         Map<MessageQueue, Long> commitOffset = new HashMap<>();
         commitOffset.put(messageQueue, 1L);
-        litePullConsumer.commitSync(commitOffset, true);
+        litePullConsumer.commit(commitOffset, true);
 
         assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(1);
     }
@@ -775,7 +775,7 @@ public class DefaultLitePullConsumerTest {
                 });
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
-        
+
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
 
@@ -815,7 +815,7 @@ public class DefaultLitePullConsumerTest {
         return litePullConsumer;
     }
 
-          
+
     private DefaultLitePullConsumer createStartLitePullConsumerWithTag() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");

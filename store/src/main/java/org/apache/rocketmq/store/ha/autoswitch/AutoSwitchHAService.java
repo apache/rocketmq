@@ -28,14 +28,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.EpochEntry;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -51,7 +54,7 @@ import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
  * SwitchAble ha service, support switch role to master or slave.
  */
 public class AutoSwitchHAService extends DefaultHAService {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
@@ -62,6 +65,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
+    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public AutoSwitchHAService() {
     }
@@ -136,6 +141,11 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
 
+        if (defaultMessageStore.isTransientStorePoolEnable()) {
+            waitingForAllCommit();
+            defaultMessageStore.getTransientStorePool().setRealCommit(true);
+        }
+
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
 
         this.defaultMessageStore.recoverTopicQueueTable();
@@ -162,11 +172,28 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
             this.haClient.start();
+
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
+                waitingForAllCommit();
+                defaultMessageStore.getTransientStorePool().setRealCommit(false);
+            }
+
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
         } catch (final Exception e) {
             LOGGER.error("Error happen when change ha to slave", e);
             return false;
+        }
+    }
+
+    public void waitingForAllCommit() {
+        while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
+            getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
+            try {
+                Thread.sleep(100);
+            } catch (Exception e) {
+
+            }
         }
     }
 
@@ -266,7 +293,13 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public int inSyncReplicasNums(final long masterPutWhere) {
-        return syncStateSet.size();
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            return syncStateSet.size();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -322,14 +355,28 @@ public class AutoSwitchHAService extends DefaultHAService {
         return confirmOffset;
     }
 
-    public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
-        this.syncStateSet.clear();
-        this.syncStateSet.addAll(syncStateSet);
-        this.confirmOffset = computeConfirmOffset();
+    public void setSyncStateSet(final Set<String> syncStateSet) {
+        final Lock writeLock = readWriteLock.writeLock();
+        try {
+            writeLock.lock();
+            this.syncStateSet.clear();
+            this.syncStateSet.addAll(syncStateSet);
+            this.confirmOffset = computeConfirmOffset();
+        } finally {
+            writeLock.unlock();
+        }
     }
 
-    public synchronized Set<String> getSyncStateSet() {
-        return new HashSet<>(this.syncStateSet);
+    public Set<String> getSyncStateSet() {
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            HashSet<String> set = new HashSet<>(this.syncStateSet.size());
+            set.addAll(this.syncStateSet);
+            return set;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void truncateEpochFilePrefix(final long offset) {
@@ -409,7 +456,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         @Override
         public String getServiceName() {
             if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
+                return defaultMessageStore.getBrokerConfig().getIdentifier() + AcceptSocketService.class.getSimpleName();
             }
             return AutoSwitchAcceptSocketService.class.getSimpleName();
         }

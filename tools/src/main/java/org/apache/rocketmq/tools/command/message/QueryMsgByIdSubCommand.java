@@ -33,11 +33,11 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -210,7 +210,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt = new Option("u", "unitName", true, "unit name");
         opt.setRequired(false);
         options.addOption(opt);
-        
+
         opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
         opt.setRequired(false);
         options.addOption(opt);

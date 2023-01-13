@@ -16,12 +16,9 @@
  */
 package org.apache.rocketmq.common.topic;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.UtilAll;
 
 public class TopicValidator {
 
@@ -102,36 +99,39 @@ public class TopicValidator {
         return false;
     }
 
-    public static boolean validateTopic(String topic, RemotingCommand response) {
+    public static ValidateTopicResult validateTopic(String topic) {
 
         if (UtilAll.isBlank(topic)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic is blank.");
-            return false;
+            return new ValidateTopicResult(false, "The specified topic is blank.");
         }
 
         if (isTopicOrGroupIllegal(topic)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
-            return false;
+            return new ValidateTopicResult(false, "The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
         }
 
         if (topic.length() > TOPIC_MAX_LENGTH) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic is longer than topic max length.");
-            return false;
+            return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
         }
 
-        return true;
+        return new ValidateTopicResult(true, "");
     }
 
-    public static boolean isSystemTopic(String topic, RemotingCommand response) {
-        if (isSystemTopic(topic)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The topic[" + topic + "] is conflict with system topic.");
-            return true;
+    public static class ValidateTopicResult {
+        private final boolean valid;
+        private final String remark;
+
+        public ValidateTopicResult(boolean valid, String remark) {
+            this.valid = valid;
+            this.remark = remark;
         }
-        return false;
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public String getRemark() {
+            return remark;
+        }
     }
 
     public static boolean isSystemTopic(String topic) {
@@ -140,15 +140,6 @@ public class TopicValidator {
 
     public static boolean isNotAllowedSendTopic(String topic) {
         return NOT_ALLOWED_SEND_TOPIC_SET.contains(topic);
-    }
-
-    public static boolean isNotAllowedSendTopic(String topic, RemotingCommand response) {
-        if (isNotAllowedSendTopic(topic)) {
-            response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("Sending message to topic[" + topic + "] is forbidden.");
-            return true;
-        }
-        return false;
     }
 
     public static void addSystemTopic(String systemTopic) {

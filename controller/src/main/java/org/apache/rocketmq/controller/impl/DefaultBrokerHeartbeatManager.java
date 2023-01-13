@@ -17,7 +17,6 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.netty.channel.Channel;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,19 +27,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.BrokerLiveInfo;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
     private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
     private final ExecutorService executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
@@ -78,7 +76,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     final Channel channel = next.getValue().getChannel();
                     iterator.remove();
                     if (channel != null) {
-                        RemotingUtil.closeChannel(channel);
+                        RemotingHelper.closeChannel(channel);
                     }
                     this.executor.submit(() ->
                         notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().getBrokerName(), next.getKey().getBrokerAddr(), next.getValue().getBrokerId()));
@@ -101,50 +99,40 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         this.brokerLifecycleListeners.add(listener);
     }
 
-    @Override
-    public void registerBroker(String clusterName, String brokerName, String brokerAddr,
-        long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset) {
-        final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
-        final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
-            new BrokerLiveInfo(brokerName,
-                brokerAddr,
-                brokerId,
-                System.currentTimeMillis(),
-                timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                channel, epoch == null ? -1 : epoch, maxOffset == null ? -1 : maxOffset));
-        if (prevBrokerLiveInfo == null) {
-            log.info("new broker registered, {}, brokerId:{}", addrInfo, brokerId);
-        }
-    }
-
-    @Override
-    public void changeBrokerMetadata(String clusterName, String brokerAddr, Long brokerId) {
+    @Override public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
+        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset, Integer electionPriority) {
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
-        if (prev != null) {
-            prev.setBrokerId(brokerId);
-            log.info("Change broker {}'s brokerId to {}", brokerAddr, brokerId);
-        }
-    }
-
-    @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerAddr, Integer epoch, Long maxOffset,
-        Long confirmOffset) {
-        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
-        BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
-        if (null == prev) {
-            return;
-        }
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
+        long realBrokerId = Optional.ofNullable(brokerId).orElse(-1L);
         long realMaxOffset = Optional.ofNullable(maxOffset).orElse(-1L);
         long realConfirmOffset = Optional.ofNullable(confirmOffset).orElse(-1L);
-
-        prev.setLastUpdateTimestamp(System.currentTimeMillis());
-        if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
-            prev.setEpoch(realEpoch);
-            prev.setMaxOffset(realMaxOffset);
-            prev.setConfirmOffset(realConfirmOffset);
+        long realTimeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_BROKER_CHANNEL_EXPIRED_TIME);
+        int realElectionPriority = Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE);
+        if (null == prev) {
+            this.brokerLiveTable.put(addrInfo,
+                new BrokerLiveInfo(brokerName,
+                    brokerAddr,
+                    realBrokerId,
+                    System.currentTimeMillis(),
+                    realTimeoutMillis,
+                    channel,
+                    realEpoch,
+                    realMaxOffset,
+                    realElectionPriority));
+            log.info("new broker registered, {}, brokerId:{}", addrInfo, realBrokerId);
+        } else {
+            prev.setLastUpdateTimestamp(System.currentTimeMillis());
+            prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
+            prev.setElectionPriority(realElectionPriority);
+            prev.setBrokerId(realBrokerId);
+            if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
+                prev.setEpoch(realEpoch);
+                prev.setMaxOffset(realMaxOffset);
+                prev.setConfirmOffset(realConfirmOffset);
+            }
         }
+
     }
 
     @Override

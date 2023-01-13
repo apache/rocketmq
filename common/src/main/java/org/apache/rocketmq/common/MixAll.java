@@ -16,13 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.utils.IOTinyUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,11 +38,17 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.utils.IOTinyUtils;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -100,14 +99,34 @@ public class MixAll {
     public static final String ROCKETMQ_ZONE_PROPERTY = "rocketmq.zone";
     public static final String ROCKETMQ_ZONE_MODE_ENV = "ROCKETMQ_ZONE_MODE";
     public static final String ROCKETMQ_ZONE_MODE_PROPERTY = "rocketmq.zone.mode";
-    public static final String ZONE_NAME = "__ZONE_NAME"; 
+    public static final String ZONE_NAME = "__ZONE_NAME";
     public static final String ZONE_MODE = "__ZONE_MODE";
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
     public static final String METADATA_SCOPE_GLOBAL = "__global__";
     public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
     public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
+
+    private static final String OS = System.getProperty("os.name").toLowerCase();
+
+    public static boolean isWindows() {
+        return OS.indexOf("win") >= 0;
+    }
+
+    public static boolean isMac() {
+        return OS.indexOf("mac") >= 0;
+    }
+
+    public static boolean isUnix() {
+        return OS.indexOf("nix") >= 0
+                || OS.indexOf("nux") >= 0
+                || OS.indexOf("aix") > 0;
+    }
+
+    public static boolean isSolaris() {
+        return OS.indexOf("sunos") >= 0;
+    }
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -232,11 +251,11 @@ public class MixAll {
         return null;
     }
 
-    public static void printObjectProperties(final InternalLogger logger, final Object object) {
+    public static void printObjectProperties(final Logger logger, final Object object) {
         printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final InternalLogger logger, final Object object,
+    public static void printObjectProperties(final Logger logger, final Object object,
         final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
@@ -300,24 +319,31 @@ public class MixAll {
     public static Properties object2Properties(final Object object) {
         Properties properties = new Properties();
 
-        Field[] fields = object.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers())) {
-                String name = field.getName();
-                if (!name.startsWith("this")) {
-                    Object value = null;
-                    try {
-                        field.setAccessible(true);
-                        value = field.get(object);
-                    } catch (IllegalAccessException e) {
-                        log.error("Failed to handle properties", e);
-                    }
+        Class<?> objectClass = object.getClass();
+        while (true) {
+            Field[] fields = objectClass.getDeclaredFields();
+            for (Field field : fields) {
+                if (!Modifier.isStatic(field.getModifiers())) {
+                    String name = field.getName();
+                    if (!name.startsWith("this")) {
+                        Object value = null;
+                        try {
+                            field.setAccessible(true);
+                            value = field.get(object);
+                        } catch (IllegalAccessException e) {
+                            log.error("Failed to handle properties", e);
+                        }
 
-                    if (value != null) {
-                        properties.setProperty(name, value.toString());
+                        if (value != null) {
+                            properties.setProperty(name, value.toString());
+                        }
                     }
                 }
             }
+            if (objectClass == Object.class || objectClass.getSuperclass() == Object.class) {
+                break;
+            }
+            objectClass = objectClass.getSuperclass();
         }
 
         return properties;

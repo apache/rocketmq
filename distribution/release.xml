@@ -55,6 +55,30 @@
             <source>NOTICE-BIN</source>
             <destName>NOTICE</destName>
         </file>
+        <file>
+            <source>../broker/src/main/resources/rmq.broker.logback.xml</source>
+            <destName>conf/rmq.broker.logback.xml</destName>
+        </file>
+        <file>
+            <source>../client/src/main/resources/rmq.client.logback.xml</source>
+            <destName>conf/rmq.client.logback.xml</destName>
+        </file>
+        <file>
+            <source>../controller/src/main/resources/rmq.controller.logback.xml</source>
+            <destName>conf/rmq.controller.logback.xml</destName>
+        </file>
+        <file>
+            <source>../namesrv/src/main/resources/rmq.namesrv.logback.xml</source>
+            <destName>conf/rmq.namesrv.logback.xml</destName>
+        </file>
+        <file>
+            <source>../tools/src/main/resources/rmq.tools.logback.xml</source>
+            <destName>conf/rmq.tools.logback.xml</destName>
+        </file>
+        <file>
+            <source>../proxy/src/main/resources/rmq.proxy.logback.xml</source>
+            <destName>conf/rmq.proxy.logback.xml</destName>
+        </file>
     </files>
 
     <moduleSets>
@@ -68,6 +92,7 @@
                 <include>org.apache.rocketmq:rocketmq-namesrv</include>
                 <include>org.apache.rocketmq:rocketmq-example</include>
                 <include>org.apache.rocketmq:rocketmq-openmessaging</include>
+                <include>org.apache.rocketmq:rocketmq-controller</include>
             </includes>
             <binaries>
                 <outputDirectory>lib/</outputDirectory>

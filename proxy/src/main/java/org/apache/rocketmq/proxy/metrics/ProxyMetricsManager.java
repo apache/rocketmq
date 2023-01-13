@@ -42,8 +42,8 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
@@ -69,6 +69,9 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyUp = null;
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.DISABLE) {
+            return;
+        }
         ProxyMetricsManager.proxyConfig = proxyConfig;
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
@@ -126,6 +129,10 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void start() throws Exception {
+        BrokerConfig.MetricsExporterType metricsExporterType = proxyConfig.getMetricsExporterType();
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.DISABLE) {
+            return;
+        }
         if (!checkConfig()) {
             log.error("check metrics config failed, will not export metrics");
             return;
@@ -154,7 +161,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
             String endpoint = proxyConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
@@ -194,7 +201,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.PROM) {
             String promExporterHost = proxyConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
                 promExporterHost = "0.0.0.0";

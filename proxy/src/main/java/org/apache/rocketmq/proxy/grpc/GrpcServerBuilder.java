@@ -40,8 +40,8 @@ import javax.net.ssl.SSLException;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ServiceProvider;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
@@ -50,7 +50,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 
 public class GrpcServerBuilder {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
 
     public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
@@ -118,7 +118,7 @@ public class GrpcServerBuilder {
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        boolean tlsTestModeEnable = proxyConfig.isGrpcTlsTestModeEnable();
+        boolean tlsTestModeEnable = proxyConfig.isTlsTestModeEnable();
         if (tlsTestModeEnable) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
             serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
@@ -128,8 +128,8 @@ public class GrpcServerBuilder {
             return;
         }
 
-        String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
-        String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
+        String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+        String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
         try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
              InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
             serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
@@ -144,7 +144,7 @@ public class GrpcServerBuilder {
 
     public GrpcServerBuilder configInterceptor() {
         // grpc interceptors, including acl, logging etc.
-        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
         if (!accessValidators.isEmpty()) {
             this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
         }

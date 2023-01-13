@@ -33,21 +33,21 @@ import org.apache.rocketmq.client.consumer.PullTaskCallback;
 import org.apache.rocketmq.client.consumer.PullTaskContext;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class PullConsumerImpl implements PullConsumer {
+    private static final Logger log = LoggerFactory.getLogger(PullConsumerImpl.class);
+
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final KeyValue properties;
     private boolean started = false;
     private final MQPullConsumerScheduleService pullConsumerScheduleService;
     private final LocalMessageCache localMessageCache;
     private final ClientConfig clientConfig;
-
-    private final static InternalLogger log = ClientLogger.getLog();
 
     public PullConsumerImpl(final KeyValue properties) {
         this.properties = properties;

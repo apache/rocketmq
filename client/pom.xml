@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-common</artifactId>
+            <artifactId>rocketmq-remoting</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>io.netty</groupId>
@@ -57,6 +57,14 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.transaction;
 
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 
 public class EndTransactionRequestData {
     private String brokerName;

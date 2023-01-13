@@ -25,7 +25,6 @@ java_library(
         "//client",
         "//common",
         "//filter",
-        "//logging",
         "//remoting",
         "//srvutil",
         "//store",
@@ -41,6 +40,7 @@ java_library(
         "@maven//:io_netty_netty_all",
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:io_opentelemetry_opentelemetry_context",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
         "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
         "@maven//:io_opentelemetry_opentelemetry_sdk",
@@ -48,7 +48,8 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 
@@ -59,7 +60,7 @@ java_library(
         "src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService",
-        "src/test/resources/logback-test.xml",
+        "src/test/resources/rmq.logback-test.xml",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -69,13 +70,13 @@ java_library(
         "//client",
         "//common",
         "//filter",
-        "//logging",
         "//remoting",
         "//store",
         "@maven//:com_alibaba_fastjson",
         "@maven//:com_google_guava_guava",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
 )
 

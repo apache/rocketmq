@@ -19,22 +19,32 @@ package org.apache.rocketmq.test.statictopic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.apache.log4j.Logger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.OffsetWrapper;
-import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.rpc.ClientMetadata;
-import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
-import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingOne;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.remoting.rpc.ClientMetadata;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -51,23 +61,13 @@ import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import static com.google.common.truth.Truth.assertThat;
-import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
+import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 
 @FixMethodOrder
 public class StaticTopicIT extends BaseConf {
 
-    private static Logger logger = Logger.getLogger(StaticTopicIT.class);
+    private static Logger logger = LoggerFactory.getLogger(StaticTopicIT.class);
     private DefaultMQAdminExt defaultMQAdminExt;
 
     @Before
@@ -345,7 +345,7 @@ public class StaticTopicIT extends BaseConf {
         int msgEachQueue = 10;
         //create static topic
         {
-            Set<String> targetBrokers = ImmutableSet.of(BROKER2_NAME);
+            Set<String> targetBrokers = ImmutableSet.of(BROKER1_NAME);
             MQAdminTestUtils.createStaticTopic(topic, queueNum, targetBrokers, defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 0);
             consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 0, 1);
@@ -409,7 +409,7 @@ public class StaticTopicIT extends BaseConf {
 
         //remapping to broker2Name
         {
-            Set<String> targetBrokers = ImmutableSet.of(BROKER3_NAME);
+            Set<String> targetBrokers = ImmutableSet.of(BROKER2_NAME);
             MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
             //leave the time to refresh the metadata
             awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
@@ -425,7 +425,7 @@ public class StaticTopicIT extends BaseConf {
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 2 * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
         }
 
-        // 1 -> 2 -> 3, currently 1 should not has any mappings
+        // 1 -> 2 -> 3, currently 1 should not have any mappings
 
         {
             for (int i = 0; i < 10; i++) {

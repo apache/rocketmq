@@ -19,10 +19,10 @@ package org.apache.rocketmq.proxy.service.transaction;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 
 public abstract class AbstractTransactionService implements TransactionService, StartAndShutdown {
 

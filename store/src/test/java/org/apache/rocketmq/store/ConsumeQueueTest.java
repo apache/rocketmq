@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -41,6 +42,7 @@ import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.junit.Assume;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -292,6 +294,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+        Assume.assumeFalse(MixAll.isWindows());
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genForMultiQueue();

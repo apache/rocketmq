@@ -68,14 +68,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
-import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -84,7 +83,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
 
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
 
@@ -451,7 +450,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         LOGGER.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
                     }
 
-                    RemotingUtil.closeChannel(channel);
+                    RemotingHelper.closeChannel(channel);
                 } catch (Exception e) {
                     LOGGER.error("closeChannel: close the channel exception", e);
                 } finally {
@@ -496,7 +495,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (removeItemFromTable) {
                         this.channelTables.remove(addrRemote);
                         LOGGER.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
-                        RemotingUtil.closeChannel(channel);
+                        RemotingHelper.closeChannel(channel);
                     }
                 } catch (Exception e) {
                     LOGGER.error("closeChannel: close the channel exception", e);

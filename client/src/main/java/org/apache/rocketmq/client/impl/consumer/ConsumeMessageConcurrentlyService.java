@@ -35,21 +35,21 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.CMResult;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.body.CMResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
-    private static final InternalLogger log = ClientLogger.getLog();
+    private static final Logger log = LoggerFactory.getLogger(ConsumeMessageConcurrentlyService.class);
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
@@ -172,10 +172,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
         } catch (Throwable e) {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
-            result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+            result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
             log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
-                RemotingHelper.exceptionSimpleDesc(e),
+                UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessageConcurrentlyService.this.consumerGroup,
                 msgs,
                 mq), e);
@@ -284,6 +284,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 List<MessageExt> msgBackFailed = new ArrayList<>(consumeRequest.getMsgs().size());
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
+                    // Maybe message is expired and cleaned, just ignore it.
+                    if (!consumeRequest.getProcessQueue().containsMessage(msg)) {
+                        log.info("Message is not found in its process queue; skip send-back-procedure, topic={}, "
+                                + "brokerName={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getBrokerName(),
+                            msg.getQueueId(), msg.getQueueOffset());
+                        continue;
+                    }
                     boolean result = this.sendMessageBack(msg, context);
                     if (!result) {
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
@@ -409,7 +416,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
                 log.warn(String.format("consumeMessage exception: %s Group: %s Msgs: %s MQ: %s",
-                    RemotingHelper.exceptionSimpleDesc(e),
+                    UtilAll.exceptionSimpleDesc(e),
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
                     msgs,
                     messageQueue), e);

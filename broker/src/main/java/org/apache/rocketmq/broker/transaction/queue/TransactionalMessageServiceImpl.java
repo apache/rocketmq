@@ -16,26 +16,6 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
-import org.apache.rocketmq.broker.transaction.OperationResult;
-import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
-import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.PullStatus;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -47,10 +27,29 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private TransactionalMessageBridge transactionalMessageBridge;
 
@@ -552,12 +551,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         GetResult getResult = new GetResult();
 
         PullResult result = pullHalfMsg(messageQueue, offset, PULL_MSG_RETRY_NUMBER);
-        getResult.setPullResult(result);
-        List<MessageExt> messageExts = result.getMsgFoundList();
-        if (messageExts == null) {
-            return getResult;
+        if (result != null) {
+            getResult.setPullResult(result);
+            List<MessageExt> messageExts = result.getMsgFoundList();
+            if (messageExts == null || messageExts.size() == 0) {
+                return getResult;
+            }
+            getResult.setMsg(messageExts.get(0));
         }
-        getResult.setMsg(messageExts.get(0));
         return getResult;
     }
 
