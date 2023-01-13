@@ -56,6 +56,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -79,6 +80,10 @@ public class TimerMessageStoreTest {
 
     public static MessageStoreConfig storeConfig;
 
+    static boolean getRandomInBoolean() {
+        return Math.random() >= 0.5;
+    }
+
     @Before
     public void init() throws Exception {
         String baseDir = StoreTestUtils.createBaseDir();
@@ -98,6 +103,15 @@ public class TimerMessageStoreTest {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
+        if (getRandomInBoolean()) {
+            storeConfig.setEnableDLegerCommitLog(true);
+            String group = UUID.randomUUID().toString();
+            storeConfig.setdLegerGroup(group);
+            storeConfig.setdLegerSelfId("n0");
+            storeConfig.setdLegerPeers("n0-" + storeHost);
+        }
+
+        System.out.println("storeConfig commitlog: " + storeConfig.isEnableDLegerCommitLog());
 
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = messageStore.load();
@@ -164,8 +178,7 @@ public class TimerMessageStoreTest {
         return null;
     }
 
-    @Test
-    public void testPutTimerMessage() throws Exception {
+    public void testPutTimerMessageCommon() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";
 
@@ -209,6 +222,16 @@ public class TimerMessageStoreTest {
         for (int i = 0; i < 10; i++) {
             Assert.assertEquals(0, timerMessageStore.getTimerMetrics().getTimingCount(topic + i));
         }
+    }
+
+    @Test
+    public void testPutTimerMessage1() throws Exception {
+        testPutTimerMessageCommon();
+    }
+
+    @Test
+    public void testPutTimerMessage2() throws Exception {
+        testPutTimerMessageCommon();
     }
 
     @Test
