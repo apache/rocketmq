@@ -27,7 +27,7 @@ import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public class TieredCommitLog {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static final int CODA_SIZE = 4 /* item size: int, 4 bytes */
         + 4 /* magic code: int, 4 bytes */
         + 8 /* max store timestamp: long, 8 bytes */;
@@ -109,7 +109,7 @@ public class TieredCommitLog {
                 fileQueue.rollingNewFile();
             }
         } catch (Exception e) {
-            LOGGER.error("Rolling to next file failed:", e);
+            logger.error("Rolling to next file failed:", e);
         }
     }
 

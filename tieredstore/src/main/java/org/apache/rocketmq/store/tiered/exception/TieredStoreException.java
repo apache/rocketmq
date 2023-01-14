@@ -49,7 +49,8 @@ public class TieredStoreException extends RuntimeException {
         this.position = position;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         String errStr = super.toString();
         if (requestId != null) {
             errStr += " requestId: " + requestId;

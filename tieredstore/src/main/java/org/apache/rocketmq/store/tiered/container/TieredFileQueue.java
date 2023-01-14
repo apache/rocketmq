@@ -42,7 +42,7 @@ import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public class TieredFileQueue {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private final TieredFileSegment.FileSegmentType fileType;
     private final MessageQueue messageQueue;
@@ -158,19 +158,19 @@ public class TieredFileQueue {
             TieredFileSegment pre = fileSegmentList.get(i - 1);
             TieredFileSegment cur = fileSegmentList.get(i);
             if (pre.getCommitOffset() != cur.getBaseOffset()) {
-                LOGGER.warn("TieredFileQueue#checkAndFixFileSize: file segment has incorrect size: topic: {}, queue: {}, file type: {}, base offset: {}",
+                logger.warn("TieredFileQueue#checkAndFixFileSize: file segment has incorrect size: topic: {}, queue: {}, file type: {}, base offset: {}",
                     messageQueue.getTopic(), messageQueue.getQueueId(), fileType, pre.getBaseOffset());
                 try {
                     long actualSize = pre.getSize();
                     if (pre.getBaseOffset() + actualSize != cur.getBaseOffset()) {
-                        LOGGER.error("[Bug]TieredFileQueue#checkAndFixFileSize: file segment has incorrect size and can not fix: topic: {}, queue: {}, file type: {}, base offset: {}, actual size: {}, next file offset: {}",
+                        logger.error("[Bug]TieredFileQueue#checkAndFixFileSize: file segment has incorrect size and can not fix: topic: {}, queue: {}, file type: {}, base offset: {}, actual size: {}, next file offset: {}",
                             messageQueue.getTopic(), messageQueue.getQueueId(), fileType, pre.getBaseOffset(), actualSize, cur.getBaseOffset());
                         continue;
                     }
                     pre.initPosition(actualSize);
                     metadataStore.updateFileSegment(pre);
                 } catch (Exception e) {
-                    LOGGER.error("TieredFileQueue#checkAndFixFileSize: fix file segment size failed: topic: {}, queue: {}, file type: {}, base offset: {}",
+                    logger.error("TieredFileQueue#checkAndFixFileSize: fix file segment size failed: topic: {}, queue: {}, file type: {}, base offset: {}",
                         messageQueue.getTopic(), messageQueue.getQueueId(), fileType, pre.getBaseOffset());
                 }
             }
@@ -179,7 +179,7 @@ public class TieredFileQueue {
             TieredFileSegment lastFile = fileSegmentList.get(fileSegmentList.size() - 1);
             long lastFileSize = lastFile.getSize();
             if (lastFile.getCommitPosition() != lastFileSize) {
-                LOGGER.warn("TieredFileQueue#checkAndFixFileSize: fix last file {} size: origin: {}, actual: {}", lastFile.getPath(), lastFile.getCommitOffset() - lastFile.getBaseOffset(), lastFileSize);
+                logger.warn("TieredFileQueue#checkAndFixFileSize: fix last file {} size: origin: {}, actual: {}", lastFile.getPath(), lastFile.getCommitOffset() - lastFile.getBaseOffset(), lastFileSize);
                 lastFile.initPosition(lastFileSize);
             }
         }
@@ -196,7 +196,7 @@ public class TieredFileQueue {
                 metadataStore.updateFileSegment(segment);
             }
         } catch (Exception e) {
-            LOGGER.error("create file segment failed: topic: {}, queue: {}, file type: {}, base offset: {}",
+            logger.error("create file segment failed: topic: {}, queue: {}, file type: {}, base offset: {}",
                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType, baseOffset, e);
         }
         return segment;
@@ -268,7 +268,7 @@ public class TieredFileQueue {
 
             Collections.sort(fileSegmentList);
 
-            LOGGER.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}", baseOffset, fileSegment.getPath(), fileType);
+            logger.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}", baseOffset, fileSegment.getPath(), fileType);
             return fileSegment;
         } finally {
             fileSegmentLock.writeLock().unlock();
@@ -371,7 +371,7 @@ public class TieredFileQueue {
                     }
                 });
         } catch (Exception e) {
-            LOGGER.error("clean expired failed: topic: {}, queue: {}, file type: {}, expire timestamp: {}",
+            logger.error("clean expired failed: topic: {}, queue: {}, file type: {}, expire timestamp: {}",
                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType, expireTimestamp);
         }
 
@@ -390,12 +390,12 @@ public class TieredFileQueue {
                         needCommitFileSegmentList.remove(fileSegment);
                         i--;
                         metadataStore.updateFileSegment(fileSegment);
-                        LOGGER.info("expired file {} is been cleaned", fileSegment.getPath());
+                        logger.info("expired file {} is been cleaned", fileSegment.getPath());
                     } else {
                         break;
                     }
                 } catch (Exception e) {
-                    LOGGER.error("clean expired file failed: topic: {}, queue: {}, file type: {}, expire timestamp: {}",
+                    logger.error("clean expired file failed: topic: {}, queue: {}, file type: {}, expire timestamp: {}",
                         messageQueue.getTopic(), messageQueue.getQueueId(), fileType, expireTimestamp, e);
                 }
             }
@@ -421,16 +421,16 @@ public class TieredFileQueue {
                             fileSegment.destroyFile();
                             if (!fileSegment.exists()) {
                                 metadataStore.deleteFileSegment(fileSegment);
-                                LOGGER.info("expired file {} is been destroyed", fileSegment.getPath());
+                                logger.info("expired file {} is been destroyed", fileSegment.getPath());
                             }
                         } catch (Exception e) {
-                            LOGGER.error("destroy expired failed: topic: {}, queue: {}, file type: {}",
+                            logger.error("destroy expired failed: topic: {}, queue: {}, file type: {}",
                                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType, e);
                         }
                     }
                 });
         } catch (Exception e) {
-            LOGGER.error("destroy expired file failed: topic: {}, queue: {}, file type: {}",
+            logger.error("destroy expired file failed: topic: {}, queue: {}, file type: {}",
                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType);
         }
     }
@@ -448,7 +448,7 @@ public class TieredFileQueue {
                             metadataStore.updateFileSegment(segment);
                         } catch (Exception e) {
                             // TODO handle update segment metadata failed exception
-                            LOGGER.error("update file segment metadata failed: topic: {}, queue: {}, file type: {}, base offset: {}",
+                            logger.error("update file segment metadata failed: topic: {}, queue: {}, file type: {}, base offset: {}",
                                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType, segment.getBaseOffset(), e);
                         }
                         if (segment.isFull() && !segment.needCommit()) {
@@ -457,7 +457,7 @@ public class TieredFileQueue {
                     }));
             }
         } catch (Exception e) {
-            LOGGER.error("commit file segment failed: topic: {}, queue: {}, file type: {}", messageQueue.getTopic(), messageQueue.getQueueId(), fileType, e);
+            logger.error("commit file segment failed: topic: {}, queue: {}, file type: {}", messageQueue.getTopic(), messageQueue.getQueueId(), fileType, e);
         }
         if (sync) {
             CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
@@ -469,7 +469,7 @@ public class TieredFileQueue {
         if (index == -1) {
             String errorMsg = String.format("TieredFileQueue#readAsync: offset is illegal, topic: %s, queue: %s, file type: %s, start: %d, length: %d, file num: %d",
                 messageQueue.getTopic(), messageQueue.getQueueId(), fileType, offset, length, fileSegmentList.size());
-            LOGGER.error(errorMsg);
+            logger.error(errorMsg);
             throw new TieredStoreException(TieredStoreErrorCode.ILLEGAL_OFFSET, errorMsg);
         }
         TieredFileSegment fileSegment1;
@@ -506,7 +506,7 @@ public class TieredFileQueue {
                 try {
                     metadataStore.updateFileSegment(fileSegment);
                 } catch (Exception e) {
-                    LOGGER.error("TieredFileQueue#destroy: mark file segment: {} is deleted failed", fileSegment.getPath(), e);
+                    logger.error("TieredFileQueue#destroy: mark file segment: {} is deleted failed", fileSegment.getPath(), e);
                 }
                 fileSegment.destroyFile();
             }

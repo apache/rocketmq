@@ -36,7 +36,7 @@ import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public abstract class TieredFileSegment implements Comparable<TieredFileSegment> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     private volatile boolean closed = false;
     private final ReentrantLock bufferLock = new ReentrantLock();
     private final Semaphore commitLock = new Semaphore(1);
@@ -222,7 +222,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                 commitAsync();
             }
             if (uploadBufferList.size() > storeConfig.getTieredStoreMaxGroupCommitCount()) {
-                LOGGER.debug("TieredFileSegment#append: buffer full: file: {}, upload buffer size: {}",
+                logger.debug("TieredFileSegment#append: buffer full: file: {}, upload buffer size: {}",
                     getPath(), uploadBufferList.size());
                 return AppendResult.BUFFER_FULL;
             }
@@ -257,22 +257,31 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
     }
 
     public CompletableFuture<ByteBuffer> readAsync(long position, int length) {
+        CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
         if (position < 0 || length < 0) {
-            throw new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position or length is negative");
+            future.completeExceptionally(
+                new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position or length is negative"));
+            return future;
         }
         if (length == 0) {
-            throw new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "length is zero");
+            future.completeExceptionally(
+                new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "length is zero"));
+            return future;
         }
         if (position + length > commitPosition) {
-            LOGGER.warn("TieredFileSegment#readAsync request position + length is greater than commit position," +
+            logger.warn("TieredFileSegment#readAsync request position + length is greater than commit position," +
                     " correct length using commit position, file: {}, request position: {}, commit position:{}, change length from {} to {}",
                 getPath(), position, commitPosition, length, commitPosition - position);
             length = (int) (commitPosition - position);
             if (length == 0) {
-                throw new TieredStoreException(TieredStoreErrorCode.NO_NEW_DATA, "request position is equal to commit position");
+                future.completeExceptionally(
+                    new TieredStoreException(TieredStoreErrorCode.NO_NEW_DATA, "request position is equal to commit position"));
+                return future;
             }
             if (fileType == FileSegmentType.CONSUME_QUEUE && length % TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE != 0) {
-                throw new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position and length is illegal");
+                future.completeExceptionally(
+                    new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position and length is illegal"));
+                return future;
             }
         }
         return read0(position, length);
@@ -337,20 +346,20 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                 }).exceptionally(e -> handleCommitException(inputStream, e))
                 .whenComplete((result, e) -> {
                     if (commitLock.availablePermits() == 0) {
-                        LOGGER.debug("TieredFileSegment#commitAsync: commit cost: {}ms, file: {}, item count: {}, buffer size: {}", stopwatch.elapsed(TimeUnit.MILLISECONDS), getPath(), bufferList.size(), finalBufferSize);
+                        logger.debug("TieredFileSegment#commitAsync: commit cost: {}ms, file: {}, item count: {}, buffer size: {}", stopwatch.elapsed(TimeUnit.MILLISECONDS), getPath(), bufferList.size(), finalBufferSize);
                         commitLock.release();
                     } else {
-                        LOGGER.error("[Bug]TieredFileSegment#commitAsync: commit lock is already released: available permits: {}", commitLock.availablePermits());
+                        logger.error("[Bug]TieredFileSegment#commitAsync: commit lock is already released: available permits: {}", commitLock.availablePermits());
                     }
                 });
             return inflightCommitRequest;
         } catch (Exception e) {
             handleCommitException(inputStream, e);
             if (commitLock.availablePermits() == 0) {
-                LOGGER.debug("TieredFileSegment#commitAsync: commit cost: {}ms, file: {}, item count: {}, buffer size: {}", stopwatch.elapsed(TimeUnit.MILLISECONDS), getPath(), bufferList.size(), finalBufferSize);
+                logger.debug("TieredFileSegment#commitAsync: commit cost: {}ms, file: {}, item count: {}, buffer size: {}", stopwatch.elapsed(TimeUnit.MILLISECONDS), getPath(), bufferList.size(), finalBufferSize);
                 commitLock.release();
             } else {
-                LOGGER.error("[Bug]TieredFileSegment#commitAsync: commit lock is already released: available permits: {}", commitLock.availablePermits());
+                logger.error("[Bug]TieredFileSegment#commitAsync: commit lock is already released: available permits: {}", commitLock.availablePermits());
             }
         }
         return CompletableFuture.completedFuture(false);
@@ -367,14 +376,14 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             realSize = getSize();
         }
         if (realSize > 0 && realSize > commitPosition) {
-            LOGGER.error("TieredFileSegment#handleCommitException: commit failed: file: {}, try to fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
-            // TODO check if this diff part is uploaded to OSS
+            logger.error("TieredFileSegment#handleCommitException: commit failed: file: {}, try to fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
+            // TODO check if this diff part is uploaded to backend storage
             long diff = appendPosition - commitPosition;
             commitPosition = realSize;
             appendPosition = realSize + diff;
             // TODO check if appendPosition is large than maxOffset
         } else if (realSize < commitPosition) {
-            LOGGER.error("[Bug]TieredFileSegment#handleCommitException: commit failed: file: {}, can not fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
+            logger.error("[Bug]TieredFileSegment#handleCommitException: commit failed: file: {}, can not fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
         }
         return false;
     }
@@ -434,7 +443,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                 this.curBuffer = uploadBufferList.get(0);
             }
             if (fileType == FileSegmentType.INDEX && uploadBufferList.size() != 1) {
-                LOGGER.error("[Bug]TieredFileSegmentInputStream: index file must have only one buffer");
+                logger.error("[Bug]TieredFileSegmentInputStream: index file must have only one buffer");
             }
         }
 

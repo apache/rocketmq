@@ -39,7 +39,7 @@ import org.apache.rocketmq.store.tiered.common.TieredStoreExecutor;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public class TieredIndexFile {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
     public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
@@ -106,7 +106,7 @@ public class TieredIndexFile {
                     curFileLock.unlock();
                 }
             } catch (Throwable throwable) {
-                LOGGER.error("TieredIndexFile: submit compact index file task failed:", throwable);
+                logger.error("TieredIndexFile: submit compact index file task failed:", throwable);
             }
         }, 10, 10, TimeUnit.SECONDS);
     }
@@ -175,7 +175,7 @@ public class TieredIndexFile {
                 tryToCompactPreFile();
                 return true;
             } else {
-                LOGGER.error("TieredIndexFile#rollingFile: rename current file failed");
+                logger.error("TieredIndexFile#rollingFile: rename current file failed");
                 return false;
             }
         }
@@ -239,7 +239,7 @@ public class TieredIndexFile {
             }
             return AppendResult.SUCCESS;
         } catch (Exception e) {
-            LOGGER.error("TieredIndexFile#putKey: put key failed:", e);
+            logger.error("TieredIndexFile#putKey: put key failed:", e);
             return AppendResult.IO_ERROR;
         } finally {
             curFileLock.unlock();
@@ -364,13 +364,13 @@ public class TieredIndexFile {
             try {
                 compact();
             } catch (Throwable throwable) {
-                LOGGER.error("TieredIndexFile#compactTask: compact index file failed:", throwable);
+                logger.error("TieredIndexFile#compactTask: compact index file failed:", throwable);
             }
         }
 
         public void compact() {
             if (!isFileSealed(originFile)) {
-                LOGGER.error("[Bug]TieredIndexFile#CompactTask#compact: try to compact unsealed file");
+                logger.error("[Bug]TieredIndexFile#CompactTask#compact: try to compact unsealed file");
                 originFile.destroy(-1);
                 compactFile.destroy(-1);
                 return;

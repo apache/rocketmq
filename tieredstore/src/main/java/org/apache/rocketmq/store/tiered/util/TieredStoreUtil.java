@@ -32,7 +32,7 @@ import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
 
 public class TieredStoreUtil {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private static final long BYTE = 1L;
     private static final long KB = BYTE << 10;
@@ -147,7 +147,7 @@ public class TieredStoreUtil {
                         Constructor<? extends TieredMetadataStore> constructor = clazz.getConstructor(TieredMessageStoreConfig.class);
                         metadataStoreInstance = constructor.newInstance(storeConfig);
                     } catch (Exception e) {
-                        LOGGER.error("TieredMetadataStore#getInstance: build metadata store failed, provider class: {}", storeConfig.getTieredMetadataServiceProvider(), e);
+                        logger.error("TieredMetadataStore#getInstance: build metadata store failed, provider class: {}", storeConfig.getTieredMetadataServiceProvider(), e);
                     }
                 }
             }

@@ -29,7 +29,7 @@ import org.apache.rocketmq.store.tiered.container.TieredCommitLog;
 import org.apache.rocketmq.store.tiered.container.TieredConsumeQueue;
 
 public class MessageBufferUtil {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     public static final int QUEUE_OFFSET_POSITION = 4 /* total size */
         + 4 /* magic code */
@@ -119,7 +119,7 @@ public class MessageBufferUtil {
         msgBuffer.rewind();
         List<Pair<Integer, Integer>> messageList = new ArrayList<>(cqBuffer.remaining() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         if (cqBuffer.remaining() % TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE != 0) {
-            LOGGER.warn("MessageBufferUtil#splitMessage: consume queue buffer size {} is not an integer multiple of CONSUME_QUEUE_STORE_UNIT_SIZE {}",
+            logger.warn("MessageBufferUtil#splitMessage: consume queue buffer size {} is not an integer multiple of CONSUME_QUEUE_STORE_UNIT_SIZE {}",
                 cqBuffer.remaining(), TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
             return messageList;
         }
@@ -130,32 +130,32 @@ public class MessageBufferUtil {
                 int diff = (int) (CQItemBufferUtil.getCommitLogOffset(cqBuffer) - startCommitLogOffset);
                 int size = CQItemBufferUtil.getSize(cqBuffer);
                 if (diff + size > msgBuffer.limit()) {
-                    LOGGER.error("MessageBufferUtil#splitMessage: message buffer size is incorrect: record in consume queue: {}, actual: {}", diff + size, msgBuffer.remaining());
+                    logger.error("MessageBufferUtil#splitMessage: message buffer size is incorrect: record in consume queue: {}, actual: {}", diff + size, msgBuffer.remaining());
                     return messageList;
                 }
                 msgBuffer.position(diff);
 
                 int magicCode = getMagicCode(msgBuffer);
                 if (magicCode == TieredCommitLog.BLANK_MAGIC_CODE) {
-                    LOGGER.warn("MessageBufferUtil#splitMessage: message decode error: blank magic code, this message may be coda, try to fix offset");
+                    logger.warn("MessageBufferUtil#splitMessage: message decode error: blank magic code, this message may be coda, try to fix offset");
                     diff = diff + TieredCommitLog.CODA_SIZE;
                     msgBuffer.position(diff);
                     magicCode = getMagicCode(msgBuffer);
                 }
                 if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
-                    LOGGER.warn("MessageBufferUtil#splitMessage: message decode error: unknown magic code");
+                    logger.warn("MessageBufferUtil#splitMessage: message decode error: unknown magic code");
                     continue;
                 }
 
                 if (getTotalSize(msgBuffer) != size) {
-                    LOGGER.warn("MessageBufferUtil#splitMessage: message size is not right: except: {}, actual: {}", size, getTotalSize(msgBuffer));
+                    logger.warn("MessageBufferUtil#splitMessage: message size is not right: except: {}, actual: {}", size, getTotalSize(msgBuffer));
                     continue;
                 }
 
                 messageList.add(Pair.of(diff, size));
             }
         } catch (Exception e) {
-            LOGGER.error("MessageBufferUtil#splitMessage: split message failed, maybe decode consume queue item failed", e);
+            logger.error("MessageBufferUtil#splitMessage: split message failed, maybe decode consume queue item failed", e);
         } finally {
             cqBuffer.rewind();
             msgBuffer.rewind();
