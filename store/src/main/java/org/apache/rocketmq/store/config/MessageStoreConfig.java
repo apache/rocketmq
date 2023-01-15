@@ -376,6 +376,11 @@ public class MessageStoreConfig {
      */
     private int sampleCountThreshold = 5000;
 
+    /**
+     * Build ConsumeQueue concurrently with multi-thread
+     */
+    private boolean enableBuildConsumeQueueConcurrently = false;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1599,5 +1604,13 @@ public class MessageStoreConfig {
 
     public void setSampleCountThreshold(int sampleCountThreshold) {
         this.sampleCountThreshold = sampleCountThreshold;
+    }
+
+    public boolean isEnableBuildConsumeQueueConcurrently() {
+        return enableBuildConsumeQueueConcurrently;
+    }
+
+    public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
     }
 }
