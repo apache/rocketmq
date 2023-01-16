@@ -19,20 +19,66 @@ package org.apache.rocketmq.store.tiered.metadata;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
 
-public interface TieredStoreMetadataStore {
+public interface TieredMetadataStore {
+    /**
+     * Topic metadata operation
+     *
+     * @see org.apache.rocketmq.store.tiered.metadata.TopicMetadata
+     */
+    void setMaxTopicId(int maxTopicId);
+
     @Nullable
     TopicMetadata getTopic(String topic);
+
     void iterateTopic(Consumer<TopicMetadata> callback);
+
     TopicMetadata addTopic(String topic, long reserveTime);
+
     void updateTopicReserveTime(String topic, long reserveTime);
+
     void updateTopicStatus(String topic, int status);
+
     void deleteTopic(String topic);
 
+    /**
+     * Queue metadata operation
+     *
+     * @see org.apache.rocketmq.store.tiered.metadata.QueueMetadata
+     */
     @Nullable
     QueueMetadata getQueue(MessageQueue queue);
+
     void iterateQueue(String topic, Consumer<QueueMetadata> callback);
+
     QueueMetadata addQueue(MessageQueue queue, long baseOffset);
+
     void updateQueue(QueueMetadata metadata);
+
     void deleteQueue(MessageQueue queue);
+
+    /**
+     * File segment metadata operation
+     *
+     * @see org.apache.rocketmq.store.tiered.metadata.FileSegmentMetadata
+     */
+    @Nullable
+    FileSegmentMetadata getFileSegment(TieredFileSegment fileSegment);
+
+    void iterateFileSegment(Consumer<FileSegmentMetadata> callback);
+
+    void iterateFileSegment(TieredFileSegment.FileSegmentType type, String topic, int queueId,
+        Consumer<FileSegmentMetadata> callback);
+
+    FileSegmentMetadata updateFileSegment(TieredFileSegment fileSegment);
+
+    void deleteFileSegment(MessageQueue mq);
+
+    void deleteFileSegment(TieredFileSegment fileSegment);
+
+    /**
+     * Clean all metadata
+     */
+    void destroy();
 }
