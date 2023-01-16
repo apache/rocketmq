@@ -22,6 +22,6 @@ public enum AppendResult {
     BUFFER_FULL,
     FILE_FULL,
     IO_ERROR,
-    FILE_CLOSE,
+    FILE_CLOSED,
     UNKNOWN_ERROR
 }

@@ -196,7 +196,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
 
     public AppendResult append(ByteBuffer byteBuf, long timeStamp) {
         if (closed) {
-            return AppendResult.FILE_CLOSE;
+            return AppendResult.FILE_CLOSED;
         }
         bufferLock.lock();
         try {

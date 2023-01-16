@@ -39,6 +39,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
 
     public TieredMetadataManager(TieredMessageStoreConfig storeConfig) {
         this.storeConfig = storeConfig;
+        load();
     }
 
     @Override
@@ -98,6 +99,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         }
         TopicMetadata metadata = new TopicMetadata(maxTopicId.getAndIncrement(), topic, reserveTime);
         topicMetadataTable.put(topic, metadata);
+        persist();
         return metadata;
     }
 
@@ -109,6 +111,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         }
         metadata.setReserveTime(reserveTime);
         metadata.setUpdateTimestamp(System.currentTimeMillis());
+        persist();
     }
 
     @Override
@@ -119,11 +122,13 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         }
         metadata.setStatus(status);
         metadata.setUpdateTimestamp(System.currentTimeMillis());
+        persist();
     }
 
     @Override
     public void deleteTopic(String topic) {
         topicMetadataTable.remove(topic);
+        persist();
     }
 
     @Nullable
@@ -152,6 +157,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         QueueMetadata metadata = new QueueMetadata(queue, baseOffset, baseOffset);
         queueMetadataTable.computeIfAbsent(queue.getTopic(), topic -> new ConcurrentHashMap<>())
             .put(queue.getQueueId(), metadata);
+        persist();
         return metadata;
     }
 
@@ -163,6 +169,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
             if (metadataMap.containsKey(queue.getQueueId())) {
                 metadata.setUpdateTimestamp(System.currentTimeMillis());
                 metadataMap.put(queue.getQueueId(), metadata);
+                persist();
             }
         }
     }
@@ -173,6 +180,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
             queueMetadataTable.get(queue.getTopic())
                 .remove(queue.getQueueId());
         }
+        persist();
     }
 
     @Nullable
@@ -262,6 +270,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
                         .put(fileSegment.getBaseOffset(), metadata);
                     break;
             }
+            persist();
             return metadata;
         }
 
@@ -275,6 +284,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         old.setSize(fileSegment.getCommitPosition());
         old.setBeginTimestamp(fileSegment.getBeginTimestamp());
         old.setEndTimestamp(fileSegment.getEndTimestamp());
+        persist();
         return old;
     }
 
@@ -283,6 +293,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         commitLogFileSegmentTable.remove(mq);
         consumeQueueFileSegmentTable.remove(mq);
         indexFileSegmentTable.remove(mq);
+        persist();
     }
 
     @Override
@@ -307,6 +318,7 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
                 }
                 break;
         }
+        persist();
     }
 
     @Override
@@ -317,5 +329,6 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         commitLogFileSegmentTable.clear();
         consumeQueueFileSegmentTable.clear();
         indexFileSegmentTable.clear();
+        persist();
     }
 }

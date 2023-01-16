@@ -42,9 +42,8 @@ public class TieredStoreUtil {
     private static final long PB = TB << 10;
     private static final long EB = PB << 10;
 
-    public static final String TIERED_STORE_LOGGER_NAME = "RocketmqTieredStore";
+    public static final String TIERED_STORE_LOGGER_NAME = "RocketMQTieredStore";
     public static final String RMQ_SYS_TIERED_STORE_INDEX_TOPIC = "rmq_sys_INDEX";
-    public static final String PROXY_HOUSEKEEPING_TOPIC_PREFIX = "rocketmq-proxy-";
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     private static final DecimalFormat DEC_FORMAT = new DecimalFormat("#.##");
@@ -55,10 +54,7 @@ public class TieredStoreUtil {
         }
     };
 
-    private final static List<String> SYSTEM_TOPIC_WHITE_LIST = new LinkedList<String>() {
-        {
-        }
-    };
+    private final static List<String> SYSTEM_TOPIC_WHITE_LIST = new LinkedList<>();
 
     private volatile static TieredMetadataStore metadataStoreInstance;
 
@@ -135,7 +131,7 @@ public class TieredStoreUtil {
         if (SYSTEM_TOPIC_LIST.contains(topic)) {
             return true;
         }
-        return TopicValidator.isSystemTopic(topic) || topic.toLowerCase().startsWith(PROXY_HOUSEKEEPING_TOPIC_PREFIX);
+        return TopicValidator.isSystemTopic(topic);
     }
 
     public static TieredMetadataStore getMetadataStore(TieredMessageStoreConfig storeConfig) {

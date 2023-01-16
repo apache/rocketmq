@@ -44,19 +44,19 @@ public class TieredIndexFileTest {
     @Before
     public void setUp() {
         MemoryFileSegment.checkSize = false;
-        mq = new MessageQueue("TieredIndexFileTest", "broker", 1);
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.store.tiered.mock.MemoryFileSegment");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
+        mq = new MessageQueue("TieredIndexFileTest", storeConfig.getBrokerName(), 1);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
     }
 
     @After
     public void tearDown() throws IOException {
         MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File("/tmp/rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
 //        metadataStore.reLoadStore();
     }
 

@@ -48,7 +48,7 @@ public class MetadataStoreTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File("/tmp/rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
         TieredStoreUtil.getMetadataStore(storeConfig).destroy();
     }
 
@@ -70,7 +70,7 @@ public class MetadataStoreTest {
         Assert.assertEquals(queueMetadata.getMinOffset(), 0);
         Assert.assertEquals(queueMetadata.getMaxOffset(), 0);
 
-        MessageQueue mq2 = new MessageQueue("MetadataStoreTest", "broker", 2);
+        MessageQueue mq2 = new MessageQueue("MetadataStoreTest", storeConfig.getBrokerName(), 2);
         metadataStore.addQueue(mq2, 1);
         AtomicInteger i = new AtomicInteger(0);
         metadataStore.iterateQueue(mq.getTopic(), metadata -> {
@@ -171,7 +171,6 @@ public class MetadataStoreTest {
         TieredMetadataManager metadataManager = (TieredMetadataManager) metadataStore;
         metadataManager.addTopic(mq.getTopic(), 1);
         metadataManager.addQueue(mq, 2);
-        metadataManager.persist();
         Assert.assertTrue(new File(metadataManager.configFilePath()).exists());
 
         metadataManager = new TieredMetadataManager(storeConfig);

@@ -44,7 +44,7 @@ public class TieredFileQueueTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File("/tmp/rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
         TieredStoreUtil.getMetadataStore(storeConfig).destroy();
     }
 
