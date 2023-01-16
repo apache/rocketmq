@@ -50,6 +50,7 @@ java_library(
         ":tieredstore",
         "//:test_deps",
         "//common",
+        "//remoting",
         "//store",
         "@maven//:commons_io_commons_io",
         "@maven//:io_opentelemetry_opentelemetry_api",

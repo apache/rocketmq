@@ -52,22 +52,26 @@ public class MemoryFileSegment extends TieredFileSegment {
         memStore.position((int) getSize());
     }
 
-    @Override public String getPath() {
+    @Override
+    public String getPath() {
         return "/tiered/" + fileType + File.separator + baseOffset;
     }
 
-    @Override public long getSize() {
+    @Override
+    public long getSize() {
         if (checkSize) {
             return 1000;
         }
         return 0;
     }
 
-    @Override protected void createFile() {
+    @Override
+    protected void createFile() {
 
     }
 
-    @Override protected CompletableFuture<ByteBuffer> read0(long position, int length) {
+    @Override
+    protected CompletableFuture<ByteBuffer> read0(long position, int length) {
         ByteBuffer buffer = memStore.duplicate();
         buffer.position((int) position);
         ByteBuffer slice = buffer.slice();
@@ -104,11 +108,13 @@ public class MemoryFileSegment extends TieredFileSegment {
         return CompletableFuture.completedFuture(true);
     }
 
-    @Override protected boolean exists() {
+    @Override
+    protected boolean exists() {
         return false;
     }
 
-    @Override protected void destroyFile() {
+    @Override
+    protected void destroyFile() {
 
     }
 }

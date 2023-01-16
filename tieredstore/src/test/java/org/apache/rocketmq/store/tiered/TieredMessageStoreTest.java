@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -69,7 +70,7 @@ public class TieredMessageStoreTest {
     @Before
     public void setUp() {
         storeConfig = new MessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
         mq = new MessageQueue("TieredMessageStoreTest", "broker", 0);
 
         nextStore = Mockito.mock(DefaultMessageStore.class);
@@ -101,7 +102,7 @@ public class TieredMessageStoreTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
         TieredStoreUtil.getMetadataStore(store.getStoreConfig()).destroy();
         TieredContainerManager.getInstance(store.getStoreConfig()).cleanup();
     }

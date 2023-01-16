@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -41,14 +42,14 @@ public class MetadataStoreTest {
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
         mq = new MessageQueue("MetadataStoreTest", storeConfig.getBrokerName(), 1);
         metadataStore = new TieredMetadataManager(storeConfig);
     }
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
         TieredStoreUtil.getMetadataStore(storeConfig).destroy();
     }
 

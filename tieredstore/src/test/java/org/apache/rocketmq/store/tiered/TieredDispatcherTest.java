@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.tiered;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.ConsumeQueue;
@@ -51,7 +52,7 @@ public class TieredDispatcherTest {
     public void setUp() {
         MemoryFileSegment.checkSize = false;
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "rmqut");
+        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.store.tiered.mock.MemoryFileSegment");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredMessageQueueContainerTest", storeConfig.getBrokerName(), 0);
@@ -61,7 +62,7 @@ public class TieredDispatcherTest {
     @After
     public void tearDown() throws IOException {
         MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "rmqut"));
+        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
         TieredStoreUtil.getMetadataStore(storeConfig).destroy();
         TieredContainerManager.getInstance(storeConfig).cleanup();
     }
