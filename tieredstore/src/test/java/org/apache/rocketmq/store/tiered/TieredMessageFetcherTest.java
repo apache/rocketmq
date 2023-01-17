@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DispatchRequest;
@@ -44,6 +45,7 @@ import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -253,6 +255,9 @@ public class TieredMessageFetcherTest {
 
     @Test
     public void testQueryMessageAsync() {
+        // skip this test on windows
+        Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
+
         TieredMessageFetcher fetcher = new TieredMessageFetcher(storeConfig);
         Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
 
