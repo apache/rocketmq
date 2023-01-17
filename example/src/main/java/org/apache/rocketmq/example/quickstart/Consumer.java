@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.example.quickstart;
 
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.remoting.RPCHook;
 
 /**
  * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
@@ -31,12 +35,19 @@ public class Consumer {
     public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
     public static final String TOPIC = "TopicTest";
 
+    private static final String ACCESS_KEY = "xxx";
+    private static final String SECRET_KEY = "xxx";
+
+    static RPCHook getAclRpcHook(){
+        return new AclClientRPCHook(new SessionCredentials(ACCESS_KEY,SECRET_KEY));
+    }
+
     public static void main(String[] args) throws MQClientException {
 
         /*
          * Instantiate with specified consumer group name.
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP,getAclRpcHook(),new AllocateMessageQueueAveragely());
 
         /*
          * Specify name server addresses.
@@ -50,7 +61,7 @@ public class Consumer {
          * </pre>
          */
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
-//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Specify where to start in case the specific consumer group is a brand-new one.
@@ -60,7 +71,6 @@ public class Consumer {
         /*
          * Subscribe one more topic to consume.
          */
-        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.subscribe(TOPIC, "*");
 
         /*
