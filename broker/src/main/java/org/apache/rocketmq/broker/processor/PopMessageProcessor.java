@@ -181,6 +181,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 // notify pop queue
                 notifySuccess = this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, group, queueId);
             }
+            this.brokerController.getNotificationProcessor().notifyMessageArriving(topic, queueId);
             if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("notify long polling request. topic:{}, group:{}, queueId:{}, success:{}",
                     topic, group, queueId, notifySuccess);

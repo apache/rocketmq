@@ -74,7 +74,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
                                         break;
                                     }
                                     POP_LOGGER.info("timeout , wakeUp Notification : {}", tmPopRequest);
-                                    wakeUp(tmPopRequest, false);
+                                    wakeUp(tmPopRequest);
                                     tmPopRequest = popQ.peek();
                                 } else {
                                     break;
@@ -111,28 +111,25 @@ public class NotificationProcessor implements NettyRequestProcessor {
     }
 
     public void notifyMessageArriving(final String topic, final int queueId) {
-        ArrayBlockingQueue<NotificationRequest> remotingCommands = pollingMap.get(KeyBuilder.buildPollingNotificationKey(topic, -1));
-        if (remotingCommands != null) {
-            List<NotificationRequest> c = new ArrayList<>();
-            remotingCommands.drainTo(c);
-            for (NotificationRequest notificationRequest : c) {
-                POP_LOGGER.info("new msg arrive , wakeUp : {}", notificationRequest);
-                wakeUp(notificationRequest, true);
-
-            }
+        notifyMessageArrivingForQueue(topic, -1);
+        if (queueId > 0) {
+            notifyMessageArrivingForQueue(topic, queueId);
         }
-        remotingCommands = pollingMap.get(KeyBuilder.buildPollingNotificationKey(topic, queueId));
+    }
+
+    public void notifyMessageArrivingForQueue(final String topic, final int queueId) {
+        ArrayBlockingQueue<NotificationRequest> remotingCommands = pollingMap.get(KeyBuilder.buildPollingNotificationKey(topic, queueId));
         if (remotingCommands != null) {
             List<NotificationRequest> c = new ArrayList<>();
             remotingCommands.drainTo(c);
             for (NotificationRequest notificationRequest : c) {
                 POP_LOGGER.info("new msg arrive , wakeUp : {}", notificationRequest);
-                wakeUp(notificationRequest, true);
+                wakeUp(notificationRequest);
             }
         }
     }
 
-    private void wakeUp(final NotificationRequest request, final boolean hasMsg) {
+    private void wakeUp(final NotificationRequest request) {
         if (request == null || !request.complete()) {
             return;
         }
@@ -142,11 +139,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         Runnable run = () -> {
             try {
                 final RemotingCommand response;
-                if (hasMsg) {
-                    response = NotificationProcessor.this.responseNotification(request.getChannel(), true);
-                } else {
-                    response = NotificationProcessor.this.processRequest(request.getChannel(), request.getRemotingCommand());
-                }
+                response = NotificationProcessor.this.processRequest(request.getChannel(), request.getRemotingCommand());
                 if (response != null) {
                     response.setOpaque(request.getRemotingCommand().getOpaque());
                     response.markResponseType();
@@ -163,14 +156,6 @@ public class NotificationProcessor implements NettyRequestProcessor {
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
-    }
-
-    public RemotingCommand responseNotification(final Channel channel, boolean hasMsg) {
-        RemotingCommand response = RemotingCommand.createResponseCommand(NotificationResponseHeader.class);
-        final NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.readCustomHeader();
-        responseHeader.setHasMsg(hasMsg);
-        response.setCode(ResponseCode.SUCCESS);
-        return response;
     }
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request)
@@ -237,29 +222,31 @@ public class NotificationProcessor implements NettyRequestProcessor {
                 }
             }
         }
-        if (!hasMsg && requestHeader.getQueueId() < 0) {
-            // read all queue
-            for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
-                int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
-                hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
-                if (hasMsg) {
-                    break;
-                }
-            }
-        } else {
-            int queueId = requestHeader.getQueueId();
-            hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
-        }
-        // if it doesn't have message, fetch retry again
-        if (!needRetry && !hasMsg) {
-            TopicConfig retryTopicConfig =
-                this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
-            if (retryTopicConfig != null) {
-                for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
-                    int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                    hasMsg = hasMsgFromQueue(true, requestHeader, queueId);
+        if (!hasMsg) {
+            if (requestHeader.getQueueId() < 0) {
+                // read all queue
+                for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
+                    int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
+                    hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
                     if (hasMsg) {
                         break;
+                    }
+                }
+            } else {
+                int queueId = requestHeader.getQueueId();
+                hasMsg = hasMsgFromQueue(false, requestHeader, queueId);
+            }
+            // if it doesn't have message, fetch retry again
+            if (!needRetry && !hasMsg) {
+                TopicConfig retryTopicConfig =
+                    this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+                if (retryTopicConfig != null) {
+                    for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
+                        int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
+                        hasMsg = hasMsgFromQueue(true, requestHeader, queueId);
+                        if (hasMsg) {
+                            break;
+                        }
                     }
                 }
             }
