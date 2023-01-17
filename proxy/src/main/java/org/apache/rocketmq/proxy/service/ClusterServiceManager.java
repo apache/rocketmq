@@ -99,7 +99,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             new ProxyClientRemotingProcessor(producerManager),
             rpcHook,
             scheduledExecutorService);
-        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook,
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
 

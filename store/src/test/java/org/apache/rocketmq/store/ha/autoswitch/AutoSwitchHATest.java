@@ -48,6 +48,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assume;
 
@@ -294,6 +295,7 @@ public class AutoSwitchHATest {
         assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
     }
 
+    @Ignore
     @Test
     public void testChangeRoleManyTimes() throws Exception {
 

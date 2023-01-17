@@ -161,15 +161,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        //for logic queue
-        if (requestHeader.getOriginTopic() != null
-            && !msgExt.getTopic().equals(requestHeader.getOriginTopic())) {
-            //here just do some fence in case of some unexpected offset is income
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("look message by offset failed to check the topic name" + requestHeader.getOffset());
-            return response;
-        }
-
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
             MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());

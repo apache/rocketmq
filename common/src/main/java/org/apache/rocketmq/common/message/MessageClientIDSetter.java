@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
 
 public class MessageClientIDSetter {
-    private static final String TOPIC_KEY_SPLITTER = "#";
+    
     private static final int LEN;
     private static final char[] FIX_STRING;
     private static final AtomicInteger COUNTER;

@@ -360,4 +360,12 @@ public interface MappedFile {
     void init(String fileName, int fileSize, TransientStorePool transientStorePool) throws IOException;
 
     Iterator<SelectMappedBufferResult> iterator(int pos);
+
+    /**
+     * Check mapped file is loaded to memory with given position and size
+     * @param position start offset of data
+     * @param size data size
+     * @return data is resided in memory or not
+     */
+    boolean isLoaded(long position, int size);
 }
