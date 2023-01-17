@@ -68,7 +68,6 @@ public class PopConsumer {
          */
         consumer.subscribe(TOPIC, "*");
 //        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
-
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
          */
