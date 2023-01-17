@@ -312,7 +312,7 @@ public class BrokerContainer implements IBrokerContainer {
             }
             return brokerController;
         }
-        throw new Exception(brokerIdentity.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(brokerIdentity.getCanonicalName() + " has already been added to current broker container");
     }
 
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
@@ -350,7 +350,7 @@ public class BrokerContainer implements IBrokerContainer {
             }
             return masterBroker;
         }
-        throw new Exception(masterBrokerConfig.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(masterBrokerConfig.getCanonicalName() + " has already been added to current broker container");
     }
 
     /**
@@ -395,7 +395,7 @@ public class BrokerContainer implements IBrokerContainer {
             }
             return slaveBroker;
         }
-        throw new Exception(slaveBrokerConfig.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(slaveBrokerConfig.getCanonicalName() + " has already been added to current broker container");
     }
 
     @Override
