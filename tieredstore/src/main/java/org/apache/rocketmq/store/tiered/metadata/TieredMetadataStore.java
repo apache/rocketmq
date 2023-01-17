@@ -19,7 +19,7 @@ package org.apache.rocketmq.store.tiered.metadata;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 
 public interface TieredMetadataStore {
     /**

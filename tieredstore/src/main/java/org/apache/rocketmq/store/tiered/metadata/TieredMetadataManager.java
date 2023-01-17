@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 
 public class TieredMetadataManager extends ConfigManager implements TieredMetadataStore {
     private final AtomicInteger maxTopicId = new AtomicInteger(0);

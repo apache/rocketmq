@@ -47,9 +47,9 @@ import org.apache.rocketmq.store.tiered.common.MessageCacheKey;
 import org.apache.rocketmq.store.tiered.common.SelectMappedBufferResultWrapper;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.store.tiered.container.TieredContainerManager;
-import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.container.TieredMessageQueueContainer;
 import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_STORAGE_SIZE;

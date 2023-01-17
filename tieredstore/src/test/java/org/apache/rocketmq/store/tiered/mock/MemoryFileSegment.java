@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.store.tiered.container.TieredFileSegment;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.junit.Assert;
 
 public class MemoryFileSegment extends TieredFileSegment {
@@ -66,12 +66,12 @@ public class MemoryFileSegment extends TieredFileSegment {
     }
 
     @Override
-    protected void createFile() {
+    public void createFile() {
 
     }
 
     @Override
-    protected CompletableFuture<ByteBuffer> read0(long position, int length) {
+    public CompletableFuture<ByteBuffer> read0(long position, int length) {
         ByteBuffer buffer = memStore.duplicate();
         buffer.position((int) position);
         ByteBuffer slice = buffer.slice();
@@ -80,7 +80,7 @@ public class MemoryFileSegment extends TieredFileSegment {
     }
 
     @Override
-    protected CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
+    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
         boolean append) {
         try {
             if (blocker != null && !blocker.get()) {
@@ -109,12 +109,12 @@ public class MemoryFileSegment extends TieredFileSegment {
     }
 
     @Override
-    protected boolean exists() {
+    public boolean exists() {
         return false;
     }
 
     @Override
-    protected void destroyFile() {
+    public void destroyFile() {
 
     }
 }

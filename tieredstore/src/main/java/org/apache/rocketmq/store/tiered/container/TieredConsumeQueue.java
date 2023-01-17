@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.AppendResult;
 import org.apache.rocketmq.store.tiered.common.BoundaryType;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 
 public class TieredConsumeQueue {
     public static final int CONSUME_QUEUE_STORE_UNIT_SIZE = 8 /* commit log offset: long, 8 bytes */

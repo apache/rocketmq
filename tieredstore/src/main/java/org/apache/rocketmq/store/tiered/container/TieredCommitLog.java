@@ -23,6 +23,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.tiered.common.AppendResult;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 

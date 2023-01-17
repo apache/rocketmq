@@ -30,6 +30,7 @@ import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.store.tiered.metadata.QueueMetadata;
 import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
 import org.apache.rocketmq.store.tiered.mock.MemoryFileSegment;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtilTest;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;

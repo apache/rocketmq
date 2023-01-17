@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store.tiered.container;
+package org.apache.rocketmq.store.tiered.provider;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.store.tiered.container.TieredCommitLog;
+import org.apache.rocketmq.store.tiered.container.TieredConsumeQueue;
 import org.apache.rocketmq.store.tiered.mock.MemoryFileSegment;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtilTest;

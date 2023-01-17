@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store.tiered.container;
+package org.apache.rocketmq.store.tiered.provider;
 
 import com.google.common.base.Stopwatch;
 import java.io.InputStream;
@@ -30,12 +30,15 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.tiered.common.AppendResult;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.store.tiered.container.TieredCommitLog;
+import org.apache.rocketmq.store.tiered.container.TieredConsumeQueue;
+import org.apache.rocketmq.store.tiered.container.TieredIndexFile;
 import org.apache.rocketmq.store.tiered.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.store.tiered.exception.TieredStoreException;
 import org.apache.rocketmq.store.tiered.util.MessageBufferUtil;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
-public abstract class TieredFileSegment implements Comparable<TieredFileSegment> {
+public abstract class TieredFileSegment implements Comparable<TieredFileSegment>, TieredStoreBackendProvider {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     private volatile boolean closed = false;
     private final ReentrantLock bufferLock = new ReentrantLock();
@@ -113,7 +116,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return beginTimestamp;
     }
 
-    protected void setBeginTimestamp(long beginTimestamp) {
+    public void setBeginTimestamp(long beginTimestamp) {
         this.beginTimestamp = beginTimestamp;
     }
 
@@ -121,7 +124,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return endTimestamp;
     }
 
-    protected void setEndTimestamp(long endTimestamp) {
+    public void setEndTimestamp(long endTimestamp) {
         this.endTimestamp = endTimestamp;
     }
 
@@ -417,7 +420,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
-    protected static class TieredFileSegmentInputStream extends InputStream {
+    public static class TieredFileSegmentInputStream extends InputStream {
 
         private final FileSegmentType fileType;
         private final List<ByteBuffer> uploadBufferList;
@@ -521,18 +524,25 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
+    @Override
     public abstract String getPath();
 
+    @Override
     public abstract long getSize();
 
-    protected abstract boolean exists();
+    @Override
+    public abstract boolean exists();
 
-    protected abstract void createFile();
+    @Override
+    public abstract void createFile();
 
-    protected abstract void destroyFile();
+    @Override
+    public abstract void destroyFile();
 
-    protected abstract CompletableFuture<ByteBuffer> read0(long position, int length);
+    @Override
+    public abstract CompletableFuture<ByteBuffer> read0(long position, int length);
 
-    protected abstract CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position,
+    @Override
+    public abstract CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position,
         int length, boolean append);
 }

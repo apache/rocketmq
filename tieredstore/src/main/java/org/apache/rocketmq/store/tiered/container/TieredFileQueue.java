@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.tiered.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.store.tiered.exception.TieredStoreException;
 import org.apache.rocketmq.store.tiered.metadata.FileSegmentMetadata;
 import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public class TieredFileQueue {

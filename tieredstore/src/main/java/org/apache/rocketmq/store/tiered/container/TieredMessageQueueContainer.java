@@ -371,6 +371,8 @@ public class TieredMessageQueueContainer {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
+
+        // building indexes with offsetId is no longer supported because offsetId has changed in tiered storage
 //        AppendResult result = indexFile.append(messageQueue, request.getOffsetId(), request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
 //        if (result != AppendResult.SUCCESS) {
 //            return result;

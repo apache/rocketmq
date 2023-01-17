@@ -36,6 +36,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.tiered.common.AppendResult;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.store.tiered.common.TieredStoreExecutor;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 
 public class TieredIndexFile {

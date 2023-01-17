@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.tiered.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.store.tiered.metadata.TieredMetadataStore;
 import org.apache.rocketmq.store.tiered.mock.MemoryFileSegment;
+import org.apache.rocketmq.store.tiered.provider.TieredFileSegment;
 import org.apache.rocketmq.store.tiered.util.TieredStoreUtil;
 import org.junit.After;
 import org.junit.Assert;
