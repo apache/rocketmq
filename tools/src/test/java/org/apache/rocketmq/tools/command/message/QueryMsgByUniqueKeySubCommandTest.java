@@ -241,13 +241,13 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         System.setProperty("rocketmq.namesrv.addr", "127.0.0.1:9876");
 
-        String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000"};
+        String[] args = new String[]{"-t TopicTest", "-i 0A0CC7EE00002A9F000000006C6984F7"};
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
 
-        args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        args = new String[] {"-t TopicTest", "-i 0A0CC7EE00002A9F000000006C6984F7", "-g producerGroupName", "-d clientId"};
         commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options),
             new DefaultParser());
         cmd.execute(commandLine, options, null);

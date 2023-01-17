@@ -59,6 +59,7 @@ public class Producer {
         /*
          * Launch the instance.
          */
+        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
         for (int i = 0; i < MESSAGE_COUNT; i++) {
