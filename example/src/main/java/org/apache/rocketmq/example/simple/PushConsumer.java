@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.simple;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -24,12 +26,18 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageRequestMode;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 public class PushConsumer {
-
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static void main(String[] args) throws Exception {
+        // switchPop();
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe(TOPIC, "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         //wrong time format 2017_0422_221800
         consumer.setConsumeTimestamp("20181109221800");
@@ -41,7 +49,22 @@ public class PushConsumer {
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
+        // if choose pop type,we should set 'consumer.setClientRebalance(false);'
         consumer.start();
         System.out.printf("Consumer Started.%n");
+    }
+
+    // only client and broker version support pop type meanwhile,we can choose switch to pop type.
+    private static void switchPop() throws Exception {
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+        mqAdminExt.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        mqAdminExt.start();
+
+        ClusterInfo clusterInfo = mqAdminExt.examineBrokerClusterInfo();
+        Set<String> brokerAddrs = clusterInfo.getBrokerAddrTable().values().stream().map(BrokerData::selectBrokerAddr).collect(Collectors.toSet());
+
+        for (String brokerAddr : brokerAddrs) {
+            mqAdminExt.setMessageRequestMode(brokerAddr, TOPIC, "CID_JODIE_1", MessageRequestMode.POP, 8, 3_000);
+        }
     }
 }
