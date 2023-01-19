@@ -179,10 +179,7 @@ public class MixAll {
         return 0;
     }
 
-    public static void string2File(final String str, final String fileName) throws IOException {
-
-        String tmpFile = fileName + ".tmp";
-        string2FileNotSafe(str, tmpFile);
+    public static synchronized void string2File(final String str, final String fileName) throws IOException {
 
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
@@ -190,11 +187,7 @@ public class MixAll {
             string2FileNotSafe(prevContent, bakFile);
         }
 
-        File file = new File(fileName);
-        file.delete();
-
-        file = new File(tmpFile);
-        file.renameTo(new File(fileName));
+        string2FileNotSafe(str, fileName);
     }
 
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
