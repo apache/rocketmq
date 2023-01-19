@@ -394,6 +394,8 @@ public class BrokerConfig extends BrokerIdentity {
     private long channelExpiredTimeout = 1000 * 120;
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
 
+    private int batchDispatchRequestThreadPoolNums = 16;
+
     /**
      * Estimate accumulation or not when subscription filter type is tag and is not SUB_ALL.
      */
@@ -1645,5 +1647,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEstimateAccumulation(boolean estimateAccumulation) {
         this.estimateAccumulation = estimateAccumulation;
+    }
+
+    public int getBatchDispatchRequestThreadPoolNums() {
+        return batchDispatchRequestThreadPoolNums;
+    }
+
+    public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
+        this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 }
