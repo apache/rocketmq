@@ -21,12 +21,16 @@ import java.util.function.Function;
 
 public abstract class ConcurrentHashMapUtils {
 
-    private static final boolean IS_JDK8;
+    private static boolean IS_JDK8;
 
     static {
         // Java 8
         // Java 9+: 9,11,17
-        IS_JDK8 = System.getProperty("java.version").startsWith("1.8.");
+        try {
+            IS_JDK8 = System.getProperty("java.version").startsWith("1.8.");
+        } catch (Exception ignore) {
+            IS_JDK8 = true;
+        }
     }
 
     /**
