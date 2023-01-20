@@ -43,6 +43,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.junit.Assume;
+import java.util.UUID;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -135,10 +136,17 @@ public class ConsumeQueueTest {
         return messageStoreConfig;
     }
 
-    protected DefaultMessageStore gen() throws Exception {
+    protected DefaultMessageStore gen(boolean useDledger) throws Exception {
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
                 COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
+        if (useDledger) {
+            messageStoreConfig.setEnableDLegerCommitLog(true);
+            String group = UUID.randomUUID().toString();
+            messageStoreConfig.setdLegerGroup(group);
+            messageStoreConfig.setdLegerPeers("n0-" + storeHost);
+            messageStoreConfig.setdLegerSelfId("n0");
+        }
 
         BrokerConfig brokerConfig = new BrokerConfig();
 
@@ -160,10 +168,17 @@ public class ConsumeQueueTest {
         return master;
     }
 
-    protected DefaultMessageStore genForMultiQueue() throws Exception {
+    protected DefaultMessageStore genForMultiQueue(boolean useDledger) throws Exception {
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
                 COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
+        if (useDledger) {
+            messageStoreConfig.setEnableDLegerCommitLog(true);
+            String group = UUID.randomUUID().toString();
+            messageStoreConfig.setdLegerGroup(group);
+            messageStoreConfig.setdLegerPeers("n0-" + storeHost);
+            messageStoreConfig.setdLegerSelfId("n0");
+        }
 
         messageStoreConfig.setEnableLmq(true);
         messageStoreConfig.setEnableMultiDispatch(true);
@@ -244,11 +259,20 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void testPutMessagePositionInfo_buildCQRepeatedly() throws Exception {
+    public void testDledgerPutMessagePositionInfo_buildCQRepeatedly() throws Exception {
+        testPutMessagePositionInfo_buildCQRepeatedly(true);
+    }
+
+    @Test
+    public void testDefaultPutMessagePositionInfo_buildCQRepeatedly() throws Exception {
+        testPutMessagePositionInfo_buildCQRepeatedly(false);
+    }
+
+    public void testPutMessagePositionInfo_buildCQRepeatedly(boolean useDledger) throws Exception {
         DefaultMessageStore messageStore = null;
         try {
 
-            messageStore = gen();
+            messageStore = gen(useDledger);
 
             int totalMessages = 10;
 
@@ -293,11 +317,20 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+    public void testDledgerPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+        testPutMessagePositionInfoWrapper_MultiQueue(true);
+    }
+
+    @Test
+    public void testDefaultPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+        testPutMessagePositionInfoWrapper_MultiQueue(false);
+    }
+
+    public void testPutMessagePositionInfoWrapper_MultiQueue(boolean useDledger) throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         DefaultMessageStore messageStore = null;
         try {
-            messageStore = genForMultiQueue();
+            messageStore = genForMultiQueue(useDledger);
 
             int totalMessages = 10;
 
@@ -346,11 +379,20 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void testPutMessagePositionInfoMultiQueue() throws Exception {
+    public void testDledgerPutMessagePositionInfoMultiQueue() throws Exception {
+        testPutMessagePositionInfoMultiQueue(true);
+    }
+
+    @Test
+    public void testDefaultPutMessagePositionInfoMultiQueue() throws Exception {
+        testPutMessagePositionInfoMultiQueue(false);
+    }
+
+    public void testPutMessagePositionInfoMultiQueue(boolean useDledger) throws Exception {
         DefaultMessageStore messageStore = null;
         try {
 
-            messageStore = genForMultiQueue();
+            messageStore = genForMultiQueue(useDledger);
 
             int totalMessages = 10;
 
@@ -386,10 +428,19 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void testConsumeQueueWithExtendData() {
+    public void testDledgerConsumeQueueWithExtendData() {
+        testConsumeQueueWithExtendData(true);
+    }
+
+    @Test
+    public void testDefaultConsumeQueueWithExtendData() {
+        testConsumeQueueWithExtendData(false);
+    }
+
+    public void testConsumeQueueWithExtendData(boolean useDledger) {
         DefaultMessageStore master = null;
         try {
-            master = gen();
+            master = gen(useDledger);
         } catch (Exception e) {
             e.printStackTrace();
             assertThat(Boolean.FALSE).isTrue();
@@ -420,7 +471,12 @@ public class ConsumeQueueTest {
 
             assertThat(cq).isNotNull();
 
-            ReferredIterator<CqUnit> bufferResult = cq.iterateFrom(0);
+            await().atMost(10, SECONDS).until(() -> {
+                return master1.dispatchBehindBytes();
+            }, item -> item == 0);
+            assertThat(master.dispatchBehindBytes()).isEqualTo(0);
+
+            ReferredIterator<CqUnit> bufferResult = cq.iterateFrom(cq.getMinOffsetInQueue());
 
             assertThat(bufferResult).isNotNull();
 
