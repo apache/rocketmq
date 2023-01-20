@@ -54,7 +54,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -3086,7 +3085,7 @@ public class DefaultMessageStore implements MessageStore {
                         this.reputFromOffset);
             }
 
-            this.shutdown();
+            super.shutdown();
         }
 
         @Override
