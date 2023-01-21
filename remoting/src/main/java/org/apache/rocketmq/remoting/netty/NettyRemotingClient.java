@@ -98,7 +98,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<>();
-    private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<>();
+    private final AtomicReference<List<String>> availableNamesrvAddrList = new AtomicReference<>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock namesrvChannelLock = new ReentrantLock();
@@ -816,7 +816,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public List<String> getAvailableNameSrvList() {
-        return new ArrayList<>(this.availableNamesrvAddrMap.keySet());
+        return availableNamesrvAddrList.get();
     }
 
     @Override
@@ -860,10 +860,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private void scanAvailableNameSrv() {
         List<String> nameServerList = this.namesrvAddrList.get();
-        if (nameServerList == null) {
+        if (nameServerList == null || nameServerList.isEmpty()) {
             LOGGER.debug("scanAvailableNameSrv Addresses of name server is empty!");
             return;
         }
+
+        List<String> tmpAvailableNamesrvAddrList = new ArrayList<>();
 
         for (final String namesrvAddr : nameServerList) {
             scanExecutor.execute(new Runnable() {
@@ -872,9 +874,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     try {
                         Channel channel = NettyRemotingClient.this.getAndCreateChannel(namesrvAddr);
                         if (channel != null) {
-                            NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
-                        } else {
-                            NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
+                            tmpAvailableNamesrvAddrList.add(namesrvAddr);
                         }
                     } catch (Exception e) {
                         LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
@@ -883,6 +883,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             });
         }
 
+        availableNamesrvAddrList.set(tmpAvailableNamesrvAddrList);
     }
 
     static class ChannelWrapper {
