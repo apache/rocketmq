@@ -42,32 +42,6 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 
 public class BrokerStatsManager {
 
-    @Deprecated public static final String QUEUE_PUT_NUMS = Stats.QUEUE_PUT_NUMS;
-    @Deprecated public static final String QUEUE_PUT_SIZE = Stats.QUEUE_PUT_SIZE;
-    @Deprecated public static final String QUEUE_GET_NUMS = Stats.QUEUE_GET_NUMS;
-    @Deprecated public static final String QUEUE_GET_SIZE = Stats.QUEUE_GET_SIZE;
-    @Deprecated public static final String TOPIC_PUT_NUMS = Stats.TOPIC_PUT_NUMS;
-    @Deprecated public static final String TOPIC_PUT_SIZE = Stats.TOPIC_PUT_SIZE;
-
-    @Deprecated public static final String GROUP_GET_NUMS = Stats.GROUP_GET_NUMS;
-    @Deprecated public static final String GROUP_GET_SIZE = Stats.GROUP_GET_SIZE;
-
-    @Deprecated public static final String SNDBCK_PUT_NUMS = Stats.SNDBCK_PUT_NUMS;
-    @Deprecated public static final String BROKER_PUT_NUMS = Stats.BROKER_PUT_NUMS;
-    @Deprecated public static final String BROKER_GET_NUMS = Stats.BROKER_GET_NUMS;
-    @Deprecated public static final String GROUP_GET_FROM_DISK_NUMS = Stats.GROUP_GET_FROM_DISK_NUMS;
-    @Deprecated public static final String GROUP_GET_FROM_DISK_SIZE = Stats.GROUP_GET_FROM_DISK_SIZE;
-    @Deprecated public static final String BROKER_GET_FROM_DISK_NUMS = Stats.BROKER_GET_FROM_DISK_NUMS;
-    @Deprecated public static final String BROKER_GET_FROM_DISK_SIZE = Stats.BROKER_GET_FROM_DISK_SIZE;
-    // For commercial
-    @Deprecated public static final String COMMERCIAL_SEND_TIMES = Stats.COMMERCIAL_SEND_TIMES;
-    @Deprecated public static final String COMMERCIAL_SNDBCK_TIMES = Stats.COMMERCIAL_SNDBCK_TIMES;
-    @Deprecated public static final String COMMERCIAL_RCV_TIMES = Stats.COMMERCIAL_RCV_TIMES;
-    @Deprecated public static final String COMMERCIAL_RCV_EPOLLS = Stats.COMMERCIAL_RCV_EPOLLS;
-    @Deprecated public static final String COMMERCIAL_SEND_SIZE = Stats.COMMERCIAL_SEND_SIZE;
-    @Deprecated public static final String COMMERCIAL_RCV_SIZE = Stats.COMMERCIAL_RCV_SIZE;
-    @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
-
     // Send message latency
     public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
     public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
@@ -90,7 +64,6 @@ public class BrokerStatsManager {
     public static final String ACCOUNT_RCV = "RCV";
     public static final String ACCOUNT_SEND_BACK = "SEND_BACK";
     public static final String ACCOUNT_SEND_BACK_TO_DLQ = "SEND_BACK_TO_DLQ";
-    public static final String ACCOUNT_AUTH_FAILED = "AUTH_FAILED";
     public static final String ACCOUNT_SEND_REJ = "SEND_REJ";
     public static final String ACCOUNT_REV_REJ = "RCV_REJ";
 
@@ -105,11 +78,6 @@ public class BrokerStatsManager {
     public static final String FAILURE_MSG_SIZE = "FAILURE_MSG_SIZE";
     public static final String RT = "RT";
     public static final String INNER_RT = "INNER_RT";
-
-    @Deprecated public static final String GROUP_GET_FALL_SIZE = Stats.GROUP_GET_FALL_SIZE;
-    @Deprecated public static final String GROUP_GET_FALL_TIME = Stats.GROUP_GET_FALL_TIME;
-    // Pull Message Latency
-    @Deprecated public static final String GROUP_GET_LATENCY = Stats.GROUP_GET_LATENCY;
 
     // Consumer Register Time
     public static final String CONSUMER_REGISTER_TIME = "CONSUMER_REGISTER_TIME";
@@ -162,10 +130,10 @@ public class BrokerStatsManager {
     }
 
     public void init() {
-        momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE,
+        momentStatsItemSetFallSize = new MomentStatsItemSet(Stats.GROUP_GET_FALL_SIZE,
             scheduledExecutorService, log);
 
-        momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME,
+        momentStatsItemSetFallTime = new MomentStatsItemSet(Stats.GROUP_GET_FALL_TIME,
             scheduledExecutorService, log);
 
         if (enableQueueStat) {
