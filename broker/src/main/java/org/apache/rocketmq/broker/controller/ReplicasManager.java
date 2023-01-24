@@ -66,7 +66,7 @@ public class ReplicasManager {
     private final BrokerConfig brokerConfig;
     private final String localAddress;
     private final BrokerOuterAPI brokerOuterAPI;
-    private final List<String> controllerAddresses;
+    private List<String> controllerAddresses;
 
     private volatile String controllerLeaderAddress = "";
     private volatile State state = State.INITIAL;
@@ -87,10 +87,6 @@ public class ReplicasManager {
         this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = this.brokerConfig.getControllerAddr();
-        final String[] controllers = controllerPaths.split(";");
-        assert controllers.length > 0;
-        this.controllerAddresses = new ArrayList<>(Arrays.asList(controllers));
         this.syncStateSet = new HashSet<>();
         this.localAddress = brokerController.getBrokerAddr();
         this.haService.setLocalAddress(this.localAddress);
@@ -108,6 +104,8 @@ public class ReplicasManager {
     }
 
     public void start() {
+        updateControlllerAddr();
+        this.scheduledService.scheduleAtFixedRate(this::updateControlllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
         if (!startBasicService()) {
             LOGGER.error("Failed to start replicasManager");
             this.executorService.submit(() -> {
@@ -445,6 +443,17 @@ public class ReplicasManager {
     private void stopCheckSyncStateSet() {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
+        }
+    }
+
+    private void updateControlllerAddr() {
+        if (brokerConfig.isFetchControllerAddrByDnsLookup()) {
+            this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
+        } else {
+            final String controllerPaths = this.brokerConfig.getControllerAddr();
+            final String[] controllers = controllerPaths.split(";");
+            assert controllers.length > 0;
+            this.controllerAddresses = Arrays.asList(controllers);
         }
     }
 
