@@ -103,8 +103,8 @@ public class ReplicasManager {
     }
 
     public void start() {
-        updateControlllerAddr();
-        this.scheduledService.scheduleAtFixedRate(this::updateControlllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
+        updateControllerAddr();
+        this.scheduledService.scheduleAtFixedRate(this::updateControllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
         if (!startBasicService()) {
             LOGGER.error("Failed to start replicasManager");
             this.executorService.submit(() -> {
@@ -445,7 +445,7 @@ public class ReplicasManager {
         }
     }
 
-    private void updateControlllerAddr() {
+    private void updateControllerAddr() {
         if (brokerConfig.isFetchControllerAddrByDnsLookup()) {
             this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
         } else {
