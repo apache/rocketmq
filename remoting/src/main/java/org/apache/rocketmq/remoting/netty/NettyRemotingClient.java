@@ -98,7 +98,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<>();
-    private final AtomicReference<List<String>> availableNamesrvAddrList = new AtomicReference<>();
+    private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock namesrvChannelLock = new ReentrantLock();
@@ -148,13 +148,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
+            private final AtomicInteger threadIndex = new AtomicInteger(0);
 
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
-                }
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
             }
+        }
         );
 
         if (eventLoopGroup != null) {
@@ -248,9 +248,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
         if (nettyClientConfig.getWriteBufferLowWaterMark() > 0 && nettyClientConfig.getWriteBufferHighWaterMark() > 0) {
             LOGGER.info("client set netty WRITE_BUFFER_WATER_MARK to {},{}",
-                    nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark());
+                nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark());
             handler.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(
-                    nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
+                nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
         }
         if (nettyClientConfig.isClientPooledByteBufAllocatorEnable()) {
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -816,7 +816,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public List<String> getAvailableNameSrvList() {
-        return availableNamesrvAddrList.get();
+        return new ArrayList<>(this.availableNamesrvAddrMap.keySet());
     }
 
     @Override
@@ -860,12 +860,17 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private void scanAvailableNameSrv() {
         List<String> nameServerList = this.namesrvAddrList.get();
-        if (nameServerList == null || nameServerList.isEmpty()) {
-            LOGGER.debug("scanAvailableNameSrv Addresses of name server is empty!");
+        if (nameServerList == null) {
+            LOGGER.debug("scanAvailableNameSrv addresses of name server is null!");
             return;
         }
 
-        List<String> tmpAvailableNamesrvAddrList = new ArrayList<>();
+        for (String address : NettyRemotingClient.this.availableNamesrvAddrMap.keySet()) {
+            if (!nameServerList.contains(address)) {
+                LOGGER.warn("scanAvailableNameSrv remove invalid address {}", address);
+                NettyRemotingClient.this.availableNamesrvAddrMap.remove(address);
+            }
+        }
 
         for (final String namesrvAddr : nameServerList) {
             scanExecutor.execute(new Runnable() {
@@ -874,7 +879,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     try {
                         Channel channel = NettyRemotingClient.this.getAndCreateChannel(namesrvAddr);
                         if (channel != null) {
-                            tmpAvailableNamesrvAddrList.add(namesrvAddr);
+                            NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
+                        } else {
+                            Boolean value = NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
+                            if (value != null) {
+                                LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
+                            }
                         }
                     } catch (Exception e) {
                         LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
@@ -882,8 +892,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
         }
-
-        availableNamesrvAddrList.set(tmpAvailableNamesrvAddrList);
     }
 
     static class ChannelWrapper {
