@@ -148,13 +148,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactory() {
-            private final AtomicInteger threadIndex = new AtomicInteger(0);
+                private final AtomicInteger threadIndex = new AtomicInteger(0);
 
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
+                }
             }
-        }
         );
 
         if (eventLoopGroup != null) {
@@ -248,9 +248,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
         if (nettyClientConfig.getWriteBufferLowWaterMark() > 0 && nettyClientConfig.getWriteBufferHighWaterMark() > 0) {
             LOGGER.info("client set netty WRITE_BUFFER_WATER_MARK to {},{}",
-                nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark());
+                    nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark());
             handler.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(
-                nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
+                    nettyClientConfig.getWriteBufferLowWaterMark(), nettyClientConfig.getWriteBufferHighWaterMark()));
         }
         if (nettyClientConfig.isClientPooledByteBufAllocatorEnable()) {
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
