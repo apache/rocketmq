@@ -40,6 +40,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
@@ -83,15 +84,18 @@ public class UtilAll {
     }
 
     public static void sleep(long sleepMs) {
-        if (sleepMs < 0) {
+        sleep(sleepMs, TimeUnit.MILLISECONDS);
+    }
+
+    public static void sleep(long timeOut, TimeUnit timeUnit) {
+        if (null == timeUnit) {
             return;
         }
         try {
-            Thread.sleep(sleepMs);
-        } catch (Throwable ignored) {
+            timeUnit.sleep(timeOut);
+        } catch (InterruptedException ignored) {
 
         }
-
     }
 
     public static String currentStackTrace() {
