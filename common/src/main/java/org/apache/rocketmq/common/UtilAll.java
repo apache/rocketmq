@@ -93,7 +93,7 @@ public class UtilAll {
         }
         try {
             timeUnit.sleep(timeOut);
-        } catch (InterruptedException ignored) {
+        } catch (Throwable ignored) {
 
         }
     }
