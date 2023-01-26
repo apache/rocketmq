@@ -52,5 +52,7 @@ public interface RemotingClient extends RemotingService {
 
     boolean isChannelWritable(final String addr);
 
+    boolean isChannelCanConnect(final String addr);
+
     void closeChannels(final List<String> addrList);
 }

@@ -201,6 +201,10 @@ public class BrokerOuterAPI {
         return addressList;
     }
 
+    public boolean checkAddressCanConnect(String address) {
+        return this.remotingClient.isChannelCanConnect(address);
+    }
+
     public void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
         List<String> lst = new ArrayList<>(Arrays.asList(addrArray));

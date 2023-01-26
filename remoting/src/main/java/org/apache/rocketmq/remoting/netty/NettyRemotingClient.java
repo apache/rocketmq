@@ -810,6 +810,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
+    public boolean isChannelCanConnect(String addr) {
+        if (addr == null || addr.isEmpty()) {
+            return false;
+        }
+        try {
+            Channel channel = getAndCreateChannel(addr);
+            return channel != null && channel.isActive();
+        } catch (Exception e) {
+            LOGGER.warn("Get and create channel of {} failed", addr, e);
+            return false;
+        }
+    }
+
+    @Override
     public List<String> getNameServerAddressList() {
         return this.namesrvAddrList.get();
     }
