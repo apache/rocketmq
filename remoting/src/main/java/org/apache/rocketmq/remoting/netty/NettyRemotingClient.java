@@ -810,7 +810,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public boolean isChannelCanConnect(String addr) {
+    public boolean isAddressCanConnect(String addr) {
         if (addr == null || addr.isEmpty()) {
             return false;
         }
