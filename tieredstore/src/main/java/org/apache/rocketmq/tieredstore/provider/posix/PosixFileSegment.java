@@ -1,23 +1,36 @@
 package org.apache.rocketmq.tieredstore.provider.posix;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.io.ByteStreams;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
+import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_SUCCESS;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
+
 public class PosixFileSegment extends TieredFileSegment {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+
+    private static final String OPERATION_POSIX_READ = "read";
+    private static final String OPERATION_POSIX_WRITE = "write";
 
     private final String basePath;
     private final String filepath;
@@ -44,6 +57,12 @@ public class PosixFileSegment extends TieredFileSegment {
             + fileType + File.separator
             + TieredStoreUtil.offset2FileName(baseOffset);
         createFile();
+    }
+
+    protected AttributesBuilder newAttributesBuilder() {
+        return TieredStoreMetricsManager.newAttributesBuilder()
+            .put(LABEL_TOPIC, messageQueue.getTopic())
+            .put(LABEL_FILE_TYPE, fileType.name().toLowerCase());
     }
 
     @Override
@@ -108,14 +127,32 @@ public class PosixFileSegment extends TieredFileSegment {
 
     @Override
     public CompletableFuture<ByteBuffer> read0(long position, int length) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        AttributesBuilder attributesBuilder = newAttributesBuilder()
+            .put(LABEL_OPERATION, OPERATION_POSIX_READ);
+
         CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
         ByteBuffer byteBuffer = ByteBuffer.allocate(length);
         try {
             readFileChannel.position(position);
             readFileChannel.read(byteBuffer);
             byteBuffer.flip();
+
+            attributesBuilder.put(LABEL_SUCCESS, true);
+            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+
+            Attributes metricsAttributes = newAttributesBuilder()
+                .put(LABEL_OPERATION, OPERATION_POSIX_READ)
+                .build();
+            int downloadedBytes = byteBuffer.remaining();
+            TieredStoreMetricsManager.downloadBytes.record(downloadedBytes, metricsAttributes);
+
             future.complete(byteBuffer);
         } catch (IOException e) {
+            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+            attributesBuilder.put(LABEL_SUCCESS, false);
+            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
             logger.error("PosixFileSegment#read0: read file {} failed: position: {}, length: {}",
                 filepath, position, length, e);
             future.completeExceptionally(e);
@@ -126,6 +163,10 @@ public class PosixFileSegment extends TieredFileSegment {
     @Override
     public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
         boolean append) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        AttributesBuilder attributesBuilder = newAttributesBuilder()
+            .put(LABEL_OPERATION, OPERATION_POSIX_WRITE);
+
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
             TieredStoreExecutor.COMMIT_EXECUTOR.execute(() -> {
@@ -142,8 +183,22 @@ public class PosixFileSegment extends TieredFileSegment {
                     while(buffer.hasRemaining()) {
                         writeFileChannel.write(buffer);
                     }
+
+                    attributesBuilder.put(LABEL_SUCCESS, true);
+                    long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                    TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+
+                    Attributes metricsAttributes = newAttributesBuilder()
+                        .put(LABEL_OPERATION, OPERATION_POSIX_WRITE)
+                        .build();
+                    TieredStoreMetricsManager.uploadBytes.record(length, metricsAttributes);
+
                     future.complete(true);
                 } catch (Exception e) {
+                    long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                    attributesBuilder.put(LABEL_SUCCESS, false);
+                    TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+
                     logger.error("PosixFileSegment#commit0: append file {} failed: position: {}, length: {}",
                         filepath, position, length, e);
                     future.completeExceptionally(e);
@@ -151,6 +206,10 @@ public class PosixFileSegment extends TieredFileSegment {
             });
         } catch (Exception e) {
             // commit task cannot be executed
+            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+            attributesBuilder.put(LABEL_SUCCESS, false);
+            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+
             future.completeExceptionally(e);
         }
         return future;
