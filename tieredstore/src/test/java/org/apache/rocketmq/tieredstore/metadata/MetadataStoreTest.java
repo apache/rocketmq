@@ -77,7 +77,7 @@ public class MetadataStoreTest {
         Assert.assertEquals(queueMetadata.getMinOffset(), 0);
         Assert.assertEquals(queueMetadata.getMaxOffset(), 0);
 
-        MessageQueue mq2 = new MessageQueue("MetadataStoreTest", storeConfig.getBrokerName(), 2);
+        MessageQueue mq2 = new MessageQueue(mq0.getTopic(), storeConfig.getBrokerName(), 2);
         metadataStore.addQueue(mq2, 1);
         AtomicInteger i = new AtomicInteger(0);
         metadataStore.iterateQueue(mq0.getTopic(), metadata -> {
@@ -156,12 +156,10 @@ public class MetadataStoreTest {
         Assert.assertTrue(metadata1.getSealTimestamp() > 0);
 
         MemoryFileSegment fileSegment2 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
-            mq0,
-            1100,
-            storeConfig);
+            mq0, 1100, storeConfig);
         metadataStore.updateFileSegment(fileSegment2);
         List<FileSegmentMetadata> list = new ArrayList<>();
-        metadataStore.iterateFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG, "MetadataStoreTest", 1, list::add);
+        metadataStore.iterateFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG, mq0.getTopic(), mq0.getQueueId(), list::add);
         Assert.assertEquals(2, list.size());
         Assert.assertEquals(100, list.get(0).getBaseOffset());
         Assert.assertEquals(1100, list.get(1).getBaseOffset());

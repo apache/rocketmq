@@ -196,7 +196,7 @@ public class PosixFileSegment extends TieredFileSegment {
                     }
                     writeFileChannel.position(position);
                     ByteBuffer buffer = ByteBuffer.wrap(byteArray);
-                    while(buffer.hasRemaining()) {
+                    while (buffer.hasRemaining()) {
                         writeFileChannel.write(buffer);
                     }
 
