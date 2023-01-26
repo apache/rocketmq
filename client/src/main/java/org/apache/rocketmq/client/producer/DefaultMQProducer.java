@@ -103,7 +103,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
      */
-    private int compressMsgBodyOverHowmuch = 1024 * 4;
+    private int compressMsgBodyOverHowMuch = 1024 * 4;
 
     /**
      * Maximum number of retry to perform internally before claiming sending failure in synchronous mode. </p>
@@ -140,13 +140,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private boolean enableBackpressureForAsyncMode = false;
 
     /**
-     * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
+     * on BackpressureForAsyncMode, limit maximum number of ongoing sending async messages
      * default is 10000
      */
     private int backPressureForAsyncSendNum = 10000;
 
     /**
-     * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
+     * on BackpressureForAsyncMode, limit maximum message size of ongoing sending async messages
      * default is 100M
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
@@ -663,7 +663,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Same to {@link #request(Message, RequestCallback, long)} with target message selector specified.
      *
-     * @param msg requst message to send
+     * @param msg request message to send
      * @param selector message queue selector, through which we get target message queue to deliver message to.
      * @param arg argument to work along with message queue selector.
      * @param requestCallback callback to execute on request completion.
@@ -740,13 +740,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * This method is to send transactional messages.
      *
      * @param msg Transactional message to send.
-     * @param tranExecuter local transaction executor.
+     * @param tranExecutor local transaction executor.
      * @param arg Argument used along with local transaction executor.
      * @return Transaction result.
      * @throws MQClientException if there is any client error.
      */
     @Override
-    public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter,
+    public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecutor,
         final Object arg)
         throws MQClientException {
         throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
@@ -769,7 +769,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
-     * @param key accesskey
+     * @param key access key
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @param attributes
@@ -785,7 +785,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Create a topic on broker. This method will be removed in a certain version after April 5, 2020, so please do not
      * use this method.
      *
-     * @param key accesskey
+     * @param key access key
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @param topicSysFlag topic system flag
@@ -1036,12 +1036,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.sendMsgTimeout = sendMsgTimeout;
     }
 
-    public int getCompressMsgBodyOverHowmuch() {
-        return compressMsgBodyOverHowmuch;
+    public int getCompressMsgBodyOverHowMuch() {
+        return compressMsgBodyOverHowMuch;
     }
 
-    public void setCompressMsgBodyOverHowmuch(int compressMsgBodyOverHowmuch) {
-        this.compressMsgBodyOverHowmuch = compressMsgBodyOverHowmuch;
+    public void setCompressMsgBodyOverHowMuch(int compressMsgBodyOverHowMuch) {
+        this.compressMsgBodyOverHowMuch = compressMsgBodyOverHowMuch;
     }
 
     @Deprecated

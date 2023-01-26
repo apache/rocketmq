@@ -948,7 +948,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
         byte[] body = msg.getBody();
         if (body != null) {
-            if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
+            if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowMuch()) {
                 try {
                     byte[] data = compressor.compress(body, compressLevel);
                     if (data != null) {

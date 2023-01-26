@@ -96,7 +96,7 @@ public class TimerProducer {
         producer = new DefaultMQProducer("benchmark_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setNamesrvAddr(namesrvAddr);
-        producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
+        producer.setCompressMsgBodyOverHowMuch(Integer.MAX_VALUE);
     }
 
     public void startScheduleTask() {

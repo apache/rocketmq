@@ -303,7 +303,7 @@ public class BatchProducer {
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         producer.setNamesrvAddr(namesrv);
-        producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
+        producer.setCompressMsgBodyOverHowMuch(Integer.MAX_VALUE);
         return producer;
     }
 }

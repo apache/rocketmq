@@ -153,7 +153,7 @@ public class Producer {
             producer.setNamesrvAddr(ns);
         }
 
-        producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
+        producer.setCompressMsgBodyOverHowMuch(Integer.MAX_VALUE);
 
         producer.start();
 
