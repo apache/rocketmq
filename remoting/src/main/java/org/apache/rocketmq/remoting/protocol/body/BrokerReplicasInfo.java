@@ -21,38 +21,41 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class InSyncStateData extends RemotingSerializable  {
-    private Map<String/*brokerName*/, InSyncStateSet> inSyncStateTable;
+public class BrokerReplicasInfo extends RemotingSerializable  {
+    private Map<String/*brokerName*/, ReplicasInfo> replicasInfoTable;
 
-    public InSyncStateData() {
-        this.inSyncStateTable = new HashMap<>();
+    public BrokerReplicasInfo() {
+        this.replicasInfoTable = new HashMap<>();
     }
 
-    public void addInSyncState(final String brokerName, final InSyncStateSet inSyncState) {
-        this.inSyncStateTable.put(brokerName, inSyncState);
+    public void addReplicaInfo(final String brokerName, final ReplicasInfo replicasInfo) {
+        this.replicasInfoTable.put(brokerName, replicasInfo);
     }
 
-    public Map<String, InSyncStateSet> getInSyncStateTable() {
-        return inSyncStateTable;
+    public Map<String, ReplicasInfo> getReplicasInfoTable() {
+        return replicasInfoTable;
     }
 
-    public void setInSyncStateTable(
-        Map<String, InSyncStateSet> inSyncStateTable) {
-        this.inSyncStateTable = inSyncStateTable;
+    public void setReplicasInfoTable(
+        Map<String, ReplicasInfo> replicasInfoTable) {
+        this.replicasInfoTable = replicasInfoTable;
     }
 
-    public static class InSyncStateSet extends RemotingSerializable {
+    public static class ReplicasInfo extends RemotingSerializable {
         private String masterAddress;
         private int masterEpoch;
         private int syncStateSetEpoch;
-        private List<InSyncMember> inSyncMembers;
+        private List<ReplicaIdentity> inSyncReplicas;
+        private List<ReplicaIdentity> notInSyncReplicas;
 
-        public InSyncStateSet(String masterAddress, int masterEpoch, int syncStateSetEpoch,
-            List<InSyncMember> inSyncMembers) {
+        public ReplicasInfo(String masterAddress, int masterEpoch, int syncStateSetEpoch,
+            List<ReplicaIdentity> inSyncReplicas,
+            List<ReplicaIdentity> notInSyncReplicas) {
             this.masterAddress = masterAddress;
             this.masterEpoch = masterEpoch;
             this.syncStateSetEpoch = syncStateSetEpoch;
-            this.inSyncMembers = inSyncMembers;
+            this.inSyncReplicas = inSyncReplicas;
+            this.notInSyncReplicas = notInSyncReplicas;
         }
 
         public String getMasterAddress() {
@@ -79,21 +82,30 @@ public class InSyncStateData extends RemotingSerializable  {
             this.syncStateSetEpoch = syncStateSetEpoch;
         }
 
-        public List<InSyncMember> getInSyncMembers() {
-            return inSyncMembers;
+        public List<ReplicaIdentity> getInSyncReplicas() {
+            return inSyncReplicas;
         }
 
-        public void setInSyncMembers(
-            List<InSyncMember> inSyncMembers) {
-            this.inSyncMembers = inSyncMembers;
+        public void setInSyncReplicas(
+            List<ReplicaIdentity> inSyncReplicas) {
+            this.inSyncReplicas = inSyncReplicas;
+        }
+
+        public List<ReplicaIdentity> getNotInSyncReplicas() {
+            return notInSyncReplicas;
+        }
+
+        public void setNotInSyncReplicas(
+            List<ReplicaIdentity> notInSyncReplicas) {
+            this.notInSyncReplicas = notInSyncReplicas;
         }
     }
 
-    public static class InSyncMember extends RemotingSerializable {
+    public static class ReplicaIdentity extends RemotingSerializable {
         private String address;
         private Long brokerId;
 
-        public InSyncMember(String address, Long brokerId) {
+        public ReplicaIdentity(String address, Long brokerId) {
             this.address = address;
             this.brokerId = brokerId;
         }
@@ -116,7 +128,7 @@ public class InSyncStateData extends RemotingSerializable  {
 
         @Override
         public String toString() {
-            return "InSyncMember{" +
+            return "{" +
                 "address='" + address + '\'' +
                 ", brokerId=" + brokerId +
                 '}';
