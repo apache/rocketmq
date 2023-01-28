@@ -421,8 +421,8 @@ public class MessageStoreConfig {
         return warmMappedFileEnable;
     }
 
-    public void setWarmMappedFileEnable(boolean warmMapedFileEnable) {
-        this.warmMappedFileEnable = warmMapedFileEnable;
+    public void setWarmMappedFileEnable(boolean warmMappedFileEnable) {
+        this.warmMappedFileEnable = warmMappedFileEnable;
     }
 
     public int getCompactionMappedFileSize() {
