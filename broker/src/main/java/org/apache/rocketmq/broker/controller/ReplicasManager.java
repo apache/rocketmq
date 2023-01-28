@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.broker.controller;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -71,7 +70,7 @@ public class ReplicasManager {
     private final BrokerConfig brokerConfig;
     private final String localAddress;
     private final BrokerOuterAPI brokerOuterAPI;
-    private final List<String> controllerAddresses;
+    private List<String> controllerAddresses;
     private final ConcurrentMap<String, Boolean> availableControllerAddresses;
 
     private volatile String controllerLeaderAddress = "";
@@ -95,10 +94,6 @@ public class ReplicasManager {
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("ReplicasManager_scan_thread_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = this.brokerConfig.getControllerAddr();
-        final String[] controllers = controllerPaths.split(";");
-        assert controllers.length > 0;
-        this.controllerAddresses = new ArrayList<>(Arrays.asList(controllers));
         this.availableControllerAddresses = new ConcurrentHashMap<>();
         this.syncStateSet = new HashSet<>();
         this.localAddress = brokerController.getBrokerAddr();
@@ -117,8 +112,10 @@ public class ReplicasManager {
     }
 
     public void start() {
+        updateControllerAddr();
+        this.scheduledService.scheduleAtFixedRate(this::updateControllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
         scanAvailableControllerAddresses();
-        scheduledService.scheduleAtFixedRate(this::scanAvailableControllerAddresses, 3 * 1000, 3 * 1000, TimeUnit.MILLISECONDS);
+        this.scheduledService.scheduleAtFixedRate(this::scanAvailableControllerAddresses, 3 * 1000, 3 * 1000, TimeUnit.MILLISECONDS);
         if (!startBasicService()) {
             LOGGER.error("Failed to start replicasManager");
             this.executorService.submit(() -> {
@@ -485,6 +482,17 @@ public class ReplicasManager {
                     }
                 }
             });
+        }
+    }
+
+    private void updateControllerAddr() {
+        if (brokerConfig.isFetchControllerAddrByDnsLookup()) {
+            this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
+        } else {
+            final String controllerPaths = this.brokerConfig.getControllerAddr();
+            final String[] controllers = controllerPaths.split(";");
+            assert controllers.length > 0;
+            this.controllerAddresses = Arrays.asList(controllers);
         }
     }
 

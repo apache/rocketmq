@@ -183,7 +183,7 @@ public class BrokerOuterAPI {
         return nameSrvAddr;
     }
 
-    private List<String> lookupNameServerAddress(String domain) {
+    public List<String> dnsLookupAddressByDomain(String domain) {
         List<String> addressList = new ArrayList<>();
         try {
             java.security.Security.setProperty("networkaddress.cache.ttl", "10");
@@ -212,7 +212,7 @@ public class BrokerOuterAPI {
     }
 
     public void updateNameServerAddressListByDnsLookup(final String domain) {
-        List<String> lst = this.lookupNameServerAddress(domain);
+        List<String> lst = this.dnsLookupAddressByDomain(domain);
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
