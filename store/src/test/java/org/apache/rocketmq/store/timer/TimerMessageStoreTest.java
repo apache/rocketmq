@@ -238,12 +238,6 @@ public class TimerMessageStoreTest {
         testTimerFlowControlCommon();
     }
 
-    @Test
-    public void testDledgerTimerFlowControl() throws Exception {
-        initStore(true);
-        testTimerFlowControlCommon();
-    }
-
     public void testTimerFlowControlCommon() throws Exception {
         String topic = "TimerTest_testTimerFlowControl";
 
@@ -293,12 +287,6 @@ public class TimerMessageStoreTest {
         testPutExpiredTimerMessageCommon();
     }
 
-    @Test
-    public void testDledgerPutExpiredTimerMessage() throws Exception {
-        initStore(true);
-        testPutExpiredTimerMessageCommon();
-    }
-
     public void testPutExpiredTimerMessageCommon() throws Exception {
         // Skip on Mac to make CI pass
         Assume.assumeFalse(MixAll.isMac());
@@ -329,12 +317,6 @@ public class TimerMessageStoreTest {
     @Test
     public void testDeleteTimerMessage() throws Exception {
         initStore(false);
-        testDeleteTimerMessageCommon();
-    }
-
-    @Test
-    public void testDledgerDeleteTimerMessage() throws Exception {
-        initStore(true);
         testDeleteTimerMessageCommon();
     }
 
@@ -377,12 +359,6 @@ public class TimerMessageStoreTest {
     @Test
     public void testPutDeleteTimerMessage() throws Exception {
         initStore(false);
-        testPutDeleteTimerMessageCommon();
-    }
-
-    @Test
-    public void testDledgerPutDeleteTimerMessage() throws Exception {
-        initStore(true);
         testPutDeleteTimerMessageCommon();
     }
 
@@ -520,12 +496,6 @@ public class TimerMessageStoreTest {
     @Test
     public void testMaxDelaySec() throws Exception {
         initStore(false);
-        testMaxDelaySecCommon();
-    }
-
-    @Test
-    public void testDledgerMaxDelaySec() throws Exception {
-        initStore(true);
         testMaxDelaySecCommon();
     }
 
