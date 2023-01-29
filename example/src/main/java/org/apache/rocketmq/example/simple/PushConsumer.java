@@ -52,7 +52,6 @@ public class PushConsumer {
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }
-
     private static void switchPop() throws Exception {
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setNamesrvAddr(DEFAULT_NAMESRVADDR);
