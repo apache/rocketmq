@@ -41,7 +41,6 @@ public class PushConsumer {
         //wrong time format 2017_0422_221800
         consumer.setConsumeTimestamp("20181109221800");
         consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
-        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
