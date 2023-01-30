@@ -1228,6 +1228,10 @@ public class BrokerController {
         return popMessageProcessor;
     }
 
+    public NotificationProcessor getNotificationProcessor() {
+        return notificationProcessor;
+    }
+
     public TimerMessageStore getTimerMessageStore() {
         return timerMessageStore;
     }
