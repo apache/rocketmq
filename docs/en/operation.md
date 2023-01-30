@@ -384,7 +384,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  <col width=177>
  <col width=185>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
   <td class=xl64 width=185 style='width:139pt'>explanation</td>
@@ -458,7 +458,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  <col width=177>
  <col width=185>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
   <td class=xl64 width=185 style='width:139pt'>explanation</td>
@@ -658,7 +658,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  <col width=177>
  <col width=185>
 <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>name</td>
   <td class=xl64 width=175 style='width:131pt'>meaning</td>
   <td class=xl64 width=177 style='width:133pt'>command items</td>
   <td class=xl64 width=185 style='width:139pt'>explanation</td>
