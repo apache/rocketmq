@@ -41,6 +41,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
@@ -159,6 +160,24 @@ public class MonitorServiceTest {
         properties.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, System.currentTimeMillis());
         consumerRunningInfo.setProperties(properties);
         when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
+
+        ClusterInfo clusterInfo = new ClusterInfo();
+        HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
+        brokerData = new BrokerData();
+        brokerData.setBrokerName("mockBrokerName");
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + 10911);
+        brokerData.setBrokerAddrs(brokerAddress);
+        brokerData.setCluster("mockCluster");
+        brokerAddressTable.put("mockBrokerName", brokerData);
+        clusterInfo.setBrokerAddrTable(brokerAddressTable);
+
+        HashMap<String, Set<String>> clusterAddressTable = new HashMap<>();
+        Set<String> brokerNames = new HashSet<>();
+        brokerNames.add("mockBrokerName");
+        clusterAddressTable.put("mockCluster", brokerNames);
+        clusterInfo.setClusterAddrTable(clusterAddressTable);
+        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
     }
 
     @AfterClass

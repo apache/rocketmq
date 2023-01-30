@@ -17,19 +17,21 @@
 package org.apache.rocketmq.tools.command.consumer;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ConsumerProgressSubCommandTest {
@@ -41,7 +43,7 @@ public class ConsumerProgressSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
+        nameServerMocker = startNameServer();
     }
 
     @After
@@ -50,7 +52,6 @@ public class ConsumerProgressSubCommandTest {
         nameServerMocker.shutdown();
     }
 
-    @Ignore
     @Test
     public void testExecute() throws SubCommandException {
         ConsumerProgressSubCommand cmd = new ConsumerProgressSubCommand();
@@ -63,13 +64,36 @@ public class ConsumerProgressSubCommandTest {
         cmd.execute(commandLine, options, null);
     }
 
+    private ServerResponseMocker startNameServer() {
+        ClusterInfo clusterInfo = new ClusterInfo();
+
+        HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName("mockBrokerName");
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + brokerMocker.listenPort());
+        brokerData.setBrokerAddrs(brokerAddress);
+        brokerData.setCluster("mockCluster");
+        brokerAddressTable.put("mockBrokerName", brokerData);
+        clusterInfo.setBrokerAddrTable(brokerAddressTable);
+
+        HashMap<String, Set<String>> clusterAddressTable = new HashMap<>();
+        Set<String> brokerNames = new HashSet<>();
+        brokerNames.add("mockBrokerName");
+        clusterAddressTable.put("mockCluster", brokerNames);
+        clusterInfo.setClusterAddrTable(clusterAddressTable);
+
+        // start name server
+        return ServerResponseMocker.startServer(clusterInfo.encode());
+    }
+
     private ServerResponseMocker startOneBroker() {
         ConsumeStats consumeStats = new ConsumeStats();
         HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<>();
         MessageQueue messageQueue = new MessageQueue();
         messageQueue.setBrokerName("mockBrokerName");
         messageQueue.setQueueId(1);
-        messageQueue.setBrokerName("mockTopicName");
+        messageQueue.setTopic("mockTopicName");
 
         OffsetWrapper offsetWrapper = new OffsetWrapper();
         offsetWrapper.setBrokerOffset(1);

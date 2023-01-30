@@ -16,15 +16,18 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
@@ -41,7 +44,7 @@ public class ConsumerStatusSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
+        nameServerMocker = startNameServer();
     }
 
     @After
@@ -60,6 +63,29 @@ public class ConsumerStatusSubCommandTest {
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
+    }
+
+    private ServerResponseMocker startNameServer() {
+        ClusterInfo clusterInfo = new ClusterInfo();
+
+        HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName("mockBrokerName");
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + brokerMocker.listenPort());
+        brokerData.setBrokerAddrs(brokerAddress);
+        brokerData.setCluster("mockCluster");
+        brokerAddressTable.put("mockBrokerName", brokerData);
+        clusterInfo.setBrokerAddrTable(brokerAddressTable);
+
+        HashMap<String, Set<String>> clusterAddressTable = new HashMap<>();
+        Set<String> brokerNames = new HashSet<>();
+        brokerNames.add("mockBrokerName");
+        clusterAddressTable.put("mockCluster", brokerNames);
+        clusterInfo.setClusterAddrTable(clusterAddressTable);
+
+        // start name server
+        return ServerResponseMocker.startServer(clusterInfo.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
