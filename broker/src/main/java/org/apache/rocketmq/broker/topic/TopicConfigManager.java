@@ -68,7 +68,6 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_SELF_TEST_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -77,7 +76,6 @@ public class TopicConfigManager extends ConfigManager {
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                 String topic = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
-                TopicValidator.addSystemTopic(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
                     .getDefaultTopicQueueNums());
                 topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig()
@@ -90,7 +88,6 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_BENCHMARK_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1024);
             topicConfig.setWriteQueueNums(1024);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -123,7 +120,6 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -131,7 +127,6 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             topicConfig.setWriteQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -177,17 +172,14 @@ public class TopicConfigManager extends ConfigManager {
             // TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC
             String topic = TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
-
         {
             // TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC
             String topic = TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
