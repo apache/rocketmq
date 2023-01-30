@@ -201,7 +201,7 @@ public class BrokerOuterAPI {
         return addressList;
     }
 
-    public boolean checkAddressCanConnect(String address) {
+    public boolean checkAddressReachable(String address) {
         return this.remotingClient.isAddressReachable(address);
     }
 

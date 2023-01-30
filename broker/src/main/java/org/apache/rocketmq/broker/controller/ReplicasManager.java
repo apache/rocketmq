@@ -474,7 +474,7 @@ public class ReplicasManager {
             scanExecutor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    if (brokerOuterAPI.checkAddressCanConnect(address)) {
+                    if (brokerOuterAPI.checkAddressReachable(address)) {
                         availableControllerAddresses.putIfAbsent(address, true);
                     } else {
                         Boolean value = availableControllerAddresses.remove(address);
