@@ -82,6 +82,7 @@ import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
@@ -600,15 +601,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
                         result.getBufferTotalSize());
 
-                    if (!isRetry) {
-                        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                            .put(LABEL_TOPIC, requestHeader.getTopic())
-                            .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
-                            .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
-                            .build();
-                        BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                        BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
-                    }
+                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                        .put(LABEL_TOPIC, requestHeader.getTopic())
+                        .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
+                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
+                        .put(LABEL_IS_RETRY, isRetry)
+                        .build();
+                    BrokerMetricsManager.messagesOutTotal.add(result.getMessageCount(), attributes);
+                    BrokerMetricsManager.throughputOutTotal.add(result.getBufferTotalSize(), attributes);
 
                     if (isOrder) {
                         this.brokerController.getConsumerOrderInfoManager().update(isRetry, topic,
