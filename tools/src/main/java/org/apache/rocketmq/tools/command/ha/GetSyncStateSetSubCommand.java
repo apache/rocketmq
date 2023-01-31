@@ -132,6 +132,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
             }
         }
     }
+
     private String acquireBrokerStatus(DefaultMQAdminExt defaultMQAdminExt,String brokerAddr) {
         String status = " online";
         try {
