@@ -137,7 +137,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
         String status = " online";
         try {
             defaultMQAdminExt.getDefaultMQAdminExtImpl().fetchBrokerRuntimeStats(brokerAddr);
-        }catch (Exception e){
+        } catch (Exception e) {
             status = " offline";
         }
         return status;
