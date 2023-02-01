@@ -30,7 +30,6 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 public class PopConsumer {
-
     public static final String TOPIC = "TopicTest";
     public static final String CONSUMER_GROUP = "CID_JODIE_1";
     public static void main(String[] args) throws Exception {
