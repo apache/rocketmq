@@ -13,7 +13,7 @@ This article is a cookbook for RocketMQ tiered storage.
 Use the following steps to easily use tiered storage
 
 1. Change `messageStorePlugIn` to `org.apache.rocketmq.tieredstore.TieredMessageStore` in your `broker.conf`.
-2. Configure your backend service provider. change `tieredBackendServiceProvider` to your storage medium implement. We give an example and default implement: POSIX provider, and you need to change `tieredStoreFilepath` to the mount point of storage medium for tiered storage.
+2. Configure your backend service provider. change `tieredBackendServiceProvider` to your storage medium implement. We give a default implement: POSIX provider, and you need to change `tieredStoreFilepath` to the mount point of storage medium for tiered storage.
 3. Start the broker and enjoy!
 
 ## Configuration

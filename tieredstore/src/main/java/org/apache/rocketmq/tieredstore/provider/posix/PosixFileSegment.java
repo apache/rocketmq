@@ -42,6 +42,9 @@ import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_SUCCESS;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 
+/**
+ * this class is experimental and may change without notice.
+ */
 public class PosixFileSegment extends TieredFileSegment {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
@@ -111,6 +114,7 @@ public class PosixFileSegment extends TieredFileSegment {
                             dir.mkdirs();
                         }
 
+                        // TODO use direct IO to avoid polluting the page cache
                         file.createNewFile();
                         this.readFileChannel = new RandomAccessFile(file, "r").getChannel();
                         this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
