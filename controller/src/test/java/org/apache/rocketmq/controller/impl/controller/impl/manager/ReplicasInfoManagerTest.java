@@ -32,7 +32,7 @@ import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
@@ -101,7 +101,7 @@ public class ReplicasInfoManagerTest {
 
         final GetReplicaInfoResponseHeader replicaInfoBefore = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress)).getResponse();
         byte[] body = this.replicasInfoManager.getSyncStateData(Arrays.asList(brokerName)).getBody();
-        InSyncStateData syncStateDataBefore = RemotingSerializable.decode(body, InSyncStateData.class);
+        BrokerReplicasInfo syncStateDataBefore = RemotingSerializable.decode(body, BrokerReplicasInfo.class);
         // Try elect itself as a master
         ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
         final ControllerResult<ElectMasterResponseHeader> result = this.replicasInfoManager.electMaster(requestHeader, this.electPolicy);
@@ -131,7 +131,7 @@ public class ReplicasInfoManagerTest {
                 assertEquals(brokerId, replicaInfoAfter.getBrokerId());
                 return;
             }
-            if (syncStateDataBefore.getInSyncStateTable().containsKey(brokerAddress) || this.config.isEnableElectUncleanMaster()) {
+            if (syncStateDataBefore.getReplicasInfoTable().containsKey(brokerAddress) || this.config.isEnableElectUncleanMaster()) {
                 // can be elected successfully
                 assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
                 assertEquals(MixAll.MASTER_ID, replicaInfoAfter.getBrokerId());
