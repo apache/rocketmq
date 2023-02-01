@@ -48,7 +48,7 @@ public class PopConsumer {
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
-        // if choose pop type, we should set 'consumer.setClientRebalance(false);'
+        consumer.setClientRebalance(false);
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }
