@@ -83,8 +83,8 @@ public class MessageStoreConfig {
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
      * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
-     * A. PopReviveService
-     * B. TimerDequeueGetService
+     *  A. PopReviveService
+     *  B. TimerDequeueGetService
      */
     @ImportantField
     private int disappearTimeAfterStart = -1;
