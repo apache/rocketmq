@@ -75,7 +75,7 @@ public class ReElectMasterSubCommand implements SubCommand {
             final ElectMasterResponseHeader metaData = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerAddress);
             System.out.printf("\n#ClusterName\t%s", clusterName);
             System.out.printf("\n#BrokerName\t%s", brokerName);
-            System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getNewMasterAddress());
+            System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getMasterAddress());
             System.out.printf("\n#MasterEpoch\t%s", metaData.getMasterEpoch());
             System.out.printf("\n#SyncStateSetEpoch\t%s\n", metaData.getSyncStateSetEpoch());
             BrokerMemberGroup brokerMemberGroup = metaData.getBrokerMemberGroup();
