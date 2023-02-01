@@ -158,7 +158,7 @@ public class ReplicasInfoManagerTest {
         apply(electMasterResponseHeaderControllerResult.getEvents());
         final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("brokerName-a"));
         final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
-        assertEquals( "127.0.0.1:9000", replicaInfo.getMasterAddress());
+        assertEquals("127.0.0.1:9000", replicaInfo.getMasterAddress());
         assertEquals(1, replicaInfo.getMasterEpoch());
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
