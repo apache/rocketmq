@@ -153,6 +153,13 @@ public class ReplicasInfoManagerTest {
             new RegisterBrokerToControllerRequestHeader("default", "brokerName-a", "127.0.0.1:9001");
         final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult0 = this.replicasInfoManager.registerBroker(registerRequest0, (s, v) -> true);
         apply(registerResult0.getEvents());
+        final ElectMasterRequestHeader electMasterRequest = ElectMasterRequestHeader.ofBrokerTrigger("default", "brokerName-a", "127.0.0.1:9000");
+        ControllerResult<ElectMasterResponseHeader> electMasterResponseHeaderControllerResult = this.replicasInfoManager.electMaster(electMasterRequest, new DefaultElectPolicy());
+        apply(electMasterResponseHeaderControllerResult.getEvents());
+        final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("brokerName-a"));
+        final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
+        assertEquals( "127.0.0.1:9000", replicaInfo.getMasterAddress());
+        assertEquals(1, replicaInfo.getMasterEpoch());
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
         newSyncStateSet.add("127.0.0.1:9001");
@@ -161,10 +168,17 @@ public class ReplicasInfoManagerTest {
             new RegisterBrokerToControllerRequestHeader("default", "brokerName-a", "127.0.0.1:9002");
         final ControllerResult<RegisterBrokerToControllerResponseHeader> registerResult1 = this.replicasInfoManager.registerBroker(registerRequest1, (s, v) -> StringUtils.equals(v, "127.0.0.1:9001"));
         apply(registerResult1.getEvents());
-        final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("brokerName-a"));
-        final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
-        assertEquals(replicaInfo.getMasterAddress(), "127.0.0.1:9001");
-        assertEquals(replicaInfo.getMasterEpoch(), 2);
+        assertEquals(3, registerResult1.getResponse().getBrokerId());
+        assertEquals("", registerResult1.getResponse().getMasterAddress());
+        ElectPolicy electPolicy1 = new DefaultElectPolicy((clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"),null);
+        final ElectMasterRequestHeader electMasterRequest1 = ElectMasterRequestHeader.ofBrokerTrigger("default", "brokerName-a", "127.0.0.1:9002");
+        ControllerResult<ElectMasterResponseHeader> electMasterResponseHeaderControllerResult1 = this.replicasInfoManager.electMaster(electMasterRequest1, electPolicy1);
+        apply(electMasterResponseHeaderControllerResult1.getEvents());
+        final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult0 = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("brokerName-a"));
+        final GetReplicaInfoResponseHeader replicaInfo0 = getInfoResult0.getResponse();
+        assertEquals(replicaInfo0.getMasterAddress(), "127.0.0.1:9001");
+        assertTrue(replicaInfo0.getMasterAddress().equals("127.0.0.1:9001") || replicaInfo0.getMasterAddress().equals("127.0.0.1:9002"));
+        assertEquals(replicaInfo0.getMasterEpoch(), 2);
     }
 
     private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch,
