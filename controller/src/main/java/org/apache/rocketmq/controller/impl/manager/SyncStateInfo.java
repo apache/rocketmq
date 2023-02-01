@@ -16,8 +16,10 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Manages the syncStateSet of broker replicas.
@@ -25,12 +27,20 @@ import java.util.Set;
 public class SyncStateInfo {
     private final String clusterName;
     private final String brokerName;
-
     private Set<String/*Address*/> syncStateSet;
     private int syncStateSetEpoch;
 
     private String masterAddress;
     private int masterEpoch;
+
+    public SyncStateInfo(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.masterEpoch = 0;
+        this.syncStateSetEpoch = 0;
+        this.syncStateSet = Collections.emptySet();
+    }
+
 
     public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
         this.clusterName = clusterName;
@@ -42,6 +52,7 @@ public class SyncStateInfo {
         this.syncStateSetEpoch = 1;
     }
 
+
     public void updateMasterInfo(String masterAddress) {
         this.masterAddress = masterAddress;
         this.masterEpoch++;
@@ -52,8 +63,12 @@ public class SyncStateInfo {
         this.syncStateSetEpoch++;
     }
 
+    public boolean isFirstTimeForElect() {
+        return this.masterEpoch == 0;
+    }
+
     public boolean isMasterExist() {
-        return !this.masterAddress.isEmpty();
+        return StringUtils.isNotEmpty(this.masterAddress);
     }
 
     public String getClusterName() {
