@@ -20,19 +20,23 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.MixAll;
 
-public class BrokerInfo {
+/**
+ * Broker replicas info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
+ */
+public class BrokerReplicaInfo {
     private final String clusterName;
     private final String brokerName;
     // Start from 1
-    private final AtomicLong brokerIdCount;
+    private final AtomicLong nextAssignBrokerId;
     private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
 
-    public BrokerInfo(String clusterName, String brokerName) {
+    public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerIdCount = new AtomicLong(1L);
         this.brokerIdTable = new HashMap<>();
+        this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_SLAVE_ID);
     }
 
     public void removeBrokerAddress(final String address) {
@@ -40,7 +44,7 @@ public class BrokerInfo {
     }
 
     public long newBrokerId() {
-        return this.brokerIdCount.incrementAndGet();
+        return this.nextAssignBrokerId.getAndIncrement();
     }
 
     public String getClusterName() {

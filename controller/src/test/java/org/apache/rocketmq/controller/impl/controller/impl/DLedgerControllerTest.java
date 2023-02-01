@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -94,8 +95,8 @@ public class DLedgerControllerTest {
         }
     }
 
-    public boolean registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
-        boolean isFirstRegisteredBroker) throws Exception {
+    public void registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
+        long expectBrokerId) throws Exception {
         // Register new broker
         final RegisterBrokerToControllerRequestHeader registerRequest = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerAddress);
         RemotingCommand response = await().atMost(Duration.ofSeconds(20)).until(() -> {
@@ -109,14 +110,22 @@ public class DLedgerControllerTest {
                 e.printStackTrace();
                 return null;
             }
-        }, item -> item != null);
+        }, Objects::nonNull);
 
         final RegisterBrokerToControllerResponseHeader registerResult = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
 
-        if (!isFirstRegisteredBroker) {
-            assertTrue(registerResult.getBrokerId() > 0);
-        }
-        return true;
+        assertEquals(expectBrokerId, registerResult.getBrokerId());
+    }
+
+    public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress,
+        boolean exceptSuccess) {
+        final ElectMasterRequestHeader electMasterRequestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerAddress);
+        RemotingCommand command = await().atMost(Duration.ofSeconds(20)).until(() -> {
+            return leader.electMaster(electMasterRequestHeader).get(2, TimeUnit.SECONDS);
+        }, Objects::nonNull);
+
+        ElectMasterResponseHeader header = (ElectMasterResponseHeader) command.readCustomHeader();
+        assertEquals(exceptSuccess, ResponseCode.SUCCESS == command.getCode());
     }
 
     private boolean alterNewInSyncSet(Controller leader, String brokerName, String masterAddress, int masterEpoch,
@@ -167,14 +176,18 @@ public class DLedgerControllerTest {
 
         DLedgerController leader = waitLeader(controllers);
 
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true));
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true));
-        assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9002", true));
+        // register
+        registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", 1L);
+        registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", 2L);
+        registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9002", 3L);
+        // try elect
+        brokerTryElectMaster(leader, "cluster1", "broker1", "127.0.0.1:9000", true);
+        brokerTryElectMaster(leader, "cluster1", "broker1", "127.0.0.1:9001", false);
+        brokerTryElectMaster(leader, "cluster1", "broker1", "127.0.0.1:9002", false);
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
-        assertEquals(replicaInfo.getMasterEpoch(), 1);
-        assertEquals(replicaInfo.getMasterAddress(), "127.0.0.1:9000");
-
+        assertEquals(1, replicaInfo.getMasterEpoch());
+        assertEquals("127.0.0.1:9000", replicaInfo.getMasterAddress());
         // Try alter sync state set
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
@@ -209,13 +222,13 @@ public class DLedgerControllerTest {
     @Test
     public void testElectMaster() throws Exception {
         final DLedgerController leader = mockMetaData(false);
-        final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
         assertEquals(response.getMasterEpoch(), 2);
-        assertFalse(response.getNewMasterAddress().isEmpty());
-        assertNotEquals(response.getNewMasterAddress(), "127.0.0.1:9000");
+        assertFalse(response.getMasterAddress().isEmpty());
+        assertNotEquals(response.getMasterAddress(), "127.0.0.1:9000");
     }
 
     @Test
@@ -228,7 +241,7 @@ public class DLedgerControllerTest {
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
-        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
@@ -240,19 +253,17 @@ public class DLedgerControllerTest {
         assertEquals(replicaInfo.getMasterAddress(), "");
         assertEquals(replicaInfo.getMasterEpoch(), 2);
 
-        // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
-        final RegisterBrokerToControllerRequestHeader request1 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
-        final RegisterBrokerToControllerResponseHeader r1 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
-        assertEquals(r1.getBrokerId(), 2);
+        // Now, we start broker1 - 127.0.0.1:9001 to try elect, but it was not in syncStateSet, so it will not be elected as master.
+        final ElectMasterRequestHeader request1 =
+            ElectMasterRequestHeader.ofBrokerTrigger("cluster1", "broker1", "127.0.0.1:9001");
+        final ElectMasterResponseHeader r1 = (ElectMasterResponseHeader) leader.electMaster(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getMasterAddress(), "");
-        assertEquals(r1.getMasterEpoch(), 2);
 
-        // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
-        final RegisterBrokerToControllerRequestHeader request2 =
-            new RegisterBrokerToControllerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
-        final RegisterBrokerToControllerResponseHeader r2 = (RegisterBrokerToControllerResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
-        assertEquals(r2.getBrokerId(), 0);
+        // Now, we start broker1 - 127.0.0.1:9000 to try elect, it will be elected as master
+        setBrokerElectPolicy(leader);
+        final ElectMasterRequestHeader request2 =
+            ElectMasterRequestHeader.ofBrokerTrigger("cluster1", "broker1", "127.0.0.1:9000");
+        final ElectMasterResponseHeader r2 = (ElectMasterResponseHeader) leader.electMaster(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");
         assertEquals(r2.getMasterEpoch(), 3);
     }
@@ -268,7 +279,7 @@ public class DLedgerControllerTest {
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, event if the syncStateSet in statemachine is {"127.0.0.1:9000"}
         // the option {enableElectUncleanMaster = true}, so the controller sill can elect a new master
-        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger("broker1");
         setBrokerElectPolicy(leader, "127.0.0.1:9000");
         final CompletableFuture<RemotingCommand> future = leader.electMaster(electRequest);
         future.get(10, TimeUnit.SECONDS);

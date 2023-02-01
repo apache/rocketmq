@@ -27,6 +27,7 @@ import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
@@ -70,6 +71,8 @@ public class ReplicasManagerTest {
 
     private RegisterBrokerToControllerResponseHeader registerBrokerToControllerResponseHeader;
 
+    private ElectMasterResponseHeader brokerTryElectResponseHeader;
+
     private Pair<GetReplicaInfoResponseHeader, SyncStateSet> result;
 
     private GetReplicaInfoResponseHeader getReplicaInfoResponseHeader;
@@ -108,6 +111,8 @@ public class ReplicasManagerTest {
         getMetaDataResponseHeader = new GetMetaDataResponseHeader(GROUP, LEADER_ID, OLD_MASTER_ADDRESS, IS_LEADER, PEERS);
         registerBrokerToControllerResponseHeader = new RegisterBrokerToControllerResponseHeader();
         registerBrokerToControllerResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
+        brokerTryElectResponseHeader = new ElectMasterResponseHeader();
+        brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader.setBrokerId(MASTER_BROKER_ID);
@@ -126,6 +131,7 @@ public class ReplicasManagerTest {
         when(brokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
         when(brokerOuterAPI.registerBrokerToController(any(), any(), any(), any(), anyLong(), anyInt(), anyLong(), anyInt())).thenReturn(registerBrokerToControllerResponseHeader);
         when(brokerOuterAPI.getReplicaInfo(any(), any(), any())).thenReturn(result);
+        when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(brokerTryElectResponseHeader);
         replicasManager = new ReplicasManager(brokerController);
         autoSwitchHAService.init(defaultMessageStore);
         replicasManager.start();
