@@ -51,7 +51,6 @@ public class PopConsumer {
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }
-
     private static void switchPop() throws Exception {
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setNamesrvAddr("127.0.0.1:9876");
