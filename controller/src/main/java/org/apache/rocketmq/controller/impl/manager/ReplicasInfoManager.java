@@ -321,9 +321,9 @@ public class ReplicasInfoManager {
                 final ArrayList<BrokerReplicasInfo.ReplicaIdentity> inSyncReplicas = new ArrayList<>();
                 final ArrayList<BrokerReplicasInfo.ReplicaIdentity> notInSyncReplicas = new ArrayList<>();
 
-                brokerInfo.getBrokerIdTable().forEach((brokerAddress, brokerId) -> {
+                brokerReplicaInfo.getBrokerIdTable().forEach((brokerAddress, brokerId) -> {
                     if (syncStateSet.contains(brokerAddress)) {
-                        long id = StringUtils.equals(master, brokerAddress) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(brokerAddress);
+                        long id = StringUtils.equals(master, brokerAddress) ? MixAll.MASTER_ID : brokerReplicaInfo.getBrokerId(brokerAddress);
                         inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, id));
                     } else {
                         notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, brokerId));
