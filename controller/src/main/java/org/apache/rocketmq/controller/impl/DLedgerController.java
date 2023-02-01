@@ -107,7 +107,7 @@ public class DLedgerController implements Controller {
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
-        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
+        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getGroup(), dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
