@@ -41,7 +41,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
@@ -310,7 +310,7 @@ public class ReplicasInfoManager {
 
     public ControllerResult<Void> getSyncStateData(final List<String> brokerNames) {
         final ControllerResult<Void> result = new ControllerResult<>();
-        final InSyncStateData inSyncStateData = new InSyncStateData();
+        final BrokerReplicasInfo brokerReplicasInfo = new BrokerReplicasInfo();
         for (String brokerName : brokerNames) {
             if (isContainsBroker(brokerName)) {
                 // If exist broker metadata, just return metadata
@@ -318,17 +318,23 @@ public class ReplicasInfoManager {
                 final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
                 final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
                 final String master = syncStateInfo.getMasterAddress();
-                final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
-                syncStateSet.forEach(replicas -> {
-                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerReplicaInfo.getBrokerId(replicas);
-                    inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
+                final ArrayList<BrokerReplicasInfo.ReplicaIdentity> inSyncReplicas = new ArrayList<>();
+                final ArrayList<BrokerReplicasInfo.ReplicaIdentity> notInSyncReplicas = new ArrayList<>();
+
+                brokerInfo.getBrokerIdTable().forEach((brokerAddress, brokerId) -> {
+                    if (syncStateSet.contains(brokerAddress)) {
+                        long id = StringUtils.equals(master, brokerAddress) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(brokerAddress);
+                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, id));
+                    } else {
+                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, brokerId));
+                    }
                 });
 
-                final InSyncStateData.InSyncStateSet inSyncState = new InSyncStateData.InSyncStateSet(master, syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(), inSyncMembers);
-                inSyncStateData.addInSyncState(brokerName, inSyncState);
+                final BrokerReplicasInfo.ReplicasInfo inSyncState = new BrokerReplicasInfo.ReplicasInfo(master, syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(), inSyncReplicas, notInSyncReplicas);
+                brokerReplicasInfo.addReplicaInfo(brokerName, inSyncState);
             }
         }
-        result.setBody(inSyncStateData.encode());
+        result.setBody(brokerReplicasInfo.encode());
         return result;
     }
 
