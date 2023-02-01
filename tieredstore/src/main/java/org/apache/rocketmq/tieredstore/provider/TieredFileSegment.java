@@ -271,6 +271,11 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                 new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "length is zero"));
             return future;
         }
+        if (position >= commitPosition) {
+            future.completeExceptionally(
+                new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position is illegal"));
+            return future;
+        }
         if (position + length > commitPosition) {
             logger.warn("TieredFileSegment#readAsync request position + length is greater than commit position," +
                     " correct length using commit position, file: {}, request position: {}, commit position:{}, change length from {} to {}",
