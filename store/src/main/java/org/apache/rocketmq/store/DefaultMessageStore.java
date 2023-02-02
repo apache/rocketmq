@@ -1481,6 +1481,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.commitLog.setTopicQueueTable(table);
+        this.commitLog.setLmqTopicQueueTable(table);
     }
 
     public AllocateMappedFileService getAllocateMappedFileService() {
