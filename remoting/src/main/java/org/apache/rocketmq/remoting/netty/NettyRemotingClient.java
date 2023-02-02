@@ -810,6 +810,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
+    public boolean isAddressReachable(String addr) {
+        if (addr == null || addr.isEmpty()) {
+            return false;
+        }
+        try {
+            Channel channel = getAndCreateChannel(addr);
+            return channel != null && channel.isActive();
+        } catch (Exception e) {
+            LOGGER.warn("Get and create channel of {} failed", addr, e);
+            return false;
+        }
+    }
+
+    @Override
     public List<String> getNameServerAddressList() {
         return this.namesrvAddrList.get();
     }
@@ -861,8 +875,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private void scanAvailableNameSrv() {
         List<String> nameServerList = this.namesrvAddrList.get();
         if (nameServerList == null) {
-            LOGGER.debug("scanAvailableNameSrv Addresses of name server is empty!");
+            LOGGER.debug("scanAvailableNameSrv addresses of name server is null!");
             return;
+        }
+
+        for (String address : NettyRemotingClient.this.availableNamesrvAddrMap.keySet()) {
+            if (!nameServerList.contains(address)) {
+                LOGGER.warn("scanAvailableNameSrv remove invalid address {}", address);
+                NettyRemotingClient.this.availableNamesrvAddrMap.remove(address);
+            }
         }
 
         for (final String namesrvAddr : nameServerList) {
@@ -874,7 +895,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         if (channel != null) {
                             NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
                         } else {
-                            NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
+                            Boolean value = NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
+                            if (value != null) {
+                                LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
+                            }
                         }
                     } catch (Exception e) {
                         LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
@@ -882,7 +906,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
         }
-
     }
 
     static class ChannelWrapper {

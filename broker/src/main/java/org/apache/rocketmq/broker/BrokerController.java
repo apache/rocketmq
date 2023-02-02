@@ -1228,6 +1228,10 @@ public class BrokerController {
         return popMessageProcessor;
     }
 
+    public NotificationProcessor getNotificationProcessor() {
+        return notificationProcessor;
+    }
+
     public TimerMessageStore getTimerMessageStore() {
         return timerMessageStore;
     }
@@ -1735,7 +1739,7 @@ public class BrokerController {
 
     protected void sendHeartbeat() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
+            final List<String> controllerAddresses = this.replicasManager.getAvailableControllerAddresses();
             for (String controllerAddress : controllerAddresses) {
                 if (StringUtils.isNotEmpty(controllerAddress)) {
                     this.brokerOuterAPI.sendHeartbeatToController(

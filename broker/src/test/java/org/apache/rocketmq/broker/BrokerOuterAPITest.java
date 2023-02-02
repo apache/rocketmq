@@ -238,7 +238,7 @@ public class BrokerOuterAPITest {
         init();
         brokerOuterAPI.start();
         Class<BrokerOuterAPI> clazz = BrokerOuterAPI.class;
-        Method method = clazz.getDeclaredMethod("lookupNameServerAddress", String.class);
+        Method method = clazz.getDeclaredMethod("dnsLookupAddressByDomain", String.class);
         method.setAccessible(true);
         List<String> addressList = (List<String>) method.invoke(brokerOuterAPI, "localhost:6789");
         AtomicBoolean result = new AtomicBoolean(false);
