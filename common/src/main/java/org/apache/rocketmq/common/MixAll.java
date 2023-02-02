@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -168,7 +170,7 @@ public class MixAll {
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        if (processName != null && processName.length() > 0) {
+        if (StringUtils.isNotEmpty(processName)) {
             try {
                 return Long.parseLong(processName.split("@")[0]);
             } catch (Exception e) {
