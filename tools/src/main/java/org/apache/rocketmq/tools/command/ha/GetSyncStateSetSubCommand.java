@@ -123,22 +123,22 @@ public class GetSyncStateSetSubCommand implements SubCommand {
                     next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
                     inSyncReplicas.size());
                 for (BrokerReplicasInfo.ReplicaIdentity member : inSyncReplicas) {
-                    System.out.printf("\n InSyncReplica:\t%s\n", member.toString() + acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
+                    System.out.printf("\n InSyncReplica:\t%s\t%s\n", member.toString(), acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
                 }
 
                 for (BrokerReplicasInfo.ReplicaIdentity member : notInSyncReplicas) {
-                    System.out.printf("\n NotInSyncReplica:\t%s\n", member.toString() + acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
+                    System.out.printf("\n NotInSyncReplica:\t%s\t%s\n", member.toString(), acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
                 }
             }
         }
     }
 
     private String acquireBrokerStatus(DefaultMQAdminExt defaultMQAdminExt,String brokerAddr) {
-        String status = " online";
+        String status = "online";
         try {
             defaultMQAdminExt.getDefaultMQAdminExtImpl().fetchBrokerRuntimeStats(brokerAddr);
         } catch (Exception e) {
-            status = " offline";
+            status = "offline";
         }
         return status;
     }
