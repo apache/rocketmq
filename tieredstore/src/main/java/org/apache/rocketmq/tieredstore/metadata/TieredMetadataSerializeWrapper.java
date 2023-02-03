@@ -18,13 +18,16 @@ package org.apache.rocketmq.tieredstore.metadata;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TieredMetadataSerializeWrapper extends RemotingSerializable {
     private AtomicInteger maxTopicId;
     private Map<String /*topic*/, TopicMetadata> topicMetadataTable;
     private Map<String /*topic*/, Map<Integer /*queueId*/, QueueMetadata>> queueMetadataTable;
-
+    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> commitLogFileSegmentTable;
+    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> consumeQueueFileSegmentTable;
+    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> indexFileSegmentTable;
 
     public AtomicInteger getMaxTopicId() {
         return maxTopicId;
@@ -50,5 +53,32 @@ public class TieredMetadataSerializeWrapper extends RemotingSerializable {
     public void setQueueMetadataTable(
         Map<String, Map<Integer, QueueMetadata>> queueMetadataTable) {
         this.queueMetadataTable = queueMetadataTable;
+    }
+
+    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getCommitLogFileSegmentTable() {
+        return commitLogFileSegmentTable;
+    }
+
+    public void setCommitLogFileSegmentTable(
+        Map<MessageQueue, Map<Long, FileSegmentMetadata>> commitLogFileSegmentTable) {
+        this.commitLogFileSegmentTable = commitLogFileSegmentTable;
+    }
+
+    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getConsumeQueueFileSegmentTable() {
+        return consumeQueueFileSegmentTable;
+    }
+
+    public void setConsumeQueueFileSegmentTable(
+        Map<MessageQueue, Map<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable) {
+        this.consumeQueueFileSegmentTable = consumeQueueFileSegmentTable;
+    }
+
+    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getIndexFileSegmentTable() {
+        return indexFileSegmentTable;
+    }
+
+    public void setIndexFileSegmentTable(
+        Map<MessageQueue, Map<Long, FileSegmentMetadata>> indexFileSegmentTable) {
+        this.indexFileSegmentTable = indexFileSegmentTable;
     }
 }
