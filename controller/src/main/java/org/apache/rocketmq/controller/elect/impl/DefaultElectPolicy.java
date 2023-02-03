@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.controller.elect.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.BrokerLiveInfo;
 import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
@@ -25,8 +24,6 @@ import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 public class DefaultElectPolicy implements ElectPolicy {
@@ -121,9 +118,6 @@ public class DefaultElectPolicy implements ElectPolicy {
     }
 
 
-    public BiFunction<String, String, BrokerLiveInfo> getAdditionalInfoGetter() {
-        return additionalInfoGetter;
-    }
 
     public void setBrokerLiveInfoGetter(BrokerLiveInfoGetter brokerLiveInfoGetter) {
         this.brokerLiveInfoGetter = brokerLiveInfoGetter;
