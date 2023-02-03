@@ -21,26 +21,30 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 
 /**
  * Broker replicas info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
  */
 public class BrokerReplicaInfo {
     private final String clusterName;
+
     private final String brokerName;
+
     // Start from 1
     private final AtomicLong nextAssignBrokerId;
-    private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
+
+    private final HashMap<Long/*brokerId*/, Pair<String/*ipAddress*/, String/*registerCheckCode*/>> brokerIdInfo;
 
     public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerIdTable = new HashMap<>();
         this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_SLAVE_ID);
+        this.brokerIdInfo = new HashMap<>();
     }
 
-    public void removeBrokerAddress(final String address) {
-        this.brokerIdTable.remove(address);
+    public void removeBrokerId(final Long brokerId) {
+        this.brokerIdInfo.remove(brokerId);
     }
 
     public long newBrokerId() {
@@ -55,26 +59,30 @@ public class BrokerReplicaInfo {
         return brokerName;
     }
 
-    public void addBroker(final String address, final Long brokerId) {
-        this.brokerIdTable.put(address, brokerId);
+    public void addBroker(final Long brokerId, final String ipAddress, final String registerCheckCode) {
+        this.brokerIdInfo.put(brokerId, new Pair<>(ipAddress, registerCheckCode));
     }
 
-    public boolean isBrokerExist(final String address) {
-        return this.brokerIdTable.containsKey(address);
+    public boolean isBrokerExist(final Long brokerId) {
+        return this.brokerIdInfo.containsKey(brokerId);
     }
 
-    public Set<String> getAllBroker() {
-        return new HashSet<>(this.brokerIdTable.keySet());
+    public Set<Long> getAllBroker() {
+        return new HashSet<>(this.brokerIdInfo.keySet());
     }
 
-    public HashMap<String, Long> getBrokerIdTable() {
-        return new HashMap<>(this.brokerIdTable);
+    public HashMap<Long, String> getBrokerIdTable() {
+        HashMap<Long/*brokerId*/, String/*address*/> map = new HashMap<>(this.brokerIdInfo.size());
+        this.brokerIdInfo.forEach((id, pair) -> {
+            map.put(id, pair.getObject1());
+        });
+        return map;
     }
 
-    public Long getBrokerId(final String address) {
-        if (this.brokerIdTable.containsKey(address)) {
-            return this.brokerIdTable.get(address);
+    public String getBrokerAddress(final Long brokerId) {
+        if (this.brokerIdInfo.containsKey(brokerId)) {
+            return this.brokerIdInfo.get(brokerId).getObject1();
         }
-        return -1L;
+        return null;
     }
 }
