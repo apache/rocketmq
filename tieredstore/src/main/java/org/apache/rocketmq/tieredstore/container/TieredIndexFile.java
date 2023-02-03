@@ -45,8 +45,8 @@ public class TieredIndexFile {
     public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
     public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
     private static final int INDEX_FILE_HEADER_SIZE = 28;
-    private static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
-    private static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
+    public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
+    public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
     public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
 
     public static final int INDEX_FILE_HEADER_MAGIC_CODE_POSITION = 0;
