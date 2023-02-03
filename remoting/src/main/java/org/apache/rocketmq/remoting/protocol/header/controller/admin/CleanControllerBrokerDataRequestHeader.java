@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.header.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller.admin;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -90,10 +90,10 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     @Override
     public String toString() {
         return "CleanControllerBrokerDataRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            ", isCleanLivingBroker=" + isCleanLivingBroker +
-            '}';
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerIdSetToClean='" + brokerIdSetToClean + '\'' +
+                ", isCleanLivingBroker=" + isCleanLivingBroker +
+                '}';
     }
 }
