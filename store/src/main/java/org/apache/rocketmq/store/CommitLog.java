@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -1013,6 +1014,19 @@ public class CommitLog {
 
     public Map<String, Long> getLmqTopicQueueTable() {
         return this.lmqTopicQueueTable;
+    }
+
+    public void setLmqTopicQueueTable(Map<String, Long> lmqTopicQueueTable) {
+        if (!defaultMessageStore.getMessageStoreConfig().isEnableLmq()) {
+            return;
+        }
+        Map<String, Long> table = new HashMap<String, Long>(1024);
+        for (Map.Entry<String, Long> entry : lmqTopicQueueTable.entrySet()) {
+            if (MixAll.isLmq(entry.getKey())) {
+                table.put(entry.getKey(), entry.getValue());
+            }
+        }
+        this.lmqTopicQueueTable = table;
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
