@@ -42,15 +42,19 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
     }
 
     public static class ReplicasInfo extends RemotingSerializable {
+
+        private Long masterBrokerId;
+
         private String masterAddress;
         private int masterEpoch;
         private int syncStateSetEpoch;
         private List<ReplicaIdentity> inSyncReplicas;
         private List<ReplicaIdentity> notInSyncReplicas;
 
-        public ReplicasInfo(String masterAddress, int masterEpoch, int syncStateSetEpoch,
+        public ReplicasInfo(Long masterBrokerId, String masterAddress, int masterEpoch, int syncStateSetEpoch,
             List<ReplicaIdentity> inSyncReplicas,
             List<ReplicaIdentity> notInSyncReplicas) {
+            this.masterBrokerId = masterBrokerId;
             this.masterAddress = masterAddress;
             this.masterEpoch = masterEpoch;
             this.syncStateSetEpoch = syncStateSetEpoch;
@@ -99,23 +103,42 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
             List<ReplicaIdentity> notInSyncReplicas) {
             this.notInSyncReplicas = notInSyncReplicas;
         }
+
+        public void setMasterBrokerId(Long masterBrokerId) {
+            this.masterBrokerId = masterBrokerId;
+        }
+
+        public Long getMasterBrokerId() {
+            return masterBrokerId;
+        }
     }
 
     public static class ReplicaIdentity extends RemotingSerializable {
-        private String address;
+        private String brokerName;
         private Long brokerId;
 
-        public ReplicaIdentity(String address, Long brokerId) {
-            this.address = address;
+        private String brokerAddress;
+
+        public ReplicaIdentity(String brokerName, Long brokerId, String brokerAddress) {
+            this.brokerName = brokerName;
             this.brokerId = brokerId;
+            this.brokerAddress = brokerAddress;
         }
 
-        public String getAddress() {
-            return address;
+        public String getBrokerName() {
+            return brokerName;
         }
 
-        public void setAddress(String address) {
-            this.address = address;
+        public void setBrokerName(String brokerName) {
+            this.brokerName = brokerName;
+        }
+
+        public String getBrokerAddress() {
+            return brokerAddress;
+        }
+
+        public void setBrokerAddress(String brokerAddress) {
+            this.brokerAddress = brokerAddress;
         }
 
         public Long getBrokerId() {
@@ -128,10 +151,11 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
 
         @Override
         public String toString() {
-            return "{" +
-                "address='" + address + '\'' +
-                ", brokerId=" + brokerId +
-                '}';
+            return "ReplicaIdentity{" +
+                    "brokerName='" + brokerName + '\'' +
+                    ", brokerId=" + brokerId +
+                    ", brokerAddress='" + brokerAddress + '\'' +
+                    '}';
         }
     }
 }

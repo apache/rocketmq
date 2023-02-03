@@ -24,20 +24,20 @@ public class ElectMasterEvent implements EventMessage {
     // Mark whether a new master was elected.
     private final boolean newMasterElected;
     private final String brokerName;
-    private final String newMasterAddress;
+    private final Long newMasterBrokerId;
 
     public ElectMasterEvent(boolean newMasterElected, String brokerName) {
-        this(newMasterElected, brokerName, "");
+        this(newMasterElected, brokerName, null);
     }
 
-    public ElectMasterEvent(String brokerName, String newMasterAddress) {
-        this(true, brokerName, newMasterAddress);
+    public ElectMasterEvent(String brokerName, Long newMasterBrokerId) {
+        this(true, brokerName, newMasterBrokerId);
     }
 
-    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress) {
+    public ElectMasterEvent(boolean newMasterElected, String brokerName, Long newMasterBrokerId) {
         this.newMasterElected = newMasterElected;
         this.brokerName = brokerName;
-        this.newMasterAddress = newMasterAddress;
+        this.newMasterBrokerId = newMasterBrokerId;
     }
 
     @Override
@@ -53,16 +53,16 @@ public class ElectMasterEvent implements EventMessage {
         return brokerName;
     }
 
-    public String getNewMasterAddress() {
-        return newMasterAddress;
+    public Long getNewMasterBrokerId() {
+        return newMasterBrokerId;
     }
 
     @Override
     public String toString() {
         return "ElectMasterEvent{" +
-            "newMasterElected=" + newMasterElected +
-            ", brokerName='" + brokerName + '\'' +
-            ", newMasterAddress='" + newMasterAddress + '\'' +
-            '}';
+                "newMasterElected=" + newMasterElected +
+                ", brokerName='" + brokerName + '\'' +
+                ", newMasterBrokerId=" + newMasterBrokerId +
+                '}';
     }
 }

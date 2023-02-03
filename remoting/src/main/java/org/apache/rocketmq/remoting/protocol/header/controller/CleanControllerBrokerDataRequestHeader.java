@@ -31,18 +31,18 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     private String brokerName;
 
     @CFNullable
-    private String brokerAddress;
+    private String brokerIdSetToClean;
 
     private boolean isCleanLivingBroker = false;
 
     public CleanControllerBrokerDataRequestHeader() {
     }
 
-    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerAddress,
+    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerIdSetToClean,
         boolean isCleanLivingBroker) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.brokerIdSetToClean = brokerIdSetToClean;
         this.isCleanLivingBroker = isCleanLivingBroker;
     }
 
@@ -71,12 +71,12 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
         this.brokerName = brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public String getBrokerIdSetToClean() {
+        return brokerIdSetToClean;
     }
 
-    public void setBrokerAddress(String brokerAddress) {
-        this.brokerAddress = brokerAddress;
+    public void setBrokerIdSetToClean(String brokerIdSetToClean) {
+        this.brokerIdSetToClean = brokerIdSetToClean;
     }
 
     public boolean isCleanLivingBroker() {

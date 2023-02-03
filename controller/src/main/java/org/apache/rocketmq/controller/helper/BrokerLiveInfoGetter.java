@@ -14,24 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.elect;
 
+package org.apache.rocketmq.controller.helper;
 
-import java.util.Set;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
 
-public interface ElectPolicy {
+public interface BrokerLiveInfoGetter {
 
-    /**
-     * elect a master
-     *
-     * @param clusterName       the broker group belongs to
-     * @param brokerName        the broker group name
-     * @param syncStateBrokers  all broker replicas in syncStateSet
-     * @param allReplicaBrokers all broker replicas
-     * @param oldMaster         old master
-     * @param brokerId          broker id(can be used as prefer or assigned in some elect policy)
-     * @return new master's broker id
-     */
-    Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers, Long oldMaster, Long brokerId);
+    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
 
 }
