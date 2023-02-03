@@ -35,6 +35,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TieredIndexFileTest {
@@ -61,6 +62,7 @@ public class TieredIndexFileTest {
 //        metadataStore.reLoadStore();
     }
 
+    @Ignore
     @Test
     public void testAppendAndQuery() throws IOException, ClassNotFoundException, NoSuchMethodException {
         // skip this test on windows

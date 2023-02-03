@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,7 +55,13 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         dataWrapper.setMaxTopicId(maxTopicId);
         dataWrapper.setTopicMetadataTable(topicMetadataTable);
         dataWrapper.setQueueMetadataTable(new HashMap<>(queueMetadataTable));
-        return dataWrapper.toJson(false);
+        dataWrapper.setCommitLogFileSegmentTable(new HashMap<>(commitLogFileSegmentTable));
+        dataWrapper.setConsumeQueueFileSegmentTable(new HashMap<>(consumeQueueFileSegmentTable));
+        dataWrapper.setIndexFileSegmentTable(new HashMap<>(indexFileSegmentTable));
+        if (prettyFormat) {
+            JSON.toJSONString(dataWrapper, SerializerFeature.DisableCircularReferenceDetect, SerializerFeature.PrettyFormat);
+        }
+        return JSON.toJSONString(dataWrapper, SerializerFeature.DisableCircularReferenceDetect);
     }
 
     @Override
@@ -71,6 +79,12 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
                 topicMetadataTable.putAll(dataWrapper.getTopicMetadataTable());
                 dataWrapper.getQueueMetadataTable()
                     .forEach((topic, map) -> queueMetadataTable.put(topic, new ConcurrentHashMap<>(map)));
+                dataWrapper.getCommitLogFileSegmentTable()
+                    .forEach((mq, map) -> commitLogFileSegmentTable.put(mq, new ConcurrentHashMap<>(map)));
+                dataWrapper.getConsumeQueueFileSegmentTable()
+                    .forEach((mq, map) -> consumeQueueFileSegmentTable.put(mq, new ConcurrentHashMap<>(map)));
+                dataWrapper.getIndexFileSegmentTable()
+                    .forEach((mq, map) -> indexFileSegmentTable.put(mq, new ConcurrentHashMap<>(map)));
             }
         }
     }
