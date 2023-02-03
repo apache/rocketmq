@@ -21,15 +21,15 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
-    private String masterAddress;
+    private Long masterBrokerId;
     private int masterEpoch;
 
     public AlterSyncStateSetRequestHeader() {
     }
 
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
+    public AlterSyncStateSetRequestHeader(String brokerName, Long masterBrokerId, int masterEpoch) {
         this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
+        this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
     }
 
@@ -41,12 +41,12 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
     }
 
     public int getMasterEpoch() {
@@ -60,10 +60,10 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
-            "brokerName='" + brokerName + '\'' +
-            ", masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            '}';
+                "brokerName='" + brokerName + '\'' +
+                ", masterBrokerId=" + masterBrokerId +
+                ", masterEpoch=" + masterEpoch +
+                '}';
     }
 
     @Override
