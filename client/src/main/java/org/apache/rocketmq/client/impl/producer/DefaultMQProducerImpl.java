@@ -235,6 +235,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
+                this.validateNameServerSetting();
+
                 if (startFactory) {
                     mQClientFactory.start();
                 }
@@ -721,8 +723,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw mqClientException;
         }
 
-        validateNameServerSetting();
-
         throw new MQClientException("No route info of this topic: " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
@@ -1191,8 +1191,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw new MQClientException("select message queue return null.", null);
             }
         }
-
-        validateNameServerSetting();
         throw new MQClientException("No route info for this topic, " + msg.getTopic(), null);
     }
 
