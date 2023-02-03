@@ -36,6 +36,25 @@
         </encoder>
     </appender>
 
+    <appender name="DLedgerAppender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/dledger.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/dledger.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="RocketmqControllerAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/controller.log</file>
@@ -77,6 +96,11 @@
     <logger name="RocketmqRemoting" additivity="false" level="INFO">
         <appender-ref ref="RocketmqControllerAppender"/>
     </logger>
+
+    <logger name="io.openmessaging.storage.dledger" additivity="false" level="INFO">
+        <appender-ref ref="DLedgerAppender"/>
+    </logger>
+
 
     <logger name="RocketmqControllerConsole" additivity="false" level="INFO">
         <appender-ref ref="STDOUT"/>
