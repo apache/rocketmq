@@ -29,14 +29,14 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
     private String brokerName;
 
     /**
-     * brokerAddress
-     * for brokerTrigger electMaster: this brokerAddress will be elected as a master when it is the first time to elect
+     * brokerId
+     * for brokerTrigger electMaster: this brokerId will be elected as a master when it is the first time to elect
      * in this broker-set
-     * for adminTrigger electMaster: this brokerAddress is also named assignedBrokerAddress, which means we must prefer to elect
+     * for adminTrigger electMaster: this brokerAddress is also named assignedBrokerId, which means we must prefer to elect
      * it as a new master when this broker is valid.
      */
     @CFNotNull
-    private String brokerAddress;
+    private Long brokerId;
 
     @CFNotNull
     private Boolean forceElect = false;
@@ -48,30 +48,30 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
     }
 
-    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress, boolean forceElect) {
+    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId, boolean forceElect) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
         this.forceElect = forceElect;
     }
 
     public static ElectMasterRequestHeader ofBrokerTrigger(String clusterName, String brokerName,
-        String brokerAddress) {
-        return new ElectMasterRequestHeader(clusterName, brokerName, brokerAddress);
+        Long brokerId) {
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerId);
     }
 
     public static ElectMasterRequestHeader ofControllerTrigger(String brokerName) {
         return new ElectMasterRequestHeader(brokerName);
     }
 
-    public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, String brokerAddress) {
-        return new ElectMasterRequestHeader(clusterName, brokerName, brokerAddress, true);
+    public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, Long brokerId) {
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerId, true);
     }
 
     public String getBrokerName() {
@@ -82,12 +82,12 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public Long getBrokerId() {
+        return brokerId;
     }
 
-    public void setBrokerAddress(String brokerAddress) {
-        this.brokerAddress = brokerAddress;
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
     }
 
     public String getClusterName() {
@@ -107,7 +107,7 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         return "ElectMasterRequestHeader{" +
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
-                ", brokerAddress='" + brokerAddress + '\'' +
+                ", brokerId=" + brokerId +
                 ", forceElect=" + forceElect +
                 '}';
     }
