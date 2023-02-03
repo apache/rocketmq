@@ -36,7 +36,7 @@
         </encoder>
     </appender>
 
-    <appender name="DLedgerAppender"
+    <appender name="DLedgerAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/dledger.log</file>
         <append>true</append>
@@ -53,6 +53,11 @@
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
+    </appender>
+
+    <appender name="DLedgerAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="DLedgerAppender_inner"/>
+        <discardingThreshold>0</discardingThreshold>
     </appender>
 
     <appender name="RocketmqControllerAppender_inner"
@@ -100,7 +105,6 @@
     <logger name="io.openmessaging.storage.dledger" additivity="false" level="INFO">
         <appender-ref ref="DLedgerAppender"/>
     </logger>
-
 
     <logger name="RocketmqControllerConsole" additivity="false" level="INFO">
         <appender-ref ref="STDOUT"/>
