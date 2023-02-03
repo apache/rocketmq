@@ -99,9 +99,10 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         this.brokerLifecycleListeners.add(listener);
     }
 
-    @Override public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
+    @Override
+    public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
         Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset, Integer electionPriority) {
-        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerName, brokerId);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
         long realBrokerId = Optional.ofNullable(brokerId).orElse(-1L);
@@ -126,6 +127,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
             prev.setElectionPriority(realElectionPriority);
             prev.setBrokerId(realBrokerId);
+            prev.setBrokerAddr(brokerAddr);
+            prev.setChannel(channel);
             if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
                 prev.setEpoch(realEpoch);
                 prev.setMaxOffset(realMaxOffset);
@@ -153,13 +156,13 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerAddr) {
-        return this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddr));
+    public BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId) {
+        return this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerName, brokerId));
     }
 
     @Override
-    public boolean isBrokerActive(String clusterName, String brokerAddr) {
-        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddr));
+    public boolean isBrokerActive(String clusterName, String brokerName, Long brokerId) {
+        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerName, brokerId));
         if (info != null) {
             long last = info.getLastUpdateTimestamp();
             long timeoutMillis = info.getHeartbeatTimeoutMillis();

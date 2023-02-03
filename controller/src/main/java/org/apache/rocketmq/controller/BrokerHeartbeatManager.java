@@ -50,12 +50,12 @@ public interface BrokerHeartbeatManager {
     /**
      * Get broker live information by clusterName and brokerAddr
      */
-    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerAddr);
+    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId);
 
     /**
      * Check whether broker active
      */
-    boolean isBrokerActive(final String clusterName, final String brokerAddr);
+    boolean isBrokerActive(final String clusterName, final String brokerName, final Long brokerId);
 
     interface BrokerLifecycleListener {
         /**
