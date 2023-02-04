@@ -56,17 +56,15 @@ import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
 public class AutoSwitchHAService extends DefaultHAService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
-    private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
-    private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
-    private final ConcurrentHashMap<String, Long> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
+    private final List<Consumer<Set<Long/*brokerId*/>>> syncStateSetChangedListeners = new ArrayList<>();
+    private final CopyOnWriteArraySet<Long/*brokerId*/> syncStateSet = new CopyOnWriteArraySet<>();
+    private final ConcurrentHashMap<Long/*brokerId*/, Long/*lastCaughtUpTimestamp*/> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private volatile long confirmOffset = -1;
-
-    private String localAddress;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
 
-    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public AutoSwitchHAService() {
     }
@@ -93,8 +91,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override
     public void removeConnection(HAConnection conn) {
         if (!defaultMessageStore.isShutdown()) {
-            final Set<String> syncStateSet = getSyncStateSet();
-            String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
+            final Set<Long> syncStateSet = getSyncStateSet();
+            Long slave = ((AutoSwitchHAConnection) conn).getSlaveId();
             if (syncStateSet.contains(slave)) {
                 syncStateSet.remove(slave);
                 notifySyncStateSetChanged(syncStateSet);
@@ -163,12 +161,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         try {
             destroyConnections();
             if (this.haClient == null) {
-                this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache);
+                this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache, slaveId);
             } else {
                 this.haClient.reOpen();
             }
-            this.haClient.setLocalAddress(this.localAddress);
-            this.haClient.updateSlaveId(slaveId);
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
             this.haClient.start();
@@ -213,15 +209,13 @@ public class AutoSwitchHAService extends DefaultHAService {
     public void updateMasterAddress(String newAddr) {
     }
 
-    public void registerSyncStateSetChangedListener(final Consumer<Set<String>> listener) {
+    public void registerSyncStateSetChangedListener(final Consumer<Set<Long>> listener) {
         this.syncStateSetChangedListeners.add(listener);
     }
 
-    public void notifySyncStateSetChanged(final Set<String> newSyncStateSet) {
+    public void notifySyncStateSetChanged(final Set<Long> newSyncStateSet) {
         this.executorService.submit(() -> {
-            for (Consumer<Set<String>> listener : syncStateSetChangedListeners) {
-                listener.accept(newSyncStateSet);
-            }
+            syncStateSetChangedListeners.forEach(listener -> listener.accept(newSyncStateSet));
         });
     }
 
@@ -229,15 +223,15 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Check and maybe shrink the inSyncStateSet.
      * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
-    public Set<String> maybeShrinkInSyncStateSet() {
-        final Set<String> newSyncStateSet = getSyncStateSet();
+    public Set<Long> maybeShrinkInSyncStateSet() {
+        final Set<Long> newSyncStateSet = getSyncStateSet();
         final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
-        for (Map.Entry<String, Long> next : this.connectionCaughtUpTimeTable.entrySet()) {
-            final String slaveAddress = next.getKey();
-            if (newSyncStateSet.contains(slaveAddress)) {
-                final Long lastCaughtUpTimeMs = this.connectionCaughtUpTimeTable.get(slaveAddress);
+        for (Map.Entry<Long, Long> next : this.connectionCaughtUpTimeTable.entrySet()) {
+            final Long slaveBrokerId = next.getKey();
+            if (newSyncStateSet.contains(slaveBrokerId)) {
+                final Long lastCaughtUpTimeMs = next.getValue();
                 if ((System.currentTimeMillis() - lastCaughtUpTimeMs) > haMaxTimeSlaveNotCatchup) {
-                    newSyncStateSet.remove(slaveAddress);
+                    newSyncStateSet.remove(slaveBrokerId);
                 }
             }
         }
@@ -248,25 +242,25 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Check and maybe add the slave to inSyncStateSet. A slave will be added to inSyncStateSet if its slaveMaxOffset >=
      * current confirmOffset, and it is caught up to an offset within the current leader epoch.
      */
-    public void maybeExpandInSyncStateSet(final String slaveAddress, final long slaveMaxOffset) {
-        final Set<String> currentSyncStateSet = getSyncStateSet();
-        if (currentSyncStateSet.contains(slaveAddress)) {
+    public void maybeExpandInSyncStateSet(final Long slaveBrokerId, final long slaveMaxOffset) {
+        final Set<Long> currentSyncStateSet = getSyncStateSet();
+        if (currentSyncStateSet.contains(slaveBrokerId)) {
             return;
         }
         final long confirmOffset = getConfirmOffset();
         if (slaveMaxOffset >= confirmOffset) {
             final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
-                currentSyncStateSet.add(slaveAddress);
+                currentSyncStateSet.add(slaveBrokerId);
                 // Notify the upper layer that syncStateSet changed.
                 notifySyncStateSetChanged(currentSyncStateSet);
             }
         }
     }
 
-    public void updateConnectionLastCaughtUpTime(final String slaveAddress, final long lastCaughtUpTimeMs) {
-        Long prevTime = ConcurrentHashMapUtils.computeIfAbsent(this.connectionCaughtUpTimeTable, slaveAddress, k -> 0L);
-        this.connectionCaughtUpTimeTable.put(slaveAddress, Math.max(prevTime, lastCaughtUpTimeMs));
+    public void updateConnectionLastCaughtUpTime(final Long slaveBrokerId, final long lastCaughtUpTimeMs) {
+        Long prevTime = ConcurrentHashMapUtils.computeIfAbsent(this.connectionCaughtUpTimeTable, slaveBrokerId, k -> 0L);
+        this.connectionCaughtUpTimeTable.put(slaveBrokerId, Math.max(prevTime, lastCaughtUpTimeMs));
     }
 
     /**
@@ -285,8 +279,8 @@ public class AutoSwitchHAService extends DefaultHAService {
         return confirmOffset;
     }
 
-    public void updateConfirmOffsetWhenSlaveAck(final String slaveAddress) {
-        if (this.syncStateSet.contains(slaveAddress)) {
+    public void updateConfirmOffsetWhenSlaveAck(final Long slaveBrokerId) {
+        if (this.syncStateSet.contains(slaveBrokerId)) {
             this.confirmOffset = computeConfirmOffset();
         }
     }
@@ -330,7 +324,7 @@ public class AutoSwitchHAService extends DefaultHAService {
                 cInfo.setTransferredByteInSecond(conn.getTransferredByteInSecond());
                 cInfo.setTransferFromWhere(conn.getTransferFromWhere());
 
-                cInfo.setInSync(syncStateSet.contains(((AutoSwitchHAConnection) conn).getSlaveAddress()));
+                cInfo.setInSync(syncStateSet.contains(((AutoSwitchHAConnection) conn).getSlaveId()));
 
                 info.getHaConnectionInfo().add(cInfo);
             }
@@ -344,18 +338,18 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     private long computeConfirmOffset() {
-        final Set<String> currentSyncStateSet = getSyncStateSet();
+        final Set<Long> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
-            final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveAddress();
-            if (currentSyncStateSet.contains(slaveAddress)) {
+            final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
+            if (currentSyncStateSet.contains(slaveId)) {
                 confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
             }
         }
         return confirmOffset;
     }
 
-    public void setSyncStateSet(final Set<String> syncStateSet) {
+    public void setSyncStateSet(final Set<Long> syncStateSet) {
         final Lock writeLock = readWriteLock.writeLock();
         try {
             writeLock.lock();
@@ -367,12 +361,11 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
-    public Set<String> getSyncStateSet() {
+    public Set<Long> getSyncStateSet() {
         final Lock readLock = readWriteLock.readLock();
         try {
             readLock.lock();
-            HashSet<String> set = new HashSet<>(this.syncStateSet.size());
-            set.addAll(this.syncStateSet);
+            HashSet<Long> set = new HashSet<>(this.syncStateSet);
             return set;
         } finally {
             readLock.unlock();
@@ -385,10 +378,6 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     public void truncateEpochFileSuffix(final long offset) {
         this.epochCache.truncateSuffixByOffset(offset);
-    }
-
-    public void setLocalAddress(String localAddress) {
-        this.localAddress = localAddress;
     }
 
     /**
