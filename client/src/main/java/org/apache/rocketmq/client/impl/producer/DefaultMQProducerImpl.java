@@ -215,6 +215,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void start(final boolean startFactory) throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
+
+                this.validateNameServerSetting();
+
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.checkConfig();
@@ -234,8 +237,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
-
-                this.validateNameServerSetting();
 
                 if (startFactory) {
                     mQClientFactory.start();
@@ -594,8 +595,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void validateNameServerSetting() throws MQClientException {
-        List<String> nsList = this.getMqClientFactory().getMQClientAPIImpl().getNameServerAddressList();
-        if (null == nsList || nsList.isEmpty()) {
+        String namesrvAddr = this.defaultMQProducer.getNamesrvAddr();
+        if (UtilAll.isBlank(namesrvAddr)) {
             throw new MQClientException(
                 "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
         }
