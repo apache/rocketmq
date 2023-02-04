@@ -216,8 +216,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (this.serviceState) {
             case CREATE_JUST:
 
-                this.validateNameServerSetting();
-
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.checkConfig();
@@ -269,6 +267,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
             throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP + ", please specify another one.",
                 null);
+        }
+
+        String namesrvAddr = this.defaultMQProducer.getNamesrvAddr();
+        if (UtilAll.isBlank(namesrvAddr)) {
+            throw new MQClientException(
+                    "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
         }
     }
 
@@ -595,8 +599,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void validateNameServerSetting() throws MQClientException {
-        String namesrvAddr = this.defaultMQProducer.getNamesrvAddr();
-        if (UtilAll.isBlank(namesrvAddr)) {
+        List<String> nsList = this.getMqClientFactory().getMQClientAPIImpl().getNameServerAddressList();
+        if (null == nsList || nsList.isEmpty()) {
             throw new MQClientException(
                 "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
         }
@@ -614,7 +618,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final long invokeID = random.nextLong();
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
-        long endTimestamp = beginTimestampFirst;
+        long endTimestamp;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
@@ -723,6 +727,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             throw mqClientException;
         }
+
+        this.validateNameServerSetting();
 
         throw new MQClientException("No route info of this topic: " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
@@ -1192,6 +1198,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw new MQClientException("select message queue return null.", null);
             }
         }
+
+        this.validateNameServerSetting();
+
         throw new MQClientException("No route info for this topic, " + msg.getTopic(), null);
     }
 
