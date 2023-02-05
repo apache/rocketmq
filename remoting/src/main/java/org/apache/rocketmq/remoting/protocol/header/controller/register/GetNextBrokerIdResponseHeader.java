@@ -47,4 +47,8 @@ public class GetNextBrokerIdResponseHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
 
     }
+
+    public Long getNextBrokerId() {
+        return nextBrokerId;
+    }
 }
