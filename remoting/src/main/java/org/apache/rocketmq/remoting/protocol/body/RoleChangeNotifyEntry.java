@@ -26,19 +26,22 @@ public class RoleChangeNotifyEntry {
 
     private final String masterAddress;
 
+    private final Long masterBrokerId;
+
     private final int masterEpoch;
 
     private final int syncStateSetEpoch;
 
-    public RoleChangeNotifyEntry(BrokerMemberGroup brokerMemberGroup, String masterAddress, int masterEpoch, int syncStateSetEpoch) {
+    public RoleChangeNotifyEntry(BrokerMemberGroup brokerMemberGroup, String masterAddress, Long masterBrokerId, int masterEpoch, int syncStateSetEpoch) {
         this.brokerMemberGroup = brokerMemberGroup;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
+        this.masterBrokerId = masterBrokerId;
     }
 
     public static RoleChangeNotifyEntry convert(ElectMasterResponseHeader header) {
-        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
+        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
     }
 
 
@@ -56,5 +59,9 @@ public class RoleChangeNotifyEntry {
 
     public int getSyncStateSetEpoch() {
         return syncStateSetEpoch;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 }

@@ -18,7 +18,6 @@ package org.apache.rocketmq.controller.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
-import java.sql.Time;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -46,8 +45,6 @@ import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanContro
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RequestCode.APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
@@ -57,7 +54,6 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ELECT
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
-import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_NEXT_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_SUCCESS;
@@ -90,8 +86,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return this.handleAlterSyncStateSet(ctx, request);
             case CONTROLLER_ELECT_MASTER:
                 return this.handleControllerElectMaster(ctx, request);
-            case CONTROLLER_REGISTER_BROKER:
-                return this.handleControllerRegisterBroker(ctx, request);
             case CONTROLLER_GET_REPLICA_INFO:
                 return this.handleControllerGetReplicaInfo(ctx, request);
             case CONTROLLER_GET_METADATA_INFO:
@@ -142,24 +136,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
                     this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
                 }
-            }
-            return response;
-        }
-        return RemotingCommand.createResponseCommand(null);
-    }
-
-
-    private RemotingCommand handleControllerRegisterBroker(ChannelHandlerContext ctx,
-                                                           RemotingCommand request) throws Exception {
-        final RegisterBrokerToControllerRequestHeader controllerRequest = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
-        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(controllerRequest);
-        if (future != null) {
-            final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-            final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
-            if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
-                this.heartbeatManager.onBrokerHeartbeat(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                        responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
-                        controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getConfirmOffset(), controllerRequest.getElectionPriority());
             }
             return response;
         }

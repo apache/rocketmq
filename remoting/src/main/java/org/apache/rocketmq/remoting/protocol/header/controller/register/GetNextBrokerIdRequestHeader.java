@@ -26,6 +26,10 @@ public class GetNextBrokerIdRequestHeader implements CommandCustomHeader {
 
     private String brokerName;
 
+    public GetNextBrokerIdRequestHeader() {
+
+    }
+
     public GetNextBrokerIdRequestHeader(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
@@ -50,5 +54,13 @@ public class GetNextBrokerIdRequestHeader implements CommandCustomHeader {
 
     public String getBrokerName() {
         return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 }
