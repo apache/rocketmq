@@ -168,7 +168,6 @@ public class ReplicasInfoManager {
         final ElectMasterResponseHeader response = result.getResponse();
         if (!isContainsBroker(brokerName)) {
             // this broker set hasn't been registered
-            response.setMasterAddress("");
             result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker hasn't been registered");
             return result;
         }
@@ -233,7 +232,6 @@ public class ReplicasInfoManager {
         } else {
             result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, "Failed to elect a new master");
         }
-        response.setMasterAddress("");
         return result;
     }
 
@@ -249,58 +247,6 @@ public class ReplicasInfoManager {
         }
         return null;
     }
-
-//    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
-//            final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
-//        String brokerAddress = request.getBrokerAddress();
-//        final String brokerName = request.getBrokerName();
-//        final String clusterName = request.getClusterName();
-//        final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
-//        final RegisterBrokerToControllerResponseHeader response = result.getResponse();
-//        if (!isContainsBroker(brokerName)) {
-//            result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker-set hasn't been registered in controller");
-//            return result;
-//        }
-//        final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
-//        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
-//        if (brokerReplicaInfo.isBrokerExist())
-//
-//        // If the broker's metadata does not exist in the state machine, we can assign the broker a brokerId valued 1
-//        // By default, we set this variable to a value of 1
-//        long brokerId = MixAll.FIRST_SLAVE_ID;
-//        boolean shouldApplyBrokerId = true;
-//        if (isContainsBroker(brokerName)) {
-//            final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
-//            final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
-//
-//            if (brokerReplicaInfo.isBrokerExist(brokerAddress)) {
-//                // this broker have registered
-//                brokerId = brokerReplicaInfo.getBrokerId(brokerAddress);
-//                shouldApplyBrokerId = false;
-//            } else {
-//                // If this broker replicas is first time come online, we need to apply a new id for this replicas.
-//                brokerId = brokerReplicaInfo.newBrokerId();
-//            }
-//
-//            if (syncStateInfo.isMasterExist() && brokerAlivePredicate.test(clusterName, syncStateInfo.getMasterAddress())) {
-//                // If the master is alive, just return master info.
-//                final String masterAddress = syncStateInfo.getMasterAddress();
-//                response.setMasterAddress(masterAddress);
-//                response.setMasterEpoch(syncStateInfo.getMasterEpoch());
-//                response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
-//            }
-//        }
-//
-//        response.setBrokerId(brokerId);
-//        if (response.getMasterAddress() == null) {
-//            response.setMasterAddress("");
-//        }
-//        if (shouldApplyBrokerId) {
-//            final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getClusterName(), brokerName, brokerAddress, brokerId);
-//            result.addEvent(applyIdEvent);
-//        }
-//        return result;
-//    }
 
     public ControllerResult<GetNextBrokerIdResponseHeader> getNextBrokerId(final GetNextBrokerIdRequestHeader request) {
         final String clusterName = request.getClusterName();
@@ -339,6 +285,7 @@ public class ReplicasInfoManager {
         // broker-set registered
         if (!brokerReplicaInfo.isBrokerExist(brokerId) || registerCheckCode.equals(brokerReplicaInfo.getBrokerRegisterCheckCode(brokerId))) {
             // if brokerId hasn't been assigned or brokerId was assigned to this broker
+            result.addEvent(event);
             return result;
         }
         result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_ID_INVALID, String.format("Fail to apply brokerId: %d in broker-set: %s", brokerId, brokerName));

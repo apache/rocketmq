@@ -72,14 +72,14 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 final Map.Entry<BrokerAddrInfo, BrokerLiveInfo> next = iterator.next();
                 long last = next.getValue().getLastUpdateTimestamp();
                 long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis();
-                if ((last + timeoutMillis) < System.currentTimeMillis()) {
+                if (System.currentTimeMillis() - last > timeoutMillis) {
                     final Channel channel = next.getValue().getChannel();
                     iterator.remove();
                     if (channel != null) {
                         RemotingHelper.closeChannel(channel);
                     }
                     this.executor.submit(() ->
-                        notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().getBrokerName(), next.getKey().getBrokerAddr(), next.getValue().getBrokerId()));
+                        notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().getBrokerName(), next.getValue().getBrokerId()));
                     log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms", next.getValue().getChannel(), next.getKey(), timeoutMillis);
                 }
             }
@@ -88,9 +88,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
-    private void notifyBrokerInActive(String clusterName, String brokerName, String brokerAddr, Long brokerId) {
+    private void notifyBrokerInActive(String clusterName, String brokerName, Long brokerId) {
         for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
-            listener.onBrokerInactive(clusterName, brokerName, brokerAddr, brokerId);
+            listener.onBrokerInactive(clusterName, brokerName, brokerId);
         }
     }
 
@@ -126,9 +126,6 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             prev.setLastUpdateTimestamp(System.currentTimeMillis());
             prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
             prev.setElectionPriority(realElectionPriority);
-            prev.setBrokerId(realBrokerId);
-            prev.setBrokerAddr(brokerAddr);
-            prev.setChannel(channel);
             if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
                 prev.setEpoch(realEpoch);
                 prev.setMaxOffset(realMaxOffset);
@@ -143,10 +140,10 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         BrokerAddrInfo addrInfo = null;
         for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
             if (entry.getValue().getChannel() == channel) {
-                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().getChannel(), entry.getValue().getBrokerName(), entry.getKey().getBrokerAddr(), entry.getValue().getBrokerId());
+                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().getChannel(), entry.getValue().getBrokerName(), entry.getValue().getBrokerAddr(), entry.getValue().getBrokerId());
                 addrInfo = entry.getKey();
                 this.executor.submit(() ->
-                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().getBrokerName(), entry.getKey().getBrokerAddr(), entry.getValue().getBrokerId()));
+                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().getBrokerName(), entry.getValue().getBrokerId()));
                 break;
             }
         }

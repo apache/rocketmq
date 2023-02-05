@@ -30,6 +30,9 @@ public class RegisterSuccessRequestHeader implements CommandCustomHeader {
 
     private String brokerAddress;
 
+    public RegisterSuccessRequestHeader() {
+    }
+
     public RegisterSuccessRequestHeader(String clusterName, String brokerName, Long brokerId, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
@@ -56,5 +59,21 @@ public class RegisterSuccessRequestHeader implements CommandCustomHeader {
 
     public String getBrokerAddress() {
         return brokerAddress;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
+    }
+
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
     }
 }

@@ -26,6 +26,8 @@ public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
 
     private String brokerName;
 
+    public ApplyBrokerIdResponseHeader() {
+    }
 
     public ApplyBrokerIdResponseHeader(String clusterName, String brokerName) {
         this.clusterName = clusterName;
@@ -46,4 +48,19 @@ public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
 
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
 }

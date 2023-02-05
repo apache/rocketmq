@@ -23,7 +23,7 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
 
     private Long masterBrokerId;
     private String masterAddress;
-    private int masterEpoch;
+    private Integer masterEpoch;
 
     public GetReplicaInfoResponseHeader() {
     }
@@ -36,11 +36,11 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
         this.masterAddress = masterAddress;
     }
 
-    public int getMasterEpoch() {
+    public Integer getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
+    public void setMasterEpoch(Integer masterEpoch) {
         this.masterEpoch = masterEpoch;
     }
 
