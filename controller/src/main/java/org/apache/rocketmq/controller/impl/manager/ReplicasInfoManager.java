@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,12 +56,9 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
 
-import javax.naming.ldap.Control;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
@@ -484,6 +480,9 @@ public class ReplicasInfoManager {
             case CLEAN_BROKER_DATA_EVENT:
                 handleCleanBrokerDataEvent((CleanBrokerDataEvent) event);
                 break;
+            case UPDATE_BROKER_ADDRESS:
+                handleUpdateBrokerAddress((UpdateBrokerAddressEvent) event);
+                break;
             default:
                 break;
         }
@@ -509,13 +508,20 @@ public class ReplicasInfoManager {
             // Initialize the replicaInfo about this broker set
             final String clusterName = event.getClusterName();
             final BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName);
-            long brokerId = brokerReplicaInfo.newBrokerId();
-            brokerReplicaInfo.addBroker(brokerId, event.getBrokerAddress(), event.getRegisterCheckCode());
+            brokerReplicaInfo.addBroker(event.getNewBrokerId(), event.getBrokerAddress(), event.getRegisterCheckCode());
             this.replicaInfoTable.put(brokerName, brokerReplicaInfo);
             final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName);
             // Initialize an empty syncStateInfo for this broker set
             this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
         }
+    }
+
+    private void handleUpdateBrokerAddress(final UpdateBrokerAddressEvent event) {
+        final String brokerName = event.getBrokerName();
+        final String brokerAddress = event.getBrokerAddress();
+        final Long brokerId = event.getBrokerId();
+        BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        brokerReplicaInfo.updateBrokerAddress(brokerId, brokerAddress);
     }
 
     private void handleElectMaster(final ElectMasterEvent event) {

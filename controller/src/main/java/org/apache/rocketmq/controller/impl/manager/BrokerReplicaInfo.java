@@ -93,4 +93,11 @@ public class BrokerReplicaInfo {
         }
         return null;
     }
+
+    public void updateBrokerAddress(final Long brokerId, final String brokerAddress) {
+        Pair<String, String> oldPair = this.brokerIdInfo.get(brokerId);
+        if (oldPair != null) {
+            this.brokerIdInfo.put(brokerId, new Pair<>(brokerAddress, oldPair.getObject2()));
+        }
+    }
 }
