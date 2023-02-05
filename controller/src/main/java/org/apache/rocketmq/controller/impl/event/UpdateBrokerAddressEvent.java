@@ -15,35 +15,53 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.header.controller.register;
+package org.apache.rocketmq.controller.impl.event;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
+public class UpdateBrokerAddressEvent implements EventMessage {
 
     private String clusterName;
 
     private String brokerName;
 
+    private String brokerAddress;
 
-    public ApplyBrokerIdResponseHeader(String clusterName, String brokerName) {
+    private Long brokerId;
+
+    public UpdateBrokerAddressEvent(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
+        this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public String getBrokerAddress() {
+        return brokerAddress;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
 
     @Override
     public String toString() {
-        return "ApplyBrokerIdResponseHeader{" +
+        return "UpdateBrokerAddressEvent{" +
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
+                ", brokerAddress='" + brokerAddress + '\'' +
+                ", brokerId=" + brokerId +
                 '}';
     }
 
     @Override
-    public void checkFields() throws RemotingCommandException {
-
+    public EventType getEventType() {
+        return EventType.UPDATE_BROKER_ADDRESS;
     }
-
 }
