@@ -26,17 +26,11 @@ public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
 
     private String brokerName;
 
-    // if nextBrokerId isn't null, means that matched ApplyBrokerIdRequest is failed.
-    private Long nextBrokerId;
+
 
     public ApplyBrokerIdResponseHeader(String clusterName, String brokerName) {
-        this(clusterName, brokerName, null);
-    }
-
-    public ApplyBrokerIdResponseHeader(String clusterName, String brokerName, Long nextBrokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.nextBrokerId = nextBrokerId;
     }
 
 
@@ -45,7 +39,6 @@ public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
         return "ApplyBrokerIdResponseHeader{" +
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
-                ", nextBrokerId=" + nextBrokerId +
                 '}';
     }
 
@@ -53,4 +46,5 @@ public class ApplyBrokerIdResponseHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
 
     }
+
 }
