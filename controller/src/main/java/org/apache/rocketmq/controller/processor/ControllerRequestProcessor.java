@@ -45,6 +45,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoReq
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 
+import static org.apache.rocketmq.remoting.protocol.RequestCode.APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
@@ -54,6 +55,8 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_R
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_NEXT_BROKER_ID;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_SUCCESS;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
@@ -99,6 +102,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return this.handleGetControllerConfig(ctx, request);
             case CLEAN_BROKER_DATA:
                 return this.handleCleanBrokerData(ctx, request);
+            case GET_NEXT_BROKER_ID:
+                return this.handleGetNextBrokerId(ctx, request);
+            case APPLY_BROKER_ID:
+                return this.handleApplyBrokerId(ctx, request);
+            case REGISTER_SUCCESS:
+                return this.handleRegisterSuccess(ctx, request);
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
