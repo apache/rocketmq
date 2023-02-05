@@ -22,9 +22,45 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterSuccessResponseHeader implements CommandCustomHeader {
 
+    private String clusterName;
+
+    private String brokerName;
+
+    private Long masterBrokerId;
+
+    private String masterAddress;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
     }
 
+    public RegisterSuccessResponseHeader(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+    }
+
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
+    }
+
+    public String getMasterAddress() {
+        return masterAddress;
+    }
 }
