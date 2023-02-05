@@ -41,8 +41,8 @@ public class BrokerMetadata extends MetadataFile {
     @Override
     public String encodeToStr() {
         StringBuilder sb = new StringBuilder();
-        sb.append(clusterName).append(";");
-        sb.append(brokerName).append(";");
+        sb.append(clusterName).append("#");
+        sb.append(brokerName).append("#");
         sb.append(brokerId);
         return sb.toString();
     }
@@ -50,7 +50,7 @@ public class BrokerMetadata extends MetadataFile {
     @Override
     public void decodeFromStr(String dataStr) {
         if (dataStr == null) return;
-        String[] dataArr = dataStr.split(";");
+        String[] dataArr = dataStr.split("#");
         this.clusterName = dataArr[0];
         this.brokerName = dataArr[1];
         this.brokerId = Long.valueOf(dataArr[2]);
