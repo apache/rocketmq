@@ -58,7 +58,7 @@ public class BrokerAddrInfo {
 
         if (obj instanceof BrokerAddrInfo) {
             BrokerAddrInfo addr = (BrokerAddrInfo) obj;
-            return clusterName.equals(addr.clusterName) && brokerName.equals(addr.brokerName) && brokerId == addr.brokerId;
+            return clusterName.equals(addr.clusterName) && brokerName.equals(addr.brokerName) && brokerId.equals(addr.brokerId);
         }
         return false;
     }
