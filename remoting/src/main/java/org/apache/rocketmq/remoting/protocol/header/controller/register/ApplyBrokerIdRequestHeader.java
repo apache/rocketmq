@@ -30,6 +30,10 @@ public class ApplyBrokerIdRequestHeader implements CommandCustomHeader {
 
     private String registerCheckCode;
 
+    public ApplyBrokerIdRequestHeader() {
+
+    }
+
     public ApplyBrokerIdRequestHeader(String clusterName, String brokerName, Long appliedBrokerId, String registerCheckCode) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
@@ -56,5 +60,21 @@ public class ApplyBrokerIdRequestHeader implements CommandCustomHeader {
 
     public String getRegisterCheckCode() {
         return registerCheckCode;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public void setAppliedBrokerId(Long appliedBrokerId) {
+        this.appliedBrokerId = appliedBrokerId;
+    }
+
+    public void setRegisterCheckCode(String registerCheckCode) {
+        this.registerCheckCode = registerCheckCode;
     }
 }
