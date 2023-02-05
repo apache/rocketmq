@@ -26,8 +26,12 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
@@ -69,7 +73,11 @@ public class ReplicasManagerTest {
     @Mock
     private BrokerOuterAPI brokerOuterAPI;
 
-    private RegisterBrokerToControllerResponseHeader registerBrokerToControllerResponseHeader;
+    private GetNextBrokerIdResponseHeader getNextBrokerIdResponseHeader;
+
+    private ApplyBrokerIdResponseHeader applyBrokerIdResponseHeader;
+
+    private RegisterSuccessResponseHeader registerSuccessResponseHeader;
 
     private ElectMasterResponseHeader brokerTryElectResponseHeader;
 
@@ -83,9 +91,9 @@ public class ReplicasManagerTest {
 
     private static final String NEW_MASTER_ADDRESS = "192.168.1.2";
 
-    private static final long MASTER_BROKER_ID = 0;
+    private static final long BROKER_ID_1 = 1;
 
-    private static final long SLAVE_BROKER_ID = 2;
+    private static final long BROKER_ID_2 = 2;
 
     private static final int OLD_MASTER_EPOCH = 2;
     private static final int NEW_MASTER_EPOCH = 3;
@@ -100,7 +108,7 @@ public class ReplicasManagerTest {
 
     private static final long SCHEDULE_SERVICE_EXEC_PERIOD = 5;
 
-    private static final String SYNC_STATE = "1";
+    private static final Long SYNC_STATE = 1L;
 
     @Before
     public void before() throws Exception {
@@ -109,13 +117,15 @@ public class ReplicasManagerTest {
         brokerConfig = new BrokerConfig();
         slaveSynchronize = new SlaveSynchronize(brokerController);
         getMetaDataResponseHeader = new GetMetaDataResponseHeader(GROUP, LEADER_ID, OLD_MASTER_ADDRESS, IS_LEADER, PEERS);
-        registerBrokerToControllerResponseHeader = new RegisterBrokerToControllerResponseHeader();
-        registerBrokerToControllerResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
+        getNextBrokerIdResponseHeader = new GetNextBrokerIdResponseHeader();
+        getNextBrokerIdResponseHeader.setNextBrokerId(BROKER_ID_1);
+        applyBrokerIdResponseHeader = new ApplyBrokerIdResponseHeader();
+        registerSuccessResponseHeader = new RegisterSuccessResponseHeader();
         brokerTryElectResponseHeader = new ElectMasterResponseHeader();
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
-        getReplicaInfoResponseHeader.setBrokerId(MASTER_BROKER_ID);
+        getReplicaInfoResponseHeader.setMasterBrokerId(BROKER_ID_1);
         getReplicaInfoResponseHeader.setMasterEpoch(NEW_MASTER_EPOCH);
         syncStateSet = new SyncStateSet(Sets.newLinkedHashSet(SYNC_STATE), NEW_MASTER_EPOCH);
         result = new Pair<>(getReplicaInfoResponseHeader, syncStateSet);
@@ -129,7 +139,9 @@ public class ReplicasManagerTest {
         when(brokerController.getBrokerAddr()).thenReturn(OLD_MASTER_ADDRESS);
         when(brokerOuterAPI.getControllerMetaData(any())).thenReturn(getMetaDataResponseHeader);
         when(brokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
-        when(brokerOuterAPI.registerBrokerToController(any(), any(), any(), any(), anyLong(), anyInt(), anyLong(), anyInt())).thenReturn(registerBrokerToControllerResponseHeader);
+        when(brokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(getNextBrokerIdResponseHeader);
+        when(brokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(applyBrokerIdResponseHeader);
+        when(brokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(registerSuccessResponseHeader);
         when(brokerOuterAPI.getReplicaInfo(any(), any(), any())).thenReturn(result);
         when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(brokerTryElectResponseHeader);
         replicasManager = new ReplicasManager(brokerController);
@@ -148,11 +160,11 @@ public class ReplicasManagerTest {
     @Test
     public void changeBrokerRoleTest() {
         // not equal to localAddress
-        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, SLAVE_BROKER_ID))
+        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_2, NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
             .doesNotThrowAnyException();
 
         // equal to localAddress
-        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, SLAVE_BROKER_ID))
+        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_1, OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
             .doesNotThrowAnyException();
     }
 
@@ -163,7 +175,7 @@ public class ReplicasManagerTest {
 
     @Test
     public void changeToSlaveTest() {
-        Assertions.assertThatCode(() -> replicasManager.changeToSlave(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, MASTER_BROKER_ID))
+        Assertions.assertThatCode(() -> replicasManager.changeToSlave(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, BROKER_ID_2))
             .doesNotThrowAnyException();
     }
 }
