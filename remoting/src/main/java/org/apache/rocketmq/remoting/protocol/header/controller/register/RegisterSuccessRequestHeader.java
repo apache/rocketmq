@@ -41,4 +41,20 @@ public class RegisterSuccessRequestHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
 
     }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public String getBrokerAddress() {
+        return brokerAddress;
+    }
 }

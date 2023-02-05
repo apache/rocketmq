@@ -28,6 +28,10 @@ public class GetNextBrokerIdResponseHeader implements CommandCustomHeader {
 
     private Long nextBrokerId;
 
+    public GetNextBrokerIdResponseHeader(String clusterName, String brokerName) {
+        this(clusterName, brokerName, null);
+    }
+
     public GetNextBrokerIdResponseHeader(String clusterName, String brokerName, Long nextBrokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
@@ -46,6 +50,10 @@ public class GetNextBrokerIdResponseHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public void setNextBrokerId(Long nextBrokerId) {
+        this.nextBrokerId = nextBrokerId;
     }
 
     public Long getNextBrokerId() {

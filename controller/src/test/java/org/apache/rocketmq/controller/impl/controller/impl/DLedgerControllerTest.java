@@ -73,7 +73,7 @@ public class DLedgerControllerTest {
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
 
-        final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true);
+        final DLedgerController controller = new DLedgerController(config, (str1, str2, str3) -> true);
 
         controller.startup();
         return controller;
@@ -198,7 +198,7 @@ public class DLedgerControllerTest {
     }
 
     public void setBrokerAlivePredicate(DLedgerController controller, String... deathBroker) {
-        controller.setBrokerAlivePredicate((clusterName, brokerAddress) -> {
+        controller.setBrokerAlivePredicate((clusterName, brokerName, brokerAddress) -> {
             for (String broker : deathBroker) {
                 if (broker.equals(brokerAddress)) {
                     return false;
@@ -209,7 +209,7 @@ public class DLedgerControllerTest {
     }
 
     public void setBrokerElectPolicy(DLedgerController controller, String... deathBroker) {
-        controller.setElectPolicy(new DefaultElectPolicy((clusterName, brokerAddress) -> {
+        controller.setElectPolicy(new DefaultElectPolicy((clusterName, brokerName, brokerAddress) -> {
             for (String broker : deathBroker) {
                 if (broker.equals(brokerAddress)) {
                     return false;

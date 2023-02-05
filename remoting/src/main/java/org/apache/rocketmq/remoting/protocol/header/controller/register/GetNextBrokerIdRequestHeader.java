@@ -43,4 +43,12 @@ public class GetNextBrokerIdRequestHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
 
     }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
 }

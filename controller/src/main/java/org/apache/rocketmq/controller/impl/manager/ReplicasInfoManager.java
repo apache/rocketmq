@@ -39,6 +39,7 @@ import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
+import org.apache.rocketmq.controller.impl.event.UpdateBrokerAddressEvent;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -52,8 +53,16 @@ import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterReques
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+
+import javax.naming.ldap.Control;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
@@ -245,46 +254,127 @@ public class ReplicasInfoManager {
         return null;
     }
 
-    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
-            final RegisterBrokerToControllerRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
-        String brokerAddress = request.getBrokerAddress();
+//    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
+//            final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
+//        String brokerAddress = request.getBrokerAddress();
+//        final String brokerName = request.getBrokerName();
+//        final String clusterName = request.getClusterName();
+//        final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
+//        final RegisterBrokerToControllerResponseHeader response = result.getResponse();
+//        if (!isContainsBroker(brokerName)) {
+//            result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, "Broker-set hasn't been registered in controller");
+//            return result;
+//        }
+//        final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+//        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+//        if (brokerReplicaInfo.isBrokerExist())
+//
+//        // If the broker's metadata does not exist in the state machine, we can assign the broker a brokerId valued 1
+//        // By default, we set this variable to a value of 1
+//        long brokerId = MixAll.FIRST_SLAVE_ID;
+//        boolean shouldApplyBrokerId = true;
+//        if (isContainsBroker(brokerName)) {
+//            final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+//            final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+//
+//            if (brokerReplicaInfo.isBrokerExist(brokerAddress)) {
+//                // this broker have registered
+//                brokerId = brokerReplicaInfo.getBrokerId(brokerAddress);
+//                shouldApplyBrokerId = false;
+//            } else {
+//                // If this broker replicas is first time come online, we need to apply a new id for this replicas.
+//                brokerId = brokerReplicaInfo.newBrokerId();
+//            }
+//
+//            if (syncStateInfo.isMasterExist() && brokerAlivePredicate.test(clusterName, syncStateInfo.getMasterAddress())) {
+//                // If the master is alive, just return master info.
+//                final String masterAddress = syncStateInfo.getMasterAddress();
+//                response.setMasterAddress(masterAddress);
+//                response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+//                response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
+//            }
+//        }
+//
+//        response.setBrokerId(brokerId);
+//        if (response.getMasterAddress() == null) {
+//            response.setMasterAddress("");
+//        }
+//        if (shouldApplyBrokerId) {
+//            final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getClusterName(), brokerName, brokerAddress, brokerId);
+//            result.addEvent(applyIdEvent);
+//        }
+//        return result;
+//    }
+
+    public ControllerResult<GetNextBrokerIdResponseHeader> getNextBrokerId(final GetNextBrokerIdRequestHeader request) {
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        final ControllerResult<GetNextBrokerIdResponseHeader> result = new ControllerResult<>(new GetNextBrokerIdResponseHeader(clusterName, brokerName));
+        final GetNextBrokerIdResponseHeader response = result.getResponse();
+        if (brokerReplicaInfo == null) {
+            // means that none of brokers in this broker-set are registered
+            response.setNextBrokerId(MixAll.FIRST_SLAVE_ID);
+        } else {
+            response.setNextBrokerId(brokerReplicaInfo.getNextAssignBrokerId());
+        }
+        return result;
+    }
+
+    public ControllerResult<ApplyBrokerIdResponseHeader> applyBrokerId(final ApplyBrokerIdRequestHeader request) {
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final Long brokerId = request.getAppliedBrokerId();
+        final String registerCheckCode = request.getRegisterCheckCode();
+        final String brokerAddress = registerCheckCode.split(";")[0];
+        BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        final ControllerResult<ApplyBrokerIdResponseHeader> result = new ControllerResult<>(new ApplyBrokerIdResponseHeader(clusterName, brokerName));
+        final ApplyBrokerIdEvent event = new ApplyBrokerIdEvent(clusterName, brokerName, brokerAddress, brokerId, registerCheckCode);
+        // broker-set unregistered
+        if (brokerReplicaInfo == null) {
+            // first brokerId
+            if (brokerId == MixAll.FIRST_SLAVE_ID) {
+                result.addEvent(event);
+            } else {
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_ID_INVALID, String.format("Broker-set: %s hasn't been registered in controller, but broker try to apply brokerId: %d", brokerName, brokerId));
+            }
+            return result;
+        }
+        // broker-set registered
+        if (!brokerReplicaInfo.isBrokerExist(brokerId) || registerCheckCode.equals(brokerReplicaInfo.getBrokerRegisterCheckCode(brokerId))) {
+            // if brokerId hasn't been assigned or brokerId was assigned to this broker
+            return result;
+        }
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_ID_INVALID, String.format("Fail to apply brokerId: %d in broker-set: %s", brokerId, brokerName));
+        return result;
+    }
+
+    public ControllerResult<RegisterSuccessResponseHeader> registerSuccess(final RegisterSuccessRequestHeader request, final BrokerValidPredicate alivePredicate) {
+        final String brokerAddress = request.getBrokerAddress();
         final String brokerName = request.getBrokerName();
         final String clusterName = request.getClusterName();
-        final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader());
-        final RegisterBrokerToControllerResponseHeader response = result.getResponse();
-        // If the broker's metadata does not exist in the state machine, we can assign the broker a brokerId valued 1
-        // By default, we set this variable to a value of 1
-        long brokerId = MixAll.FIRST_SLAVE_ID;
-        boolean shouldApplyBrokerId = true;
-        if (isContainsBroker(brokerName)) {
-            final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
-            final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
-
-            if (brokerReplicaInfo.isBrokerExist(brokerAddress)) {
-                // this broker have registered
-                brokerId = brokerReplicaInfo.getBrokerId(brokerAddress);
-                shouldApplyBrokerId = false;
-            } else {
-                // If this broker replicas is first time come online, we need to apply a new id for this replicas.
-                brokerId = brokerReplicaInfo.newBrokerId();
-            }
-
-            if (syncStateInfo.isMasterExist() && brokerAlivePredicate.test(clusterName, syncStateInfo.getMasterAddress())) {
-                // If the master is alive, just return master info.
-                final String masterAddress = syncStateInfo.getMasterAddress();
-                response.setMasterAddress(masterAddress);
-                response.setMasterEpoch(syncStateInfo.getMasterEpoch());
-                response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
-            }
+        final Long brokerId = request.getBrokerId();
+        final ControllerResult<RegisterSuccessResponseHeader> result = new ControllerResult<>(new RegisterSuccessResponseHeader(clusterName, brokerName));
+        final RegisterSuccessResponseHeader response = result.getResponse();
+        if (!isContainsBroker(brokerName)) {
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, String.format("Broker-set: %s hasn't been registered in controller", brokerName));
+            return result;
         }
-
-        response.setBrokerId(brokerId);
-        if (response.getMasterAddress() == null) {
-            response.setMasterAddress("");
+        final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+        if (!brokerReplicaInfo.isBrokerExist(brokerId)) {
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, String.format("BrokerId: %d hasn't been registered in broker-set: %s", brokerId, brokerName));
+            return result;
         }
-        if (shouldApplyBrokerId) {
-            final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getClusterName(), brokerName, brokerAddress, brokerId);
-            result.addEvent(applyIdEvent);
+        if (syncStateInfo.isMasterExist() && alivePredicate.check(clusterName, brokerName, syncStateInfo.getMasterBrokerId())) {
+            // if master still exist
+            response.setMasterBrokerId(syncStateInfo.getMasterBrokerId());
+            response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
+        }
+        // if this broker's address has been changed, we need to update it
+        if (!brokerAddress.equals(brokerReplicaInfo.getBrokerAddress(brokerId))) {
+            final UpdateBrokerAddressEvent event = new UpdateBrokerAddressEvent(clusterName, brokerName, brokerAddress, brokerId);
+            result.addEvent(event);
         }
         return result;
     }
@@ -487,4 +577,5 @@ public class ReplicasInfoManager {
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
     }
+
 }
