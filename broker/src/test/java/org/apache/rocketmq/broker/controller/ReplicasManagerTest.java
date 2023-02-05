@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.controller;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -27,9 +28,7 @@ import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -45,7 +44,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +112,10 @@ public class ReplicasManagerTest {
     public void before() throws Exception {
         autoSwitchHAService = new AutoSwitchHAService();
         messageStoreConfig = new MessageStoreConfig();
+        File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathTempMetadata());
+        metadataFile.deleteOnExit();
+        tempMetadataFile.deleteOnExit();
         brokerConfig = new BrokerConfig();
         slaveSynchronize = new SlaveSynchronize(brokerController);
         getMetaDataResponseHeader = new GetMetaDataResponseHeader(GROUP, LEADER_ID, OLD_MASTER_ADDRESS, IS_LEADER, PEERS);
@@ -122,7 +124,10 @@ public class ReplicasManagerTest {
         applyBrokerIdResponseHeader = new ApplyBrokerIdResponseHeader();
         registerSuccessResponseHeader = new RegisterSuccessResponseHeader();
         brokerTryElectResponseHeader = new ElectMasterResponseHeader();
+        brokerTryElectResponseHeader.setMasterBrokerId(BROKER_ID_1);
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
+        brokerTryElectResponseHeader.setMasterEpoch(OLD_MASTER_EPOCH);
+        brokerTryElectResponseHeader.setSyncStateSetEpoch(OLD_MASTER_EPOCH);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader.setMasterBrokerId(BROKER_ID_1);
@@ -155,6 +160,10 @@ public class ReplicasManagerTest {
     public void after() {
         replicasManager.shutdown();
         brokerController.shutdown();
+        File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathTempMetadata());
+        metadataFile.deleteOnExit();
+        tempMetadataFile.deleteOnExit();
     }
 
     @Test
