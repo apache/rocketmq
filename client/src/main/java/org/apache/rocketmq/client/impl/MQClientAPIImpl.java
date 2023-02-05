@@ -3076,14 +3076,14 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
+        Long brokerId) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
 
         //get controller leader address
         final GetMetaDataResponseHeader controllerMetaData = this.getControllerMetaData(controllerAddr);
         assert controllerMetaData != null;
         assert controllerMetaData.getControllerLeaderAddress() != null;
         final String leaderAddress = controllerMetaData.getControllerLeaderAddress();
-        ElectMasterRequestHeader electRequestHeader = ElectMasterRequestHeader.ofAdminTrigger(clusterName, brokerName, brokerAddr);
+        ElectMasterRequestHeader electRequestHeader = ElectMasterRequestHeader.ofAdminTrigger(clusterName, brokerName, brokerId);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, electRequestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(leaderAddress, request, 3000);

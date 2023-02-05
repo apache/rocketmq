@@ -47,9 +47,14 @@ import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
+import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
+import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
 
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
@@ -78,12 +83,18 @@ public class ReplicasManager {
     private volatile String controllerLeaderAddress = "";
     private volatile State state = State.INITIAL;
 
+    private RegisterState registerState = RegisterState.INITIAL;
+
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private ScheduledFuture<?> slaveSyncFuture;
 
     private Long brokerId;
 
     private Long masterBrokerId;
+
+    private BrokerMetadata brokerMetadata;
+
+    private TempBrokerMetadata tempBrokerMetadata;
 
     private Set<Long> syncStateSet;
     private int syncStateSetEpoch = 0;
@@ -103,6 +114,8 @@ public class ReplicasManager {
         this.availableControllerAddresses = new ConcurrentHashMap<>();
         this.syncStateSet = new HashSet<>();
         this.localAddress = brokerController.getBrokerAddr();
+        this.brokerMetadata = new BrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathMetadata());
+        this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathTempMetadata());
     }
 
     public long getConfirmOffset() {
@@ -113,10 +126,20 @@ public class ReplicasManager {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
 
-        FIRST_TIME_WAIT_MASTER_IS_ELECTED,
+        FIRST_TIME_REGISTER_TO_CONTROLLER_DONE,
 
         RUNNING,
         SHUTDOWN,
+    }
+
+    enum RegisterState {
+        INITIAL,
+
+        CREATE_TEMP_METADATA_FILE_DONE,
+
+        CREATE_METADATA_FILE_DONE,
+
+        REGISTERED
     }
 
     public void start() {
@@ -157,13 +180,13 @@ public class ReplicasManager {
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
             if (registerBrokerToController()) {
                 LOGGER.info("First time register broker success");
-                this.state = State.FIRST_TIME_WAIT_MASTER_IS_ELECTED;
+                this.state = State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE;
             } else {
                 return false;
             }
         }
 
-        if (this.state == State.FIRST_TIME_WAIT_MASTER_IS_ELECTED) {
+        if (this.state == State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE) {
             if (StringUtils.isNotEmpty(this.masterAddress) || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
@@ -343,7 +366,7 @@ public class ReplicasManager {
     }
 
     private boolean registerBrokerToController() {
-        // Register this broker to controller, get brokerId and masterAddress.
+        // Register this broker to controller to get a stable and credible broker id, and persist metadata to local file.
         try {
             final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
                 this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress, this.brokerConfig.getControllerHeartBeatTimeoutMills(),
@@ -370,6 +393,157 @@ public class ReplicasManager {
         } catch (final Exception e) {
             LOGGER.error("Failed to register broker to controller", e);
             return false;
+        }
+    }
+
+    /**
+     * Register broker to controller, and persist the metadata to file
+     * @return whether registering process succeeded
+     */
+    private boolean registerBrokerToController2() {
+        try {
+            // 1. confirm now registering state
+            confirmNowRegisteringState();
+            // 2. get next assigning brokerId, and create temp metadata file
+            if (this.registerState == RegisterState.INITIAL) {
+                Long nextBrokerId = getNextBrokerId();
+                if (nextBrokerId == null || !createTempMetadataFile(nextBrokerId)) {
+                    return false;
+                }
+                this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
+            }
+            // 3. apply brokerId to controller, and create metadata file
+            if (this.registerState == RegisterState.CREATE_TEMP_METADATA_FILE_DONE) {
+                if (!applyBrokerId()) {
+                    // apply broker id failed, means that this brokerId has been used
+                    // delete temp metadata file
+                    this.tempBrokerMetadata.clear();
+                    // back to the first step
+                    this.registerState = RegisterState.INITIAL;
+                    return false;
+                }
+                if (!createMetadataFileAndDeleteTemp()) {
+                    return false;
+                }
+                this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
+            }
+            // 4. register success
+            if (this.registerState == RegisterState.CREATE_METADATA_FILE_DONE) {
+                if (!registerSuccess()) {
+                    return false;
+                }
+                this.registerState = RegisterState.REGISTERED;
+            }
+            return true;
+        } catch (final Exception e) {
+            LOGGER.error("Failed to register broker to controller", e);
+            return false;
+        }
+    }
+
+    /**
+     * Send GetNextBrokerRequest to controller for getting next assigning brokerId in this broker-set
+     * @return next brokerId in this broker-set
+     */
+    private Long getNextBrokerId() {
+        try {
+            GetNextBrokerIdResponseHeader nextBrokerIdResp = this.brokerOuterAPI.getNextBrokerId(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.controllerLeaderAddress);
+            return nextBrokerIdResp.getNextBrokerId();
+        } catch (Exception e) {
+            LOGGER.error("fail to get next broker id from controller", e);
+            return null;
+        }
+    }
+
+    /**
+     * Create temp metadata file in local file system, records the brokerId and registerCheckCode
+     * @param brokerId the brokerId that is expected to be assigned
+     * @return whether the temp meta file is created successfully
+     */
+
+    private boolean createTempMetadataFile(Long brokerId) {
+        // generate register check code, format like that: $ipAddress;$timestamp
+        String registerCheckCode = this.localAddress + ";" + System.currentTimeMillis();
+        try {
+            this.tempBrokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerId, registerCheckCode);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("update and persist temp broker metadata file failed", e);
+            this.tempBrokerMetadata.clear();
+            return false;
+        }
+    }
+
+    /**
+     * Send applyBrokerId request to controller
+     * @return whether controller has assigned this brokerId for this broker
+     */
+    private boolean applyBrokerId() {
+        try {
+            ApplyBrokerIdResponseHeader response = this.brokerOuterAPI.applyBrokerId(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                    tempBrokerMetadata.getBrokerId(), tempBrokerMetadata.getRegisterCheckCode(), this.controllerLeaderAddress);
+            return true;
+
+        } catch (Exception e) {
+            LOGGER.error("fail to apply broker id", e);
+            return false;
+        }
+    }
+
+    /**
+     * Create metadata file and delete temp metadata file
+     * @return whether process success
+     */
+    private boolean createMetadataFileAndDeleteTemp() {
+        // create metadata file and delete temp metadata file
+        try {
+            this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
+            this.tempBrokerMetadata.clear();
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("fail to create metadata file", e);
+            this.brokerMetadata.clear();
+            return false;
+        }
+    }
+
+    /**
+     * Send registerSuccess request to inform controller that now broker has been registered successfully and controller should update broker ipAddress if changed
+     * @return whether request success
+     */
+    private boolean registerSuccess() {
+        try {
+            RegisterSuccessResponseHeader response = this.brokerOuterAPI.registerSuccess(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerId, localAddress, controllerLeaderAddress);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("fail to send registerSuccess request to controller", e);
+            return false;
+        }
+    }
+
+    /**
+     * Confirm the registering state now
+     */
+    private void confirmNowRegisteringState() {
+        // 1. check if metadata exist
+        try {
+            this.brokerMetadata.readFromFile();
+        } catch (Exception e) {
+            LOGGER.error("read metadata file failed", e);
+        }
+        if (this.brokerMetadata.isLoaded()) {
+            this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
+            this.brokerId = brokerMetadata.getBrokerId();
+            return;
+        }
+        // 2. check if temp metadata exist
+        try {
+            this.tempBrokerMetadata.readFromFile();
+        } catch (Exception e) {
+            LOGGER.error("read temp metadata file failed", e);
+        }
+        if (this.tempBrokerMetadata.isLoaded()) {
+            this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
         }
     }
 

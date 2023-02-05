@@ -20,21 +20,21 @@ package org.apache.rocketmq.remoting.protocol.header.controller.register;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class ApplyBrokerIdRequestHeader implements CommandCustomHeader {
+public class RegisterSuccessRequestHeader implements CommandCustomHeader {
 
     private String clusterName;
 
     private String brokerName;
 
-    private Long appliedBrokerId;
+    private Long brokerId;
 
-    private String registerCheckCode;
+    private String brokerAddress;
 
-    public ApplyBrokerIdRequestHeader(String clusterName, String brokerName, Long appliedBrokerId, String registerCheckCode) {
+    public RegisterSuccessRequestHeader(String clusterName, String brokerName, Long brokerId, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.appliedBrokerId = appliedBrokerId;
-        this.registerCheckCode = registerCheckCode;
+        this.brokerId = brokerId;
+        this.brokerAddress = brokerAddress;
     }
 
     @Override
