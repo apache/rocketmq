@@ -60,6 +60,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -110,7 +111,7 @@ public class BrokerOuterAPITest {
         when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(response);
         List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
         assertTrue(booleanList.size() > 0);
-        assertEquals(false, booleanList.contains(Boolean.FALSE));
+        assertFalse(booleanList.contains(Boolean.FALSE));
     }
 
     @Test
@@ -145,7 +146,7 @@ public class BrokerOuterAPITest {
                 }
             });
 
-        assertEquals(true, success);
+        assertTrue(success);
 
     }
 
