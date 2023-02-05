@@ -212,13 +212,13 @@ public class ReplicasManager {
         this.scheduledService.shutdown();
     }
 
-    public synchronized void changeBrokerRole(final String newMasterAddress, final int newMasterEpoch,
-        final int syncStateSetEpoch, final long brokerId) {
-        if (StringUtils.isNoneEmpty(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
-            if (StringUtils.equals(newMasterAddress, this.localAddress)) {
+    public synchronized void changeBrokerRole(final Long newMasterBrokerId, final String newMasterAddress, final Integer newMasterEpoch,
+        final Integer syncStateSetEpoch) {
+        if (newMasterBrokerId != null && newMasterEpoch > this.masterEpoch) {
+            if (newMasterBrokerId.equals(this.brokerId)) {
                 changeToMaster(newMasterEpoch, syncStateSetEpoch);
             } else {
-                changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
+                changeToSlave(newMasterAddress, newMasterEpoch, newMasterBrokerId);
             }
         }
     }
@@ -507,6 +507,7 @@ public class ReplicasManager {
         try {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
+            this.brokerId = this.brokerMetadata.getBrokerId();
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
