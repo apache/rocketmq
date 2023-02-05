@@ -30,9 +30,16 @@ public class RegisterSuccessResponseHeader implements CommandCustomHeader {
 
     private String masterAddress;
 
+    private Integer masterEpoch;
+
+    private Integer syncStateSetEpoch;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public RegisterSuccessResponseHeader() {
     }
 
     public RegisterSuccessResponseHeader(String clusterName, String brokerName) {
@@ -46,6 +53,22 @@ public class RegisterSuccessResponseHeader implements CommandCustomHeader {
 
     public void setMasterAddress(String masterAddress) {
         this.masterAddress = masterAddress;
+    }
+
+    public void setMasterEpoch(Integer masterEpoch) {
+        this.masterEpoch = masterEpoch;
+    }
+
+    public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
+    public Integer getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public Integer getSyncStateSetEpoch() {
+        return syncStateSetEpoch;
     }
 
     public String getClusterName() {
@@ -62,5 +85,13 @@ public class RegisterSuccessResponseHeader implements CommandCustomHeader {
 
     public String getMasterAddress() {
         return masterAddress;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }

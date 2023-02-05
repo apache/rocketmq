@@ -61,7 +61,6 @@ public interface BrokerHeartbeatManager {
         /**
          * Trigger when broker inactive.
          */
-        void onBrokerInactive(final String clusterName, final String brokerName, final String brokerAddress,
-            final long brokerId);
+        void onBrokerInactive(final String clusterName, final String brokerName, final Long brokerId);
     }
 }

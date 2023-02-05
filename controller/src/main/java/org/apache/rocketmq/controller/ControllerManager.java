@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -116,18 +115,17 @@ public class ControllerManager {
      *
      * @param clusterName The cluster name of this inactive broker
      * @param brokerName The inactive broker name
-     * @param brokerAddress The inactive broker address(ip)
      * @param brokerId The inactive broker id
      */
-    private void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
+    private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
         if (controller.isLeaderState()) {
             try {
-                final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress));
+                final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
                 final RemotingCommand replicaInfoResponse = replicaInfoFuture.get(5, TimeUnit.SECONDS);
                 final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
                 // Not master broker offline
-                if (!replicaInfoResponseHeader.getMasterAddress().equals(brokerAddress)) {
-                    log.warn("The {} broker with IP address {} shutdown", brokerName, brokerAddress);
+                if (!brokerId.equals(replicaInfoResponseHeader.getMasterBrokerId())) {
+                    log.warn("The broker with brokerId: {} in broker-set: {} shutdown", brokerId, brokerName);
                     return;
                 }
 
@@ -135,7 +133,7 @@ public class ControllerManager {
                 final RemotingCommand electMasterResponse = electMasterFuture.get(5, TimeUnit.SECONDS);
                 final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) electMasterResponse.readCustomHeader();
                 if (responseHeader != null) {
-                    log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
+                    log.info("The broker with brokerId: {} in broker-set: {} shutdown, elect a new master done, result: {}", brokerId, brokerName, responseHeader);
                     if (controllerConfig.isNotifyBrokerRoleChanged()) {
                         notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
                     }
@@ -144,7 +142,7 @@ public class ControllerManager {
                 log.error("", e);
             }
         } else {
-            log.info("The {} broker with IP address {} shutdown", brokerName, brokerAddress);
+            log.warn("The broker with brokerId: {} in broker-set: {} shutdown", brokerId, brokerName);
         }
     }
 
@@ -154,38 +152,35 @@ public class ControllerManager {
     public void notifyBrokerRoleChanged(final RoleChangeNotifyEntry entry) {
         final BrokerMemberGroup memberGroup = entry.getBrokerMemberGroup();
         if (memberGroup != null) {
-            final String master = entry.getMasterAddress();
-            if (StringUtils.isEmpty(master)) {
-                log.warn("Notify broker role change failed, because member group is not null but the new master address is empty, entry:{}", entry);
+            final Long masterBrokerId = entry.getMasterBrokerId();
+            String clusterName = memberGroup.getCluster();
+            String brokerName = memberGroup.getBrokerName();
+            if (masterBrokerId == null) {
+                log.warn("Notify broker role change failed, because member group is not null but the new master brokerId is empty, entry:{}", entry);
                 return;
             }
-            // First, inform the master
-            if (this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), master)) {
-                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, entry);
-            }
-
-            // Then, inform all slaves
-            final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
-            for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
-                if (!master.equals(broker.getValue()) && this.heartbeatManager.isBrokerActive(memberGroup.getCluster(), broker.getValue())) {
-                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), entry);
-                }
-            }
-
+            // Inform all active brokers
+            final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
+            brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
+                    .forEach(x -> doNotifyBrokerRoleChanged(x.getValue(), entry));
         }
     }
 
-    public void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
-                                          final RoleChangeNotifyEntry entry) {
+    /**
+     * Notify broker that there are roles-changing in controller
+     * @param brokerAddr target broker's address to notify
+     * @param entry role change entry
+     */
+    public void doNotifyBrokerRoleChanged(final String brokerAddr, final RoleChangeNotifyEntry entry) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
-            log.info("Try notify broker {} with id {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, brokerId, entry);
-            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(),
-                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch(), brokerId);
+            log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
+            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
+                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             try {
                 this.remotingClient.invokeOneway(brokerAddr, request, 3000);
             } catch (final Exception e) {
-                log.error("Failed to notify broker {} with id {} that role changed", brokerAddr, brokerId, e);
+                log.error("Failed to notify broker {} that role changed", brokerAddr, e);
             }
         }
     }
