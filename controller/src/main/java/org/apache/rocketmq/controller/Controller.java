@@ -26,7 +26,10 @@ import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSet
 import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
 
 /**
  * The api for controller
@@ -81,7 +84,13 @@ public interface Controller {
      * @param request RegisterBrokerRequest
      * @return RemotingCommand(RegisterBrokerResponseHeader)
      */
-    CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerToControllerRequestHeader request);
+    // CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerToControllerRequestHeader request);
+
+    CompletableFuture<RemotingCommand> getNextBrokerId(final GetNextBrokerIdRequestHeader request);
+
+    CompletableFuture<RemotingCommand> applyBrokerId(final ApplyBrokerIdRequestHeader request);
+
+    CompletableFuture<RemotingCommand> registerSuccess(final RegisterSuccessRequestHeader request);
 
     /**
      * Get the Replica Info for a target broker.
