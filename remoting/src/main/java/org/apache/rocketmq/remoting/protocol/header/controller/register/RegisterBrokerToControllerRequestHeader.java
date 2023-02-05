@@ -24,6 +24,7 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
+    private Long brokerId;
     @CFNullable
     private Integer epoch;
     @CFNullable
@@ -38,20 +39,21 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     public RegisterBrokerToControllerRequestHeader() {
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
-        this(clusterName, brokerName, brokerAddress, 0);
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
+        this(clusterName, brokerName, brokerAddress, brokerId, 0);
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress,
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, Long brokerId,
         int electionPriority) {
-        this(clusterName, brokerName, brokerAddress, null, 0, 0, electionPriority);
+        this(clusterName, brokerName, brokerAddress, brokerId, null, 0, 0, electionPriority);
     }
 
     public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress,
-        Long heartbeatTimeoutMillis, int epoch, long maxOffset, int electionPriority) {
+        Long brokerId, Long heartbeatTimeoutMillis, int epoch, long maxOffset, int electionPriority) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
         this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
         this.epoch = epoch;
         this.maxOffset = maxOffset;

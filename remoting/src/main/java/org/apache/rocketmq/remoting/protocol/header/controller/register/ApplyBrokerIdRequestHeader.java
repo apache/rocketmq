@@ -41,4 +41,20 @@ public class ApplyBrokerIdRequestHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
 
     }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getAppliedBrokerId() {
+        return appliedBrokerId;
+    }
+
+    public String getRegisterCheckCode() {
+        return registerCheckCode;
+    }
 }

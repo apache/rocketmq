@@ -47,8 +47,8 @@ public class BrokerReplicaInfo {
         this.brokerIdInfo.remove(brokerId);
     }
 
-    public long newBrokerId() {
-        return this.nextAssignBrokerId.getAndIncrement();
+    public Long getNextAssignBrokerId() {
+        return nextAssignBrokerId.get();
     }
 
     public String getClusterName() {
@@ -61,6 +61,7 @@ public class BrokerReplicaInfo {
 
     public void addBroker(final Long brokerId, final String ipAddress, final String registerCheckCode) {
         this.brokerIdInfo.put(brokerId, new Pair<>(ipAddress, registerCheckCode));
+        this.nextAssignBrokerId.incrementAndGet();
     }
 
     public boolean isBrokerExist(final Long brokerId) {
@@ -82,6 +83,13 @@ public class BrokerReplicaInfo {
     public String getBrokerAddress(final Long brokerId) {
         if (this.brokerIdInfo.containsKey(brokerId)) {
             return this.brokerIdInfo.get(brokerId).getObject1();
+        }
+        return null;
+    }
+
+    public String getBrokerRegisterCheckCode(final Long brokerId) {
+        if (this.brokerIdInfo.containsKey(brokerId)) {
+            return this.brokerIdInfo.get(brokerId).getObject2();
         }
         return null;
     }
