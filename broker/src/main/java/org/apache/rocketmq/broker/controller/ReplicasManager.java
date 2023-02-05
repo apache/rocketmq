@@ -49,7 +49,6 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataRespon
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
@@ -178,16 +177,21 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
-            if (registerBrokerToController()) {
-                LOGGER.info("First time register broker success");
-                this.state = State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE;
-            } else {
+            for (int retryTimes = 0; retryTimes < 5; retryTimes++) {
+                if (registerBrokerToController()) {
+                    LOGGER.info("First time register broker success");
+                    this.state = State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE;
+                    break;
+                }
+            }
+            // register 5 times but still unsuccessful
+            if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
                 return false;
             }
         }
 
         if (this.state == State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE) {
-            if (StringUtils.isNotEmpty(this.masterAddress) || brokerElect()) {
+            if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
             } else {
@@ -365,42 +369,42 @@ public class ReplicasManager {
         }
     }
 
-    private boolean registerBrokerToController() {
-        // Register this broker to controller to get a stable and credible broker id, and persist metadata to local file.
-        try {
-            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
-                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress, this.brokerId, this.brokerConfig.getControllerHeartBeatTimeoutMills(),
-                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset(), this.brokerConfig.getBrokerElectionPriority());
-            final String newMasterAddress = registerResponse.getMasterAddress();
-            if (StringUtils.isNoneEmpty(newMasterAddress)) {
-                if (StringUtils.equals(newMasterAddress, this.localAddress)) {
-                    changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
-                } else {
-                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getBrokerId());
-                }
-                // Set isolated to false, make broker can register to namesrv regularly
-                brokerController.setIsolated(false);
-            } else {
-                // if master address is empty, just apply the brokerId
-                if (registerResponse.getBrokerId() <= 0) {
-                    // wrong broker id
-                    LOGGER.error("Register to controller but receive a invalid broker id = {}", registerResponse.getBrokerId());
-                    return false;
-                }
-                this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
-            }
-            return true;
-        } catch (final Exception e) {
-            LOGGER.error("Failed to register broker to controller", e);
-            return false;
-        }
-    }
+//    private boolean registerBrokerToController() {
+//        // Register this broker to controller to get a stable and credible broker id, and persist metadata to local file.
+//        try {
+//            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
+//                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress, this.brokerId, this.brokerConfig.getControllerHeartBeatTimeoutMills(),
+//                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset(), this.brokerConfig.getBrokerElectionPriority());
+//            final String newMasterAddress = registerResponse.getMasterAddress();
+//            if (StringUtils.isNoneEmpty(newMasterAddress)) {
+//                if (StringUtils.equals(newMasterAddress, this.localAddress)) {
+//                    changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
+//                } else {
+//                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getBrokerId());
+//                }
+//                // Set isolated to false, make broker can register to namesrv regularly
+//                brokerController.setIsolated(false);
+//            } else {
+//                // if master address is empty, just apply the brokerId
+//                if (registerResponse.getBrokerId() <= 0) {
+//                    // wrong broker id
+//                    LOGGER.error("Register to controller but receive a invalid broker id = {}", registerResponse.getBrokerId());
+//                    return false;
+//                }
+//                this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
+//            }
+//            return true;
+//        } catch (final Exception e) {
+//            LOGGER.error("Failed to register broker to controller", e);
+//            return false;
+//        }
+//    }
 
     /**
      * Register broker to controller, and persist the metadata to file
      * @return whether registering process succeeded
      */
-    private boolean registerBrokerToController2() {
+    private boolean registerBrokerToController() {
         try {
             // 1. confirm now registering state
             confirmNowRegisteringState();
@@ -514,6 +518,17 @@ public class ReplicasManager {
     private boolean registerSuccess() {
         try {
             RegisterSuccessResponseHeader response = this.brokerOuterAPI.registerSuccess(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerId, localAddress, controllerLeaderAddress);
+            final Long masterBrokerId = response.getMasterBrokerId();
+            final String masterAddress = response.getMasterAddress();
+            if (masterBrokerId == null) {
+                return true;
+            }
+            if (this.brokerId.equals(masterBrokerId)) {
+                changeToMaster(response.getMasterEpoch(), response.getSyncStateSetEpoch());
+            } else {
+                changeToSlave(masterAddress, response.getMasterEpoch(), masterBrokerId);
+            }
+            brokerController.setIsolated(false);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to send registerSuccess request to controller", e);

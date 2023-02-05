@@ -46,8 +46,8 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
         this.isCleanLivingBroker = isCleanLivingBroker;
     }
 
-    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerAddress) {
-        this(clusterName, brokerName, brokerAddress, false);
+    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerIdSetToClean) {
+        this(clusterName, brokerName, brokerIdSetToClean, false);
     }
 
     @Override

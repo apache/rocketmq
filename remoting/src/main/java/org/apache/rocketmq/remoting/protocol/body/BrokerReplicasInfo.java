@@ -19,6 +19,8 @@ package org.apache.rocketmq.remoting.protocol.body;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class BrokerReplicasInfo extends RemotingSerializable  {
@@ -46,8 +48,8 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         private Long masterBrokerId;
 
         private String masterAddress;
-        private int masterEpoch;
-        private int syncStateSetEpoch;
+        private Integer masterEpoch;
+        private Integer syncStateSetEpoch;
         private List<ReplicaIdentity> inSyncReplicas;
         private List<ReplicaIdentity> notInSyncReplicas;
 
@@ -111,6 +113,19 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         public Long getMasterBrokerId() {
             return masterBrokerId;
         }
+
+        public boolean isExistInSync(String brokerName, Long brokerId, String brokerAddress) {
+            return this.getInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress));
+        }
+
+        public boolean isExistInNotSync(String brokerName, Long brokerId, String brokerAddress) {
+            return this.getNotInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress));
+        }
+
+        public boolean isExistInAllReplicas(String brokerName, Long brokerId, String brokerAddress) {
+            return this.isExistInSync(brokerName, brokerId, brokerAddress) || this.isExistInNotSync(brokerName, brokerId, brokerAddress);
+        }
+
     }
 
     public static class ReplicaIdentity extends RemotingSerializable {
@@ -156,6 +171,19 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
                     ", brokerId=" + brokerId +
                     ", brokerAddress='" + brokerAddress + '\'' +
                     '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ReplicaIdentity that = (ReplicaIdentity) o;
+            return brokerName.equals(that.brokerName) && brokerId.equals(that.brokerId) && brokerAddress.equals(that.brokerAddress);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(brokerName, brokerId, brokerAddress);
         }
     }
 }
