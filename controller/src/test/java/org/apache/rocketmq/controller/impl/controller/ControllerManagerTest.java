@@ -114,7 +114,6 @@ public class ControllerManagerTest {
             }
             return null;
         }, item -> item != null);
-        System.out.println("leader born!!!!!");
         return manager;
     }
 
