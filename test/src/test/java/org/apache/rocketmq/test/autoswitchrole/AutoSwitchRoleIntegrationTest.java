@@ -179,9 +179,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         BrokerController broker3 = startBroker(nameserverAddress, controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(broker3.getMessageStore());
-
         checkMessage(broker3.getMessageStore(), topic, 10, 0);
-
         putMessage(this.brokerController1.getMessageStore(), topic);
         checkMessage(broker3.getMessageStore(), topic, 20, 0);
         shutdownAndClearBroker();

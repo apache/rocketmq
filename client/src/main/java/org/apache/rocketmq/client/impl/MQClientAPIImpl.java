@@ -56,6 +56,7 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -3075,8 +3076,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
     }
 
-    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-        Long brokerId) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
+    public Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName, String brokerName,
+                                                                          Long brokerId) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
 
         //get controller leader address
         final GetMetaDataResponseHeader controllerMetaData = this.getControllerMetaData(controllerAddr);
@@ -3092,10 +3093,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             case ResponseCode.SUCCESS: {
                 BrokerMemberGroup brokerMemberGroup = RemotingSerializable.decode(response.getBody(), BrokerMemberGroup.class);
                 ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
-                if (null != responseHeader) {
-                    responseHeader.setBrokerMemberGroup(brokerMemberGroup);
-                }
-                return responseHeader;
+                return new Pair<>(responseHeader, brokerMemberGroup);
             }
             default:
                 break;
