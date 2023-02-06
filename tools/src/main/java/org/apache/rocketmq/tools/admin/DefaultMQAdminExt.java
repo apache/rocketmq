@@ -833,8 +833,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     @Override
     public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName,
-        String brokerName, String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
-        return this.defaultMQAdminExtImpl.electMaster(controllerAddr, clusterName, brokerName, brokerAddr);
+        String brokerName, Long brokerId) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.electMaster(controllerAddr, clusterName, brokerName, brokerId);
     }
 
     @Override
