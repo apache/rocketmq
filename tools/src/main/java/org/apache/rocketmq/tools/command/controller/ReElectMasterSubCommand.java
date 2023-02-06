@@ -20,8 +20,10 @@ package org.apache.rocketmq.tools.command.controller;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -72,13 +74,14 @@ public class ReElectMasterSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            final ElectMasterResponseHeader metaData = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerId);
+            final Pair<ElectMasterResponseHeader, BrokerMemberGroup> pair = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerId);
+            final ElectMasterResponseHeader metaData = pair.getObject1();
+            final BrokerMemberGroup brokerMemberGroup = pair.getObject2();
             System.out.printf("\n#ClusterName\t%s", clusterName);
             System.out.printf("\n#BrokerName\t%s", brokerName);
             System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getMasterAddress());
             System.out.printf("\n#MasterEpoch\t%s", metaData.getMasterEpoch());
             System.out.printf("\n#SyncStateSetEpoch\t%s\n", metaData.getSyncStateSetEpoch());
-            BrokerMemberGroup brokerMemberGroup = metaData.getBrokerMemberGroup();
             if (null != brokerMemberGroup && null != brokerMemberGroup.getBrokerAddrs()) {
                 brokerMemberGroup.getBrokerAddrs().forEach((key, value) -> System.out.printf("\t#Broker\t%d\t%s\n", key, value));
             }
