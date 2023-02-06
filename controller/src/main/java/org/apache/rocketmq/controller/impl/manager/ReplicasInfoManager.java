@@ -215,7 +215,6 @@ public class ReplicasInfoManager {
             response.setSyncStateSetEpoch(syncStateSetEpoch + 1);
             BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
             if (null != brokerMemberGroup) {
-                response.setBrokerMemberGroup(brokerMemberGroup);
                 result.setBody(brokerMemberGroup.encode());
             }
             final ElectMasterEvent event = new ElectMasterEvent(brokerName, newMaster);
@@ -313,6 +312,8 @@ public class ReplicasInfoManager {
             // if master still exist
             response.setMasterBrokerId(syncStateInfo.getMasterBrokerId());
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
+            response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+            response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
         }
         // if this broker's address has been changed, we need to update it
         if (!brokerAddress.equals(brokerReplicaInfo.getBrokerAddress(brokerId))) {

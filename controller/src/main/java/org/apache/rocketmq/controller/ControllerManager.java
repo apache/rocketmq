@@ -45,11 +45,11 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.remoting.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 
@@ -131,11 +131,10 @@ public class ControllerManager {
 
                 final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
                 final RemotingCommand electMasterResponse = electMasterFuture.get(5, TimeUnit.SECONDS);
-                final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) electMasterResponse.readCustomHeader();
-                if (responseHeader != null) {
-                    log.info("The broker with brokerId: {} in broker-set: {} shutdown, elect a new master done, result: {}", brokerId, brokerName, responseHeader);
+                if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
+                    log.info("The broker with brokerId: {} in broker-set: {} shutdown, elect a new master done, result: {}", brokerId, brokerName, electMasterResponse);
                     if (controllerConfig.isNotifyBrokerRoleChanged()) {
-                        notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
+                        notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
                     }
                 }
             } catch (Exception e) {
