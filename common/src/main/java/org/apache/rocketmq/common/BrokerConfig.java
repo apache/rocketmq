@@ -326,6 +326,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String controllerAddr = "";
 
+    private boolean fetchControllerAddrByDnsLookup = false;
+
     private long syncBrokerMetadataPeriod = 5 * 1000;
 
     private long checkSyncStateSetPeriod = 5 * 1000;
@@ -1411,6 +1413,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setControllerAddr(String controllerAddr) {
         this.controllerAddr = controllerAddr;
+    }
+
+    public boolean isFetchControllerAddrByDnsLookup() {
+        return fetchControllerAddrByDnsLookup;
+    }
+
+    public void setFetchControllerAddrByDnsLookup(boolean fetchControllerAddrByDnsLookup) {
+        this.fetchControllerAddrByDnsLookup = fetchControllerAddrByDnsLookup;
     }
 
     public long getSyncBrokerMetadataPeriod() {

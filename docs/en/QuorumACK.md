@@ -66,7 +66,7 @@ When enableAutoInSyncReplicas=true, the adaptive downgrade mode is enabled. When
 
 ## Compatibility
 
-用To ensure backward compatibility, users need to set the correct parameters. For example, if the user's original cluster is a two-replica synchronous replication and no parameters are modified, when upgrading to the RocketMQ 5 version, due to the default totalReplicas and inSyncReplicas both being 1, it will downgrade to asynchronous replication. If you want to maintain the same behavior as before, you need to set both totalReplicas and inSyncReplicas to 2.
+To ensure backward compatibility, users need to set the correct parameters. For example, if the user's original cluster is a two-replica synchronous replication and no parameters are modified, when upgrading to the RocketMQ 5 version, due to the default totalReplicas and inSyncReplicas both being 1, it will downgrade to asynchronous replication. If you want to maintain the same behavior as before, you need to set both totalReplicas and inSyncReplicas to 2.
 
 **references:**
 

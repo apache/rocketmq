@@ -31,6 +31,11 @@
         <Bug pattern="RV_ABSOLUTE_VALUE_OF_HASHCODE"/>
     </Match>
     <Match>
+        <Class name="org.apache.rocketmq.tieredstore.container.TieredIndexFile"/>
+        <Method name="indexKeyHashMethod" />
+        <Bug pattern="RV_ABSOLUTE_VALUE_OF_HASHCODE"/>
+    </Match>
+    <Match>
         <Class name="org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener"/>
         <Method name="toMessageExtBrokerInner" />
         <Bug pattern="INT_BAD_REM_BY_1"/>

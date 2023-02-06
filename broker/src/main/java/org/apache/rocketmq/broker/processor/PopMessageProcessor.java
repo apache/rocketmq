@@ -82,6 +82,7 @@ import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
@@ -181,6 +182,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 // notify pop queue
                 notifySuccess = this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, group, queueId);
             }
+            this.brokerController.getNotificationProcessor().notifyMessageArriving(topic, queueId);
             if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("notify long polling request. topic:{}, group:{}, queueId:{}, success:{}",
                     topic, group, queueId, notifySuccess);
@@ -588,26 +590,25 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 }
                 return CompletableFuture.completedFuture(result);
             }).thenApply(result -> {
-                atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
                 if (result == null) {
+                    atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
                     return atomicRestNum.get();
                 }
                 if (!result.getMessageMapedList().isEmpty()) {
-                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(result.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), result.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
                         result.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
                         result.getBufferTotalSize());
 
-                    if (!isRetry) {
-                        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                            .put(LABEL_TOPIC, requestHeader.getTopic())
-                            .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
-                            .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
-                            .build();
-                        BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                        BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
-                    }
+                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                        .put(LABEL_TOPIC, requestHeader.getTopic())
+                        .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
+                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
+                        .put(LABEL_IS_RETRY, isRetry)
+                        .build();
+                    BrokerMetricsManager.messagesOutTotal.add(result.getMessageCount(), attributes);
+                    BrokerMetricsManager.throughputOutTotal.add(result.getBufferTotalSize(), attributes);
 
                     if (isOrder) {
                         this.brokerController.getConsumerOrderInfoManager().update(isRetry, topic,
@@ -632,46 +633,44 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 //                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
 //                        queueId, getMessageTmpResult.getNextBeginOffset());
                 }
+
                 atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
+                String brokerName = brokerController.getBrokerConfig().getBrokerName();
+                for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
+                    // We should not recode buffer for normal topic message
+                    if (!isRetry) {
+                        getMessageResult.addMessage(mapedBuffer);
+                    } else {
+                        List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
+                            true, false, true);
+                        mapedBuffer.release();
+                        for (MessageExt messageExt : messageExtList) {
+                            try {
+                                String ckInfo = ExtraInfoUtil.buildExtraInfo(finalOffset, popTime, requestHeader.getInvisibleTime(),
+                                    reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
+                                messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
 
-                if (result != null) {
-                    String brokerName = brokerController.getBrokerConfig().getBrokerName();
-                    for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
-                        // We should not recode buffer for normal topic message
-                        if (!isRetry) {
-                            getMessageResult.addMessage(mapedBuffer);
-                        } else {
-                            List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
-                                true, false, true);
-                            mapedBuffer.release();
-                            for (MessageExt messageExt : messageExtList) {
-                                try {
-                                    String ckInfo = ExtraInfoUtil.buildExtraInfo(finalOffset, popTime, requestHeader.getInvisibleTime(),
-                                        reviveQid, messageExt.getTopic(), brokerName, messageExt.getQueueId(), messageExt.getQueueOffset());
-                                    messageExt.getProperties().putIfAbsent(MessageConst.PROPERTY_POP_CK, ckInfo);
+                                // Set retry message topic to origin topic and clear message store size to recode
+                                messageExt.setTopic(requestHeader.getTopic());
+                                messageExt.setStoreSize(0);
 
-                                    // Set retry message topic to origin topic and clear message store size to recode
-                                    messageExt.setTopic(requestHeader.getTopic());
-                                    messageExt.setStoreSize(0);
-
-                                    byte[] encode = MessageDecoder.encode(messageExt, false);
-                                    ByteBuffer buffer = ByteBuffer.wrap(encode);
-                                    SelectMappedBufferResult tmpResult =
-                                        new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
-                                    getMessageResult.addMessage(tmpResult);
-                                } catch (Exception e) {
-                                    POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
-                                }
+                                byte[] encode = MessageDecoder.encode(messageExt, false);
+                                ByteBuffer buffer = ByteBuffer.wrap(encode);
+                                SelectMappedBufferResult tmpResult =
+                                    new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
+                                getMessageResult.addMessage(tmpResult);
+                            } catch (Exception e) {
+                                POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
                             }
                         }
                     }
-                    this.brokerController.getPopInflightMessageCounter().incrementInFlightMessageNum(
-                        topic,
-                        requestHeader.getConsumerGroup(),
-                        queueId,
-                        result.getMessageCount()
-                    );
                 }
+                this.brokerController.getPopInflightMessageCounter().incrementInFlightMessageNum(
+                    topic,
+                    requestHeader.getConsumerGroup(),
+                    queueId,
+                    result.getMessageCount()
+                );
                 return atomicRestNum.get();
             }).whenComplete((result, throwable) -> {
                 if (throwable != null) {

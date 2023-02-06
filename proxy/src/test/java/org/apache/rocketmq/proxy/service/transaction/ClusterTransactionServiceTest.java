@@ -59,7 +59,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, null,
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.mqClientAPIFactory);
 
         MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
@@ -108,6 +108,8 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
     @Test
     public void testScanProducerHeartBeat() throws Exception {
+        when(this.producerManager.groupOnline(anyString())).thenReturn(true);
+
         Mockito.reset(this.topicRouteService);
         String brokerName2 = "broker-2-01";
         String clusterName2 = "broker-2";

@@ -257,8 +257,13 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(Set<String> topics) {
-        return next.cleanUnusedTopic(topics);
+    public int deleteTopics(final Set<String> deleteTopics) {
+        return next.deleteTopics(deleteTopics);
+    }
+
+    @Override
+    public int cleanUnusedTopic(final Set<String> retainTopics) {
+        return next.cleanUnusedTopic(retainTopics);
     }
 
     @Override
@@ -267,8 +272,19 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    @Deprecated
     public boolean checkInDiskByConsumeOffset(String topic, int queueId, long consumeOffset) {
         return next.checkInDiskByConsumeOffset(topic, queueId, consumeOffset);
+    }
+
+    @Override
+    public boolean checkInMemByConsumeOffset(String topic, int queueId, long consumeOffset, int batchSize) {
+        return next.checkInMemByConsumeOffset(topic, queueId, consumeOffset, batchSize);
+    }
+
+    @Override
+    public boolean checkInStoreByConsumeOffset(String topic, int queueId, long consumeOffset) {
+        return next.checkInStoreByConsumeOffset(topic, queueId, consumeOffset);
     }
 
     @Override

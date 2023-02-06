@@ -79,7 +79,7 @@ public class ProcessQueue {
             return;
         }
 
-        int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
+        int loop = Math.min(msgTreeMap.size(), 16);
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
             try {
@@ -89,17 +89,17 @@ public class ProcessQueue {
                         String consumeStartTimeStamp = MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue());
                         if (StringUtils.isNotEmpty(consumeStartTimeStamp) && System.currentTimeMillis() - Long.parseLong(consumeStartTimeStamp) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
                             msg = msgTreeMap.firstEntry().getValue();
-                        } else {
-                            break;
                         }
-                    } else {
-                        break;
                     }
                 } finally {
                     this.treeMapLock.readLock().unlock();
                 }
             } catch (InterruptedException e) {
                 log.error("getExpiredMsg exception", e);
+            }
+
+            if (msg == null) {
+                break;
             }
 
             try {
