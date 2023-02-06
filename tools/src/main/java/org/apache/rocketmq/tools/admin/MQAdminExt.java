@@ -455,14 +455,14 @@ public interface MQAdminExt extends MQAdmin {
      * @param controllerAddr controller address
      * @param clusterName    cluster name
      * @param brokerName     broker name
-     * @param brokerAddr     broker address
+     * @param brokerId     broker id
      * @return
      * @throws RemotingException
      * @throws InterruptedException
      * @throws MQBrokerException
      */
     ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException;
+        Long brokerId) throws RemotingException, InterruptedException, MQBrokerException;
 
     /**
      * clean controller broker meta data
