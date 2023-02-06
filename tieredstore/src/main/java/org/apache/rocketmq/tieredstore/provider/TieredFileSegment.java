@@ -38,7 +38,7 @@ import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
-public abstract class TieredFileSegment implements Comparable<TieredFileSegment>, TieredStoreBackendProvider {
+public abstract class TieredFileSegment implements Comparable<TieredFileSegment>, TieredStoreProvider {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     private volatile boolean closed = false;
     private final ReentrantLock bufferLock = new ReentrantLock();
@@ -269,6 +269,11 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (length == 0) {
             future.completeExceptionally(
                 new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "length is zero"));
+            return future;
+        }
+        if (position >= commitPosition) {
+            future.completeExceptionally(
+                new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM, "position is illegal"));
             return future;
         }
         if (position + length > commitPosition) {
@@ -523,26 +528,4 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             return codaBuffer.get() & 0xff;
         }
     }
-
-    @Override
-    public abstract String getPath();
-
-    @Override
-    public abstract long getSize();
-
-    @Override
-    public abstract boolean exists();
-
-    @Override
-    public abstract void createFile();
-
-    @Override
-    public abstract void destroyFile();
-
-    @Override
-    public abstract CompletableFuture<ByteBuffer> read0(long position, int length);
-
-    @Override
-    public abstract CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position,
-        int length, boolean append);
 }

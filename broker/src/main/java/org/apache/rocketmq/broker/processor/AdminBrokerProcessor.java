@@ -428,6 +428,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
         topicConfig.setPerm(requestHeader.getPerm());
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
+        topicConfig.setOrder(requestHeader.getOrder());
         String attributesModification = requestHeader.getAttributes();
         topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
 
@@ -526,10 +527,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(requestHeader.getTopic());
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(requestHeader.getTopic());
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(requestHeader.getTopic()));
-        if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
-            this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
-        }
-
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

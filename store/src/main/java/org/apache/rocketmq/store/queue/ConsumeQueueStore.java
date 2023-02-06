@@ -375,6 +375,7 @@ public class ConsumeQueueStore {
 
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.queueOffsetAssigner.setTopicQueueTable(topicQueueTable);
+        this.queueOffsetAssigner.setLmqTopicQueueTable(topicQueueTable);
     }
 
     public ConcurrentMap getTopicQueueTable() {
