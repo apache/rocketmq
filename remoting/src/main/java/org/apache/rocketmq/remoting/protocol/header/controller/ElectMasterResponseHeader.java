@@ -18,7 +18,6 @@ package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 
 public class ElectMasterResponseHeader implements CommandCustomHeader {
 
