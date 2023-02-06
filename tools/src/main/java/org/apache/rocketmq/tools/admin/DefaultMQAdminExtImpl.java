@@ -46,6 +46,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -1890,6 +1891,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         String brokerAddr, boolean isCleanLivingBroker)
         throws RemotingException, InterruptedException, MQBrokerException {
         this.mqClientInstance.getMQClientAPIImpl().cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerAddr, isCleanLivingBroker);
+    }
+
+    @Override
+    public Map<BrokerAddrInfo, Boolean> getAllSyncStatusData(final String controllerAddress) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, RemotingCommandException, MQBrokerException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getAllSyncStatusData(controllerAddress);
     }
 
     public MQClientInstance getMqClientInstance() {

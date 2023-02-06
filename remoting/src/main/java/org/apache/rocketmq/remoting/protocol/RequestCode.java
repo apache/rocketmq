@@ -275,5 +275,8 @@ public class RequestCode {
      */
     public static final int CLEAN_BROKER_DATA = 1011;
 
-
+    /**
+     * get all sync status
+     */
+    public static final int GET_ALL_SYNC_STATUS = 1012;
 }

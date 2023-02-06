@@ -17,6 +17,8 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import java.util.Map;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 
 public interface BrokerHeartbeatManager {
 
@@ -64,4 +66,6 @@ public interface BrokerHeartbeatManager {
         void onBrokerInactive(final String clusterName, final String brokerName, final String brokerAddress,
             final long brokerId);
     }
+
+    Map<BrokerAddrInfo, Boolean> getBrokerLiveTable();
 }

@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -470,5 +471,8 @@ public interface MQAdminExt extends MQAdmin {
     void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
         String brokerAddr,
         boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
+
+
+    Map<BrokerAddrInfo, Boolean> getAllSyncStatusData(final String controllerAddress) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, RemotingCommandException, MQBrokerException, InterruptedException;
 
 }

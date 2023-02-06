@@ -107,6 +107,8 @@ public class MQAdminStartup {
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     public static void main(String[] args) {
+        String argStr = "getSyncStateSet -a localhost:9000 -n localhost:9876";
+        args = argStr.split(" ");
         main0(args, null);
     }
 

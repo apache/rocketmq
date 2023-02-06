@@ -16,15 +16,22 @@
  */
 package org.apache.rocketmq.controller.processor;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
+import org.apache.rocketmq.controller.BrokerLiveInfo;
+import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -51,6 +58,7 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_M
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_ALL_SYNC_STATUS;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
@@ -146,6 +154,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 }
                 break;
             }
+            case GET_ALL_SYNC_STATUS: {
+                return getAllSyncStatus(this.controllerManager);
+            }
             case UPDATE_CONTROLLER_CONFIG:
                 return this.updateControllerConfig(ctx, request);
             case GET_CONTROLLER_CONFIG:
@@ -220,6 +231,22 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
         }
 
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    public RemotingCommand getAllSyncStatus(ControllerManager controllerManager) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        Map<BrokerAddrInfo, Boolean> map = this.controllerManager.getHeartbeatManager().getBrokerLiveTable();
+        try {
+            response.setBody(JSON.toJSONString(map).getBytes(MixAll.DEFAULT_CHARSET));
+        } catch (UnsupportedEncodingException e) {
+            log.error("getAllSyncStatus error, ", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("UnsupportedEncodingException " + e);
+            return response;
+        }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

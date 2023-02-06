@@ -23,6 +23,7 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -114,6 +115,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
     private void printData(String controllerAddress, List<String> brokerNames,
         DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         if (brokerNames.size() > 0) {
+            Map<BrokerAddrInfo, Boolean> map = defaultMQAdminExt.getAllSyncStatusData(controllerAddress);
             final BrokerReplicasInfo brokerReplicasInfo = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
             final Map<String, BrokerReplicasInfo.ReplicasInfo> replicasInfoTable = brokerReplicasInfo.getReplicasInfoTable();
             for (Map.Entry<String, BrokerReplicasInfo.ReplicasInfo> next : replicasInfoTable.entrySet()) {

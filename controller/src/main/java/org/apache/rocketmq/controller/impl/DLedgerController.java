@@ -205,7 +205,6 @@ public class DLedgerController implements Controller {
         return this.scheduler.appendEvent("cleanBrokerData",
             () -> this.replicasInfoManager.cleanBrokerData(requestHeader, this.brokerAlivePredicate), true);
     }
-
     /**
      * Append the request to DLedger, and wait for DLedger to commit the request.
      */
