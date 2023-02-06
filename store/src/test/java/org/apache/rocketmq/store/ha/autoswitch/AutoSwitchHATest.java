@@ -36,9 +36,8 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
