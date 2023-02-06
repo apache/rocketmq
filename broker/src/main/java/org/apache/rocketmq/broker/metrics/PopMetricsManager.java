@@ -41,6 +41,8 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_IN_MESSAGE_TOTAL;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_OUT_MESSAGE_TOTAL;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_RETRY_MESSAGES_TOTAL;
@@ -49,6 +51,9 @@ import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.GAUGE_POP_OF
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.GAUGE_POP_REVIVE_LAG;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.GAUGE_POP_REVIVE_LATENCY;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.HISTOGRAM_POP_BUFFER_SCAN_TIME_CONSUME;
+import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_PUT_STATUS;
+import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_QUEUE_ID;
+import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_REVIVE_MESSAGE_TYPE;
 
 public class PopMetricsManager {
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
@@ -133,7 +138,7 @@ public class PopMetricsManager {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
-                .put(PopMetricsConstant.LABEL_QUEUE_ID, popReviveService.getQueueId())
+                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
                 .build());
         }
     }
@@ -143,7 +148,7 @@ public class PopMetricsManager {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
-                .put(PopMetricsConstant.LABEL_QUEUE_ID, popReviveService.getQueueId())
+                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
                 .build());
         }
     }
@@ -159,10 +164,10 @@ public class PopMetricsManager {
     public static void incPopRevivePutCount(String group, String topic, PopReviveMessageType messageType,
         PutMessageStatus status, int num) {
         Attributes attributes = newAttributesBuilder()
-            .put(BrokerMetricsConstant.LABEL_CONSUMER_GROUP, group)
-            .put(BrokerMetricsConstant.LABEL_TOPIC, topic)
-            .put(PopMetricsConstant.LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
-            .put(PopMetricsConstant.LABEL_PUT_STATUS, status.name())
+            .put(LABEL_CONSUMER_GROUP, group)
+            .put(LABEL_TOPIC, topic)
+            .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
+            .put(LABEL_PUT_STATUS, status.name())
             .build();
         popRevivePutTotal.add(num, attributes);
     }
@@ -179,10 +184,10 @@ public class PopMetricsManager {
         int num) {
         AttributesBuilder builder = newAttributesBuilder();
         Attributes attributes = builder
-            .put(BrokerMetricsConstant.LABEL_CONSUMER_GROUP, group)
-            .put(BrokerMetricsConstant.LABEL_TOPIC, topic)
-            .put(PopMetricsConstant.LABEL_QUEUE_ID, queueId)
-            .put(PopMetricsConstant.LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
+            .put(LABEL_CONSUMER_GROUP, group)
+            .put(LABEL_TOPIC, topic)
+            .put(LABEL_QUEUE_ID, queueId)
+            .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
             .build();
         popReviveGetTotal.add(num, attributes);
     }
@@ -190,9 +195,9 @@ public class PopMetricsManager {
     public static void incPopReviveRetryMessageCount(PopCheckPoint checkPoint, PutMessageStatus status) {
         AttributesBuilder builder = newAttributesBuilder();
         Attributes attributes = builder
-            .put(BrokerMetricsConstant.LABEL_CONSUMER_GROUP, checkPoint.getCId())
-            .put(BrokerMetricsConstant.LABEL_TOPIC, checkPoint.getTopic())
-            .put(PopMetricsConstant.LABEL_PUT_STATUS, status.name())
+            .put(LABEL_CONSUMER_GROUP, checkPoint.getCId())
+            .put(LABEL_TOPIC, checkPoint.getTopic())
+            .put(LABEL_PUT_STATUS, status.name())
             .build();
         popReviveRetryMessageTotal.add(1, attributes);
     }

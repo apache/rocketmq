@@ -171,14 +171,16 @@ public class DefaultStoreMetricsManager {
 
     public static void incTimerDequeueCount(String topic) {
         timerDequeueTotal.add(1, newAttributesBuilder()
-            .put(DefaultStoreMetricsConstant.LABEL_TOPIC, topic)
+            .put(LABEL_TOPIC, topic)
             .build());
     }
 
     public static void incTimerEnqueueCount(String topic) {
-        timerEnqueueTotal.add(1, newAttributesBuilder()
-            .put(DefaultStoreMetricsConstant.LABEL_TOPIC, topic)
-            .build());
+        AttributesBuilder attributesBuilder = newAttributesBuilder();
+        if (topic != null) {
+            attributesBuilder.put(LABEL_TOPIC, topic);
+        }
+        timerEnqueueTotal.add(1, attributesBuilder.build());
     }
 
     public static AttributesBuilder newAttributesBuilder() {
