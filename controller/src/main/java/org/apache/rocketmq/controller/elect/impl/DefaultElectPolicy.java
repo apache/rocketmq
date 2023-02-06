@@ -94,7 +94,7 @@ public class DefaultElectPolicy implements ElectPolicy {
         }
         if (!brokers.isEmpty()) {
             // if old master is still valid, and preferBrokerAddr is blank or is equals to oldMaster
-            if (brokers.contains(oldMaster) && (preferBrokerId == null || preferBrokerId == oldMaster)) {
+            if (brokers.contains(oldMaster) && (preferBrokerId == null || preferBrokerId.equals(oldMaster))) {
                 return oldMaster;
             }
 
