@@ -527,10 +527,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(requestHeader.getTopic());
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(requestHeader.getTopic());
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(requestHeader.getTopic()));
-        if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
-            this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
-        }
-
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
