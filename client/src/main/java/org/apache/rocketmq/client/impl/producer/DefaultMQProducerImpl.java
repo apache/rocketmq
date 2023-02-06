@@ -233,7 +233,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         null);
                 }
                 
-
                 if (startFactory) {
                     mQClientFactory.start();
                 }
