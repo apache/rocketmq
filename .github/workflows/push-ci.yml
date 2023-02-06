@@ -50,7 +50,6 @@ jobs:
         with:
           report_paths: '**/surefire-reports/TEST-*.xml'
           annotate_only: true
-          detailed_summary: true
             
   dist-tar:
     if: ${{ success() }}
