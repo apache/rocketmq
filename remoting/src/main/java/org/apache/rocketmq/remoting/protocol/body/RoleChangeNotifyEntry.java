@@ -18,6 +18,8 @@
 package org.apache.rocketmq.remoting.protocol.body;
 
 
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 
 public class RoleChangeNotifyEntry {
@@ -40,8 +42,13 @@ public class RoleChangeNotifyEntry {
         this.masterBrokerId = masterBrokerId;
     }
 
-    public static RoleChangeNotifyEntry convert(ElectMasterResponseHeader header) {
-        return new RoleChangeNotifyEntry(header.getBrokerMemberGroup(), header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
+    public static RoleChangeNotifyEntry convert(RemotingCommand electMasterResponse) {
+        final ElectMasterResponseHeader header = (ElectMasterResponseHeader) electMasterResponse.readCustomHeader();
+        BrokerMemberGroup brokerMemberGroup = null;
+        if (electMasterResponse.getBody() != null && electMasterResponse.getBody().length > 0) {
+            brokerMemberGroup = RemotingSerializable.decode(electMasterResponse.getBody(), BrokerMemberGroup.class);
+        }
+        return new RoleChangeNotifyEntry(brokerMemberGroup, header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
     }
 
 
