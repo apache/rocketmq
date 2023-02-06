@@ -40,7 +40,7 @@ public class TieredStoreMetricsConstant {
 
     public static final String LABEL_TOPIC = "topic";
     public static final String LABEL_GROUP = "group";
-    public static final String LABEL_QUEUE = "queue";
+    public static final String LABEL_QUEUE_ID = "queue_id";
     public static final String LABEL_FILE_TYPE = "file_type";
 
     // blob constants

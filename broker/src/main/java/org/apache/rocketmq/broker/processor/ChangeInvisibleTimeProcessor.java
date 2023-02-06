@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -127,7 +128,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    protected RemotingCommand processChangeInvisibleTimeForOrder(ChangeInvisibleTimeRequestHeader requestHeader, String[] extraInfo, RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+    protected RemotingCommand processChangeInvisibleTimeForOrder(ChangeInvisibleTimeRequestHeader requestHeader,
+        String[] extraInfo, RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
         long popTime = ExtraInfoUtil.getPopTime(extraInfo);
         long oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId());
@@ -194,6 +196,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
             POP_LOGGER.error("change Invisible, put ack msg fail: {}, {}", ackMsg, putMessageResult);
         }
+        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
     }
 
     private PutMessageResult appendCheckPoint(final ChangeInvisibleTimeRequestHeader requestHeader, int reviveQid,
@@ -229,9 +232,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 ck.getReviveTime(), putMessageResult);
         }
 
-        if (putMessageResult != null && putMessageResult.isOk()) {
-            this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
-            this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
+        if (putMessageResult != null) {
+            PopMetricsManager.incPopReviveCkPutCount(ck, putMessageResult.getPutMessageStatus());
+            if (putMessageResult.isOk()) {
+                this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
+                this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
+            }
         }
 
         return putMessageResult;

@@ -336,6 +336,10 @@ public class BrokerMetricsManager {
         for (Pair<InstrumentSelector, View> selectorViewPair : messageStore.getMetricsView()) {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
+
+        for (Pair<InstrumentSelector, View> selectorViewPair : PopMetricsManager.getMetricsView()) {
+            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
+        }
     }
 
     private void initStatsMetrics() {
@@ -494,6 +498,7 @@ public class BrokerMetricsManager {
     private void initOtherMetrics() {
         RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
         messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+        PopMetricsManager.initMetrics(brokerMeter, brokerController, BrokerMetricsManager::newAttributesBuilder);
     }
 
     public void shutdown() {
