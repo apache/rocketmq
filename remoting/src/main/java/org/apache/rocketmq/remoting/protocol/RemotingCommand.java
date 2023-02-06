@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.google.common.base.Stopwatch;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -28,11 +32,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.fastjson.annotation.JSONField;
-import com.google.common.base.Stopwatch;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
