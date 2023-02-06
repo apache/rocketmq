@@ -772,4 +772,8 @@ public class ReplicasManager {
     public List<String> getAvailableControllerAddresses() {
         return new ArrayList<>(availableControllerAddresses.keySet());
     }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
 }
