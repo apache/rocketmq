@@ -48,6 +48,8 @@ public enum EventType {
                 return READ_EVENT;
             case 5:
                 return CLEAN_BROKER_DATA_EVENT;
+            case 6:
+                return UPDATE_BROKER_ADDRESS;
         }
         return null;
     }
