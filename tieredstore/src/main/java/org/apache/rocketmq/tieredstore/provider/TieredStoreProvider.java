@@ -19,7 +19,7 @@ package org.apache.rocketmq.tieredstore.provider;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
-public interface TieredStoreBackendProvider {
+public interface TieredStoreProvider {
     /**
      * Get file path in backend file system
      *

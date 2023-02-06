@@ -46,8 +46,8 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

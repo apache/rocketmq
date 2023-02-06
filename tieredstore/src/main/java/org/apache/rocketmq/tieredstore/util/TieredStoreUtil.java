@@ -42,7 +42,7 @@ public class TieredStoreUtil {
     public static final long PB = TB << 10;
     public static final long EB = PB << 10;
 
-    public static final String TIERED_STORE_LOGGER_NAME = "RocketMQTieredStore";
+    public static final String TIERED_STORE_LOGGER_NAME = "RocketmqTieredStore";
     public static final String RMQ_SYS_TIERED_STORE_INDEX_TOPIC = "rmq_sys_INDEX";
     public final static int MSG_ID_LENGTH = 8 + 8;
 

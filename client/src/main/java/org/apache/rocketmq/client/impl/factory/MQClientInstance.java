@@ -435,7 +435,7 @@ public class MQClientInstance {
                     continue;
                 }
                 // may need to check one broker every cluster...
-                // assume that the configs of every broker in cluster are the the same.
+                // assume that the configs of every broker in cluster are the same.
                 String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
 
                 if (addr != null) {
@@ -556,9 +556,9 @@ public class MQClientInstance {
                     }
                 } catch (Exception e) {
                     if (this.isBrokerInNameServer(addr)) {
-                        log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
+                        log.warn("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
                     } else {
-                        log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
+                        log.warn("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
                                 id, addr, e);
                     }
                 }
