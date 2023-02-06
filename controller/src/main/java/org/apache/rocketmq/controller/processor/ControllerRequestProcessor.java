@@ -130,11 +130,10 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().electMaster(electMasterRequest);
         if (future != null) {
             final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-            final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
 
-            if (response.getCode() == ResponseCode.SUCCESS && responseHeader != null) {
+            if (response.getCode() == ResponseCode.SUCCESS) {
                 if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(responseHeader));
+                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(response));
                 }
             }
             return response;
