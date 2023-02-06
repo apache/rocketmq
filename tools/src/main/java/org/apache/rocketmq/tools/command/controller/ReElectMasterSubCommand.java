@@ -45,7 +45,7 @@ public class ReElectMasterSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerAddress", true, "The address of the broker which requires to become master");
+        opt = new Option("b", "brokerId", true, "The id of the broker which requires to become master");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -68,11 +68,11 @@ public class ReElectMasterSubCommand implements SubCommand {
         String controllerAddress = commandLine.getOptionValue("a").trim();
         String clusterName = commandLine.getOptionValue('c').trim();
         String brokerName = commandLine.getOptionValue('n').trim();
-        String brokerAddress = commandLine.getOptionValue("b").trim();
+        Long brokerId = Long.valueOf(commandLine.getOptionValue("b").trim());
 
         try {
             defaultMQAdminExt.start();
-            final ElectMasterResponseHeader metaData = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerAddress);
+            final ElectMasterResponseHeader metaData = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerId);
             System.out.printf("\n#ClusterName\t%s", clusterName);
             System.out.printf("\n#BrokerName\t%s", brokerName);
             System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getMasterAddress());

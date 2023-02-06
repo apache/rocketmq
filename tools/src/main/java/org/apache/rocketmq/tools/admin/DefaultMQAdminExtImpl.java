@@ -1844,8 +1844,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName,
-        String brokerName, String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
-        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerAddr);
+        String brokerName, Long brokerId) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerId);
     }
 
     @Override
