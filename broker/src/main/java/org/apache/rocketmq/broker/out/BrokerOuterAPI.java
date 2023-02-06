@@ -1306,6 +1306,7 @@ public class BrokerOuterAPI {
         requestHeader.setConfirmOffset(confirmOffset);
         requestHeader.setHeartbeatTimeoutMills(controllerHeartBeatTimeoutMills);
         requestHeader.setElectionPriority(electionPriority);
+        requestHeader.setBrokerId(brokerId);
         brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
             @Override
             public void run0() {
