@@ -43,7 +43,6 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatReque
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RequestCode.APPLY_BROKER_ID;
