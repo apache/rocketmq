@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
-import com.google.common.base.Stopwatch;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -33,6 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.google.common.base.Stopwatch;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -64,7 +64,7 @@ public class RemotingCommand {
     private static final String BOOLEAN_CANONICAL_NAME_1 = Boolean.class.getCanonicalName();
     private static final String BOOLEAN_CANONICAL_NAME_2 = boolean.class.getCanonicalName();
     private static volatile int configVersion = -1;
-    private static AtomicInteger requestId = new AtomicInteger(0);
+    private static final AtomicInteger requestId = new AtomicInteger(0);
 
     private static SerializeType serializeTypeConfigInThisServer = SerializeType.JSON;
 
@@ -153,15 +153,9 @@ public class RemotingCommand {
 
         if (classHeader != null) {
             try {
-                CommandCustomHeader objectHeader = classHeader.getDeclaredConstructor().newInstance();
-                cmd.customHeader = objectHeader;
-            } catch (InstantiationException e) {
-                return null;
-            } catch (IllegalAccessException e) {
-                return null;
-            } catch (InvocationTargetException e) {
-                return null;
-            } catch (NoSuchMethodException e) {
+                cmd.customHeader = classHeader.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
                 return null;
             }
         }
@@ -266,13 +260,7 @@ public class RemotingCommand {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException e) {
-            return null;
-        } catch (IllegalAccessException e) {
-            return null;
-        } catch (InvocationTargetException e) {
-            return null;
-        } catch (NoSuchMethodException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             return null;
         }
 
