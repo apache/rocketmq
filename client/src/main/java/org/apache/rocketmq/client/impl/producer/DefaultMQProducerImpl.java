@@ -1297,7 +1297,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     }
                     if (null != localTransactionExecuter) {
                         localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
-                    } else if (transactionListener != null) {
+                    } else {
                         log.debug("Used new transaction API");
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
                     }
