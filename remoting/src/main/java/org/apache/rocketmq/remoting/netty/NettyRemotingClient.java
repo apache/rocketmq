@@ -521,9 +521,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             } else if (addrs.size() != old.size()) {
                 update = true;
             } else {
-                for (int i = 0; i < addrs.size() && !update; i++) {
-                    if (!old.contains(addrs.get(i))) {
+                for (String addr : addrs) {
+                    if (!old.contains(addr)) {
                         update = true;
+                        break;
                     }
                 }
             }
