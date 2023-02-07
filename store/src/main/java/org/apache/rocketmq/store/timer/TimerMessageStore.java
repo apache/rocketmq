@@ -1050,7 +1050,7 @@ public class TimerMessageStore {
                             this.brokerStatsManager.incTopicPutNums(message.getTopic(), 1, 1);
                             this.brokerStatsManager.incTopicPutSize(message.getTopic(),
                                 putMessageResult.getAppendMessageResult().getWroteBytes());
-                            this.brokerStatsManager.incBrokerPutNums(1);
+                            this.brokerStatsManager.incBrokerPutNums(message.getTopic(), 1);
                         }
                         return PUT_OK;
                     case SERVICE_NOT_AVAILABLE:
