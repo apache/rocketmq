@@ -169,10 +169,10 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public Map<BrokerAddrInfo, Boolean> getBrokerLiveTable() {
-        Map<BrokerAddrInfo,Boolean> res = new ConcurrentHashMap<>();
+    public Map<String, Boolean> getBrokerLiveTable() {
+        Map<String,Boolean> res = new ConcurrentHashMap<>();
         this.brokerLiveTable.keySet().forEach(brokerAddrInfo -> {
-            res.put(brokerAddrInfo,true);
+            res.put(brokerAddrInfo.getBrokerAddr(), true);
         });
         return res;
     }

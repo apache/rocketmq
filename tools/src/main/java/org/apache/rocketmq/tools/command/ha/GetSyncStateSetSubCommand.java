@@ -23,7 +23,6 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -115,7 +114,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
     private void printData(String controllerAddress, List<String> brokerNames,
         DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         if (brokerNames.size() > 0) {
-            Map<BrokerAddrInfo, Boolean> map = defaultMQAdminExt.getAllSyncStatusData(controllerAddress);
+            Map<String, Boolean> map = defaultMQAdminExt.getAllSyncStatusData(controllerAddress);
             final BrokerReplicasInfo brokerReplicasInfo = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
             final Map<String, BrokerReplicasInfo.ReplicasInfo> replicasInfoTable = brokerReplicasInfo.getReplicasInfoTable();
             for (Map.Entry<String, BrokerReplicasInfo.ReplicasInfo> next : replicasInfoTable.entrySet()) {
@@ -125,23 +124,13 @@ public class GetSyncStateSetSubCommand implements SubCommand {
                     next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
                     inSyncReplicas.size());
                 for (BrokerReplicasInfo.ReplicaIdentity member : inSyncReplicas) {
-                    System.out.printf("\n InSyncReplica:\t%s\t%s\n", member.toString(), acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
+                    System.out.printf("\n InSyncReplica:\t%s\t%s\n", member.toString(), map.containsKey(member.getAddress()) ? "online" : "offline");
                 }
 
                 for (BrokerReplicasInfo.ReplicaIdentity member : notInSyncReplicas) {
-                    System.out.printf("\n NotInSyncReplica:\t%s\t%s\n", member.toString(), acquireBrokerStatus(defaultMQAdminExt, member.getAddress()));
+                    System.out.printf("\n NotInSyncReplica:\t%s\n", member.toString());
                 }
             }
         }
-    }
-
-    private String acquireBrokerStatus(DefaultMQAdminExt defaultMQAdminExt,String brokerAddr) {
-        String status = "online";
-        try {
-            defaultMQAdminExt.getDefaultMQAdminExtImpl().fetchBrokerRuntimeStats(brokerAddr);
-        } catch (Exception e) {
-            status = "offline";
-        }
-        return status;
     }
 }

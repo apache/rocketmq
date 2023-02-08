@@ -19,19 +19,14 @@ package org.apache.rocketmq.controller.processor;
 import com.alibaba.fastjson.JSON;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.BrokerLiveInfo;
-import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -41,7 +36,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
@@ -49,6 +43,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRespon
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
@@ -238,7 +233,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
 
     public RemotingCommand getAllSyncStatus(ControllerManager controllerManager) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        Map<BrokerAddrInfo, Boolean> map = this.controllerManager.getHeartbeatManager().getBrokerLiveTable();
+        Map<String, Boolean> map = this.controllerManager.getHeartbeatManager().getBrokerLiveTable();
         try {
             response.setBody(JSON.toJSONString(map).getBytes(MixAll.DEFAULT_CHARSET));
         } catch (UnsupportedEncodingException e) {
