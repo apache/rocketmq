@@ -70,7 +70,7 @@ import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.HISTOGRAM_PROVIDER_RPC_LATENCY;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.HISTOGRAM_UPLOAD_BYTES;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
-import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_QUEUE;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_QUEUE_ID;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.STORAGE_MEDIUM_BLOB;
 
@@ -181,13 +181,13 @@ public class TieredStoreMetricsManager {
 
                     Attributes commitLogAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     measurement.record(Math.max(maxOffset - container.getDispatchOffset(), 0), commitLogAttributes);
                     Attributes consumeQueueAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
                     measurement.record(Math.max(maxOffset - container.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
@@ -209,7 +209,7 @@ public class TieredStoreMetricsManager {
 
                     Attributes commitLogAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     long commitLogDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), container.getDispatchOffset());
@@ -221,7 +221,7 @@ public class TieredStoreMetricsManager {
 
                     Attributes consumeQueueAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
                     long consumeQueueDispatchOffset = container.getConsumeQueueMaxOffset();
@@ -307,7 +307,7 @@ public class TieredStoreMetricsManager {
                         MessageQueue mq = container.getMessageQueue();
                         Attributes attributes = newAttributesBuilder()
                             .put(LABEL_TOPIC, mq.getTopic())
-                            .put(LABEL_QUEUE, mq.getQueueId())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
                             .build();
                         measurement.record(System.currentTimeMillis() - timestamp, attributes);
                     }
