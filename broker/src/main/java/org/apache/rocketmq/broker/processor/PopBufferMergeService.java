@@ -419,7 +419,7 @@ public class PopBufferMergeService extends ServiceThread {
         ck.setStartOffset(startOffset);
         ck.setCId(group);
         ck.setTopic(topic);
-        ck.setQueueId((byte) queueId);
+        ck.setQueueId(queueId);
         ck.setBrokerName(brokerName);
 
         PopCheckPointWrapper pointWrapper = new PopCheckPointWrapper(reviveQueueId, Long.MAX_VALUE, ck, nextBeginOffset, true);

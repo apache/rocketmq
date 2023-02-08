@@ -208,7 +208,7 @@ public class PopReviveServiceTest {
         PopCheckPoint ck = new PopCheckPoint();
         ck.setStartOffset(startOffset);
         ck.setPopTime(popTime);
-        ck.setQueueId((byte) 0);
+        ck.setQueueId(0);
         ck.setCId(GROUP);
         ck.setTopic(TOPIC);
         ck.setNum((byte) 1);
