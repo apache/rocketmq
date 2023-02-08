@@ -2975,7 +2975,7 @@ public class DefaultMessageStore implements MessageStore {
 
         private DispatchService dispatchService;
 
-        public ConcurrentReputMessageService(){
+        public ConcurrentReputMessageService() {
             super();
             this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService();
             this.dispatchService = new DispatchService();
