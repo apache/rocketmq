@@ -279,4 +279,5 @@ public class RequestCode {
      * get all sync status
      */
     public static final int GET_ALL_SYNC_STATUS = 1012;
+
 }
