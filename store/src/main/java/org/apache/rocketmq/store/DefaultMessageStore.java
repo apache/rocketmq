@@ -2855,20 +2855,24 @@ public class DefaultMessageStore implements MessageStore {
                 if (!batchDispatchRequestQueue.isEmpty()) {
                     BatchDispatchRequest task = batchDispatchRequestQueue.peek();
                     batchDispatchRequestExecutor.execute(() -> {
-                        ByteBuffer tmpByteBuffer = task.byteBuffer.duplicate();
-                        tmpByteBuffer.position(task.position);
-                        tmpByteBuffer.limit(task.position + task.size);
-                        List<DispatchRequest> dispatchRequestList = new ArrayList<>();
-                        while (tmpByteBuffer.hasRemaining()) {
-                            DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
-                            if (dispatchRequest.isSuccess()) {
-                                dispatchRequestList.add(dispatchRequest);
-                            } else {
-                                LOGGER.error("[BUG]read total count not equals msg total size.");
+                        try {
+                            ByteBuffer tmpByteBuffer = task.byteBuffer.duplicate();
+                            tmpByteBuffer.position(task.position);
+                            tmpByteBuffer.limit(task.position + task.size);
+                            List<DispatchRequest> dispatchRequestList = new ArrayList<>();
+                            while (tmpByteBuffer.hasRemaining()) {
+                                DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
+                                if (dispatchRequest.isSuccess()) {
+                                    dispatchRequestList.add(dispatchRequest);
+                                } else {
+                                    LOGGER.error("[BUG]read total count not equals msg total size.");
+                                }
                             }
+                            dispatchRequestOrderlyQueue.put(task.id, dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
+                            mappedPageHoldCount.getAndDecrement();
+                        } catch (Exception e) {
+                            LOGGER.error("There is an exception in task execution.", e);
                         }
-                        dispatchRequestOrderlyQueue.put(task.id, dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
-                        mappedPageHoldCount.getAndDecrement();
                     });
                     batchDispatchRequestQueue.poll();
                 }
