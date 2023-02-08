@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -66,6 +67,7 @@ public class PopReviveService extends ServiceThread {
     private int queueId;
     private BrokerController brokerController;
     private String reviveTopic;
+    private long currentReviveMessageTimestamp = -1;
     private volatile boolean shouldRunPopRevive = false;
 
     private final NavigableMap<PopCheckPoint/* oldCK */, Pair<Long/* timestamp */, Boolean/* result */>> inflightReviveRequestMap = Collections.synchronizedNavigableMap(new TreeMap<>());
@@ -84,6 +86,10 @@ public class PopReviveService extends ServiceThread {
             return brokerController.getBrokerIdentity().getIdentifier() + "PopReviveService_" + this.queueId;
         }
         return "PopReviveService_" + this.queueId;
+    }
+
+    public int getQueueId() {
+        return queueId;
     }
 
     public void setShouldRunPopRevive(final boolean shouldRunPopRevive) {
@@ -120,6 +126,7 @@ public class PopReviveService extends ServiceThread {
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNoExit(msgInner.getTopic(), popCheckPoint.getCId());
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+        PopMetricsManager.incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("reviveQueueId={},retry msg , ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
                 queueId, popCheckPoint, messageExt.getQueueId(), messageExt.getQueueOffset(),
@@ -131,7 +138,7 @@ public class PopReviveService extends ServiceThread {
             return false;
         }
         this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(popCheckPoint);
-        this.brokerController.getBrokerStatsManager().incBrokerPutNums(1);
+        this.brokerController.getBrokerStatsManager().incBrokerPutNums(popCheckPoint.getTopic(), 1);
         this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
         this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
         if (brokerController.getPopMessageProcessor() != null) {
@@ -197,11 +204,13 @@ public class PopReviveService extends ServiceThread {
             || pullResult.getPullStatus() == PullStatus.OFFSET_ILLEGAL && offset == pullResult.getMaxOffset();
     }
 
-    private CompletableFuture<Pair<GetMessageStatus, MessageExt>> getBizMessage(String topic, long offset, int queueId, String brokerName) {
+    private CompletableFuture<Pair<GetMessageStatus, MessageExt>> getBizMessage(String topic, long offset, int queueId,
+        String brokerName) {
         return this.brokerController.getEscapeBridge().getMessageAsync(topic, offset, queueId, brokerName, false);
     }
 
-    public PullResult getMessage(String group, String topic, int queueId, long offset, int nums, boolean deCompressBody) {
+    public PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
+        boolean deCompressBody) {
         GetMessageResult getMessageResult = this.brokerController.getMessageStore().getMessage(group, topic, queueId, offset, nums, null);
 
         if (getMessageResult != null) {
@@ -315,7 +324,7 @@ public class PopReviveService extends ServiceThread {
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
-                long timerDelay = brokerController.getMessageStore().getTimerMessageStore().getReadBehind();
+                long timerDelay = brokerController.getMessageStore().getTimerMessageStore().getDequeueBehind();
                 long commitLogDelay = brokerController.getMessageStore().getTimerMessageStore().getEnqueueBehind();
                 // move endTime
                 if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
@@ -355,6 +364,7 @@ public class PopReviveService extends ServiceThread {
                         continue;
                     }
                     map.put(point.getTopic() + point.getCId() + point.getQueueId() + point.getStartOffset() + point.getPopTime(), point);
+                    PopMetricsManager.incPopReviveCkGetCount(point, queueId);
                     point.setReviveOffset(messageExt.getQueueOffset());
                     if (firstRt == 0) {
                         firstRt = point.getReviveTime();
@@ -365,6 +375,7 @@ public class PopReviveService extends ServiceThread {
                         POP_LOGGER.info("reviveQueueId={},find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
+                    PopMetricsManager.incPopReviveAckGetCount(ackMsg, queueId);
                     String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime();
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
@@ -555,6 +566,25 @@ public class PopReviveService extends ServiceThread {
         brokerController.getMessageStore().putMessage(ckMsg);
     }
 
+    public long getReviveBehindMillis() {
+        if (currentReviveMessageTimestamp <= 0) {
+            return 0;
+        }
+        long maxOffset = brokerController.getMessageStore().getMaxOffsetInQueue(reviveTopic, queueId);
+        if (maxOffset - reviveOffset > 1) {
+            return Math.max(0, System.currentTimeMillis() - currentReviveMessageTimestamp);
+        }
+        return 0;
+    }
+
+    public long getReviveBehindMessages() {
+        if (currentReviveMessageTimestamp <= 0) {
+            return 0;
+        }
+        long diff = brokerController.getMessageStore().getMaxOffsetInQueue(reviveTopic, queueId) - reviveOffset;
+        return Math.max(0, diff);
+    }
+
     @Override
     public void run() {
         int slow = 1;
@@ -586,7 +616,10 @@ public class PopReviveService extends ServiceThread {
                 long delay = 0;
                 if (sortList != null && !sortList.isEmpty()) {
                     delay = (System.currentTimeMillis() - sortList.get(0).getReviveTime()) / 1000;
+                    currentReviveMessageTimestamp = sortList.get(0).getReviveTime();
                     slow = 1;
+                } else {
+                    currentReviveMessageTimestamp = System.currentTimeMillis();
                 }
 
                 POP_LOGGER.info("reviveQueueId={},revive finish,old offset is {}, new offset is {}, ckDelay={}  ",
