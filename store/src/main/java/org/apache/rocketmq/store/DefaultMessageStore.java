@@ -135,10 +135,6 @@ public class DefaultMessageStore implements MessageStore {
 
     private ReputMessageService reputMessageService;
 
-    private MainBatchDispatchRequestService mainBatchDispatchRequestService;
-
-    private DispatchService dispatchService;
-
     private HAService haService;
 
     // CompactionLog
@@ -242,8 +238,6 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ReputMessageService();
         } else {
             this.reputMessageService = new ConcurrentReputMessageService();
-            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService();
-            this.dispatchService = new DispatchService();
         }
 
         this.transientStorePool = new TransientStorePool(this);
@@ -380,11 +374,6 @@ public class DefaultMessageStore implements MessageStore {
         this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
         this.reputMessageService.start();
 
-        if (messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
-            this.mainBatchDispatchRequestService.start();
-            this.dispatchService.start();
-        }
-
         // Checking is not necessary, as long as the dLedger's implementation exactly follows the definition of Recover,
         // which is eliminating the dispatch inconsistency between the commitLog and consumeQueue at the end of recovery.
         this.doRecheckReputOffsetFromCq();
@@ -482,12 +471,7 @@ public class DefaultMessageStore implements MessageStore {
             }
             this.commitLog.shutdown();
             this.reputMessageService.shutdown();
-            if (mainBatchDispatchRequestService != null) {
-                mainBatchDispatchRequestService.shutdown();
-            }
-            if (dispatchService != null) {
-                dispatchService.shutdown();
-            }
+
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
             this.storeCheckpoint.flush();
@@ -2983,6 +2967,16 @@ public class DefaultMessageStore implements MessageStore {
 
         private long batchId = 0;
 
+        private MainBatchDispatchRequestService mainBatchDispatchRequestService;
+
+        private DispatchService dispatchService;
+
+        public ConcurrentReputMessageService(){
+            super();
+            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService();
+            this.dispatchService = new DispatchService();
+        }
+
         public void createBatchDispatchRequest(ByteBuffer byteBuffer, int position, int size) {
             if (position < 0) {
                 return;
@@ -2990,6 +2984,13 @@ public class DefaultMessageStore implements MessageStore {
             mappedPageHoldCount.getAndIncrement();
             BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer, position, size, batchId++);
             batchDispatchRequestQueue.offer(task);
+        }
+
+        @Override
+        public void start() {
+            super.start();
+            this.mainBatchDispatchRequestService.start();
+            this.dispatchService.start();
         }
 
         @Override
@@ -3092,6 +3093,8 @@ public class DefaultMessageStore implements MessageStore {
                         this.reputFromOffset);
             }
 
+            this.mainBatchDispatchRequestService.shutdown();
+            this.dispatchService.shutdown();
             super.shutdown();
         }
 
