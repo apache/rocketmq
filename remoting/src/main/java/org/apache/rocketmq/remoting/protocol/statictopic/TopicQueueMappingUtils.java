@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -41,9 +40,8 @@ public class TopicQueueMappingUtils {
         Map<String, Integer> brokerNumMap = new HashMap<>();
         Map<Integer, String> idToBroker = new HashMap<>();
         //used for remapping
-        Map<String, Integer> brokerNumMapBeforeRemapping = null;
+        Map<String, Integer> brokerNumMapBeforeRemapping;
         int currentIndex = 0;
-        Random random = new Random();
         List<String> leastBrokers = new ArrayList<>();
         private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap, Map<String, Integer> brokerNumMapBeforeRemapping) {
             this.idToBroker.putAll(idToBroker);
@@ -151,7 +149,7 @@ public class TopicQueueMappingUtils {
             || brokerConfigMap.isEmpty()) {
             return null;
         }
-        //make sure it it not null
+        //make sure it is not null
         long maxEpoch = -1;
         int maxNum = -1;
         String scope = null;
@@ -224,7 +222,7 @@ public class TopicQueueMappingUtils {
                 //the earliest item may have been deleted concurrently
                 inew++;
             } else if (oldItem.getGen() < newItem.getGen()) {
-                //in the following cases, the new item-list has less items than old item-list
+                //in the following cases, the new item-list has fewer items than old item-list
                 //1. the queue is mapped back to a broker which hold the logic queue before
                 //2. The earliest item is deleted by  TopicQueueMappingCleanService
                 iold++;

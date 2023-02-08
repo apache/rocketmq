@@ -36,6 +36,7 @@ import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
+import org.apache.rocketmq.tieredstore.container.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
@@ -282,6 +283,8 @@ public class TieredMessageFetcherTest {
         request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN * 2, MessageBufferUtilTest.MSG_LEN, 0, 0, 0, "", "another-key", 0, 0, null);
         container.appendIndexFile(request);
         container.commit(true);
+        TieredIndexFile indexFile = TieredContainerManager.getIndexFile(storeConfig);
+        indexFile.commit(true);
         Assert.assertEquals(1, fetcher.queryMessageAsync(mq.getTopic(), "key", 1, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
 
         QueryMessageResult result = fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join();
