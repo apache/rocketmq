@@ -2889,7 +2889,7 @@ public class DefaultMessageStore implements MessageStore {
                     batchDispatchRequestQueue.poll();
                 }
             } catch (Exception e) {
-                LOGGER.warn(e.getMessage());
+                DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
 
