@@ -809,7 +809,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         ck.setStartOffset(offset);
         ck.setCId(requestHeader.getConsumerGroup());
         ck.setTopic(topic);
-        ck.setQueueId((byte) queueId);
+        ck.setQueueId(queueId);
         ck.setBrokerName(brokerName);
         for (Long msgQueueOffset : getMessageTmpResult.getMessageQueueOffset()) {
             ck.addDiff((int) (msgQueueOffset - offset));
