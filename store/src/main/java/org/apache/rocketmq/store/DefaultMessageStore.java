@@ -3103,11 +3103,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         @Override
-        public void run() {
-            super.run();
-        }
-
-        @Override
         public String getServiceName() {
             if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
                 return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + ConcurrentReputMessageService.class.getSimpleName();
