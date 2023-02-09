@@ -185,7 +185,7 @@ public class ReplicasManager {
                 }
             }
             // register 5 times but still unsuccessful
-            if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
+            if (this.state != State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE) {
                 return false;
             }
         }
@@ -208,6 +208,7 @@ public class ReplicasManager {
 
     public void shutdown() {
         this.state = State.SHUTDOWN;
+        this.registerState = RegisterState.INITIAL;
         this.executorService.shutdown();
         this.scheduledService.shutdown();
     }
@@ -369,37 +370,6 @@ public class ReplicasManager {
         }
     }
 
-//    private boolean registerBrokerToController() {
-//        // Register this broker to controller to get a stable and credible broker id, and persist metadata to local file.
-//        try {
-//            final RegisterBrokerToControllerResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress,
-//                this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress, this.brokerId, this.brokerConfig.getControllerHeartBeatTimeoutMills(),
-//                this.haService.getLastEpoch(), this.brokerController.getMessageStore().getMaxPhyOffset(), this.brokerConfig.getBrokerElectionPriority());
-//            final String newMasterAddress = registerResponse.getMasterAddress();
-//            if (StringUtils.isNoneEmpty(newMasterAddress)) {
-//                if (StringUtils.equals(newMasterAddress, this.localAddress)) {
-//                    changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
-//                } else {
-//                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getBrokerId());
-//                }
-//                // Set isolated to false, make broker can register to namesrv regularly
-//                brokerController.setIsolated(false);
-//            } else {
-//                // if master address is empty, just apply the brokerId
-//                if (registerResponse.getBrokerId() <= 0) {
-//                    // wrong broker id
-//                    LOGGER.error("Register to controller but receive a invalid broker id = {}", registerResponse.getBrokerId());
-//                    return false;
-//                }
-//                this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
-//            }
-//            return true;
-//        } catch (final Exception e) {
-//            LOGGER.error("Failed to register broker to controller", e);
-//            return false;
-//        }
-//    }
-
     /**
      * Register broker to controller, and persist the metadata to file
      * @return whether registering process succeeded
@@ -489,7 +459,7 @@ public class ReplicasManager {
             return true;
 
         } catch (Exception e) {
-            LOGGER.error("fail to apply broker id", e);
+            LOGGER.error("fail to apply broker id: {}", e, tempBrokerMetadata.getBrokerId());
             return false;
         }
     }
@@ -775,5 +745,21 @@ public class ReplicasManager {
 
     public Long getBrokerId() {
         return brokerId;
+    }
+
+    public RegisterState getRegisterState() {
+        return registerState;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public BrokerMetadata getBrokerMetadata() {
+        return brokerMetadata;
+    }
+
+    public TempBrokerMetadata getTempBrokerMetadata() {
+        return tempBrokerMetadata;
     }
 }

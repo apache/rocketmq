@@ -142,6 +142,8 @@
         <junit.version>4.13.2</junit.version>
         <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
+        <powermock-module-junit4-version>2.0.9</powermock-module-junit4-version>
+        <powermock-api-mockito2-version>2.0.9</powermock-api-mockito2-version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
 
@@ -982,6 +984,16 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${powermock-module-junit4-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito2</artifactId>
+            <version>${powermock-api-mockito2-version}</version>
         </dependency>
     </dependencies>
 </project>

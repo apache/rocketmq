@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
 
 import java.io.File;
 
@@ -34,7 +35,7 @@ public abstract class MetadataFile {
     public abstract void clearInMem();
 
     public void writeToFile() throws Exception {
-        deleteFile();
+        UtilAll.deleteFile(new File(filePath));
         MixAll.string2File(encodeToStr(), this.filePath);
     }
 
@@ -47,14 +48,12 @@ public abstract class MetadataFile {
         return file.exists();
     }
 
-    public void deleteFile() {
-        File file = new File(filePath);
-        file.deleteOnExit();
-    }
-
     public void clear() {
         clearInMem();
-        deleteFile();
+        UtilAll.deleteFile(new File(filePath));
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
 }
