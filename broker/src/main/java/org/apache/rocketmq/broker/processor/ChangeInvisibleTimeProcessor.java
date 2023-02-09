@@ -212,7 +212,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setStartOffset(offset);
         ck.setCId(requestHeader.getConsumerGroup());
         ck.setTopic(requestHeader.getTopic());
-        ck.setQueueId((byte) queueId);
+        ck.setQueueId(queueId);
         ck.addDiff(0);
         ck.setBrokerName(brokerName);
 

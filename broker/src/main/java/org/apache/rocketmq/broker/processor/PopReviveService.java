@@ -419,7 +419,7 @@ public class PopReviveService extends ServiceThread {
         PopCheckPoint point = new PopCheckPoint();
         point.setStartOffset(ackMsg.getStartOffset());
         point.setPopTime(ackMsg.getPopTime());
-        point.setQueueId((byte) ackMsg.getQueueId());
+        point.setQueueId(ackMsg.getQueueId());
         point.setCId(ackMsg.getConsumerGroup());
         point.setTopic(ackMsg.getTopic());
         point.setNum((byte) 0);
