@@ -119,19 +119,19 @@ public class ReplicasManagerRegisterTest {
 
     @Test
     public void testBrokerRegisterSuccess() throws Exception {
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterSuccessResponseHeader());
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
 
         ReplicasManager replicasManager0 = new ReplicasManager(mockedBrokerController);
         replicasManager0.start();
-        await().atMost(Duration.ofMillis(1000)).until(() -> {
-            return replicasManager0.getState() == ReplicasManager.State.RUNNING;
-        });
+        await().atMost(Duration.ofMillis(1000)).until(() ->
+            replicasManager0.getState() == ReplicasManager.State.RUNNING
+        );
         Assert.assertEquals(ReplicasManager.RegisterState.REGISTERED, replicasManager0.getRegisterState());
-        Assert.assertEquals(1l, replicasManager0.getBrokerId().longValue());
-        checkMetadataFile(replicasManager0.getBrokerMetadata(), 1l);
+        Assert.assertEquals(1L, replicasManager0.getBrokerId().longValue());
+        checkMetadataFile(replicasManager0.getBrokerMetadata(), 1L);
         Assert.assertFalse(replicasManager0.getTempBrokerMetadata().isLoaded());
         Assert.assertFalse(replicasManager0.getTempBrokerMetadata().fileExists());
     }
@@ -153,10 +153,10 @@ public class ReplicasManagerRegisterTest {
     @Test
     public void testRegisterFailedAtCreateTempFile() throws Exception {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterSuccessResponseHeader());
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
         ReplicasManager spyReplicasManager = PowerMockito.spy(replicasManager);
         PowerMockito.doReturn(false).when(spyReplicasManager, "createTempMetadataFile", anyLong());
 
@@ -172,10 +172,10 @@ public class ReplicasManagerRegisterTest {
     @Test
     public void testRegisterFailedAtApplyBrokerIdFailed() throws Exception {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenThrow(new RuntimeException());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterSuccessResponseHeader());
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
 
         replicasManager.start();
 
@@ -192,10 +192,10 @@ public class ReplicasManagerRegisterTest {
     @Test
     public void testRegisterFailedAtCreateMetadataFileAndDeleteTemp() throws Exception {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterSuccessResponseHeader());
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
 
         ReplicasManager spyReplicasManager = PowerMockito.spy(replicasManager);
         PowerMockito.doReturn(false).when(spyReplicasManager, "createMetadataFileAndDeleteTemp");
@@ -215,7 +215,7 @@ public class ReplicasManagerRegisterTest {
         // restart, we expect that this replicasManager still keep the tempMetadata and still try to finish its registering
         ReplicasManager replicasManagerNew = new ReplicasManager(mockedBrokerController);
         // because apply brokerId: 1 has succeeded, so now next broker id is 2
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 2l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 2L));
 
         replicasManagerNew.start();
 
@@ -227,18 +227,18 @@ public class ReplicasManagerRegisterTest {
         // metadata has been persisted
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().fileExists());
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().isLoaded());
-        Assert.assertEquals(1l, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
-        Assert.assertEquals(1l, replicasManagerNew.getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManagerNew.getBrokerId().longValue());
 
     }
 
     @Test
     public void testRegisterFailedAtRegisterSuccess() throws Exception {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenThrow(new RuntimeException());
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
 
         replicasManager.start();
 
@@ -251,13 +251,13 @@ public class ReplicasManagerRegisterTest {
         // metadata has been persisted
         Assert.assertTrue(replicasManager.getBrokerMetadata().fileExists());
         Assert.assertTrue(replicasManager.getBrokerMetadata().isLoaded());
-        Assert.assertEquals(1l, replicasManager.getBrokerMetadata().getBrokerId().longValue());
-        Assert.assertEquals(1l, replicasManager.getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManager.getBrokerMetadata().getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManager.getBrokerId().longValue());
 
         replicasManager.shutdown();
 
         Mockito.reset(mockedBrokerOuterAPI);
-        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1l, "127.0.0.1:13131", 1, 1));
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
         when(mockedBrokerOuterAPI.getControllerMetaData(any())).thenReturn(
                 new GetMetaDataResponseHeader("default-group", "dledger-a", CONTROLLER_ADDR, true, CONTROLLER_ADDR));
         when(mockedBrokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
@@ -265,9 +265,9 @@ public class ReplicasManagerRegisterTest {
         // restart, we expect that this replicasManager still keep the metadata and still try to finish its registering
         ReplicasManager replicasManagerNew = new ReplicasManager(mockedBrokerController);
         // because apply brokerId: 1 has succeeded, so now next broker id is 2
-        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 2l));
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 2L));
         // because apply brokerId: 1 has succeeded, so next request which try to apply brokerId: 1 will be failed
-        when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), eq(1l), any(), any())).thenThrow(new RuntimeException());
+        when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), eq(1L), any(), any())).thenThrow(new RuntimeException());
         when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterSuccessResponseHeader());
         replicasManagerNew.start();
 
@@ -279,8 +279,8 @@ public class ReplicasManagerRegisterTest {
         // metadata has been persisted
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().fileExists());
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().isLoaded());
-        Assert.assertEquals(1l, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
-        Assert.assertEquals(1l, replicasManagerNew.getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
+        Assert.assertEquals(1L, replicasManagerNew.getBrokerId().longValue());
     }
 
 

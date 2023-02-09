@@ -142,8 +142,7 @@
         <junit.version>4.13.2</junit.version>
         <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
-        <powermock-module-junit4-version>2.0.9</powermock-module-junit4-version>
-        <powermock-api-mockito2-version>2.0.9</powermock-api-mockito2-version>
+        <powermock-version>2.0.9</powermock-version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
 
@@ -975,12 +974,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito-core.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
@@ -988,12 +981,20 @@
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock-module-junit4-version}</version>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.objenesis</groupId>
+                    <artifactId>objenesis</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-api-mockito2</artifactId>
-            <version>${powermock-api-mockito2-version}</version>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
