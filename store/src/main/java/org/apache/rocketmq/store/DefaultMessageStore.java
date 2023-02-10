@@ -3030,9 +3030,10 @@ public class DefaultMessageStore implements MessageStore {
 
                         int magicCode = byteBuffer.getInt();
                         switch (magicCode) {
-                            case CommitLog.MESSAGE_MAGIC_CODE:
+                            case MessageDecoder.MESSAGE_MAGIC_CODE:
+                            case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
                                 break;
-                            case CommitLog.BLANK_MAGIC_CODE:
+                            case MessageDecoder.BLANK_MAGIC_CODE:
                                 totalSize = 0;
                                 break;
                             default:
