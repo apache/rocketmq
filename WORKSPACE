@@ -45,6 +45,9 @@ maven_install(
         "io.netty:netty-all:4.1.65.Final",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
+        "org.powermock:powermock-module-junit4:2.0.9",
+        "org.powermock:powermock-api-mockito2:2.0.9",
+
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
