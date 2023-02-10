@@ -47,7 +47,7 @@ jobs:
           ls
       - uses: actions/checkout@v3
         with:
-          repository: cryptoya/rocketmq-docker.git
+          repository: apache/rocketmq-docker.git
           ref: master
           path: rocketmq-docker
       - name: Build and save docker images
@@ -102,7 +102,7 @@ jobs:
           test-version: "${{ matrix.version }}"
           docker-repo-username: "${{ secrets.DOCKER_REPO_USERNAME }}"
           docker-repo-password: "${{ secrets.DOCKER_REPO_PASSWORD }}"
-          chart-git: "https://ghproxy.com/https://github.com/cryptoya/rocketmq-docker.git"
+          chart-git: "https://ghproxy.com/https://github.com/apache/rocketmq-docker.git"
           chart-branch: "master"
           chart-path: "./rocketmq-k8s-helm"
           job-id: ${{ strategy.job-index }}
@@ -136,6 +136,13 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
+      - uses: actions/upload-artifact@v3
+        if: always()
+        name: Upload test log
+        with:
+          name: testlog.txt
+          path: testlog.txt
+
 
   clean:
     if: always()
