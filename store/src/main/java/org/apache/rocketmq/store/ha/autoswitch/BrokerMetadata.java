@@ -19,6 +19,8 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Objects;
+
 public class BrokerMetadata extends MetadataFile {
 
     private String clusterName;
@@ -78,5 +80,18 @@ public class BrokerMetadata extends MetadataFile {
 
     public String getClusterName() {
         return clusterName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BrokerMetadata that = (BrokerMetadata) o;
+        return Objects.equals(clusterName, that.clusterName) && Objects.equals(brokerName, that.brokerName) && Objects.equals(brokerId, that.brokerId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(clusterName, brokerName, brokerId);
     }
 }
