@@ -29,6 +29,13 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
     public ElectMasterResponseHeader() {
     }
 
+    public ElectMasterResponseHeader(Long masterBrokerId, String masterAddress, Integer masterEpoch, Integer syncStateSetEpoch) {
+        this.masterBrokerId = masterBrokerId;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
     public String getMasterAddress() {
         return masterAddress;
     }
