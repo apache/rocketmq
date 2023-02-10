@@ -244,4 +244,4 @@ services.
 [percentage-of-issues-still-open-image]: http://isitmaintained.com/badge/open/apache/rocketmq.svg
 [pencentage-of-issues-still-open-url]: http://isitmaintained.com/project/apache/rocketmq
 [twitter-follow-image]: https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social
-[twitter-follow-url]: https://twitter.com/intent/follow?screen_name=ApacheRocketMQ
+[twitter-follow-url]: https://twitter.com/intent/follow?screen_name=ApacheRocketMQ 
