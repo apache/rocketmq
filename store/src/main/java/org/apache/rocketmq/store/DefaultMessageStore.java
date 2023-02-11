@@ -234,7 +234,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
+        if (!brokerConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService();
         } else {
             this.reputMessageService = new ConcurrentReputMessageService();
@@ -689,7 +689,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.recoverTopicQueueTable();
 
-        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
+        if (!brokerConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService();
         } else {
             this.reputMessageService = new ConcurrentReputMessageService();

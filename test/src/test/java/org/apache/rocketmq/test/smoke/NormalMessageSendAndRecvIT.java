@@ -19,6 +19,7 @@ package org.apache.rocketmq.test.smoke;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageClientExt;
@@ -107,5 +108,15 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
             Assert.assertEquals(msgSize, consumeStats.get().getOffsetTable().get(messageQueue).getBrokerOffset());
         }
 
+    }
+
+    @Test
+    public void testSynSendMessageWhenEnableBuildConsumeQueueConcurrently() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("enableBuildConsumeQueueConcurrently", "true");
+        defaultMQAdminExt.updateBrokerConfig(brokerController1.getBrokerAddr(), properties);
+        defaultMQAdminExt.updateBrokerConfig(brokerController2.getBrokerAddr(), properties);
+        defaultMQAdminExt.updateBrokerConfig(brokerController3.getBrokerAddr(), properties);
+        testSynSendMessage();
     }
 }
