@@ -178,13 +178,13 @@ public class PlainAccessResource implements AccessResource {
         // Content
         SortedMap<String, String> map = new TreeMap<>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
+            if (request.getVersion() <= MQVersion.Version.V4_9_3.ordinal() &&
+                    MixAll.UNIQUE_MSG_QUERY_FLAG.equals(entry.getKey())) {
+                continue;
+            }
             if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue());
             }
-        }
-        if (request.getVersion() <= MQVersion.Version.V4_9_3.ordinal()
-            && map.containsKey(MixAll.UNIQUE_MSG_QUERY_FLAG)) {
-            map.remove(MixAll.UNIQUE_MSG_QUERY_FLAG);
         }
         accessResource.setContent(AclUtils.combineRequestContent(request, map));
         return accessResource;
