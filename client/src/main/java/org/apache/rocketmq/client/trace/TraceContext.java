@@ -125,7 +125,7 @@ public class TraceContext implements Comparable<TraceContext> {
     public String toString() {
         StringBuilder sb = new StringBuilder(1024);
         sb.append(traceType).append("_").append(groupName)
-                .append("_").append(regionId).append("_").append(isSuccess).append("_");
+            .append("_").append(regionId).append("_").append(isSuccess).append("_");
         if (traceBeans != null && traceBeans.size() > 0) {
             for (TraceBean bean : traceBeans) {
                 sb.append(bean.getMsgId()).append("_").append(bean.getTopic()).append("_");
