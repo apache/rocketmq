@@ -401,6 +401,11 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+    /**
+     * Build ConsumeQueue concurrently with multi-thread
+     */
+    private boolean enableBuildConsumeQueueConcurrently = false;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1655,5 +1660,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
         this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
+    }
+
+    public boolean isEnableBuildConsumeQueueConcurrently() {
+        return enableBuildConsumeQueueConcurrently;
+    }
+
+    public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
     }
 }
