@@ -1011,7 +1011,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     private PullResult processPullResponse(
         final RemotingCommand response,
         final String addr) throws MQBrokerException, RemotingCommandException {
-        PullStatus pullStatus = PullStatus.NO_NEW_MSG;
+        PullStatus pullStatus;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
                 pullStatus = PullStatus.FOUND;
