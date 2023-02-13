@@ -381,6 +381,8 @@ public class MessageStoreConfig {
      */
     private boolean enableBuildConsumeQueueConcurrently = false;
 
+    private int batchDispatchRequestThreadPoolNums = 16;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1612,5 +1614,13 @@ public class MessageStoreConfig {
 
     public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
         this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
+    }
+
+    public int getBatchDispatchRequestThreadPoolNums() {
+        return batchDispatchRequestThreadPoolNums;
+    }
+
+    public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
+        this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 }
