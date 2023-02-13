@@ -100,7 +100,7 @@ public class PopBufferMergeServiceTest {
         ck.setCId(group);
         ck.setTopic(topic);
         int queueId = 0;
-        ck.setQueueId((byte) queueId);
+        ck.setQueueId(queueId);
 
         int reviveQid = 0;
         long nextBeginOffset = 101L;

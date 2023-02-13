@@ -32,7 +32,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @JSONField(name = "n")
     private byte num;
     @JSONField(name = "q")
-    private byte queueId;
+    private int queueId;
     @JSONField(name = "t")
     private String topic;
     @JSONField(name = "c")
@@ -96,11 +96,11 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.num = num;
     }
 
-    public byte getQueueId() {
+    public int getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(byte queueId) {
+    public void setQueueId(int queueId) {
         this.queueId = queueId;
     }
 
