@@ -3020,28 +3020,7 @@ public class DefaultMessageStore implements MessageStore {
                     for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
                         ByteBuffer byteBuffer = result.getByteBuffer();
 
-                        byteBuffer.mark();
-
-                        int totalSize = byteBuffer.getInt();
-                        if (reputFromOffset + totalSize > DefaultMessageStore.this.getConfirmOffset()) {
-                            doNext = false;
-                            break;
-                        }
-
-                        int magicCode = byteBuffer.getInt();
-                        switch (magicCode) {
-                            case MessageDecoder.MESSAGE_MAGIC_CODE:
-                            case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
-                                break;
-                            case MessageDecoder.BLANK_MAGIC_CODE:
-                                totalSize = 0;
-                                break;
-                            default:
-                                totalSize = -1;
-                                doNext = false;
-                        }
-
-                        byteBuffer.reset();
+                        int totalSize = preCheckMessageAndReturnSize(byteBuffer);
 
                         if (totalSize > 0) {
                             if (batchDispatchRequestStart == -1) {
@@ -3058,9 +3037,9 @@ public class DefaultMessageStore implements MessageStore {
                             this.reputFromOffset += totalSize;
                             readSize += totalSize;
                         } else {
+                            doNext = false;
                             if (totalSize == 0) {
                                 this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
-                                readSize = result.getSize();
                             }
                             this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
                             batchDispatchRequestStart = -1;
@@ -3081,6 +3060,35 @@ public class DefaultMessageStore implements MessageStore {
                     result.release();
                 }
             }
+        }
+
+        /**
+         * pre-check the message and returns the message size
+         *
+         * @return 0 Come to the end of file // >0 Normal messages // -1 Message checksum failure
+         */
+        public int preCheckMessageAndReturnSize(ByteBuffer byteBuffer) {
+            byteBuffer.mark();
+
+            int totalSize = byteBuffer.getInt();
+            if (reputFromOffset + totalSize > DefaultMessageStore.this.getConfirmOffset()) {
+                return -1;
+            }
+
+            int magicCode = byteBuffer.getInt();
+            switch (magicCode) {
+                case MessageDecoder.MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
+                    break;
+                case MessageDecoder.BLANK_MAGIC_CODE:
+                    return 0;
+                default:
+                    return -1;
+            }
+
+            byteBuffer.reset();
+
+            return totalSize;
         }
 
         @Override
