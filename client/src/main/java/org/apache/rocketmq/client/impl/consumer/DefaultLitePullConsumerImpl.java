@@ -1215,7 +1215,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return true;
         }
 
-        if (set1 == null || set2 == null || set1.size() == 0 || set1.size() != set2.size()) {
+        if (set1 == null || set2 == null || set1.size() != set2.size() || set1.size() == 0) {
             return false;
         }
 
