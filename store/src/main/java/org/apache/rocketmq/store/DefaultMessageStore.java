@@ -2841,8 +2841,8 @@ public class DefaultMessageStore implements MessageStore {
 
         public MainBatchDispatchRequestService() {
             batchDispatchRequestExecutor = new ThreadPoolExecutor(
-                    DefaultMessageStore.this.getBrokerConfig().getBatchDispatchRequestThreadPoolNums(),
-                    DefaultMessageStore.this.getBrokerConfig().getBatchDispatchRequestThreadPoolNums(),
+                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
+                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     1000 * 60,
                     TimeUnit.MICROSECONDS,
                     new LinkedBlockingQueue<>(4096),
