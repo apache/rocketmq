@@ -30,14 +30,14 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQOrderListener extends AbstractListener implements MessageListenerOrderly {
-    private Map<String/* brokerId_brokerIp */, Collection<Object>> msgs = new ConcurrentHashMap<String, Collection<Object>>();
+    private Map<String/* brokerId_brokerIp */, Collection<Object>> msgs = new ConcurrentHashMap<>();
 
     public RMQOrderListener() {
         super();
     }
 
-    public RMQOrderListener(String listnerName) {
-        super(listnerName);
+    public RMQOrderListener(String listenerName) {
+        super(listenerName);
     }
 
     public RMQOrderListener(String originMsgCollector, String msgBodyCollector) {
@@ -52,7 +52,7 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         Collection<Object> msgQueue = null;
         String key = getKey(msg.getQueueId(), msg.getStoreHost().toString());
         if (!msgs.containsKey(key)) {
-            msgQueue = new ArrayList<Object>();
+            msgQueue = new ArrayList<>();
         } else {
             msgQueue = msgs.get(key);
         }
@@ -70,7 +70,7 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
                                                ConsumeOrderlyContext context) {
         for (MessageExt msg : msgs) {
             if (isDebug) {
-                if (listenerName != null && listenerName != "") {
+                if (listenerName != null && !"".equals(listenerName)) {
                     LOGGER.info(listenerName + ": " + msg);
                 } else {
                     LOGGER.info("{}", msg);
