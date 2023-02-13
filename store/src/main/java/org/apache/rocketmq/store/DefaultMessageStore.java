@@ -2625,8 +2625,8 @@ public class DefaultMessageStore implements MessageStore {
             this.buffer = new DispatchRequest[bufferNum][];
         }
 
-        public void put(long idx, DispatchRequest[] obj) {
-            while (ptr + this.buffer.length <= idx) {
+        public void put(long index, DispatchRequest[] dispatchRequests) {
+            while (ptr + this.buffer.length <= index) {
                 synchronized (this) {
                     try {
                         this.wait();
@@ -2635,12 +2635,12 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
             }
-            int mod = (int) (idx % this.buffer.length);
-            this.buffer[mod] = obj;
+            int mod = (int) (index % this.buffer.length);
+            this.buffer[mod] = dispatchRequests;
             maxPtr.incrementAndGet();
         }
 
-        public DispatchRequest[] get(List<DispatchRequest[]> rets) {
+        public DispatchRequest[] get(List<DispatchRequest[]> dispatchRequestsList) {
             synchronized (this) {
                 for (int i = 0; i < this.buffer.length; i++) {
                     int mod = (int) (ptr % this.buffer.length);
@@ -2649,7 +2649,7 @@ public class DefaultMessageStore implements MessageStore {
                         this.notifyAll();
                         return null;
                     }
-                    rets.add(ret);
+                    dispatchRequestsList.add(ret);
                     this.buffer[mod] = null;
                     ptr++;
                 }
@@ -2911,6 +2911,9 @@ public class DefaultMessageStore implements MessageStore {
 
         private final List<DispatchRequest[]> dispatchRequestsList = new ArrayList<>();
 
+        // dispatchRequestsList:[
+        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]},
+        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]}]
         private void dispatch() {
             dispatchRequestsList.clear();
             dispatchRequestOrderlyQueue.get(dispatchRequestsList);
