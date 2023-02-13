@@ -4,7 +4,7 @@
 ## What is the purpose of the change
 
 <!--
-If this PR fixes a GitHub issue, please add `fixes #<XXX>` or `cloese #<XXX>`.Please refer to the documentation for more information:
+If this PR fixes a GitHub issue, please add `fixes #<XXX>` or `closes #<XXX>`.Please refer to the documentation for more information:
 https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
 -->
 
