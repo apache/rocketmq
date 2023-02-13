@@ -108,7 +108,7 @@ public class GetBrokerEpochSubCommand implements SubCommand {
     private void printData(Set<String> brokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         for (String brokerAddr : brokers) {
             final EpochEntryCache epochCache = defaultMQAdminExt.getBrokerEpochCache(brokerAddr);
-            System.out.printf("\n#clusterName\t%s\n#brokerName\t%s\n#brokerAddr\t%s\n#brokerId\t%d",
+            System.out.printf("\n\n#clusterName\t%s\n#brokerName\t%s\n#brokerAddr\t%s\n#brokerId\t%d",
                 epochCache.getClusterName(), epochCache.getBrokerName(), brokerAddr, epochCache.getBrokerId());
             final List<EpochEntry> epochList = epochCache.getEpochList();
             for (int i = 0; i < epochList.size(); i++) {
@@ -116,7 +116,7 @@ public class GetBrokerEpochSubCommand implements SubCommand {
                 if (i == epochList.size() - 1) {
                     epochEntry.setEndOffset(epochCache.getMaxOffset());
                 }
-                System.out.printf("\n#Epoch: %s\n", epochEntry.toString());
+                System.out.printf("\n#Epoch: %s", epochEntry.toString());
             }
         }
     }
