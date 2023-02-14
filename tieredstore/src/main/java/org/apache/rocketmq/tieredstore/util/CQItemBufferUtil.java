@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.exception;
+package org.apache.rocketmq.tieredstore.util;
 
-public class MQRedirectException extends MQBrokerException {
-    private static final StackTraceElement[] UNASSIGNED_STACK = new StackTraceElement[0];
+import java.nio.ByteBuffer;
 
-    private final byte[] body;
-
-    public MQRedirectException(byte[] responseBody) {
-        this.body = responseBody;
+public class CQItemBufferUtil {
+    public static long getCommitLogOffset(ByteBuffer cqItem) {
+        return cqItem.getLong(cqItem.position());
     }
 
-    // This exception class is used as a flow control item, so stack trace is useless and performance killer.
-    @Override
-    public synchronized Throwable fillInStackTrace() {
-        this.setStackTrace(UNASSIGNED_STACK);
-        return this;
+    public static int getSize(ByteBuffer cqItem) {
+        return cqItem.getInt(cqItem.position() + 8);
     }
 
-    public byte[] getBody() {
-        return body;
+    public static long getTagCode(ByteBuffer cqItem) {
+        return cqItem.getLong(cqItem.position() + 12);
     }
 }

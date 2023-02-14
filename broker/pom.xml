@@ -35,6 +35,10 @@
             <artifactId>rocketmq-store</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-tiered-store</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-slf4j-api</artifactId>
         </dependency>

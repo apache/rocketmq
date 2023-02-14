@@ -199,4 +199,17 @@ public class BrokerStatsManagerTest {
             .getValue().doubleValue()).isEqualTo(1L);
         assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopic()).isEqualTo(1L);
     }
+
+    @Test
+    public void testIncBrokerPutNumsWithoutSystemTopic() {
+        brokerStatsManager.incBrokerPutNumsWithoutSystemTopic(TOPIC, 1);
+        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
+            .getValue().doubleValue()).isEqualTo(1L);
+        assertThat(brokerStatsManager.getBrokerPutNumsWithoutSystemTopic()).isEqualTo(1L);
+
+        brokerStatsManager.incBrokerPutNumsWithoutSystemTopic(TopicValidator.RMQ_SYS_TRACE_TOPIC, 1);
+        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
+            .getValue().doubleValue()).isEqualTo(1L);
+        assertThat(brokerStatsManager.getBrokerPutNumsWithoutSystemTopic()).isEqualTo(1L);
+    }
 }

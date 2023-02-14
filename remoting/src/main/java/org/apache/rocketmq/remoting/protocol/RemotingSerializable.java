@@ -26,11 +26,11 @@ public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     public static byte[] encode(final Object obj) {
-        final String json = toJson(obj, false);
-        if (json != null) {
-            return json.getBytes(CHARSET_UTF8);
+        if (obj == null) {
+            return null;
         }
-        return null;
+        final String json = toJson(obj, false);
+        return json.getBytes(CHARSET_UTF8);
     }
 
     public static String toJson(final Object obj, boolean prettyFormat) {

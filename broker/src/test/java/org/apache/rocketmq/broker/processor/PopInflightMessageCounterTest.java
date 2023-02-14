@@ -53,7 +53,7 @@ public class PopInflightMessageCounterTest {
         PopCheckPoint popCheckPoint = new PopCheckPoint();
         popCheckPoint.setTopic(topic);
         popCheckPoint.setCId(group);
-        popCheckPoint.setQueueId((byte) 0);
+        popCheckPoint.setQueueId(0);
         popCheckPoint.setPopTime(System.currentTimeMillis());
 
         counter.decrementInFlightMessageNum(popCheckPoint);

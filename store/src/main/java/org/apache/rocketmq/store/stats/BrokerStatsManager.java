@@ -68,7 +68,6 @@ public class BrokerStatsManager {
     @Deprecated public static final String COMMERCIAL_RCV_SIZE = Stats.COMMERCIAL_RCV_SIZE;
     @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
 
-
     // Send message latency
     public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
     public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
@@ -77,6 +76,7 @@ public class BrokerStatsManager {
     public static final String BROKER_ACK_NUMS = "BROKER_ACK_NUMS";
     public static final String BROKER_CK_NUMS = "BROKER_CK_NUMS";
     public static final String BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC = "BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC";
+    public static final String BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC = "BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC";
     public static final String SNDBCK2DLQ_TIMES = "SNDBCK2DLQ_TIMES";
 
     public static final String COMMERCIAL_OWNER = "Owner";
@@ -191,6 +191,8 @@ public class BrokerStatsManager {
         this.statsTable.put(BROKER_CK_NUMS, new StatsItemSet(BROKER_CK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC,
             new StatsItemSet(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, this.scheduledExecutorService, log));
+        this.statsTable.put(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC,
+            new StatsItemSet(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_FROM_DISK_NUMS,
             new StatsItemSet(Stats.GROUP_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_FROM_DISK_SIZE,
@@ -500,19 +502,26 @@ public class BrokerStatsManager {
     }
 
     public void incTopicPutLatency(final String topic, final int queueId, final int incValue) {
-        final String statsKey = String.format("%d@%s", queueId, topic);
-        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey, incValue, 1);
+        StringBuilder statsKey;
+        if (topic != null) {
+            statsKey = new StringBuilder(topic.length() + 6);
+        } else {
+            statsKey = new StringBuilder(6);
+        }
+        statsKey.append(queueId).append("@").append(topic);
+        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
     }
 
     public void incBrokerPutNums() {
         this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }
 
-    public void incBrokerPutNums(final int incValue) {
+    public void incBrokerPutNums(final String topic, final int incValue) {
         this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
+        incBrokerPutNumsWithoutSystemTopic(topic, incValue);
     }
 
-    public void incBrokerGetNums(String topic, final int incValue) {
+    public void incBrokerGetNums(final String topic, final int incValue) {
         this.statsTable.get(Stats.BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
         this.incBrokerGetNumsWithoutSystemTopic(topic, incValue);
     }
@@ -532,8 +541,27 @@ public class BrokerStatsManager {
         this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
+    public void incBrokerPutNumsWithoutSystemTopic(final String topic, final int incValue) {
+        if (TopicValidator.isSystemTopic(topic)) {
+            return;
+        }
+        this.statsTable.get(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
+    }
+
     public long getBrokerGetNumsWithoutSystemTopic() {
         final StatsItemSet statsItemSet = this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC);
+        if (statsItemSet == null) {
+            return 0;
+        }
+        final StatsItem statsItem = statsItemSet.getStatsItem(this.clusterName);
+        if (statsItem == null) {
+            return 0;
+        }
+        return statsItem.getValue().longValue();
+    }
+
+    public long getBrokerPutNumsWithoutSystemTopic() {
+        final StatsItemSet statsItemSet = this.statsTable.get(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC);
         if (statsItemSet == null) {
             return 0;
         }
