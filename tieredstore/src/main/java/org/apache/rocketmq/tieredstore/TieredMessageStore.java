@@ -22,7 +22,6 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.View;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -54,13 +53,13 @@ import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
-    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    private final TieredMessageFetcher fetcher;
-    private final TieredDispatcher dispatcher;
-    private final String brokerName;
-    private final TieredMessageStoreConfig storeConfig;
-    private final TieredContainerManager containerManager;
-    private final TieredMetadataStore metadataStore;
+    protected static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    protected final TieredMessageFetcher fetcher;
+    protected final TieredDispatcher dispatcher;
+    protected final String brokerName;
+    protected final TieredMessageStoreConfig storeConfig;
+    protected final TieredContainerManager containerManager;
+    protected final TieredMetadataStore metadataStore;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -320,8 +319,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = new ArrayList<>();
-        res.addAll(next.getMetricsView());
+        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }
