@@ -26,6 +26,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -262,7 +264,7 @@ public class RemotingHelper {
 
     public static void closeChannel(Channel channel) {
         final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
-        if ("".equals(addrRemote)) {
+        if (StringUtils.isBlank(addrRemote)) {
             channel.close();
         } else {
             channel.close().addListener(new ChannelFutureListener() {
