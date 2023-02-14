@@ -74,23 +74,25 @@ public class AutoSwitchRoleBase {
         return nextPort(1001, 9999);
     }
 
-    public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException {
+    public static Integer nextPort(int minPort, int maxPort) throws IOException {
         if (maxPort < 0 || minPort < 0 || maxPort - minPort < 0) {
             return 0;
         }
         Random random = new Random();
         int port;
-        try {
-            int tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
-            ServerSocket serverSocket = new ServerSocket(tempPort);
-            port = serverSocket.getLocalPort();
-            serverSocket.close();
-        } catch (Exception ignored) {
-            if (number.get() > 200) {
-                throw new IOException("This server's open ports are temporarily full!");
+        while (true) {
+            try {
+                int tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
+                ServerSocket serverSocket = new ServerSocket(tempPort);
+                port = serverSocket.getLocalPort();
+                serverSocket.close();
+                break;
+            } catch (Exception ignored) {
+                if (number.get() > 200) {
+                    throw new IOException("This server's open ports are temporarily full!");
+                }
+                number.incrementAndGet();
             }
-            number.incrementAndGet();
-            port = nextPort(minPort, maxPort);
         }
         number.set(0);
         return port;
