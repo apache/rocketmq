@@ -75,6 +75,9 @@ public class AutoSwitchRoleBase {
     }
 
     public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException {
+        if (maxPort == 0 || maxPort - minPort  < 0) {
+            return 0;
+        }
         Random random = new Random();
         int port = 0;
         try {
