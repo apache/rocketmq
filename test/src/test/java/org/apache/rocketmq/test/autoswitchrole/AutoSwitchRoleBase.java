@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -58,7 +59,7 @@ public class AutoSwitchRoleBase {
     protected static List<BrokerController> brokerList;
     private static SocketAddress bornHost;
     private static SocketAddress storeHost;
-    private static Integer number = 0;
+    private static final AtomicInteger number = new AtomicInteger(0);
 
     protected static void initialize() {
         brokerList = new ArrayList<>();
@@ -75,24 +76,22 @@ public class AutoSwitchRoleBase {
 
     public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException {
         Random random = new Random();
-        int tempPort;
-        int port;
+        int port = 0;
         try {
-            while (true) {
-                tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
+            while (port == 0) {
+                int tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
                 ServerSocket serverSocket = new ServerSocket(tempPort);
                 port = serverSocket.getLocalPort();
                 serverSocket.close();
-                break;
             }
         } catch (Exception ignored) {
-            if (number > 200) {
+            if (number.get() > 200) {
                 throw new IOException("This server's open ports are temporarily full!");
             }
-            number++;
+            number.incrementAndGet();
             port = nextPort(minPort, maxPort);
         }
-        number = 0;
+        number.set(0);
         return port;
     }
 
