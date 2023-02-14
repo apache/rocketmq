@@ -127,29 +127,38 @@ public class SessionCredentials {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
 
         SessionCredentials other = (SessionCredentials) obj;
         if (accessKey == null) {
-            if (other.accessKey != null)
+            if (other.accessKey != null) {
                 return false;
-        } else if (!accessKey.equals(other.accessKey))
+            }
+        } else if (!accessKey.equals(other.accessKey)) {
             return false;
+        }
 
         if (secretKey == null) {
-            if (other.secretKey != null)
+            if (other.secretKey != null) {
                 return false;
-        } else if (!secretKey.equals(other.secretKey))
+            }
+        } else if (!secretKey.equals(other.secretKey)) {
             return false;
+        }
 
         if (signature == null) {
             return other.signature == null;
-        } else return signature.equals(other.signature);
+        } else {
+            return signature.equals(other.signature);
+        }
     }
 
     @Override
