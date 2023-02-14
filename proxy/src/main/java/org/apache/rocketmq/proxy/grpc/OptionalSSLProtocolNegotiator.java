@@ -73,17 +73,22 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
             throws Exception {
-            // in SslHandler.isEncrypted, it need at least 5 bytes to judge is encrypted or not
-            if (in.readableBytes() < SSL_RECORD_HEADER_LENGTH) {
-                return;
+            try {
+                // in SslHandler.isEncrypted, it need at least 5 bytes to judge is encrypted or not
+                if (in.readableBytes() < SSL_RECORD_HEADER_LENGTH) {
+                    return;
+                }
+                if (SslHandler.isEncrypted(in)) {
+                    ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
+                } else {
+                    ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
+                }
+                ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
+                ctx.pipeline().remove(this);
+            } catch (Exception e) {
+                log.error("process protocol negotiator failed.", e);
+                throw e;
             }
-            if (SslHandler.isEncrypted(in)) {
-                ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
-            } else {
-                ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
-            }
-            ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
-            ctx.pipeline().remove(this);
         }
     }
 }
