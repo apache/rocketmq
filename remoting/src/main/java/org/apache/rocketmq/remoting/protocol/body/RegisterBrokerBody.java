@@ -88,7 +88,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
             //write the topic queue mapping
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigSerializeWrapper.getTopicQueueMappingInfoMap();
             if (topicQueueMappingInfoMap == null) {
-                //as the place holder
+                //as the placeholder
                 topicQueueMappingInfoMap = new ConcurrentHashMap<>();
             }
             outputStream.write(convertIntToByteArray(topicQueueMappingInfoMap.size()));
