@@ -491,10 +491,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 int wroteSize = request.getBody().length;
                 int msgNum = Math.max(appendMessageResult != null ? appendMessageResult.getMsgNum() : 1, 1);
                 int commercialMsgNum = (int) Math.ceil(wroteSize / (double) commercialSizePerMsg);
-                int incValue = commercialMsgNum;
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
-                sendMessageContext.setCommercialSendTimes(incValue);
+                sendMessageContext.setCommercialSendTimes(commercialMsgNum);
                 sendMessageContext.setCommercialSendSize(wroteSize);
                 sendMessageContext.setCommercialOwner(owner);
 
