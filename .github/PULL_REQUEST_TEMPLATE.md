@@ -8,7 +8,7 @@ If this PR fixes a GitHub issue, please add `fixes #<XXX>` or `closes #<XXX>`. P
 https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
 -->
 
-fix #<xxx> <!-- <xxx> replace with PR id -->
+fix #<xxx> <!-- <xxx> replace with issue id -->
 
 ## Brief changelog
 
