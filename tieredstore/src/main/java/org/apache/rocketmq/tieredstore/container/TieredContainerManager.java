@@ -233,6 +233,9 @@ public class TieredContainerManager {
     public void destroyContainer(MessageQueue mq) {
         TieredMessageQueueContainer container = messageQueueContainerMap.remove(mq);
         if (container != null) {
+            MessageQueue messageQueue = container.getMessageQueue();
+            logger.info("BlobContainerManager#destroyContainer: try to destroy container: topic: {}, queueId: {}",
+                messageQueue.getTopic(), messageQueue.getQueueId());
             container.destroy();
         }
     }
