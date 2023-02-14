@@ -36,6 +36,7 @@ import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -131,6 +132,12 @@ public class BrokerMetricsManager {
     public static ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
     public static LongCounter sendToDlqMessages = new NopLongCounter();
 
+    public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
+        {
+            add(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        }
+    };
+
     public BrokerMetricsManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         brokerConfig = brokerController.getBrokerConfig();
@@ -165,7 +172,13 @@ public class BrokerMetricsManager {
         if (StringUtils.isBlank(group)) {
             return false;
         }
-        return group.toLowerCase().startsWith(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        String groupInLowerCase = group.toLowerCase();
+        for (String prefix : SYSTEM_GROUP_PREFIX_LIST) {
+            if (groupInLowerCase.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isSystem(String topic, String group) {
@@ -439,6 +452,7 @@ public class BrokerMetricsManager {
                         .put(LABEL_VERSION, MQVersion.getVersionDesc(attr.version).toLowerCase())
                         .put(LABEL_CONSUME_MODE, attr.consumeMode.getTypeCN().toLowerCase())
                         .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING)
+                        .put(LABEL_IS_SYSTEM, isSystemGroup(attr.group))
                         .build();
                     measurement.record(count, attributes);
                 });
