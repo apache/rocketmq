@@ -195,6 +195,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
             response.setRemark(errorInfo);
             return response;
         }
+
         SubscriptionGroupConfig subscriptionGroupConfig = this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getConsumerGroup());
         if (null == subscriptionGroupConfig) {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
@@ -263,6 +264,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
     }
 
     private boolean hasMsgFromQueue(boolean isRetry, NotificationRequestHeader requestHeader, int queueId) {
+        if (this.brokerController.getConsumerOrderInfoManager().checkBlock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), queueId, 0)) {
+            return false;
+        }
         String topic = isRetry ? KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()) : requestHeader.getTopic();
         long offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId);
         long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset;
