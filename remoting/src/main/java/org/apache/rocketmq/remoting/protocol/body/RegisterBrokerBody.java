@@ -87,7 +87,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
             //write the topic queue mapping
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigSerializeWrapper.getTopicQueueMappingInfoMap();
             if (topicQueueMappingInfoMap == null) {
-                //as the place holder
+                //as the placeholder
                 topicQueueMappingInfoMap = new ConcurrentHashMap<>();
             }
             outputStream.write(convertIntToByteArray(topicQueueMappingInfoMap.size()));
@@ -216,11 +216,8 @@ public class RegisterBrokerBody extends RemotingSerializable {
         ConcurrentMap<String, TopicConfig> topicConfigConcurrentMap) {
         ConcurrentHashMap<String, TopicConfig> result = new ConcurrentHashMap<>();
         if (topicConfigConcurrentMap != null) {
-            for (Map.Entry<String, TopicConfig> entry : topicConfigConcurrentMap.entrySet()) {
-                result.put(entry.getKey(), entry.getValue());
-            }
+            result.putAll(topicConfigConcurrentMap);
         }
         return result;
-
     }
 }

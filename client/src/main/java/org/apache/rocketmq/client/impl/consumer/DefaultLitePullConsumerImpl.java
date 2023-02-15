@@ -1215,12 +1215,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return true;
         }
 
-        if (set1 == null || set2 == null || set1.size() != set2.size()
-            || set1.size() == 0 || set2.size() == 0) {
+        if (set1 == null || set2 == null || set1.size() != set2.size() || set1.size() == 0) {
             return false;
         }
 
-        Iterator iter = set2.iterator();
+        Iterator<MessageQueue> iter = set2.iterator();
         boolean isEqual = true;
         while (iter.hasNext()) {
             if (!set1.contains(iter.next())) {
