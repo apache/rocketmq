@@ -78,7 +78,7 @@ public class AutoSwitchRoleBase {
         Random random = new Random();
         int tempPort;
         int port;
-        while (true){
+        while (true) {
             try {
                 tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
                 ServerSocket serverSocket = new ServerSocket(tempPort);
