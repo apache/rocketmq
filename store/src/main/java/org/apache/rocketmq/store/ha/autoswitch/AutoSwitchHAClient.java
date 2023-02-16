@@ -86,6 +86,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * │                        HANDSHAKE  Header                              │               body            │
      * </pre>
      */
+    @Deprecated
     public static final int HANDSHAKE_SIZE = HANDSHAKE_HEADER_SIZE + 50;
 
     /**
@@ -105,7 +106,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
     private final AtomicReference<String> masterHaAddress = new AtomicReference<>();
     private final AtomicReference<String> masterAddress = new AtomicReference<>();
-    private final ByteBuffer handshakeHeaderBuffer = ByteBuffer.allocate(HANDSHAKE_SIZE);
+    private final ByteBuffer handshakeHeaderBuffer = ByteBuffer.allocate(HANDSHAKE_HEADER_SIZE);
     private final ByteBuffer transferHeaderBuffer = ByteBuffer.allocate(TRANSFER_HEADER_SIZE);
     private final AutoSwitchHAService haService;
     private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
