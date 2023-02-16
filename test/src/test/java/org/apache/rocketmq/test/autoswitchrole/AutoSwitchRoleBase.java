@@ -117,7 +117,7 @@ public class AutoSwitchRoleBase {
         final BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), storeConfig);
         assertTrue(brokerController.initialize());
         brokerController.start();
-        this.brokerList.add(brokerController);
+        brokerList.add(brokerController);
         await().atMost(20, TimeUnit.SECONDS).until(() -> (expectedRole == BrokerRole.SYNC_MASTER) == brokerController.getReplicasManager().isMasterState());
         return brokerController;
     }
