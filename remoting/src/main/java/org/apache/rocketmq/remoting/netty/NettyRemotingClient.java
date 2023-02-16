@@ -39,6 +39,9 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.resolver.NoopAddressResolverGroup;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import java.io.IOException;
@@ -53,8 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -95,7 +96,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final ConcurrentHashMap<String /* cidr */, Bootstrap> bootstrapMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<>();
 
-    private final Timer timer = new Timer("ClientHouseKeepingService", true);
+    private final HashedWheelTimer timer = new HashedWheelTimer(r -> new Thread(r, "ClientHouseKeepingService"));
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<>();
     private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<>();
@@ -256,39 +257,34 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
-        this.timer.scheduleAtFixedRate(new TimerTask() {
+        TimerTask timerTaskScanResponseTable = new TimerTask() {
             @Override
-            public void run() {
+            public void run(Timeout timeout) {
                 try {
                     NettyRemotingClient.this.scanResponseTable();
                 } catch (Throwable e) {
                     LOGGER.error("scanResponseTable exception", e);
+                } finally {
+                    timer.newTimeout(this, 1000, TimeUnit.MILLISECONDS);
                 }
             }
-        }, 1000 * 3, 1000);
+        };
+        this.timer.newTimeout(timerTaskScanResponseTable, 1000 * 3, TimeUnit.MILLISECONDS);
 
-//        this.timer.scheduleAtFixedRate(new TimerTask() {
-//            @Override
-//            public void run() {
-//                try {
-//                    NettyRemotingClient.this.scanChannelTablesOfNameServer();
-//                } catch (Exception e) {
-//                    LOGGER.error("scanChannelTablesOfNameServer exception", e);
-//                }
-//            }
-//        }, 1000 * 3, 10 * 1000);
-
-        this.timer.scheduleAtFixedRate(new TimerTask() {
+        int connectTimeoutMillis = this.nettyClientConfig.getConnectTimeoutMillis();
+        TimerTask timerTaskScanAvailableNameSrv = new TimerTask()  {
             @Override
-            public void run() {
+            public void run(Timeout timeout) {
                 try {
                     NettyRemotingClient.this.scanAvailableNameSrv();
                 } catch (Exception e) {
                     LOGGER.error("scanAvailableNameSrv exception", e);
+                } finally {
+                    timer.newTimeout(this, connectTimeoutMillis , TimeUnit.MILLISECONDS);
                 }
             }
-        }, 0, this.nettyClientConfig.getConnectTimeoutMillis());
-
+        };
+        this.timer.newTimeout(timerTaskScanAvailableNameSrv, 0, TimeUnit.MILLISECONDS);
     }
 
     private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
@@ -383,7 +379,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void shutdown() {
         try {
-            this.timer.cancel();
+            this.timer.stop();
 
             for (String addr : this.channelTables.keySet()) {
                 this.closeChannel(addr, this.channelTables.get(addr).getChannel());
