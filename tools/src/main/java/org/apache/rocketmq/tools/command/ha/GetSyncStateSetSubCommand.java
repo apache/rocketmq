@@ -122,7 +122,6 @@ public class GetSyncStateSetSubCommand implements SubCommand {
                 System.out.printf("\n#brokerName\t%s\n#MasterAddr\t%s\n#MasterEpoch\t%d\n#SyncStateSetEpoch\t%d\n#SyncStateSetNums\t%d\n",
                     next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
                     inSyncReplicas.size());
-
                 for (BrokerReplicasInfo.ReplicaIdentity member : inSyncReplicas) {
                     System.out.printf("\n InSyncReplica:\t%s\t%s\n", member.toString(), member.getOnline() ? "online" : "offline");
                 }
