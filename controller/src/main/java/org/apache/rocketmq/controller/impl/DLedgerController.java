@@ -166,12 +166,6 @@ public class DLedgerController implements Controller {
             () -> this.replicasInfoManager.electMaster(request, this.electPolicy), true);
     }
 
-//    @Override
-//    public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
-//        return this.scheduler.appendEvent("registerBroker",
-//            () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
-//    }
-
     @Override
     public CompletableFuture<RemotingCommand> getNextBrokerId(GetNextBrokerIdRequestHeader request) {
         return this.scheduler.appendEvent("getNextBrokerId", () -> this.replicasInfoManager.getNextBrokerId(request), false);
