@@ -28,11 +28,14 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -167,8 +170,42 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final MessageStore messageStore = brokerController2.getMessageStore();
         putMessage(messageStore, topic);
 
-        //Check slave message
+        // Check slave message
         checkMessage(brokerController1.getMessageStore(), topic, 20, 0);
+        shutdownAndClearBroker();
+    }
+
+
+    @Test
+    public void testRestartWithChangedAddress() throws Exception {
+        String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
+        String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
+        int oldPort = nextPort();
+        this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), oldPort, oldPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
+        Thread.sleep(1000);
+        assertTrue(brokerController1.getReplicasManager().isMasterState());
+        assertEquals(brokerController1.getReplicasManager().getMasterEpoch(), 1);
+
+        // Let master shutdown
+        brokerController1.shutdown();
+        brokerList.remove(this.brokerController1);
+        Thread.sleep(6000);
+
+        // Restart with changed address
+        int newPort = nextPort();
+        this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), newPort, newPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
+        Thread.sleep(1000);
+
+        // Check broker id
+        assertEquals(1, brokerController1.getReplicasManager().getBrokerId().longValue());
+        // Check role
+        assertTrue(brokerController1.getReplicasManager().isMasterState());
+
+        // check ip address
+        RemotingCommand remotingCommand = controllerManager.getController().getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(500, TimeUnit.MILLISECONDS);
+        GetReplicaInfoResponseHeader resp = (GetReplicaInfoResponseHeader) remotingCommand.readCustomHeader();
+        assertEquals(1, resp.getMasterBrokerId().longValue());
+        assertTrue(resp.getMasterAddress().contains(String.valueOf(newPort)));
         shutdownAndClearBroker();
     }
 

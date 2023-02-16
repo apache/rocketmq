@@ -191,6 +191,8 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_REGISTER_TO_CONTROLLER_DONE) {
+            // The scheduled task for heartbeat sending is not starting now, so we should manually send heartbeat request
+            this.sendHeartbeatToController();
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
@@ -374,6 +376,27 @@ public class ReplicasManager {
         }
     }
 
+    public void sendHeartbeatToController() {
+        final List<String> controllerAddresses = this.getAvailableControllerAddresses();
+        for (String controllerAddress : controllerAddresses) {
+            if (StringUtils.isNotEmpty(controllerAddress)) {
+                this.brokerOuterAPI.sendHeartbeatToController(
+                        controllerAddress,
+                        this.brokerConfig.getBrokerClusterName(),
+                        this.localAddress,
+                        this.brokerConfig.getBrokerName(),
+                        this.brokerId,
+                        this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                        this.brokerConfig.isInBrokerContainer(), this.getLastEpoch(),
+                        this.brokerController.getMessageStore().getMaxPhyOffset(),
+                        this.getConfirmOffset(),
+                        this.brokerConfig.getControllerHeartBeatTimeoutMills(),
+                        this.brokerConfig.getBrokerElectionPriority()
+                );
+            }
+        }
+    }
+
     /**
      * Register broker to controller, and persist the metadata to file
      * @return whether registering process succeeded
@@ -543,7 +566,7 @@ public class ReplicasManager {
     private void schedulingSyncBrokerMetadata() {
         this.scheduledService.scheduleAtFixedRate(() -> {
             try {
-                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.localAddress);
+                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName());
                 final GetReplicaInfoResponseHeader info = result.getObject1();
                 final SyncStateSet syncStateSet = result.getObject2();
                 final String newMasterAddress = info.getMasterAddress();
