@@ -147,7 +147,7 @@ public class ReplicasManagerTest {
         when(brokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(getNextBrokerIdResponseHeader);
         when(brokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(applyBrokerIdResponseHeader);
         when(brokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(registerSuccessResponseHeader);
-        when(brokerOuterAPI.getReplicaInfo(any(), any(), any())).thenReturn(result);
+        when(brokerOuterAPI.getReplicaInfo(any(), any())).thenReturn(result);
         when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(brokerTryElectResponseHeader);
         replicasManager = new ReplicasManager(brokerController);
         autoSwitchHAService.init(defaultMessageStore);
