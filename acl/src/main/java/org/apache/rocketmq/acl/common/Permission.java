@@ -67,8 +67,6 @@ public class Permission {
             case AclConstants.PUB_SUB:
             case AclConstants.SUB_PUB:
                 return Permission.PUB | Permission.SUB;
-            case AclConstants.DENY:
-                return Permission.DENY;
             default:
                 return Permission.DENY;
         }
