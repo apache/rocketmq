@@ -432,13 +432,11 @@ public class MQAdminImpl {
                             if (keys != null) {
                                 boolean matched = false;
                                 String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
-                                if (keyArray != null) {
-                                    for (String k : keyArray) {
-                                        // both topic and key must be equal at the same time
-                                        if (Objects.equals(key, k) && Objects.equals(topic, msgTopic)) {
-                                            matched = true;
-                                            break;
-                                        }
+                                for (String k : keyArray) {
+                                    // both topic and key must be equal at the same time
+                                    if (Objects.equals(key, k) && Objects.equals(topic, msgTopic)) {
+                                        matched = true;
+                                        break;
                                     }
                                 }
 

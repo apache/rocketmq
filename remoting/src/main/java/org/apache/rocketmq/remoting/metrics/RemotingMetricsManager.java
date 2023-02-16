@@ -66,6 +66,9 @@ public class RemotingMetricsManager {
     public static List<Pair<InstrumentSelector, View>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
+            (double) Duration.ofMillis(3).toMillis(),
+            (double) Duration.ofMillis(5).toMillis(),
+            (double) Duration.ofMillis(7).toMillis(),
             (double) Duration.ofMillis(10).toMillis(),
             (double) Duration.ofMillis(100).toMillis(),
             (double) Duration.ofSeconds(1).toMillis(),

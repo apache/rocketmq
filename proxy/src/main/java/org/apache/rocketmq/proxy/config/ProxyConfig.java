@@ -185,6 +185,8 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean enableACL = false;
 
+    private boolean enableAclRpcHookForClusterMode = false;
+
     private boolean useDelayLevel = true;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
@@ -925,6 +927,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableACL(boolean enableACL) {
         this.enableACL = enableACL;
+    }
+
+    public boolean isEnableAclRpcHookForClusterMode() {
+        return enableAclRpcHookForClusterMode;
+    }
+
+    public void setEnableAclRpcHookForClusterMode(boolean enableAclRpcHookForClusterMode) {
+        this.enableAclRpcHookForClusterMode = enableAclRpcHookForClusterMode;
     }
 
     public boolean isEnableTopicMessageTypeCheck() {
