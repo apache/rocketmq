@@ -320,7 +320,7 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames) {
+    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames, final BiPredicate<String, String> brokerAlivePredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
         final BrokerReplicasInfo brokerReplicasInfo = new BrokerReplicasInfo();
         for (String brokerName : brokerNames) {
@@ -336,9 +336,9 @@ public class ReplicasInfoManager {
                 brokerInfo.getBrokerIdTable().forEach((brokerAddress, brokerId) -> {
                     if (syncStateSet.contains(brokerAddress)) {
                         long id = StringUtils.equals(master, brokerAddress) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(brokerAddress);
-                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, id));
+                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, id, brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerAddress)));
                     } else {
-                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, brokerId));
+                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerAddress, brokerId, brokerAlivePredicate.test(brokerInfo.getClusterName(), brokerAddress)));
                     }
                 });
 
