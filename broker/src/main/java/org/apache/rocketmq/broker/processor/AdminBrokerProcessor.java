@@ -37,6 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
@@ -1925,11 +1927,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getSystemTopicListFromBroker(ChannelHandlerContext ctx, RemotingCommand request)
-        throws RemotingCommandException {
+    private RemotingCommand getSystemTopicListFromBroker(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        Set<String> topics = TopicValidator.getSystemTopicSet();
+        ConcurrentMap<String, TopicConfig> topicConfigTable = brokerController.getTopicConfigManager().getTopicConfigTable();
+        Set<String> topicNames = topicConfigTable.keySet();
+        Set<String> topics = topicNames.stream().filter(TopicValidator::isSystemTopic).collect(Collectors.toSet());
         TopicList topicList = new TopicList();
         topicList.setTopicList(topics);
         response.setBody(topicList.encode());
