@@ -26,6 +26,7 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
@@ -36,7 +37,6 @@ import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLException;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ServiceProvider;
@@ -48,6 +48,8 @@ import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
+import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -113,32 +115,42 @@ public class GrpcServerBuilder {
         return new GrpcServer(this.serverBuilder.build());
     }
 
-    protected void configSslContext(NettyServerBuilder serverBuilder) throws SSLException, CertificateException {
+    protected void configSslContext(NettyServerBuilder serverBuilder) throws IOException, CertificateException {
         if (null == serverBuilder) {
             return;
         }
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        boolean tlsTestModeEnable = proxyConfig.isTlsTestModeEnable();
-        if (tlsTestModeEnable) {
-            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-            serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(ClientAuth.NONE)
-                .build());
-            return;
-        }
 
-        String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
-        String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
-        try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
-             InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
-            serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
+        TlsMode tlsMode = TlsSystemConfig.tlsMode;
+        if (!TlsMode.DISABLED.equals(tlsMode)) {
+            SslContext sslContext = loadSslContext();
+            if (TlsMode.PERMISSIVE.equals(tlsMode)) {
+                serverBuilder.protocolNegotiator(new OptionalSSLProtocolNegotiator(sslContext));
+            } else {
+                serverBuilder.sslContext(sslContext);
+            }
+        }
+    }
+
+    protected SslContext loadSslContext() throws CertificateException, IOException {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        if (proxyConfig.isTlsTestModeEnable()) {
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+            return GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .clientAuth(ClientAuth.NONE)
-                .build());
-            log.info("TLS configured OK");
-        } catch (IOException e) {
-            log.error("Failed to load Server key/certificate", e);
+                .build();
+        } else {
+            String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+            String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
+            try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
+                 InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
+                SslContext res = GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .clientAuth(ClientAuth.NONE)
+                    .build();
+                log.info("load TLS configured OK");
+                return res;
+            }
         }
     }
 

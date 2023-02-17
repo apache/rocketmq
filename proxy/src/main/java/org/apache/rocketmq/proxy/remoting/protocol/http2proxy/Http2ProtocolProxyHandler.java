@@ -37,6 +37,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolHandler;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 public class Http2ProtocolProxyHandler implements ProtocolHandler {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
@@ -55,16 +57,21 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
 
     public Http2ProtocolProxyHandler() {
         try {
-            sslContext = SslContextBuilder
-                .forClient()
-                .sslProvider(SslProvider.OPENSSL)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .applicationProtocolConfig(new ApplicationProtocolConfig(
-                    ApplicationProtocolConfig.Protocol.ALPN,
-                    ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                    ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                    ApplicationProtocolNames.HTTP_2))
-                .build();
+            TlsMode tlsMode = TlsSystemConfig.tlsMode;
+            if (TlsMode.DISABLED.equals(tlsMode)) {
+                sslContext = null;
+            } else {
+                sslContext = SslContextBuilder
+                    .forClient()
+                    .sslProvider(SslProvider.OPENSSL)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .applicationProtocolConfig(new ApplicationProtocolConfig(
+                        ApplicationProtocolConfig.Protocol.ALPN,
+                        ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                        ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2))
+                    .build();
+            }
         } catch (SSLException e) {
             log.error("Failed to create SSLContext for Http2ProtocolProxyHandler", e);
             throw new RuntimeException("Failed to create SSLContext for Http2ProtocolProxyHandler", e);

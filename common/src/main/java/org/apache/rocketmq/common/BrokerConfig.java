@@ -399,6 +399,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
