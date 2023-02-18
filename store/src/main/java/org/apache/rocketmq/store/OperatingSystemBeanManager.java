@@ -63,7 +63,7 @@ public class OperatingSystemBeanManager {
                 totalPhysicalMem : deduceMethod("getTotalPhysicalMemory");
     }
 
-    private OperatingSystemBeanManager() {}
+    private OperatingSystemBeanManager() { }
 
     public static double getSystemCpuUsage() {
         return MethodUtil.invokeAndReturnDouble(SYSTEM_CPU_USAGE_METHOD, OPERATING_SYSTEM_BEAN);
