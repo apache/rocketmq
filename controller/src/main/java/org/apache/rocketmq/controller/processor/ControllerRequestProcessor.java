@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
@@ -95,9 +94,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
 
                     if (null != responseHeader) {
-                        if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
-                            heartbeatManager.changeBrokerMetadata(electMasterRequest.getClusterName(), responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
-                        }
                         if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
                             this.controllerManager.notifyBrokerRoleChanged(responseHeader, electMasterRequest.getClusterName());
                         }
@@ -113,9 +109,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                     final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                     final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
                     if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
-                        this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                                                             responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
-                                                             controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getElectionPriority());
+                        this.heartbeatManager.onBrokerHeartbeat(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
+                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
+                            controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getConfirmOffset(), controllerRequest.getElectionPriority());
                     }
                     return response;
                 }
@@ -134,8 +130,8 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr(),
-                        requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset());
+                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerAddr(), requestHeader.getBrokerId(),
+                    requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
                 return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
             }
             case CONTROLLER_GET_SYNC_STATE_DATA: {

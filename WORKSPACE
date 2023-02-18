@@ -67,7 +67,7 @@ maven_install(
         "org.bouncycastle:bcpkix-jdk15on:1.69",
         "com.google.code.gson:gson:2.8.9",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.0.1",
+        "org.apache.rocketmq:rocketmq-proto:2.0.2",
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
@@ -94,6 +94,7 @@ maven_install(
         "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
+	"org.jetbrains:annotations:23.1.0",
     ],
     fetch_sources = True,
     repositories = [
@@ -119,7 +120,7 @@ buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
     name = "rbe_default",
-    sha256 = "bd55bd8b2ffa850b5683367e7ab0756d6f51088866b2a81e4c07b6e87d04d8c5",
+    sha256 = "6f2bd38cce60880fd05cf373b99118ad59a0fe7df88855e229e7a9b50a003af3",
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 

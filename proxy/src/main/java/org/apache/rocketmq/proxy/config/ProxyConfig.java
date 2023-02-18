@@ -121,7 +121,8 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientProducerBackoffInitialMillis = 10;
     private long grpcClientProducerBackoffMaxMillis = 1000;
     private int grpcClientProducerBackoffMultiplier = 2;
-    private long grpcClientConsumerLongPollingTimeoutMillis = Duration.ofSeconds(30).toMillis();
+    private long grpcClientConsumerMinLongPollingTimeoutMillis = Duration.ofSeconds(5).toMillis();
+    private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
 
@@ -183,6 +184,8 @@ public class ProxyConfig implements ConfigFile {
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
     private boolean enableACL = false;
+
+    private boolean enableAclRpcHookForClusterMode = false;
 
     private boolean useDelayLevel = true;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
@@ -598,12 +601,20 @@ public class ProxyConfig implements ConfigFile {
         this.grpcClientProducerBackoffMultiplier = grpcClientProducerBackoffMultiplier;
     }
 
-    public long getGrpcClientConsumerLongPollingTimeoutMillis() {
-        return grpcClientConsumerLongPollingTimeoutMillis;
+    public long getGrpcClientConsumerMinLongPollingTimeoutMillis() {
+        return grpcClientConsumerMinLongPollingTimeoutMillis;
     }
 
-    public void setGrpcClientConsumerLongPollingTimeoutMillis(long grpcClientConsumerLongPollingTimeoutMillis) {
-        this.grpcClientConsumerLongPollingTimeoutMillis = grpcClientConsumerLongPollingTimeoutMillis;
+    public void setGrpcClientConsumerMinLongPollingTimeoutMillis(long grpcClientConsumerMinLongPollingTimeoutMillis) {
+        this.grpcClientConsumerMinLongPollingTimeoutMillis = grpcClientConsumerMinLongPollingTimeoutMillis;
+    }
+
+    public long getGrpcClientConsumerMaxLongPollingTimeoutMillis() {
+        return grpcClientConsumerMaxLongPollingTimeoutMillis;
+    }
+
+    public void setGrpcClientConsumerMaxLongPollingTimeoutMillis(long grpcClientConsumerMaxLongPollingTimeoutMillis) {
+        this.grpcClientConsumerMaxLongPollingTimeoutMillis = grpcClientConsumerMaxLongPollingTimeoutMillis;
     }
 
     public int getGrpcClientConsumerLongPollingBatchSize() {
@@ -916,6 +927,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableACL(boolean enableACL) {
         this.enableACL = enableACL;
+    }
+
+    public boolean isEnableAclRpcHookForClusterMode() {
+        return enableAclRpcHookForClusterMode;
+    }
+
+    public void setEnableAclRpcHookForClusterMode(boolean enableAclRpcHookForClusterMode) {
+        this.enableAclRpcHookForClusterMode = enableAclRpcHookForClusterMode;
     }
 
     public boolean isEnableTopicMessageTypeCheck() {

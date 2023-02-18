@@ -35,10 +35,10 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
+    private ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<>(1024);
 
-    private final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
+    private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
         new ConcurrentHashMap<>(4);
 
     private final DataVersion dataVersion = new DataVersion();
@@ -271,6 +271,11 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
         return forbiddenTable;
+    }
+
+    public void setForbiddenTable(
+        ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable) {
+        this.forbiddenTable = forbiddenTable;
     }
 
     public DataVersion getDataVersion() {

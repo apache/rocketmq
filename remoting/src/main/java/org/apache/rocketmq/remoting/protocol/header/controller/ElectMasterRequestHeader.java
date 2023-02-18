@@ -72,8 +72,8 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
     public String toString() {
         return "ElectMasterRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
-            "brokerName='" + brokerName + '\'' +
-            "brokerAddress='" + brokerAddress + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
             '}';
     }
 

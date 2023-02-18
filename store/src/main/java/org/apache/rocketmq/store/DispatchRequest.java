@@ -43,6 +43,8 @@ public class DispatchRequest {
 
     private long nextReputFromOffset = -1;
 
+    private String offsetId;
+
     public DispatchRequest(
         final String topic,
         final int queueId,
@@ -72,6 +74,22 @@ public class DispatchRequest {
         this.preparedTransactionOffset = preparedTransactionOffset;
         this.success = true;
         this.propertiesMap = propertiesMap;
+    }
+
+    public DispatchRequest(String topic, int queueId, long consumeQueueOffset, long commitLogOffset, int size, long tagsCode) {
+        this.topic = topic;
+        this.queueId = queueId;
+        this.commitLogOffset = commitLogOffset;
+        this.msgSize = size;
+        this.tagsCode = tagsCode;
+        this.storeTimestamp = 0;
+        this.consumeQueueOffset = consumeQueueOffset;
+        this.keys = "";
+        this.uniqKey = null;
+        this.sysFlag = 0;
+        this.preparedTransactionOffset = 0;
+        this.success = false;
+        this.propertiesMap = null;
     }
 
     public DispatchRequest(int size) {
@@ -200,6 +218,14 @@ public class DispatchRequest {
 
     public void setNextReputFromOffset(long nextReputFromOffset) {
         this.nextReputFromOffset = nextReputFromOffset;
+    }
+
+    public String getOffsetId() {
+        return offsetId;
+    }
+
+    public void setOffsetId(String offsetId) {
+        this.offsetId = offsetId;
     }
 
     @Override

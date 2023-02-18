@@ -17,17 +17,19 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.AbortProcessException;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -62,6 +64,10 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -155,15 +161,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        //for logic queue
-        if (requestHeader.getOriginTopic() != null
-            && !msgExt.getTopic().equals(requestHeader.getOriginTopic())) {
-            //here just do some fence in case of some unexpected offset is income
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("look message by offset failed to check the topic name" + requestHeader.getOffset());
-            return response;
-        }
-
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
             MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
@@ -183,6 +180,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         boolean isDLQ = false;
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
+
+            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                .put(LABEL_CONSUMER_GROUP, requestHeader.getGroup())
+                .put(LABEL_TOPIC, requestHeader.getOriginTopic())
+                .put(LABEL_IS_SYSTEM, BrokerMetricsManager.isSystem(requestHeader.getOriginTopic(), requestHeader.getGroup()))
+                .build();
+            BrokerMetricsManager.sendToDlqMessages.add(1, attributes);
 
             isDLQ = true;
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());

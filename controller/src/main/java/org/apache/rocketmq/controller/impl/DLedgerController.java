@@ -78,7 +78,7 @@ public class DLedgerController implements Controller {
     private final EventSerializer eventSerializer;
     private final RoleChangeHandler roleHandler;
     private final DLedgerControllerStateMachine statemachine;
-    // Usr for checking whether the broker is alive
+    // use for checking whether the broker is alive
     private BiPredicate<String, String> brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;
@@ -166,7 +166,7 @@ public class DLedgerController implements Controller {
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
         return this.scheduler.appendEvent("registerBroker",
-            () -> this.replicasInfoManager.registerBroker(request), true);
+            () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
     }
 
     @Override

@@ -109,7 +109,7 @@ import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.remoting.protocol.body.InSyncStateData;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchResponseBody;
@@ -805,16 +805,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
         sendResult.setTransactionId(responseHeader.getTransactionId());
         String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
-        String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
         if (regionId == null || regionId.isEmpty()) {
             regionId = MixAll.DEFAULT_TRACE_REGION_ID;
         }
-        if (traceOn != null && traceOn.equals("false")) {
-            sendResult.setTraceOn(false);
-        } else {
-            sendResult.setTraceOn(true);
-        }
         sendResult.setRegionId(regionId);
+        String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
+        sendResult.setTraceOn(!Boolean.FALSE.toString().equals(traceOn));
         return sendResult;
     }
 
@@ -2982,7 +2978,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public InSyncStateData getInSyncStateData(final String controllerAddress,
+    public BrokerReplicasInfo getInSyncStateData(final String controllerAddress,
         final List<String> brokers) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingCommandException {
         // Get controller leader address.
         final GetMetaDataResponseHeader controllerMetaData = getControllerMetaData(controllerAddress);
@@ -2997,7 +2993,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return RemotingSerializable.decode(response.getBody(), InSyncStateData.class);
+                return RemotingSerializable.decode(response.getBody(), BrokerReplicasInfo.class);
             }
             default:
                 break;

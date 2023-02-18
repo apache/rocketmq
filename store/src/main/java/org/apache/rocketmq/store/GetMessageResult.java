@@ -114,6 +114,7 @@ public class GetMessageResult {
         this.bufferTotalSize += mapedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
             mapedBuffer.getSize() /  (double)commercialSizePerMsg);
+        this.messageCount++;
     }
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer, final long queueOffset) {
@@ -122,13 +123,14 @@ public class GetMessageResult {
         this.bufferTotalSize += mapedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
             mapedBuffer.getSize() /  (double)commercialSizePerMsg);
+        this.messageCount++;
         this.messageQueueOffset.add(queueOffset);
     }
 
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer, final long queueOffset, final int batchNum) {
         addMessage(mapedBuffer, queueOffset);
-        messageCount += batchNum;
+        messageCount += batchNum - 1;
     }
 
     public void release() {

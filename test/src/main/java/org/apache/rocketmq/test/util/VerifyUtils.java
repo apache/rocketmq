@@ -90,6 +90,7 @@ public class VerifyUtils {
             if (time < delayTimeMills || time > nextLevelDelayTimeMills) {
                 delay = false;
                 logger.info(String.format("delay error:%s", Math.abs(time - delayTimeMills)));
+                break;
             }
         }
         return delay;

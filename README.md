@@ -16,7 +16,7 @@ It offers a variety of features:
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
-* Built-in fault tolerance and high availability configuration options base on [DLedger Controller](docs/cn/controller/quick_start.md)
+* Built-in fault tolerance and high availability configuration options base on [DLedger Controller](docs/en/controller/quick_start.md)
 * Built-in message tracing capability, also support opentracing
 * Versatile big-data and streaming ecosystem integration
 * Message retroactivity by time or offset
@@ -232,7 +232,7 @@ services.
 [maven-build-image]: https://github.com/apache/rocketmq/actions/workflows/maven.yaml/badge.svg
 [maven-build-url]: https://github.com/apache/rocketmq/actions/workflows/maven.yaml
 [codecov-image]: https://codecov.io/gh/apache/rocketmq/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/apache/rocketm
+[codecov-url]: https://codecov.io/gh/apache/rocketmq
 [maven-central-image]: https://maven-badges.herokuapp.com/maven-central/org.apache.rocketmq/rocketmq-all/badge.svg
 [maven-central-url]: http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq
 [release-image]: https://img.shields.io/badge/release-download-orange.svg

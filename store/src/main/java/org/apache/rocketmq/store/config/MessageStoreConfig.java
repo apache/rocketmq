@@ -376,6 +376,13 @@ public class MessageStoreConfig {
      */
     private int sampleCountThreshold = 5000;
 
+    /**
+     * Build ConsumeQueue concurrently with multi-thread
+     */
+    private boolean enableBuildConsumeQueueConcurrently = false;
+
+    private int batchDispatchRequestThreadPoolNums = 16;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -965,12 +972,8 @@ public class MessageStoreConfig {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
 
-    /**
-     * Enable transient commitLog store pool only if transientStorePoolEnable is true and broker role is not SLAVE
-     * @return <tt>true</tt> or <tt>false</tt>
-     */
     public boolean isTransientStorePoolEnable() {
-        return transientStorePoolEnable && BrokerRole.SLAVE != getBrokerRole();
+        return transientStorePoolEnable;
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
@@ -1603,5 +1606,21 @@ public class MessageStoreConfig {
 
     public void setSampleCountThreshold(int sampleCountThreshold) {
         this.sampleCountThreshold = sampleCountThreshold;
+    }
+
+    public boolean isEnableBuildConsumeQueueConcurrently() {
+        return enableBuildConsumeQueueConcurrently;
+    }
+
+    public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
+    }
+
+    public int getBatchDispatchRequestThreadPoolNums() {
+        return batchDispatchRequestThreadPoolNums;
+    }
+
+    public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
+        this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 }

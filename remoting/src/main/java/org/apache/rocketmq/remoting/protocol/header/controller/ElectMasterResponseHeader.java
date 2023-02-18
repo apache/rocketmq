@@ -67,7 +67,7 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
             "newMasterAddress='" + newMasterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMember=" + brokerMemberGroup +
+            ", brokerMemberGroup=" + brokerMemberGroup +
             '}';
     }
 

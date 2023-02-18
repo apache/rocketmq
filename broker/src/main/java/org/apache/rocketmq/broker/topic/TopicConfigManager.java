@@ -56,10 +56,8 @@ public class TopicConfigManager extends ConfigManager {
     private static final int SCHEDULE_TOPIC_QUEUE_NUM = 18;
 
     private transient final Lock topicConfigTableLock = new ReentrantLock();
-
-    private final ConcurrentMap<String, TopicConfig> topicConfigTable =
-        new ConcurrentHashMap<>(1024);
-    private final DataVersion dataVersion = new DataVersion();
+    private ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>(1024);
+    private DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
     public TopicConfigManager() {
@@ -604,6 +602,11 @@ public class TopicConfigManager extends ConfigManager {
 
     public DataVersion getDataVersion() {
         return dataVersion;
+    }
+
+    public void setTopicConfigTable(
+        ConcurrentMap<String, TopicConfig> topicConfigTable) {
+        this.topicConfigTable = topicConfigTable;
     }
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {

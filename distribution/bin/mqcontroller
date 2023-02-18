@@ -42,4 +42,4 @@ fi
 
 export ROCKETMQ_HOME
 
-sh ${ROCKETMQ_HOME}/bin/runserver.sh org.apache.rocketmq.controller.ControllerStartup $@
+sh ${ROCKETMQ_HOME}/bin/runserver.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.controller.logback.xml org.apache.rocketmq.controller.ControllerStartup $@

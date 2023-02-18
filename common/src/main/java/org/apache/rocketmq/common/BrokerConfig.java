@@ -326,11 +326,15 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String controllerAddr = "";
 
+    private boolean fetchControllerAddrByDnsLookup = false;
+
     private long syncBrokerMetadataPeriod = 5 * 1000;
 
     private long checkSyncStateSetPeriod = 5 * 1000;
 
     private long syncControllerMetadataPeriod = 10 * 1000;
+
+    private long controllerHeartBeatTimeoutMills = 10 * 1000;
 
     private boolean validateSystemTopicWhenUpdateTopic = true;
 
@@ -394,6 +398,7 @@ public class BrokerConfig extends BrokerIdentity {
      * Estimate accumulation or not when subscription filter type is tag and is not SUB_ALL.
      */
     private boolean estimateAccumulation = true;
+
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1411,6 +1416,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.controllerAddr = controllerAddr;
     }
 
+    public boolean isFetchControllerAddrByDnsLookup() {
+        return fetchControllerAddrByDnsLookup;
+    }
+
+    public void setFetchControllerAddrByDnsLookup(boolean fetchControllerAddrByDnsLookup) {
+        this.fetchControllerAddrByDnsLookup = fetchControllerAddrByDnsLookup;
+    }
+
     public long getSyncBrokerMetadataPeriod() {
         return syncBrokerMetadataPeriod;
     }
@@ -1441,6 +1454,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setBrokerElectionPriority(int brokerElectionPriority) {
         this.brokerElectionPriority = brokerElectionPriority;
+    }
+
+    public long getControllerHeartBeatTimeoutMills() {
+        return controllerHeartBeatTimeoutMills;
+    }
+
+    public void setControllerHeartBeatTimeoutMills(long controllerHeartBeatTimeoutMills) {
+        this.controllerHeartBeatTimeoutMills = controllerHeartBeatTimeoutMills;
     }
 
     public boolean isRecoverConcurrently() {

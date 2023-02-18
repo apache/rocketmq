@@ -28,6 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -62,6 +65,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
+    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public AutoSwitchHAService() {
     }
@@ -136,6 +141,11 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
 
+        if (defaultMessageStore.isTransientStorePoolEnable()) {
+            waitingForAllCommit();
+            defaultMessageStore.getTransientStorePool().setRealCommit(true);
+        }
+
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
 
         this.defaultMessageStore.recoverTopicQueueTable();
@@ -162,11 +172,28 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
             this.haClient.start();
+
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
+                waitingForAllCommit();
+                defaultMessageStore.getTransientStorePool().setRealCommit(false);
+            }
+
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
         } catch (final Exception e) {
             LOGGER.error("Error happen when change ha to slave", e);
             return false;
+        }
+    }
+
+    public void waitingForAllCommit() {
+        while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
+            getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
+            try {
+                Thread.sleep(100);
+            } catch (Exception e) {
+
+            }
         }
     }
 
@@ -265,8 +292,14 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public synchronized int inSyncReplicasNums(final long masterPutWhere) {
-        return syncStateSet.size();
+    public int inSyncReplicasNums(final long masterPutWhere) {
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            return syncStateSet.size();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -322,14 +355,28 @@ public class AutoSwitchHAService extends DefaultHAService {
         return confirmOffset;
     }
 
-    public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
-        this.syncStateSet.clear();
-        this.syncStateSet.addAll(syncStateSet);
-        this.confirmOffset = computeConfirmOffset();
+    public void setSyncStateSet(final Set<String> syncStateSet) {
+        final Lock writeLock = readWriteLock.writeLock();
+        try {
+            writeLock.lock();
+            this.syncStateSet.clear();
+            this.syncStateSet.addAll(syncStateSet);
+            this.confirmOffset = computeConfirmOffset();
+        } finally {
+            writeLock.unlock();
+        }
     }
 
-    public synchronized Set<String> getSyncStateSet() {
-        return new HashSet<>(this.syncStateSet);
+    public Set<String> getSyncStateSet() {
+        final Lock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            HashSet<String> set = new HashSet<>(this.syncStateSet.size());
+            set.addAll(this.syncStateSet);
+            return set;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void truncateEpochFilePrefix(final long offset) {

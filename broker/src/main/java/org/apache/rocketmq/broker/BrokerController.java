@@ -192,7 +192,6 @@ public class BrokerController {
     protected final PullRequestHoldService pullRequestHoldService;
     protected final MessageArrivingListener messageArrivingListener;
     protected final Broker2Client broker2Client;
-    protected final SubscriptionGroupManager subscriptionGroupManager;
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
     protected final EndTransactionProcessor endTransactionProcessor;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
@@ -224,6 +223,7 @@ public class BrokerController {
     protected CountDownLatch remotingServerStartLatch;
     protected RemotingServer fastRemotingServer;
     protected TopicConfigManager topicConfigManager;
+    protected SubscriptionGroupManager subscriptionGroupManager;
     protected TopicQueueMappingManager topicQueueMappingManager;
     protected ExecutorService sendMessageExecutor;
     protected ExecutorService pullMessageExecutor;
@@ -746,7 +746,7 @@ public class BrokerController {
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
-                    ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+                    ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer().getDLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats(defaultMessageStore);
                 //load plugin
@@ -770,9 +770,8 @@ public class BrokerController {
         }
         if (messageStore != null) {
             registerMessageStoreHook();
+            result = result && this.messageStore.load();
         }
-
-        result = result && this.messageStore.load();
 
         if (messageStoreConfig.isTimerWheelEnable()) {
             result = result && this.timerMessageStore.load();
@@ -1216,12 +1215,20 @@ public class BrokerController {
         return pullRequestHoldService;
     }
 
+    public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
+        this.subscriptionGroupManager = subscriptionGroupManager;
+    }
+
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
     }
 
     public PopMessageProcessor getPopMessageProcessor() {
         return popMessageProcessor;
+    }
+
+    public NotificationProcessor getNotificationProcessor() {
+        return notificationProcessor;
     }
 
     public TimerMessageStore getTimerMessageStore() {
@@ -1731,7 +1738,7 @@ public class BrokerController {
 
     protected void sendHeartbeat() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
+            final List<String> controllerAddresses = this.replicasManager.getAvailableControllerAddresses();
             for (String controllerAddress : controllerAddresses) {
                 if (StringUtils.isNotEmpty(controllerAddress)) {
                     this.brokerOuterAPI.sendHeartbeatToController(
@@ -1743,7 +1750,9 @@ public class BrokerController {
                         this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                         this.brokerConfig.isInBrokerContainer(), this.replicasManager.getLastEpoch(),
                         this.messageStore.getMaxPhyOffset(),
-                        this.replicasManager.getConfirmOffset()
+                        this.replicasManager.getConfirmOffset(),
+                        this.brokerConfig.getControllerHeartBeatTimeoutMills(),
+                        this.brokerConfig.getBrokerElectionPriority()
                     );
                 }
             }
