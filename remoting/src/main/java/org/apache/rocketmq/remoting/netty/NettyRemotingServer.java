@@ -269,14 +269,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecutor.start();
         }
 
-        TimerTask timerScanResponseTable= new TimerTask() {
+        TimerTask timerScanResponseTable = new TimerTask() {
             @Override
             public void run(Timeout timeout) {
                 try {
                     NettyRemotingServer.this.scanResponseTable();
                 } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
-                }finally {
+                } finally {
                     timer.newTimeout(this, 1000, TimeUnit.MILLISECONDS);
                 }
             }
@@ -294,6 +294,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     /**
      * config channel in ChannelInitializer
+     *
      * @param ch the SocketChannel needed to init
      * @return the initialized ChannelPipeline, sub class can use it to extent in the future
      */
