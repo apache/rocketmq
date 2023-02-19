@@ -96,13 +96,13 @@ public class RemoteAddressStrategyFactory {
 
         public MultipleRemoteAddressStrategy(String[] strArray) {
             InetAddressValidator validator = InetAddressValidator.getInstance();
-            for (String netaddress : strArray) {
-                if (validator.isValidInet4Address(netaddress)) {
-                    multipleSet.add(netaddress);
-                } else if (validator.isValidInet6Address(netaddress)) {
-                    multipleSet.add(AclUtils.expandIP(netaddress, 8));
+            for (String netAddress : strArray) {
+                if (validator.isValidInet4Address(netAddress)) {
+                    multipleSet.add(netAddress);
+                } else if (validator.isValidInet6Address(netAddress)) {
+                    multipleSet.add(AclUtils.expandIP(netAddress, 8));
                 } else {
-                    throw new AclException(String.format("Netaddress examine Exception netaddress is %s", netaddress));
+                    throw new AclException(String.format("NetAddress examine Exception netAddress is %s", netAddress));
                 }
             }
         }
@@ -121,20 +121,22 @@ public class RemoteAddressStrategyFactory {
 
     public static class OneRemoteAddressStrategy implements RemoteAddressStrategy {
 
-        private String netaddress;
+        private String netAddress;
 
-        public OneRemoteAddressStrategy(String netaddress) {
-            this.netaddress = netaddress;
+        public OneRemoteAddressStrategy(String netAddress) {
+            this.netAddress = netAddress;
             InetAddressValidator validator = InetAddressValidator.getInstance();
-            if (!(validator.isValidInet4Address(netaddress) || validator.isValidInet6Address(netaddress))) {
-                throw new AclException(String.format("Netaddress examine Exception netaddress is %s", netaddress));
+            if (!(validator.isValidInet4Address(netAddress) || validator.isValidInet6Address(
+                netAddress))) {
+                throw new AclException(String.format("Netaddress examine Exception netaddress is %s",
+                    netAddress));
             }
         }
 
         @Override
         public boolean match(PlainAccessResource plainAccessResource) {
             String writeRemoteAddress = AclUtils.expandIP(plainAccessResource.getWhiteRemoteAddress(), 8).toUpperCase();
-            return AclUtils.expandIP(netaddress, 8).toUpperCase().equals(writeRemoteAddress);
+            return AclUtils.expandIP(netAddress, 8).toUpperCase().equals(writeRemoteAddress);
         }
 
     }
