@@ -77,13 +77,13 @@ public class QueryMsgByKeySubCommand implements SubCommand {
             long beginTimestamp = 0;
             long endTimestamp = Long.MAX_VALUE;
             int maxNum = 64;
-            if(commandLine.hasOption("b")) {
+            if (commandLine.hasOption("b")) {
                 beginTimestamp = Long.parseLong(commandLine.getOptionValue("b").trim());
             }
-            if(commandLine.hasOption("e")) {
+            if (commandLine.hasOption("e")) {
                 endTimestamp = Long.parseLong(commandLine.getOptionValue("e").trim());
             }
-            if(commandLine.hasOption("num")) {
+            if (commandLine.hasOption("num")) {
                 maxNum = Integer.parseInt(commandLine.getOptionValue("num").trim());
             }
             this.queryByKey(defaultMQAdminExt, topic, key, maxNum, beginTimestamp, endTimestamp);
@@ -94,7 +94,8 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         }
     }
 
-    private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key, int maxNum, long begin, long end)
+    private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key, int maxNum, long begin,
+        long end)
         throws MQClientException, InterruptedException {
         admin.start();
 
