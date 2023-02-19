@@ -150,13 +150,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactory() {
-            private final AtomicInteger threadIndex = new AtomicInteger(0);
+                private final AtomicInteger threadIndex = new AtomicInteger(0);
 
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
+                }
             }
-        }
         );
 
         if (eventLoopGroup != null) {
