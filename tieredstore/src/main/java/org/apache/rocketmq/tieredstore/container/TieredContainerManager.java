@@ -44,12 +44,17 @@ public class TieredContainerManager {
     private final TieredMessageStoreConfig storeConfig;
 
     public static TieredContainerManager getInstance(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return instance;
+        }
+
         if (instance == null) {
             synchronized (TieredContainerManager.class) {
                 if (instance == null) {
                     try {
                         instance = new TieredContainerManager(storeConfig);
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        logger.error("TieredContainerManager#getInstance: create container manager failed", e);
                     }
                 }
             }

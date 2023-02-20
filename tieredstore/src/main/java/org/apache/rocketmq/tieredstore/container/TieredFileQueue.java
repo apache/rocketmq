@@ -130,7 +130,10 @@ public class TieredFileQueue {
         }
     }
 
-    private void loadFromMetadata() {
+    protected void loadFromMetadata() {
+        fileSegmentList.clear();
+        needCommitFileSegmentList.clear();
+
         metadataStore.iterateFileSegment(fileType, messageQueue.getTopic(), messageQueue.getQueueId(), metadata -> {
             if (metadata.getStatus() == FileSegmentMetadata.STATUS_DELETED) {
                 return;

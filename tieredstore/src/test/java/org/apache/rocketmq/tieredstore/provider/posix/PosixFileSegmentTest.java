@@ -33,19 +33,21 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class PosixFileSegmentTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setTieredStoreFilepath(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setTieredStoreFilepath(storePath);
         mq = new MessageQueue("OSSFileSegmentTest", "broker", 0);
     }
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
+        FileUtils.deleteDirectory(new File(storePath));
     }
 
     @Test
