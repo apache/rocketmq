@@ -49,20 +49,21 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip) to download the 4.9.4 RocketMQ binary release,
+For Windows users, click [here](https://dist.apache.org/repos/dist/release/rocketmq/5.1.0/rocketmq-all-5.1.0-bin-release.zip) to download the 5.1.0 RocketMQ binary release,
 unpack it to your local disk, such as `D:\rocketmq`.
 For macOS and Linux users, execute following commands:
+
 ```shell
 # Download release from the Apache mirror
-$ wget https://archive.apache.org/dist/rocketmq/4.9.4/rocketmq-all-4.9.4-bin-release.zip
+$ wget https://dist.apache.org/repos/dist/release/rocketmq/5.1.0/rocketmq-all-5.1.0-bin-release.zip
 
 # Unpack the release
-$ unzip rocketmq-all-4.9.4-bin-release.zip
+$ unzip rocketmq-all-5.1.0-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-4.9.4/bin
+$ cd rocketmq-all-5.1.0/bin
 ```
 
 **1) Start NameServer**
@@ -194,7 +195,7 @@ name-service         1/1     107m
 * Rips: <https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
 * Slack: <https://rocketmq-invite-automation.herokuapp.com/>
- 
+
 
 ----------
 
@@ -202,7 +203,7 @@ name-service         1/1     107m
 
 ## Contributing
 We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
- 
+
 ----------
 ## License
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) Copyright (C) Apache Software Foundation
