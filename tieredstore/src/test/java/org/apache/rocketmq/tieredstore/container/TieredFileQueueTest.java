@@ -18,17 +18,12 @@ package org.apache.rocketmq.tieredstore.container;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.metadata.FileSegmentMetadata;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
@@ -39,8 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TieredFileQueueTest {
-    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-
     private TieredMessageStoreConfig storeConfig;
     private MessageQueue queue;
 
@@ -56,8 +49,8 @@ public class TieredFileQueueTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(storePath));
         TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Test
@@ -171,36 +164,6 @@ public class TieredFileQueueTest {
 
         TieredFileQueue fileQueue = new TieredFileQueue(TieredFileSegment.FileSegmentType.CONSUME_QUEUE,
             queue, storeConfig);
-        logger.info("fileQueue.fileSegmentList.size(): {}", fileQueue.fileSegmentList.size());
-        logger.info("fileQueue.needCommitFileSegmentList.size(): {}", fileQueue.needCommitFileSegmentList.size());
-        try {
-            Field field = fileQueue.getClass().getDeclaredField("metadataStore");
-            field.setAccessible(true);
-            TieredMetadataStore meta = (TieredMetadataStore) field.get(fileQueue);
-            logger.info("create manually: {}", metadataStore);
-            logger.info("create by TieredFileQueue: {}", meta);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
-        }
-        try {
-            logger.info("store path in config: {}", storeConfig.getStorePathRootDir());
-
-            Field config = metadataStore.getClass().getDeclaredField("storeConfig");
-            config.setAccessible(true);
-            TieredMessageStoreConfig configObj = (TieredMessageStoreConfig) config.get(metadataStore);
-            logger.info("store path in metadata store: {}", configObj.getStorePathRootDir());
-
-            Field field = metadataStore.getClass().getDeclaredField("consumeQueueFileSegmentTable");
-            field.setAccessible(true);
-            ConcurrentMap<MessageQueue, ConcurrentMap<Long /*baseOffset*/, FileSegmentMetadata>> map = (ConcurrentMap<MessageQueue, ConcurrentMap<Long /*baseOffset*/, FileSegmentMetadata>>) field.get(metadataStore);
-            logger.info("cq map size: {}", map.size());
-            ConcurrentMap<Long, FileSegmentMetadata> map1 = map.get(queue);
-            if (map1 != null) {
-                logger.info("cq sub map size: {}", map1.size());
-            }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
-        }
         Assert.assertEquals(1, fileQueue.needCommitFileSegmentList.size());
 
         fileSegment1 = fileQueue.getFileByIndex(0);

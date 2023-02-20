@@ -60,9 +60,9 @@ public class TieredMessageQueueContainerTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(storePath));
-        TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Test

@@ -26,6 +26,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
@@ -55,8 +56,8 @@ public class TieredIndexFileTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(storePath));
-//        metadataStore.reLoadStore();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Ignore

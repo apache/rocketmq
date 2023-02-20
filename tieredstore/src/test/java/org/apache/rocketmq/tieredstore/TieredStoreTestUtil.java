@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.tieredstore;
 
+import java.io.File;
 import java.lang.reflect.Field;
+import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -40,7 +42,7 @@ public class TieredStoreTestUtil {
     public static void destroyContainerManager() {
         TieredContainerManager containerManager = TieredContainerManager.getInstance(null);
         if (containerManager != null) {
-            containerManager.cleanup();
+            containerManager.destroy();
         }
         try {
             Field field = TieredContainerManager.class.getDeclaredField("instance");
@@ -48,6 +50,13 @@ public class TieredStoreTestUtil {
             field.set(null, null);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
+        }
+    }
+
+    public static void destroyTempDir(String storePath) {
+        try {
+            FileUtils.deleteDirectory(new File(storePath));
+        } catch (Exception ignore) {
         }
     }
 }

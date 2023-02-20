@@ -28,8 +28,8 @@ public class TieredStoreMetricsManagerTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
     }
 
 

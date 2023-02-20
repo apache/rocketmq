@@ -63,6 +63,10 @@ public class TieredContainerManager {
     }
 
     public static TieredIndexFile getIndexFile(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return indexFile;
+        }
+
         if (indexFile == null) {
             synchronized (TieredContainerManager.class) {
                 if (indexFile == null) {
