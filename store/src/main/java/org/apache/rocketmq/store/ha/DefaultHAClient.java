@@ -48,13 +48,13 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
      * </pre>
      * <p>
      */
-    public static final int REPORT_HEADER = 8;
+    public static final int REPORT_HEADER_SIZE = 8;
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
     private final AtomicReference<String> masterHaAddress = new AtomicReference<>();
     private final AtomicReference<String> masterAddress = new AtomicReference<>();
-    private final ByteBuffer reportOffset = ByteBuffer.allocate(REPORT_HEADER);
+    private final ByteBuffer reportOffset = ByteBuffer.allocate(REPORT_HEADER_SIZE);
     private SocketChannel socketChannel;
     private Selector selector;
     /**
@@ -109,10 +109,10 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
 
     private boolean reportSlaveMaxOffset(final long maxOffset) {
         this.reportOffset.position(0);
-        this.reportOffset.limit(REPORT_HEADER);
+        this.reportOffset.limit(REPORT_HEADER_SIZE);
         this.reportOffset.putLong(maxOffset);
         this.reportOffset.position(0);
-        this.reportOffset.limit(REPORT_HEADER);
+        this.reportOffset.limit(REPORT_HEADER_SIZE);
 
         for (int i = 0; i < 3 && this.reportOffset.hasRemaining(); i++) {
             try {
