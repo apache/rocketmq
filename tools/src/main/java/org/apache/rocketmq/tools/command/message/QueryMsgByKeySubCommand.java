@@ -57,7 +57,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("num", "maxNum", true, "The maximum number of messages returned by the query, default:64");
+        opt = new Option("c", "maxNum", true, "The maximum number of messages returned by the query, default:64");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -83,8 +83,8 @@ public class QueryMsgByKeySubCommand implements SubCommand {
             if (commandLine.hasOption("e")) {
                 endTimestamp = Long.parseLong(commandLine.getOptionValue("e").trim());
             }
-            if (commandLine.hasOption("num")) {
-                maxNum = Integer.parseInt(commandLine.getOptionValue("num").trim());
+            if (commandLine.hasOption("c")) {
+                maxNum = Integer.parseInt(commandLine.getOptionValue("c").trim());
             }
             this.queryByKey(defaultMQAdminExt, topic, key, maxNum, beginTimestamp, endTimestamp);
         } catch (Exception e) {
