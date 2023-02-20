@@ -105,8 +105,8 @@ public class TieredMessageStoreTest {
     @After
     public void tearDown() throws IOException {
         FileUtils.deleteDirectory(new File(storePath));
-        TieredStoreUtil.getMetadataStore(store.getStoreConfig()).destroy();
-        TieredContainerManager.getInstance(store.getStoreConfig()).cleanup();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyContainerManager();
     }
 
     private void mockContainer() {
