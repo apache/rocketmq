@@ -651,12 +651,7 @@ public class PopReviveService extends ServiceThread {
                 return sortList;
             }
             sortList = new ArrayList<>(map.values());
-            Collections.sort(sortList, new Comparator<PopCheckPoint>() {
-                @Override
-                public int compare(PopCheckPoint o1, PopCheckPoint o2) {
-                    return (int) (o1.getReviveOffset() - o2.getReviveOffset());
-                }
-            });
+            sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
             return sortList;
         }
     }
