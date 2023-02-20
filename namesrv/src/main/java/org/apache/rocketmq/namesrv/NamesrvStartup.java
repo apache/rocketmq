@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -165,7 +164,7 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, () -> {
             controller.shutdown();
             return null;
         }));
@@ -204,7 +203,7 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, () -> {
             controllerManager.shutdown();
             return null;
         }));
