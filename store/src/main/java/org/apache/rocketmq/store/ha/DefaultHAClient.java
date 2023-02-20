@@ -39,10 +39,10 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
      * Report header buffer size. Schema: slaveMaxOffset. Format:
      *
      * <pre>
-     * ┌───────────────────────┬───────────────────────┐
+     * ┌───────────────────────────────────────────────┐
      * │                  slaveMaxOffset               │
      * │                    (8bytes)                   │
-     * ├───────────────────────┴───────────────────────┤
+     * ├───────────────────────────────────────────────┤
      * │                                               │
      * │                  Report Header                │
      * </pre>

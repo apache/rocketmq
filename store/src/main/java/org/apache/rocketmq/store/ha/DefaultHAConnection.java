@@ -36,10 +36,10 @@ public class DefaultHAConnection implements HAConnection {
      * Transfer Header buffer size. Schema: physic offset and body size. Format:
      *
      * <pre>
-     * ┌───────────────────────┬───────────────────────┬───────────────────────┐
+     * ┌───────────────────────────────────────────────┬───────────────────────┐
      * │                  physicOffset                 │         bodySize      │
      * │                    (8bytes)                   │         (4bytes)      │
-     * ├───────────────────────┴───────────────────────┴───────────────────────┤
+     * ├───────────────────────────────────────────────┴───────────────────────┤
      * │                                                                       │
      * │                           Transfer Header                             │
      * </pre>
