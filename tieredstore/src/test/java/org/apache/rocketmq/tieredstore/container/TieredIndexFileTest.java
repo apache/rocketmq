@@ -26,9 +26,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -39,27 +38,26 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TieredIndexFileTest {
-    MessageQueue mq;
-    TieredMessageStoreConfig storeConfig;
-    TieredMetadataStore metadataStore;
+    private MessageQueue mq;
+    private TieredMessageStoreConfig storeConfig;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
-        MemoryFileSegment.checkSize = false;
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setStorePathRootDir(storePath);
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredIndexFileTest", storeConfig.getBrokerName(), 1);
-        metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreUtil.getMetadataStore(storeConfig);
     }
 
     @After
     public void tearDown() throws IOException {
-        MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-//        metadataStore.reLoadStore();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Ignore

@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
@@ -33,21 +34,23 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TieredFileQueueTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue queue;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue queue;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
         queue = new MessageQueue("TieredFileQueueTest", storeConfig.getBrokerName(), 0);
     }
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Test
@@ -149,7 +152,7 @@ public class TieredFileQueueTest {
         TieredFileSegment fileSegment1 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.CONSUME_QUEUE,
             queue, 100, storeConfig);
         fileSegment1.initPosition(fileSegment1.getSize() - 100);
-        fileSegment1.setFull(false);
+        fileSegment1.setFull();
         metadataStore.updateFileSegment(fileSegment1);
         metadataStore.updateFileSegment(fileSegment1);
 
