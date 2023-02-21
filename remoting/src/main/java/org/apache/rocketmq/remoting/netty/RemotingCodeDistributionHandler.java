@@ -74,7 +74,7 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
         return map;
     }
 
-	private String snapshotToString(Map<Integer, Long> distribution) {
+    private String snapshotToString(Map<Integer, Long> distribution) {
         if (null != distribution && !distribution.isEmpty()) {
             StringBuilder sb = new StringBuilder("{");
             boolean first = true;
