@@ -441,10 +441,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     private void printRemotingCodeDistribution() {
         if (distributionHandler != null) {
-            TRAFFIC_LOGGER.info("Port: {}, RequestCode Distribution: {}",
-                nettyServerConfig.getListenPort(), distributionHandler.getInBoundSnapshotString());
-            TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}",
-                nettyServerConfig.getListenPort(), distributionHandler.getOutBoundSnapshotString());
+            String inBoundSnapshotString = distributionHandler.getInBoundSnapshotString();
+            if (inBoundSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, RequestCode Distribution: {}", 
+                    nettyServerConfig.getListenPort(), inBoundSnapshotString);
+            }
+
+            String outBoundSnapshotString = distributionHandler.getOutBoundSnapshotString();
+            if (outBoundSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}", 
+                    nettyServerConfig.getListenPort(), outBoundSnapshotString);
+            }
         }
     }
 
