@@ -9,9 +9,7 @@ on:
       - completed
 
 env:
-  #DOCKER_REPO: cn-cicd-repo-registry.cn-hangzhou.cr.aliyuncs.com/cicd/rocketmq
-  #REGISTRY: cn-cicd-repo-registry.cn-hangzhou.cr.aliyuncs.com
-  DOCKER_REPO: wangtong719/ci-test
+  DOCKER_REPO: apache/rocketmq-ci
 
 jobs:
   docker:
