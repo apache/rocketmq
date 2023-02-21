@@ -444,13 +444,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             String inBoundSnapshotString = distributionHandler.getInBoundSnapshotString();
             if (inBoundSnapshotString != null) {
                 TRAFFIC_LOGGER.info("Port: {}, RequestCode Distribution: {}", 
-					nettyServerConfig.getListenPort(), inBoundSnapshotString);
+                    nettyServerConfig.getListenPort(), inBoundSnapshotString);
             }
 
             String outBoundSnapshotString = distributionHandler.getOutBoundSnapshotString();
             if (outBoundSnapshotString != null) {
                 TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}", 
-					nettyServerConfig.getListenPort(), outBoundSnapshotString);
+                    nettyServerConfig.getListenPort(), outBoundSnapshotString);
             }
         }
     }
