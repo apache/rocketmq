@@ -130,10 +130,7 @@ public class ControllerStartup {
             System.exit(-3);
         }
 
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, () -> {
-            controller.shutdown();
-            return null;
-        }));
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, controller::shutdown));
 
         controller.start();
 
