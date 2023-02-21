@@ -24,12 +24,9 @@ import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
-import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -134,23 +131,17 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     fifo,
                     new PopMessageResultFilterImpl(maxAttempts),
                     timeRemaining
-                ).thenAccept(popResult -> {
+                ).thenAccept(popResult -> writer.writeAndComplete(ctx, request, popResult, messageExt -> {
                     if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                        if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
-                            List<MessageExt> messageExtList = popResult.getMsgFoundList();
-                            for (MessageExt messageExt : messageExtList) {
-                                String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-                                if (receiptHandle != null) {
-                                    MessageReceiptHandle messageReceiptHandle =
-                                        new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
-                                    receiptHandleProcessor.addReceiptHandle(grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
-                                }
-                            }
+                        String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+                        if (receiptHandle != null) {
+                            MessageReceiptHandle messageReceiptHandle =
+                                new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
+                                    messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
+                            receiptHandleProcessor.addReceiptHandle(grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
                         }
                     }
-                    writer.writeAndComplete(ctx, request, popResult);
-                })
+                }))
                 .exceptionally(t -> {
                     writer.writeAndComplete(ctx, request, t);
                     return null;

@@ -25,6 +25,7 @@ import io.grpc.stub.StreamObserver;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -53,7 +54,7 @@ public class ReceiveMessageResponseStreamWriter {
         this.streamObserver = observer;
     }
 
-    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult, Consumer<MessageExt> afterWrite) {
         PopStatus status = popResult.getPopStatus();
         List<MessageExt> messageFoundList = popResult.getMsgFoundList();
         try {
@@ -75,6 +76,7 @@ public class ReceiveMessageResponseStreamWriter {
                                 streamObserver.onNext(ReceiveMessageResponse.newBuilder()
                                     .setMessage(curMessage)
                                     .build());
+                                afterWrite.accept(curMessageExt);
                             } catch (Throwable t) {
                                 this.processThrowableWhenWriteMessage(t, ctx, request, curMessageExt);
                                 messageIterator.forEachRemaining(messageExt ->

@@ -100,7 +100,9 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
                     .setExpression("*")
                     .build())
                 .build(),
-            popResult
+            popResult,
+            messageExt -> {
+            }
         );
 
         verify(streamObserver, times(1)).onCompleted();
@@ -132,7 +134,9 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
                     .setExpression("*")
                     .build())
                 .build(),
-            popResult
+            popResult,
+            messageExt -> {
+            }
         );
 
         ReceiveMessageResponse response = responseArgumentCaptor.getAllValues().stream().filter(ReceiveMessageResponse::hasStatus)
