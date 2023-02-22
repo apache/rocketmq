@@ -30,7 +30,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
@@ -75,7 +75,7 @@ public class ReplicasManagerTest {
 
     private ApplyBrokerIdResponseHeader applyBrokerIdResponseHeader;
 
-    private RegisterSuccessResponseHeader registerSuccessResponseHeader;
+    private RegisterBrokerToControllerResponseHeader registerBrokerToControllerResponseHeader;
 
     private ElectMasterResponseHeader brokerTryElectResponseHeader;
 
@@ -122,7 +122,7 @@ public class ReplicasManagerTest {
         getNextBrokerIdResponseHeader = new GetNextBrokerIdResponseHeader();
         getNextBrokerIdResponseHeader.setNextBrokerId(BROKER_ID_1);
         applyBrokerIdResponseHeader = new ApplyBrokerIdResponseHeader();
-        registerSuccessResponseHeader = new RegisterSuccessResponseHeader();
+        registerBrokerToControllerResponseHeader = new RegisterBrokerToControllerResponseHeader();
         brokerTryElectResponseHeader = new ElectMasterResponseHeader();
         brokerTryElectResponseHeader.setMasterBrokerId(BROKER_ID_1);
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
@@ -146,7 +146,7 @@ public class ReplicasManagerTest {
         when(brokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
         when(brokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(getNextBrokerIdResponseHeader);
         when(brokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(applyBrokerIdResponseHeader);
-        when(brokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(registerSuccessResponseHeader);
+        when(brokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(registerBrokerToControllerResponseHeader);
         when(brokerOuterAPI.getReplicaInfo(any(), any())).thenReturn(result);
         when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(brokerTryElectResponseHeader);
         replicasManager = new ReplicasManager(brokerController);
