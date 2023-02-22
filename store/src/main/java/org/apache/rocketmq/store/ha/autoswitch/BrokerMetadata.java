@@ -23,11 +23,11 @@ import java.util.Objects;
 
 public class BrokerMetadata extends MetadataFile {
 
-    private String clusterName;
+    protected String clusterName;
 
-    private String brokerName;
+    protected String brokerName;
 
-    private Long brokerId;
+    protected Long brokerId;
 
     public BrokerMetadata(String filePath) {
         this.filePath = filePath;

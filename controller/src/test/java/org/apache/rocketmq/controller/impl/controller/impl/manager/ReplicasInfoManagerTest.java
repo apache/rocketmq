@@ -45,8 +45,8 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -122,8 +122,8 @@ public class ReplicasInfoManagerTest {
         assertEquals(brokerAddress, replicaIdentity.getBrokerAddress());
 
         // register success
-        final RegisterSuccessRequestHeader registerSuccessRequestHeader = new RegisterSuccessRequestHeader(clusterName, brokerName, exceptBrokerId, brokerAddress);
-        ControllerResult<RegisterSuccessResponseHeader> registerSuccessResult = this.replicasInfoManager.registerSuccess(registerSuccessRequestHeader, (a, b, c) -> true);
+        final RegisterBrokerToControllerRequestHeader registerBrokerToControllerRequestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, exceptBrokerId, brokerAddress);
+        ControllerResult<RegisterBrokerToControllerResponseHeader> registerSuccessResult = this.replicasInfoManager.registerBroker(registerBrokerToControllerRequestHeader, (a, b, c) -> true);
         apply(registerSuccessResult.getEvents());
 
         // check response
