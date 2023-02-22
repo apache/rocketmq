@@ -14,131 +14,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.remoting.protocol.header.controller.register;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterBrokerToControllerRequestHeader implements CommandCustomHeader {
+
     private String clusterName;
+
     private String brokerName;
-    private String brokerAddress;
+
     private Long brokerId;
-    @CFNullable
-    private Integer epoch;
-    @CFNullable
-    private Long maxOffset;
-    @CFNullable
-    private Long confirmOffset;
-    @CFNullable
-    private Long heartbeatTimeoutMillis;
-    @CFNullable
-    private Integer electionPriority;
+
+    private String brokerAddress;
 
     public RegisterBrokerToControllerRequestHeader() {
     }
 
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
-        this(clusterName, brokerName, brokerAddress, brokerId, 0);
-    }
-
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress, Long brokerId,
-        int electionPriority) {
-        this(clusterName, brokerName, brokerAddress, brokerId, null, 0, 0, electionPriority);
-    }
-
-    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, String brokerAddress,
-        Long brokerId, Long heartbeatTimeoutMillis, int epoch, long maxOffset, int electionPriority) {
+    public RegisterBrokerToControllerRequestHeader(String clusterName, String brokerName, Long brokerId, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
         this.brokerId = brokerId;
-        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
-        this.epoch = epoch;
-        this.maxOffset = maxOffset;
-        this.electionPriority = electionPriority;
+        this.brokerAddress = brokerAddress;
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
     }
 
     public String getClusterName() {
         return clusterName;
     }
 
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
-    }
-
     public String getBrokerName() {
         return brokerName;
     }
 
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
+    public Long getBrokerId() {
+        return brokerId;
     }
 
     public String getBrokerAddress() {
         return brokerAddress;
     }
 
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
+    }
+
     public void setBrokerAddress(String brokerAddress) {
         this.brokerAddress = brokerAddress;
-    }
-
-    public Long getHeartbeatTimeoutMillis() {
-        return heartbeatTimeoutMillis;
-    }
-
-    public void setHeartbeatTimeoutMillis(Long heartbeatTimeoutMillis) {
-        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
-    }
-
-    public Integer getElectionPriority() {
-        return electionPriority;
-    }
-
-    public void setElectionPriority(Integer electionPriority) {
-        this.electionPriority = electionPriority;
-    }
-
-    @Override
-    public String toString() {
-        return "RegisterBrokerToControllerRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            ", epoch=" + epoch +
-            ", maxOffset=" + maxOffset +
-            ", confirmOffset=" + confirmOffset +
-            ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
-            ", electionPriority=" + electionPriority +
-            '}';
-    }
-
-    public Integer getEpoch() {
-        return epoch;
-    }
-
-    public void setEpoch(Integer epoch) {
-        this.epoch = epoch;
-    }
-
-    public Long getMaxOffset() {
-        return maxOffset;
-    }
-
-    public void setMaxOffset(Long maxOffset) {
-        this.maxOffset = maxOffset;
-    }
-
-    public Long getConfirmOffset() {
-        return confirmOffset;
-    }
-
-    public void setConfirmOffset(Long confirmOffset) {
-        this.confirmOffset = confirmOffset;
-    }
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
     }
 }

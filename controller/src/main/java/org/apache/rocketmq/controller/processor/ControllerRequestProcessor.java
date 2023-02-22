@@ -38,14 +38,14 @@ import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 
-import static org.apache.rocketmq.remoting.protocol.RequestCode.APPLY_BROKER_ID;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
@@ -53,9 +53,9 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ELECT
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
-import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_NEXT_BROKER_ID;
-import static org.apache.rocketmq.remoting.protocol.RequestCode.REGISTER_SUCCESS;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_NEXT_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
@@ -99,12 +99,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return this.handleGetControllerConfig(ctx, request);
             case CLEAN_BROKER_DATA:
                 return this.handleCleanBrokerData(ctx, request);
-            case GET_NEXT_BROKER_ID:
+            case CONTROLLER_GET_NEXT_BROKER_ID:
                 return this.handleGetNextBrokerId(ctx, request);
-            case APPLY_BROKER_ID:
+            case CONTROLLER_APPLY_BROKER_ID:
                 return this.handleApplyBrokerId(ctx, request);
-            case REGISTER_SUCCESS:
-                return this.handleRegisterSuccess(ctx, request);
+            case CONTROLLER_REGISTER_BROKER:
+                return this.handleRegisterBroker(ctx, request);
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
@@ -202,9 +202,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return RemotingCommand.createResponseCommand(null);
     }
 
-    private RemotingCommand handleRegisterSuccess(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-        RegisterSuccessRequestHeader requestHeader = (RegisterSuccessRequestHeader) request.decodeCommandCustomHeader(RegisterSuccessRequestHeader.class);
-        CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerSuccess(requestHeader);
+    private RemotingCommand handleRegisterBroker(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        RegisterBrokerToControllerRequestHeader requestHeader = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
+        CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(requestHeader);
         if (future != null) {
             return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
         }

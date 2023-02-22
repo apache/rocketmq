@@ -39,7 +39,7 @@ public class BrokerReplicaInfo {
     public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_SLAVE_ID);
+        this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_BROKER_CONTROLLER_ID);
         this.brokerIdInfo = new HashMap<>();
     }
 

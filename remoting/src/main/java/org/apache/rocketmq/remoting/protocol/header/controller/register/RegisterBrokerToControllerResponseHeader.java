@@ -14,64 +14,84 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.remoting.protocol.header.controller.register;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterBrokerToControllerResponseHeader implements CommandCustomHeader {
+
+    private String clusterName;
+
+    private String brokerName;
+
+    private Long masterBrokerId;
+
     private String masterAddress;
-    private int masterEpoch;
-    private int syncStateSetEpoch;
-    // The id of this registered replicas.
-    private long brokerId;
+
+    private Integer masterEpoch;
+
+    private Integer syncStateSetEpoch;
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
+    }
 
     public RegisterBrokerToControllerResponseHeader() {
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public RegisterBrokerToControllerResponseHeader(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+    }
+
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
     }
 
     public void setMasterAddress(String masterAddress) {
         this.masterAddress = masterAddress;
     }
 
-    public int getMasterEpoch() {
-        return masterEpoch;
-    }
-
-    public void setMasterEpoch(int masterEpoch) {
+    public void setMasterEpoch(Integer masterEpoch) {
         this.masterEpoch = masterEpoch;
     }
 
-    public int getSyncStateSetEpoch() {
-        return syncStateSetEpoch;
-    }
-
-    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
+    public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public long getBrokerId() {
-        return brokerId;
+    public Integer getMasterEpoch() {
+        return masterEpoch;
     }
 
-    public void setBrokerId(long brokerId) {
-        this.brokerId = brokerId;
+    public Integer getSyncStateSetEpoch() {
+        return syncStateSetEpoch;
     }
 
-    @Override
-    public String toString() {
-        return "RegisterBrokerResponseHeader{" +
-            "masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerId=" + brokerId +
-            '}';
+    public String getClusterName() {
+        return clusterName;
     }
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
+    }
+
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }

@@ -64,7 +64,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataRespon
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 
 /**
  * The implementation of controller, based on DLedger (raft).
@@ -177,8 +177,8 @@ public class DLedgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> registerSuccess(RegisterSuccessRequestHeader request) {
-        return this.scheduler.appendEvent("registerSuccess", () -> this.replicasInfoManager.registerSuccess(request, brokerAlivePredicate), true);
+    public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
+        return this.scheduler.appendEvent("registerSuccess", () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
     }
 
     @Override

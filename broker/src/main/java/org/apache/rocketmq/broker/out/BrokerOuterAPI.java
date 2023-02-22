@@ -111,8 +111,8 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionRequestHeader;
@@ -1195,7 +1195,7 @@ public class BrokerOuterAPI {
 
     public GetNextBrokerIdResponseHeader getNextBrokerId(final String clusterName, final String brokerName, final String controllerAddress) throws Exception {
         final GetNextBrokerIdRequestHeader requestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
-        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NEXT_BROKER_ID, requestHeader);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         if (response.getCode() == SUCCESS) {
@@ -1206,7 +1206,7 @@ public class BrokerOuterAPI {
 
     public ApplyBrokerIdResponseHeader applyBrokerId(final String clusterName, final String brokerName, final Long brokerId, final String registerCheckCode, final String controllerAddress) throws Exception {
         final ApplyBrokerIdRequestHeader requestHeader = new ApplyBrokerIdRequestHeader(clusterName, brokerName, brokerId, registerCheckCode);
-        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.APPLY_BROKER_ID, requestHeader);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_APPLY_BROKER_ID, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         if (response.getCode() == SUCCESS) {
@@ -1215,13 +1215,13 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public RegisterSuccessResponseHeader registerSuccess(final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress, final String controllerAddress) throws Exception {
-        final RegisterSuccessRequestHeader requestHeader = new RegisterSuccessRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
-        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_SUCCESS, requestHeader);
+    public RegisterBrokerToControllerResponseHeader registerSuccess(final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress, final String controllerAddress) throws Exception {
+        final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         if (response.getCode() == SUCCESS) {
-            return (RegisterSuccessResponseHeader) response.decodeCommandCustomHeader(RegisterSuccessResponseHeader.class);
+            return (RegisterBrokerToControllerResponseHeader) response.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }

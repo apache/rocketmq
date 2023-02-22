@@ -29,7 +29,7 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     private String brokerAddr;
     @CFNotNull
     private String brokerName;
-    @CFNotNull
+    @CFNullable
     private Long brokerId;
     @CFNullable
     private Integer epoch;
