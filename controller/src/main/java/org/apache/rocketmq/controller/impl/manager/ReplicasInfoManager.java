@@ -56,8 +56,8 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 
 
 /**
@@ -255,7 +255,7 @@ public class ReplicasInfoManager {
         final GetNextBrokerIdResponseHeader response = result.getResponse();
         if (brokerReplicaInfo == null) {
             // means that none of brokers in this broker-set are registered
-            response.setNextBrokerId(MixAll.FIRST_SLAVE_ID);
+            response.setNextBrokerId(MixAll.FIRST_BROKER_CONTROLLER_ID);
         } else {
             response.setNextBrokerId(brokerReplicaInfo.getNextAssignBrokerId());
         }
@@ -274,7 +274,7 @@ public class ReplicasInfoManager {
         // broker-set unregistered
         if (brokerReplicaInfo == null) {
             // first brokerId
-            if (brokerId == MixAll.FIRST_SLAVE_ID) {
+            if (brokerId == MixAll.FIRST_BROKER_CONTROLLER_ID) {
                 result.addEvent(event);
             } else {
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_ID_INVALID, String.format("Broker-set: %s hasn't been registered in controller, but broker try to apply brokerId: %d", brokerName, brokerId));
@@ -291,13 +291,13 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<RegisterSuccessResponseHeader> registerSuccess(final RegisterSuccessRequestHeader request, final BrokerValidPredicate alivePredicate) {
+    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
         final String brokerAddress = request.getBrokerAddress();
         final String brokerName = request.getBrokerName();
         final String clusterName = request.getClusterName();
         final Long brokerId = request.getBrokerId();
-        final ControllerResult<RegisterSuccessResponseHeader> result = new ControllerResult<>(new RegisterSuccessResponseHeader(clusterName, brokerName));
-        final RegisterSuccessResponseHeader response = result.getResponse();
+        final ControllerResult<RegisterBrokerToControllerResponseHeader> result = new ControllerResult<>(new RegisterBrokerToControllerResponseHeader(clusterName, brokerName));
+        final RegisterBrokerToControllerResponseHeader response = result.getResponse();
         if (!isContainsBroker(brokerName)) {
             result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, String.format("Broker-set: %s hasn't been registered in controller", brokerName));
             return result;

@@ -275,11 +275,9 @@ public class RequestCode {
      */
     public static final int CLEAN_BROKER_DATA = 1011;
 
-    public static final int GET_NEXT_BROKER_ID = 1012;
+    public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
 
-    public static final int APPLY_BROKER_ID = 1013;
-
-    public static final int REGISTER_SUCCESS = 1014;
+    public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
 
 
 }

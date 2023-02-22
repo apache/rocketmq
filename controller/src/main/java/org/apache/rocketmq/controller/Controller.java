@@ -28,7 +28,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterReques
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 
 /**
  * The api for controller
@@ -77,19 +77,17 @@ public interface Controller {
      */
     CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request);
 
-    /**
-     * Register api when a replicas of a broker startup.
-     *
-     * @param request RegisterBrokerRequest
-     * @return RemotingCommand(RegisterBrokerResponseHeader)
-     */
-    // CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerToControllerRequestHeader request);
-
     CompletableFuture<RemotingCommand> getNextBrokerId(final GetNextBrokerIdRequestHeader request);
 
     CompletableFuture<RemotingCommand> applyBrokerId(final ApplyBrokerIdRequestHeader request);
 
-    CompletableFuture<RemotingCommand> registerSuccess(final RegisterSuccessRequestHeader request);
+    /**
+     * Register broker with unique brokerId and now broker address
+     *
+     * @param request RegisterBrokerToControllerRequest
+     * @return RemotingCommand(RegisterBrokerToControllerResponseHeader)
+     */
+    CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerToControllerRequestHeader request);
 
     /**
      * Get the Replica Info for a target broker.

@@ -19,13 +19,7 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class TempBrokerMetadata extends MetadataFile {
-
-    private String clusterName;
-
-    private String brokerName;
-
-    private Long brokerId;
+public class TempBrokerMetadata extends BrokerMetadata {
 
     private String registerCheckCode;
 
@@ -34,17 +28,17 @@ public class TempBrokerMetadata extends MetadataFile {
     }
 
     public TempBrokerMetadata(String filePath, String clusterName, String brokerName, Long brokerId, String registerCheckCode) {
-        this.filePath = filePath;
-        this.clusterName = clusterName;
-        this.brokerId = brokerId;
-        this.brokerName = brokerName;
+        super(filePath);
+        super.clusterName = clusterName;
+        super.brokerId = brokerId;
+        super.brokerName = brokerName;
         this.registerCheckCode = registerCheckCode;
     }
 
     public void updateAndPersist(String clusterName, String brokerName, Long brokerId, String registerCheckCode) throws Exception {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
-        this.brokerId = brokerId;
+        super.clusterName = clusterName;
+        super.brokerName = brokerName;
+        super.brokerId = brokerId;
         this.registerCheckCode = registerCheckCode;
         writeToFile();
     }
@@ -71,14 +65,12 @@ public class TempBrokerMetadata extends MetadataFile {
 
     @Override
     public boolean isLoaded() {
-        return StringUtils.isNotEmpty(this.clusterName) && StringUtils.isNotEmpty(this.brokerName) && brokerId != null && StringUtils.isNotEmpty(this.registerCheckCode);
+        return super.isLoaded() && StringUtils.isNotEmpty(this.registerCheckCode);
     }
 
     @Override
     public void clearInMem() {
-        this.clusterName = null;
-        this.brokerName = null;
-        this.brokerId = null;
+        super.clearInMem();
         this.registerCheckCode = null;
     }
 

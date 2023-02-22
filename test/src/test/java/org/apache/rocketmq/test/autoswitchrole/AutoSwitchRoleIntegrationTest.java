@@ -164,7 +164,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         waitSlaveReady(brokerController1.getMessageStore());
 
         assertFalse(brokerController1.getReplicasManager().isMasterState());
-        assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getLocalAddress());
+        assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getBrokerAddress());
 
         // Put another batch messages
         final MessageStore messageStore = brokerController2.getMessageStore();
@@ -197,7 +197,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         Thread.sleep(1000);
 
         // Check broker id
-        assertEquals(1, brokerController1.getReplicasManager().getBrokerId().longValue());
+        assertEquals(1, brokerController1.getReplicasManager().getBrokerControllerId().longValue());
         // Check role
         assertTrue(brokerController1.getReplicasManager().isMasterState());
 

@@ -44,7 +44,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -119,8 +119,8 @@ public class DLedgerControllerTest {
         assertEquals(ResponseCode.SUCCESS, remotingCommand1.getCode());
 
         // Register success
-        final RegisterSuccessRequestHeader registerSuccessRequestHeader = new RegisterSuccessRequestHeader(clusterName, brokerName, nextBrokerId, brokerAddress);
-        RemotingCommand remotingCommand2 = leader.registerSuccess(registerSuccessRequestHeader).get(2, TimeUnit.SECONDS);
+        final RegisterBrokerToControllerRequestHeader registerBrokerToControllerRequestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, nextBrokerId, brokerAddress);
+        RemotingCommand remotingCommand2 = leader.registerBroker(registerBrokerToControllerRequestHeader).get(2, TimeUnit.SECONDS);
 
 
         assertEquals(ResponseCode.SUCCESS, remotingCommand2.getCode());

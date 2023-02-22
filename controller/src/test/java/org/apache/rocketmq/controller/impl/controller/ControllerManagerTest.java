@@ -40,8 +40,8 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterSuccessResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
@@ -133,7 +133,7 @@ public class ControllerManagerTest {
         final String brokerName, final Long brokerId,  final String brokerAddress, final Long expectMasterBrokerId, final RemotingClient client) throws Exception {
         // Get next brokerId;
         final GetNextBrokerIdRequestHeader getNextBrokerIdRequestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
-        final RemotingCommand getNextBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.GET_NEXT_BROKER_ID, getNextBrokerIdRequestHeader);
+        final RemotingCommand getNextBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, getNextBrokerIdRequestHeader);
         final RemotingCommand getNextBrokerIdResponse = client.invokeSync(controllerAddress, getNextBrokerIdRequest, 3000);
         final GetNextBrokerIdResponseHeader getNextBrokerIdResponseHeader = (GetNextBrokerIdResponseHeader) getNextBrokerIdResponse.decodeCommandCustomHeader(GetNextBrokerIdResponseHeader.class);
         String registerCheckCode = brokerAddress + ";" + System.currentTimeMillis();
@@ -142,18 +142,18 @@ public class ControllerManagerTest {
 
         // Apply brokerId
         final ApplyBrokerIdRequestHeader applyBrokerIdRequestHeader = new ApplyBrokerIdRequestHeader(clusterName, brokerName, brokerId, registerCheckCode);
-        final RemotingCommand applyBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.APPLY_BROKER_ID, applyBrokerIdRequestHeader);
+        final RemotingCommand applyBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_APPLY_BROKER_ID, applyBrokerIdRequestHeader);
         final RemotingCommand applyBrokerIdResponse = client.invokeSync(controllerAddress, applyBrokerIdRequest, 3000);
         final ApplyBrokerIdResponseHeader applyBrokerIdResponseHeader = (ApplyBrokerIdResponseHeader) applyBrokerIdResponse.decodeCommandCustomHeader(ApplyBrokerIdResponseHeader.class);
         assertEquals(ResponseCode.SUCCESS, applyBrokerIdResponse.getCode());
 
         // Register success
-        final RegisterSuccessRequestHeader registerSuccessRequestHeader = new RegisterSuccessRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
-        final RemotingCommand registerSuccessRequest = RemotingCommand.createRequestCommand(RequestCode.REGISTER_SUCCESS, registerSuccessRequestHeader);
+        final RegisterBrokerToControllerRequestHeader registerBrokerToControllerRequestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
+        final RemotingCommand registerSuccessRequest = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, registerBrokerToControllerRequestHeader);
         final RemotingCommand registerSuccessResponse = client.invokeSync(controllerAddress, registerSuccessRequest, 3000);
-        final RegisterSuccessResponseHeader registerSuccessResponseHeader = (RegisterSuccessResponseHeader) registerSuccessResponse.decodeCommandCustomHeader(RegisterSuccessResponseHeader.class);
+        final RegisterBrokerToControllerResponseHeader registerBrokerToControllerResponseHeader = (RegisterBrokerToControllerResponseHeader) registerSuccessResponse.decodeCommandCustomHeader(RegisterBrokerToControllerResponseHeader.class);
         assertEquals(ResponseCode.SUCCESS, registerSuccessResponse.getCode());
-        assertEquals(expectMasterBrokerId, registerSuccessResponseHeader.getMasterBrokerId());
+        assertEquals(expectMasterBrokerId, registerBrokerToControllerResponseHeader.getMasterBrokerId());
     }
 
     public RemotingCommand brokerTryElect(final String controllerAddress, final String clusterName,
