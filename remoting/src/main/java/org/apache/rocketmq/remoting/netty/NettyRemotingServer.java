@@ -52,11 +52,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -74,8 +73,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 @SuppressWarnings("NullableProblems")
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
-    private static final Logger TRAFFIC_LOGGER =
-        LoggerFactory.getLogger(LoggerName.ROCKETMQ_TRAFFIC_NAME);
+    private static final Logger TRAFFIC_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_TRAFFIC_NAME);
 
     private final ServerBootstrap serverBootstrap;
     private final EventLoopGroup eventLoopGroupSelector;
@@ -128,47 +126,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     private EventLoopGroup buildEventLoopGroupSelector() {
         if (useEpoll()) {
-            return new EpollEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-                private final int threadTotal = nettyServerConfig.getServerSelectorThreads();
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("NettyServerEPOLLSelector_%d_%d", threadTotal, this.threadIndex.incrementAndGet()));
-                }
-            });
+            return new EpollEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactoryImpl("NettyServerEPOLLSelector_"));
         } else {
-            return new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-                private final int threadTotal = nettyServerConfig.getServerSelectorThreads();
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("NettyServerNIOSelector_%d_%d", threadTotal, this.threadIndex.incrementAndGet()));
-                }
-            });
+            return new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactoryImpl("NettyServerNIOSelector_"));
         }
     }
 
     private EventLoopGroup buildBossEventLoopGroup() {
         if (useEpoll()) {
-            return new EpollEventLoopGroup(1, new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("NettyEPOLLBoss_%d", this.threadIndex.incrementAndGet()));
-                }
-            });
+            return new EpollEventLoopGroup(1, new ThreadFactoryImpl("NettyEPOLLBoss_"));
         } else {
-            return new NioEventLoopGroup(1, new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("NettyNIOBoss_%d", this.threadIndex.incrementAndGet()));
-                }
-            });
+            return new NioEventLoopGroup(1, new ThreadFactoryImpl("NettyNIOBoss_"));
         }
     }
 
@@ -178,23 +146,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             publicThreadNums = 4;
         }
 
-        return Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
-            private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NettyServerPublicExecutor_" + this.threadIndex.incrementAndGet());
-            }
-        });
+        return Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyServerPublicExecutor_"));
     }
 
     private ScheduledExecutorService buildScheduleExecutor() {
         return new ScheduledThreadPoolExecutor(1,
-            r -> {
-                Thread thread = new Thread(r, "NettyServerScheduler");
-                thread.setDaemon(true);
-                return thread;
-            }, new ThreadPoolExecutor.DiscardOldestPolicy());
+            new ThreadFactoryImpl("NettyServerScheduler_", true),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
     }
 
     public void loadSslContext() {
@@ -219,17 +177,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
-            nettyServerConfig.getServerWorkerThreads(),
-            new ThreadFactory() {
-
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "NettyServerCodecThread_" + this.threadIndex.incrementAndGet());
-                }
-            });
+        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads(),
+            new ThreadFactoryImpl("NettyServerCodecThread_"));
 
         prepareSharableHandlers();
 
@@ -291,6 +240,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     /**
      * config channel in ChannelInitializer
+     *
      * @param ch the SocketChannel needed to init
      * @return the initialized ChannelPipeline, sub class can use it to extent in the future
      */
@@ -444,13 +394,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (distributionHandler != null) {
             String inBoundSnapshotString = distributionHandler.getInBoundSnapshotString();
             if (inBoundSnapshotString != null) {
-                TRAFFIC_LOGGER.info("Port: {}, RequestCode Distribution: {}", 
+                TRAFFIC_LOGGER.info("Port: {}, RequestCode Distribution: {}",
                     nettyServerConfig.getListenPort(), inBoundSnapshotString);
             }
 
             String outBoundSnapshotString = distributionHandler.getOutBoundSnapshotString();
             if (outBoundSnapshotString != null) {
-                TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}", 
+                TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}",
                     nettyServerConfig.getListenPort(), outBoundSnapshotString);
             }
         }
