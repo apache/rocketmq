@@ -93,7 +93,7 @@ java_library(
 
 GenTestRules(
     name = "GeneratedTestRules",
-    default_test_size = "medium",
+    default_test_size = "enormous",
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
         "src/test/java/org/apache/rocketmq/test/statictopic/StaticTopicIT",

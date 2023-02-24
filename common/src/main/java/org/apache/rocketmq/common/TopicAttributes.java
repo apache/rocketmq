@@ -20,11 +20,13 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
+import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 
 import static com.google.common.collect.Sets.newHashSet;
 
 public class TopicAttributes {
+
     public static final EnumAttribute QUEUE_TYPE_ATTRIBUTE = new EnumAttribute(
         "queue.type",
         false,
@@ -44,6 +46,14 @@ public class TopicAttributes {
         TopicMessageType.NORMAL.getValue()
     );
 
+    public static final LongRangeAttribute DELETE_RETENTION_MS_ATTRIBUTE = new LongRangeAttribute(
+        "delete.retention.ms",
+        true,
+        0,
+        Long.MAX_VALUE,
+        24 * 60 * 60 * 1000
+    );
+
     public static final Map<String, Attribute> ALL;
 
     static {
@@ -51,5 +61,6 @@ public class TopicAttributes {
         ALL.put(QUEUE_TYPE_ATTRIBUTE.getName(), QUEUE_TYPE_ATTRIBUTE);
         ALL.put(CLEANUP_POLICY_ATTRIBUTE.getName(), CLEANUP_POLICY_ATTRIBUTE);
         ALL.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TOPIC_MESSAGE_TYPE_ATTRIBUTE);
+        ALL.put(DELETE_RETENTION_MS_ATTRIBUTE.getName(), DELETE_RETENTION_MS_ATTRIBUTE);
     }
 }

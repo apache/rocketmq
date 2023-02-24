@@ -18,6 +18,7 @@
 package org.apache.rocketmq.client;
 
 import java.util.Properties;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
@@ -48,11 +49,10 @@ public class Validators {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
 
-
         if (isTopicOrGroupIllegal(group)) {
             throw new MQClientException(String.format(
-                    "the specified group[%s] contains illegal characters, allowing only %s", group,
-                    "^[%|a-zA-Z0-9_-]+$"), null);
+                "the specified group[%s] contains illegal characters, allowing only %s", group,
+                "^[%|a-zA-Z0-9_-]+$"), null);
         }
     }
 
@@ -64,16 +64,18 @@ public class Validators {
         Validators.checkTopic(msg.getTopic());
         Validators.isNotAllowedSendTopic(msg.getTopic());
 
-        // body
-        if (null == msg.getBody()) {
-            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
+        if (StringUtils.isEmpty(msg.getKeys())) {
+            // body
+            if (null == msg.getBody()) {
+                throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
+            }
+
+            if (0 == msg.getBody().length) {
+                throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
+            }
         }
 
-        if (0 == msg.getBody().length) {
-            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
-        }
-
-        if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
+        if (msg.getBody() != null && msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
@@ -91,22 +93,22 @@ public class Validators {
 
         if (isTopicOrGroupIllegal(topic)) {
             throw new MQClientException(String.format(
-                    "The specified topic[%s] contains illegal characters, allowing only %s", topic,
-                    "^[%|a-zA-Z0-9_-]+$"), null);
+                "The specified topic[%s] contains illegal characters, allowing only %s", topic,
+                "^[%|a-zA-Z0-9_-]+$"), null);
         }
     }
 
     public static void isSystemTopic(String topic) throws MQClientException {
         if (TopicValidator.isSystemTopic(topic)) {
             throw new MQClientException(
-                    String.format("The topic[%s] is conflict with system topic.", topic), null);
+                String.format("The topic[%s] is conflict with system topic.", topic), null);
         }
     }
 
     public static void isNotAllowedSendTopic(String topic) throws MQClientException {
         if (TopicValidator.isNotAllowedSendTopic(topic)) {
             throw new MQClientException(
-                    String.format("Sending message to topic[%s] is forbidden.", topic), null);
+                String.format("Sending message to topic[%s] is forbidden.", topic), null);
         }
     }
 

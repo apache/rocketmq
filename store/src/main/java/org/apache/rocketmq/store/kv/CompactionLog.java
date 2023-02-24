@@ -17,37 +17,6 @@
 package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.store.CompactionAppendMsgCallback;
-import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MappedFileQueue;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageLock;
-import org.apache.rocketmq.store.PutMessageReentrantLock;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageSpinLock;
-import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.StoreUtil;
-import org.apache.rocketmq.store.config.BrokerRole;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.store.queue.BatchConsumeQueue;
-import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.ReferredIterator;
-import org.apache.rocketmq.store.queue.SparseConsumeQueue;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -64,6 +33,38 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.TopicAttributes;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.AppendMessageResult;
+import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.CompactionAppendMsgCallback;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageLock;
+import org.apache.rocketmq.store.PutMessageReentrantLock;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageSpinLock;
+import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.StoreUtil;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.BatchConsumeQueue;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.queue.SparseConsumeQueue;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.BLANK_MAGIC_CODE;
 
@@ -93,6 +94,7 @@ public class CompactionLog {
     private TopicPartitionLog replicating;
     private CompactionPositionMgr positionMgr;
     private AtomicReference<State> state;
+    private long deleteRetentionMs = TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getDefaultValue();
 
     public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
         throws IOException {
@@ -111,6 +113,11 @@ public class CompactionLog {
             topic, String.valueOf(queueId)).toString();
         this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
         this.positionMgr = compactionStore.getPositionMgr();
+
+        TopicConfig topicConfig = this.defaultMessageStore.getTopicConfig(topic).get();
+        if (topicConfig.getAttributes().containsKey(TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getName())) {
+            this.deleteRetentionMs = Long.parseLong(topicConfig.getAttributes().get(TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getName()));
+        }
 
         this.putMessageLock =
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() :
@@ -319,6 +326,8 @@ public class CompactionLog {
     }
 
     boolean shouldRetainMsg(final MessageExt msgExt, final OffsetMap map) throws DigestException {
+        // When the data in OffsetMap is empty, it proves that there is no new data.
+        // However, the main purpose of continuing compression is to clear the empty data
         if (msgExt.getQueueOffset() > map.getLastOffset()) {
             return true;
         }
@@ -327,11 +336,18 @@ public class CompactionLog {
         if (StringUtils.isNotBlank(key)) {
             boolean keyNotExistOrOffsetBigger = msgExt.getQueueOffset() >= map.get(key);
             boolean hasBody = ArrayUtils.isNotEmpty(msgExt.getBody());
-            return keyNotExistOrOffsetBigger && hasBody;
+            return keyNotExistOrOffsetBigger && !verifyDeleted(hasBody, msgExt);
         } else {
             log.error("message has no keys");
             return false;
         }
+    }
+
+    public boolean verifyDeleted(boolean hasBody, MessageExt message) {
+        if (hasBody) {
+            return false;
+        }
+        return message.getBornTimestamp() + deleteRetentionMs < System.currentTimeMillis();
     }
 
     public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
@@ -342,7 +358,8 @@ public class CompactionLog {
         }
     }
 
-    public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult) {
+    public CompletableFuture<PutMessageResult> asyncPutMessage(
+        final SelectMappedBufferResult selectMappedBufferResult) {
         return asyncPutMessage(selectMappedBufferResult, current);
     }
 
@@ -565,15 +582,16 @@ public class CompactionLog {
         List<MappedFile> newFiles = Lists.newArrayList();
         for (int i = 0; i < mappedFileList.size() - 1; i++) {
             MappedFile mf = mappedFileList.get(i);
+            newFiles.add(mf);
             long maxQueueOffsetInFile = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
             if (maxQueueOffsetInFile > positionMgr.getOffset(topic, queueId)) {
                 newFiles.add(mf);
             }
         }
 
-        if (newFiles.isEmpty()) {
-            return null;
-        }
+//        if (newFiles.isEmpty()) {
+//            return null;
+//        }
 
         return new ProcessFileList(toCompactFiles, newFiles);
     }
@@ -584,6 +602,7 @@ public class CompactionLog {
         }
 
         long startTime = System.nanoTime();
+        // When the new file is empty, the history file will also be compacted to clear the empty message
         OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles);
         compaction(compactFiles.toCompactFiles, offsetMap);
         replaceFiles(compactFiles.toCompactFiles, current, compacting);

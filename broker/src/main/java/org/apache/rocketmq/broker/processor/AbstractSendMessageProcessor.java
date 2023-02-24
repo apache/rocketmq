@@ -357,7 +357,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         sendMessageContext.setNamespace(namespace);
         sendMessageContext.setProducerGroup(requestHeader.getProducerGroup());
         sendMessageContext.setTopic(requestHeader.getTopic());
-        sendMessageContext.setBodyLength(request.getBody().length);
+        sendMessageContext.setBodyLength(request.getBody() != null ? request.getBody().length : 0);
         sendMessageContext.setMsgProps(requestHeader.getProperties());
         sendMessageContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         sendMessageContext.setBrokerAddr(this.brokerController.getBrokerAddr());
