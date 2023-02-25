@@ -135,6 +135,10 @@ public class TieredStoreUtil {
     }
 
     public static TieredMetadataStore getMetadataStore(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return metadataStoreInstance;
+        }
+
         if (metadataStoreInstance == null) {
             synchronized (TieredMetadataStore.class) {
                 if (metadataStoreInstance == null) {
