@@ -32,6 +32,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
@@ -246,7 +247,7 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(InputStream fis, Class<T> clazz) {
-        Yaml yaml = new Yaml();
+        Yaml yaml = new Yaml(new SafeConstructor());
         try {
             return yaml.loadAs(fis, clazz);
         } catch (Exception e) {
@@ -255,7 +256,7 @@ public class AclUtils {
     }
 
     public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
-        Yaml yaml = new Yaml();
+        Yaml yaml = new Yaml(new SafeConstructor());
         try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
             String dumpAsMap = yaml.dumpAsMap(dataMap);
             pw.print(dumpAsMap);
