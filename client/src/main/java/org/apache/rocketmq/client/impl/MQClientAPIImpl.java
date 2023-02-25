@@ -897,7 +897,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         } else {
                             ackResult.setStatus(AckStatus.NO_EXIST);
                         }
-                        assert ackResult != null;
                         ackCallback.onSuccess(ackResult);
                     } catch (Exception e) {
                         ackCallback.onException(e);
@@ -943,7 +942,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         } else {
                             ackResult.setStatus(AckStatus.NO_EXIST);
                         }
-                        assert ackResult != null;
                         ackCallback.onSuccess(ackResult);
                     } catch (Exception e) {
                         ackCallback.onException(e);
