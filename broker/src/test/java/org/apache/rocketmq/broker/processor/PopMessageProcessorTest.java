@@ -91,6 +91,7 @@ public class PopMessageProcessorTest {
 
     @Test
     public void testProcessRequest_TopicNotExist() throws RemotingCommandException {
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         brokerController.getTopicConfigManager().getTopicConfigTable().remove(topic);
         final RemotingCommand request = createPopMsgCommand();
         RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
@@ -102,6 +103,7 @@ public class PopMessageProcessorTest {
     @Test
     public void testProcessRequest_Found() throws RemotingCommandException, InterruptedException {
         GetMessageResult getMessageResult = createGetMessageResult(1);
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
@@ -115,6 +117,7 @@ public class PopMessageProcessorTest {
     public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult(1);
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
@@ -128,6 +131,7 @@ public class PopMessageProcessorTest {
     public void testProcessRequest_NoMsgInQueue() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult(0);
         getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPopMsgCommand();
@@ -135,6 +139,17 @@ public class PopMessageProcessorTest {
         assertThat(response).isNull();
     }
 
+    @Test
+    public void testProcessRequest_whenTimerWheelIsFalse() throws RemotingCommandException {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setTimerWheelEnable(false);
+        when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        final RemotingCommand request = createPopMsgCommand();
+        RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("pop message is forbidden because timerWheelEnable is false");
+    }
 
     private RemotingCommand createPopMsgCommand() {
         PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
@@ -151,7 +166,6 @@ public class PopMessageProcessorTest {
         request.makeCustomHeaderToNet();
         return request;
     }
-
 
     private GetMessageResult createGetMessageResult(int msgCnt) {
         GetMessageResult getMessageResult = new GetMessageResult();
