@@ -337,8 +337,13 @@ public abstract class NettyRemotingAbstract {
                 log.error(cmd.toString());
 
                 if (!cmd.isOnewayRPC()) {
-                    response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                        UtilAll.exceptionSimpleDesc(e));
+                    if (RemotingHelper.ACL_EXCEPTION.equals(e.getClass().getSimpleName())) {
+                        response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.PERMISSION_DENY,
+                            UtilAll.exceptionSimpleDesc(e));
+                    } else {
+                        response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                            UtilAll.exceptionSimpleDesc(e));
+                    }
                     response.setOpaque(opaque);
                     writeResponse(ctx.channel(), cmd, response);
                 }
