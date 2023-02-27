@@ -34,6 +34,8 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientExt;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -144,6 +146,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                         List<MessageExt> messageExtList = new ArrayList<>();
                         for (MessageExt messageExt : popResult.getMsgFoundList()) {
                             try {
+                                fillUniqIDIfNeed(messageExt);
                                 String handleString = createHandle(messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getCommitLogOffset());
                                 if (handleString == null) {
                                     log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msg:{}", requestHeader, messageExt);
@@ -191,6 +194,15 @@ public class ConsumerProcessor extends AbstractProcessor {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    private void fillUniqIDIfNeed(MessageExt messageExt) {
+        if (StringUtils.isBlank(MessageClientIDSetter.getUniqID(messageExt))) {
+            if (messageExt instanceof MessageClientExt) {
+                MessageClientExt clientExt = (MessageClientExt) messageExt;
+                MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, clientExt.getOffsetMsgId());
+            }
+        }
     }
 
     public CompletableFuture<AckResult> ackMessage(

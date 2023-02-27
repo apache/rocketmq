@@ -174,7 +174,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
                 return CompletableFuture.completedFuture(null);
             }
-            if (current - messageReceiptHandle.getTimestamp() < messageReceiptHandle.getExpectInvisibleTime()) {
+            if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future =
                     messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
                         messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), proxyConfig.getRenewSliceTimeMillis());
