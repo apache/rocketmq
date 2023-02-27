@@ -16,67 +16,23 @@
  */
 package org.apache.rocketmq.tieredstore.mock;
 
-import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.junit.Assert;
 
-public class MemoryFileSegment extends TieredFileSegment {
-    protected final ByteBuffer memStore;
+public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
 
-    public CompletableFuture<Boolean> blocker;
-
-    protected boolean checkSize = true;
-
-    public MemoryFileSegment(TieredFileSegment.FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
+    public MemoryFileSegmentWithoutCheck(FileSegmentType fileType,
+        MessageQueue messageQueue, long baseOffset,
         TieredMessageStoreConfig storeConfig) {
         super(fileType, messageQueue, baseOffset, storeConfig);
-        switch (fileType) {
-            case COMMIT_LOG:
-                memStore = ByteBuffer.allocate(10000);
-                break;
-            case CONSUME_QUEUE:
-                memStore = ByteBuffer.allocate(10000);
-                break;
-            case INDEX:
-                memStore = ByteBuffer.allocate(10000);
-                break;
-            default:
-                memStore = null;
-                break;
-        }
-        memStore.position((int) getSize());
-    }
-
-    @Override
-    public String getPath() {
-        return "/tiered/" + fileType + File.separator + baseOffset;
     }
 
     @Override
     public long getSize() {
-        if (checkSize) {
-            return 1000;
-        }
         return 0;
-    }
-
-    @Override
-    public void createFile() {
-
-    }
-
-    @Override
-    public CompletableFuture<ByteBuffer> read0(long position, int length) {
-        ByteBuffer buffer = memStore.duplicate();
-        buffer.position((int) position);
-        ByteBuffer slice = buffer.slice();
-        slice.limit(length);
-        return CompletableFuture.completedFuture(slice);
     }
 
     @Override
@@ -89,8 +45,6 @@ public class MemoryFileSegment extends TieredFileSegment {
         } catch (InterruptedException | ExecutionException e) {
             Assert.fail(e.getMessage());
         }
-
-        Assert.assertTrue(!checkSize || position >= getSize());
 
         byte[] buffer = new byte[1024];
 
@@ -106,15 +60,5 @@ public class MemoryFileSegment extends TieredFileSegment {
             return CompletableFuture.completedFuture(false);
         }
         return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
-    public boolean exists() {
-        return false;
-    }
-
-    @Override
-    public void destroyFile() {
-
     }
 }

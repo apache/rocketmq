@@ -51,7 +51,7 @@ public class TieredFileQueue {
     private final TieredMessageStoreConfig storeConfig;
     private final TieredMetadataStore metadataStore;
 
-    private final List<TieredFileSegment> fileSegmentList = new ArrayList<>();
+    protected final List<TieredFileSegment> fileSegmentList = new ArrayList<>();
     protected final List<TieredFileSegment> needCommitFileSegmentList = new CopyOnWriteArrayList<>();
     private final ReentrantReadWriteLock fileSegmentLock = new ReentrantReadWriteLock();
 
@@ -130,7 +130,10 @@ public class TieredFileQueue {
         }
     }
 
-    private void loadFromMetadata() {
+    protected void loadFromMetadata() {
+        fileSegmentList.clear();
+        needCommitFileSegmentList.clear();
+
         metadataStore.iterateFileSegment(fileType, messageQueue.getTopic(), messageQueue.getQueueId(), metadata -> {
             if (metadata.getStatus() == FileSegmentMetadata.STATUS_DELETED) {
                 return;

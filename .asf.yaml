@@ -32,7 +32,6 @@ github:
     # Enable rebase button
     rebase: true
   protected_branches:
-    master: {}
     develop:
       required_pull_request_reviews:
         dismiss_stale_reviews: true
