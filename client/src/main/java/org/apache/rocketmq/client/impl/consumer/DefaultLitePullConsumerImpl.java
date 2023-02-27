@@ -637,6 +637,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     consumeMessageContext.setSuccess(true);
                     this.executeHookAfter(consumeMessageContext);
                 }
+                consumeRequest.getProcessQueue().setLastConsumeTimestamp(System.currentTimeMillis());
                 return messages;
             }
         } catch (InterruptedException ignore) {
@@ -894,6 +895,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }
+
+                processQueue.setLastPullTimestamp(System.currentTimeMillis());
 
                 if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
