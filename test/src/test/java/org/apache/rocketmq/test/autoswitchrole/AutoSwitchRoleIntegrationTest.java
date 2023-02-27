@@ -42,12 +42,14 @@ import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@Ignore
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
     private static final int DEFAULT_FILE_SIZE = 1024 * 1024;

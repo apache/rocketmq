@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
@@ -40,14 +41,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TieredMessageQueueContainerTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
-    TieredMetadataStore metadataStore;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+    private TieredMetadataStore metadataStore;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
         storeConfig.setCommitLogRollingInterval(0);
         storeConfig.setCommitLogRollingMinimumSize(999);
@@ -57,14 +60,13 @@ public class TieredMessageQueueContainerTest {
 
     @After
     public void tearDown() throws IOException {
-        MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
-        TieredContainerManager.getInstance(storeConfig).cleanup();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Test
-    public void testAppendCommitLog() throws ClassNotFoundException, NoSuchMethodException, IOException {
+    public void testAppendCommitLog() throws ClassNotFoundException, NoSuchMethodException {
         TieredMessageQueueContainer container = new TieredMessageQueueContainer(mq, storeConfig);
         ByteBuffer message = MessageBufferUtilTest.buildMessageBuffer();
         AppendResult result = container.appendCommitLog(message);
@@ -136,7 +138,7 @@ public class TieredMessageQueueContainerTest {
 
     @Test
     public void testBinarySearchInQueueByTime() throws ClassNotFoundException, NoSuchMethodException {
-        MemoryFileSegment.checkSize = false;
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
 
         TieredMessageQueueContainer container = new TieredMessageQueueContainer(mq, storeConfig);
         container.initOffset(50);
