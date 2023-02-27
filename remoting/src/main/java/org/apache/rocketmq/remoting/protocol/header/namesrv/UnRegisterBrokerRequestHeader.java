@@ -24,6 +24,8 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.util.Objects;
+
 public class UnRegisterBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;
@@ -68,5 +70,23 @@ public class UnRegisterBrokerRequestHeader implements CommandCustomHeader {
 
     public void setBrokerId(Long brokerId) {
         this.brokerId = brokerId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o){
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()){
+            return false;
+        }
+        UnRegisterBrokerRequestHeader that = (UnRegisterBrokerRequestHeader) o;
+        return Objects.equals(brokerName, that.brokerName) && Objects.equals(brokerAddr, that.brokerAddr)
+                && Objects.equals(clusterName, that.clusterName) && Objects.equals(brokerId, that.brokerId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(brokerName, brokerAddr, clusterName, brokerId);
     }
 }
