@@ -159,7 +159,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
 
     // only for test purpose, will be modified by reflection in unit test.
-    @SuppressWarnings("FieldMayBeFinal") private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
+    @SuppressWarnings("FieldMayBeFinal")
+    private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
 
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
@@ -485,12 +486,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * subscribe data by customizing messageQueueListener
+     *
      * @param topic
      * @param subExpression
      * @param messageQueueListener
      * @throws MQClientException
      */
-    public synchronized void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+    public synchronized void subscribe(String topic, String subExpression,
+        MessageQueueListener messageQueueListener) throws MQClientException {
         try {
             if (StringUtils.isEmpty(topic)) {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
@@ -516,7 +519,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("subscribe exception", e);
         }
     }
-
 
     public synchronized void subscribe(String topic, String subExpression) throws MQClientException {
         try {
@@ -734,6 +736,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * Specify offset commit
+     *
      * @param messageQueues
      * @param persist
      */
@@ -762,6 +765,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     /**
      * Get the queue assigned in subscribe mode
+     *
      * @return
      */
     public synchronized Set<MessageQueue> assignment() {
@@ -1177,7 +1181,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
         info.getSubscriptionSet().addAll(this.subscriptions());
 
-        for (MessageQueue mq :this.assignedMessageQueue.getAssignedMessageQueues()){
+        for (MessageQueue mq : this.assignedMessageQueue.getAssignedMessageQueues()) {
             ProcessQueue pq = this.assignedMessageQueue.getProcessQueue(mq);
             ProcessQueueInfo pqInfo = new ProcessQueueInfo();
             pqInfo.setCommitOffset(this.offsetStore.readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
@@ -1247,7 +1251,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void registerTopicMessageQueueChangeListener(String topic,
-                                                                     TopicMessageQueueChangeListener listener) throws MQClientException {
+        TopicMessageQueueChangeListener listener) throws MQClientException {
         if (topic == null || listener == null) {
             throw new MQClientException("Topic or listener is null", null);
         }
