@@ -69,6 +69,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProcessQueueInfo;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -394,7 +395,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
         // If assign function invoke before start function, then update pull task after initialization.
         if (subscriptionType == SubscriptionType.ASSIGN) {
-            updateAssignPullTask(assignedMessageQueue.messageQueues());
+            updateAssignPullTask(assignedMessageQueue.getAssignedMessageQueues());
         }
 
         for (String topic : topicMessageQueueChangeListenerMap.keySet()) {
@@ -656,7 +657,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException {
-        if (!assignedMessageQueue.messageQueues().contains(messageQueue)) {
+        if (!assignedMessageQueue.getAssignedMessageQueues().contains(messageQueue)) {
             if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                 throw new MQClientException("The message queue is not in assigned list, may be rebalancing, message queue: " + messageQueue, null);
             } else {
@@ -722,7 +723,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void commitAll() {
-        for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
+        for (MessageQueue messageQueue : assignedMessageQueue.getAssignedMessageQueues()) {
             try {
                 commit(messageQueue);
             } catch (Exception e) {
@@ -1175,6 +1176,15 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         info.setProperties(prop);
 
         info.getSubscriptionSet().addAll(this.subscriptions());
+
+        for (MessageQueue mq :this.assignedMessageQueue.getAssignedMessageQueues()){
+            ProcessQueue pq = this.assignedMessageQueue.getProcessQueue(mq);
+            ProcessQueueInfo pqInfo = new ProcessQueueInfo();
+            pqInfo.setCommitOffset(this.offsetStore.readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
+            pq.fillProcessQueueInfo(pqInfo);
+            info.getMqTable().put(mq, pqInfo);
+        }
+
         return info;
     }
 
