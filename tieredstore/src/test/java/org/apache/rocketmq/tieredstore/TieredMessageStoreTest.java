@@ -67,10 +67,12 @@ public class TieredMessageStoreTest {
     private Configuration configuration;
     private TieredContainerManager containerManager;
 
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
+
     @Before
     public void setUp() {
         storeConfig = new MessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         mq = new MessageQueue("TieredMessageStoreTest", "broker", 0);
 
         nextStore = Mockito.mock(DefaultMessageStore.class);
@@ -102,9 +104,9 @@ public class TieredMessageStoreTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(store.getStoreConfig()).destroy();
-        TieredContainerManager.getInstance(store.getStoreConfig()).cleanup();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     private void mockContainer() {
