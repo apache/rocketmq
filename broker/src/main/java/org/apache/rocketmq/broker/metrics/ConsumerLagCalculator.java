@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.metrics;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.MessageStore;
@@ -124,30 +126,30 @@ public class ConsumerLagCalculator {
         }
     }
 
-    public static class CalculateSendToDLQResult extends BaseCalculateResult {
-        public long dlqMessageCount;
-
-        public CalculateSendToDLQResult(String group, String topic) {
-            super(group, topic, false);
-        }
-    }
-
     private void processAllGroup(Consumer<ProcessGroupInfo> consumer) {
-        for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry : subscriptionGroupManager
-            .getSubscriptionGroupTable().entrySet()) {
-            String group = subscriptionEntry.getKey();
-            SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
+        for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry :
+            subscriptionGroupManager.getSubscriptionGroupTable().entrySet()) {
 
+            String group = subscriptionEntry.getKey();
             ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
             if (consumerGroupInfo == null) {
                 continue;
             }
             boolean isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
-            Set<String> topics = consumerGroupInfo.getSubscribeTopics();
+            Set<String> topics;
+            if (brokerConfig.isUseStaticSubscription()) {
+                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
+                topics = subscriptionGroupConfig.getSubscriptionDataSet()
+                    .stream()
+                    .map(SimpleSubscriptionData::getTopic)
+                    .collect(Collectors.toSet());
+            } else {
+                topics = consumerGroupInfo.getSubscribeTopics();
+            }
+
             if (null == topics || topics.isEmpty()) {
                 continue;
             }
-
             for (String topic : topics) {
                 // skip retry topic
                 if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -403,23 +405,40 @@ public class ConsumerLagCalculator {
 
         if (brokerConfig.isEstimateAccumulation() && to > from) {
             SubscriptionData subscriptionData = null;
-            ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
-            if (consumerGroupInfo != null) {
-                subscriptionData = consumerGroupInfo.findSubscriptionData(topic);
+            if (brokerConfig.isUseStaticSubscription()) {
+                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionGroupManager.findSubscriptionGroupConfig(group);
+                if (subscriptionGroupConfig != null) {
+                    for (SimpleSubscriptionData simpleSubscriptionData : subscriptionGroupConfig.getSubscriptionDataSet()) {
+                        if (topic.equals(simpleSubscriptionData.getTopic())) {
+                            subscriptionData = new SubscriptionData();
+                            subscriptionData.setTopic(simpleSubscriptionData.getTopic());
+                            subscriptionData.setExpressionType(simpleSubscriptionData.getExpressionType());
+                            subscriptionData.setSubString(simpleSubscriptionData.getExpression());
+                            break;
+                        }
+                    }
+                }
+            } else {
+                ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
+                if (consumerGroupInfo != null) {
+                    subscriptionData = consumerGroupInfo.findSubscriptionData(topic);
+                }
             }
-            if (null != subscriptionData &&
-                ExpressionType.TAG.equalsIgnoreCase(subscriptionData.getExpressionType()) &&
-                !SubscriptionData.SUB_ALL.equals(subscriptionData.getSubString())) {
-                count = messageStore.estimateMessageCount(topic, queueId, from, to,
-                    new DefaultMessageFilter(subscriptionData));
-            } else if (null != subscriptionData &&
-                ExpressionType.SQL92.equalsIgnoreCase(subscriptionData.getExpressionType())) {
-                ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
-                count = messageStore.estimateMessageCount(topic, queueId, from, to,
-                    new ExpressionMessageFilter(subscriptionData,
-                        consumerFilterData,
-                        consumerFilterManager));
+
+            if (null != subscriptionData) {
+                if (ExpressionType.TAG.equalsIgnoreCase(subscriptionData.getExpressionType())
+                    && !SubscriptionData.SUB_ALL.equals(subscriptionData.getSubString())) {
+                    count = messageStore.estimateMessageCount(topic, queueId, from, to,
+                        new DefaultMessageFilter(subscriptionData));
+                } else if (ExpressionType.SQL92.equalsIgnoreCase(subscriptionData.getExpressionType())) {
+                    ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
+                    count = messageStore.estimateMessageCount(topic, queueId, from, to,
+                        new ExpressionMessageFilter(subscriptionData,
+                            consumerFilterData,
+                            consumerFilterManager));
+                }
             }
+
         }
         return count < 0 ? 0 : count;
     }

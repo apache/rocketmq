@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
+import com.google.common.base.MoreObjects;
+import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
@@ -44,6 +46,8 @@ public class SubscriptionGroupConfig {
 
     // Only valid for push consumer
     private int consumeTimeoutMinute = 15;
+
+    private Set<SimpleSubscriptionData> subscriptionDataSet;
 
     public String getGroupName() {
         return groupName;
@@ -149,6 +153,14 @@ public class SubscriptionGroupConfig {
         this.consumeTimeoutMinute = consumeTimeoutMinute;
     }
 
+    public Set<SimpleSubscriptionData> getSubscriptionDataSet() {
+        return subscriptionDataSet;
+    }
+
+    public void setSubscriptionDataSet(Set<SimpleSubscriptionData> subscriptionDataSet) {
+        this.subscriptionDataSet = subscriptionDataSet;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -191,19 +203,21 @@ public class SubscriptionGroupConfig {
 
     @Override
     public String toString() {
-        return "SubscriptionGroupConfig{" +
-            "groupName='" + groupName + '\'' +
-            ", consumeEnable=" + consumeEnable +
-            ", consumeFromMinEnable=" + consumeFromMinEnable +
-            ", consumeBroadcastEnable=" + consumeBroadcastEnable +
-            ", consumeMessageOrderly=" + consumeMessageOrderly +
-            ", retryQueueNums=" + retryQueueNums +
-            ", retryMaxTimes=" + retryMaxTimes +
-            ", groupRetryPolicy=" + groupRetryPolicy +
-            ", brokerId=" + brokerId +
-            ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly +
-            ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
-            ", groupSysFlag=" + groupSysFlag +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("groupName", groupName)
+            .add("consumeEnable", consumeEnable)
+            .add("consumeFromMinEnable", consumeFromMinEnable)
+            .add("consumeBroadcastEnable", consumeBroadcastEnable)
+            .add("consumeMessageOrderly", consumeMessageOrderly)
+            .add("retryQueueNums", retryQueueNums)
+            .add("retryMaxTimes", retryMaxTimes)
+            .add("groupRetryPolicy", groupRetryPolicy)
+            .add("brokerId", brokerId)
+            .add("whichBrokerWhenConsumeSlowly", whichBrokerWhenConsumeSlowly)
+            .add("notifyConsumerIdsChangedEnable", notifyConsumerIdsChangedEnable)
+            .add("groupSysFlag", groupSysFlag)
+            .add("consumeTimeoutMinute", consumeTimeoutMinute)
+            .add("subscriptionTopicSet", subscriptionDataSet)
+            .toString();
     }
 }
