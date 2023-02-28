@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 public class Permission {
 
     public static final byte DENY = 1;
-    public static final byte ANY = 1 << 1;
+    public static final byte ANY = 0b00001110;
     public static final byte PUB = 1 << 2;
     public static final byte SUB = 1 << 3;
 
@@ -67,6 +67,8 @@ public class Permission {
             case AclConstants.PUB_SUB:
             case AclConstants.SUB_PUB:
                 return Permission.PUB | Permission.SUB;
+            case AclConstants.ANY:
+                return Permission.ANY;
             case AclConstants.DENY:
                 return Permission.DENY;
             default:

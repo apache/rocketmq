@@ -54,6 +54,8 @@ public class AclConstants {
 
     public static final String SUB_PUB = "SUB|PUB";
 
+    public static final String ANY = "ANY";
+
     public static final int ACCESS_KEY_MIN_LENGTH = 6;
 
     public static final int SECRET_KEY_MIN_LENGTH = 6;
