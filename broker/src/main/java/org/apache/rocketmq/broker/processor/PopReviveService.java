@@ -21,7 +21,6 @@ import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -651,12 +650,7 @@ public class PopReviveService extends ServiceThread {
                 return sortList;
             }
             sortList = new ArrayList<>(map.values());
-            Collections.sort(sortList, new Comparator<PopCheckPoint>() {
-                @Override
-                public int compare(PopCheckPoint o1, PopCheckPoint o2) {
-                    return (int) (o1.getReviveOffset() - o2.getReviveOffset());
-                }
-            });
+            sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
             return sortList;
         }
     }
