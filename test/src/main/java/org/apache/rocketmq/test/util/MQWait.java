@@ -54,7 +54,7 @@ public class MQWait {
                     break;
                 } catch (Throwable e) {
                 }
-                TestUtil.waitForMonment(500);
+                TestUtil.waitForMoment(500);
             } else {
                 logger.error(String.format(
                     "timeout but still not receive all messages,expectSize[%s],realSize[%s]",
@@ -73,7 +73,7 @@ public class MQWait {
                 logger.error("time out,but contidion still not meet!");
                 break;
             } else {
-                TestUtil.waitForMonment(intervalMills);
+                TestUtil.waitForMoment(intervalMills);
             }
         }
     }

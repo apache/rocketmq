@@ -30,33 +30,31 @@ public final class TestUtil {
     private TestUtil() {
     }
 
-    public static Long parseStringToLong(String s, Long defval) {
-        Long val = defval;
+    public static Long parseStringToLong(String s, Long defVal) {
+        Long val;
         try {
             val = Long.parseLong(s);
         } catch (NumberFormatException e) {
-            val = defval;
+            val = defVal;
         }
         return val;
     }
 
-    public static Integer parseStringToInteger(String s, Integer defval) {
-        Integer val = defval;
+    public static Integer parseStringToInteger(String s, Integer defVal) {
+        Integer val;
         try {
             val = Integer.parseInt(s);
         } catch (NumberFormatException e) {
-            val = defval;
+            val = defVal;
         }
         return val;
     }
 
-    public static String addQuoteToParamater(String param) {
-        StringBuilder sb = new StringBuilder("'");
-        sb.append(param).append("'");
-        return sb.toString();
+    public static String addQuoteToParameter(String param) {
+        return "'" + param + "'";
     }
 
-    public static void waitForMonment(long time) {
+    public static void waitForMoment(long time) {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {

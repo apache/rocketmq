@@ -55,7 +55,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
     }
 
     public void waitForMessageConsume(int timeoutMills) {
-        TestUtil.waitForMonment(timeoutMills);
+        TestUtil.waitForMoment(timeoutMills);
     }
 
     public void stopRecv() {
@@ -77,7 +77,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
                     break;
                 } else {
                     LOGGER.info(String.format("[%s] still [%s] msg not recv!", listenerName, sendMessages.size()));
-                    TestUtil.waitForMonment(500);
+                    TestUtil.waitForMoment(500);
                 }
             }
         }
@@ -96,7 +96,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
             } else {
                 LOGGER.info(String.format("[%s] still [%s] msg not recv!",
                     listenerName, size - msgBodys.getDataSize()));
-                TestUtil.waitForMonment(500);
+                TestUtil.waitForMoment(500);
             }
         }
 

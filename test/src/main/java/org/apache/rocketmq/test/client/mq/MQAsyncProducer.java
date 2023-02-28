@@ -43,11 +43,11 @@ public class MQAsyncProducer {
                 for (int i = 0; i < msgNum; i++) {
                     if (!bPause.get()) {
                         producer.send();
-                        TestUtil.waitForMonment(intervalMills);
+                        TestUtil.waitForMoment(intervalMills);
                     } else {
                         while (true) {
                             if (bPause.get()) {
-                                TestUtil.waitForMonment(10);
+                                TestUtil.waitForMoment(10);
                             } else
                                 break;
                         }
@@ -67,7 +67,7 @@ public class MQAsyncProducer {
         long startTime = System.currentTimeMillis();
         while ((producer.getAllMsgBody().size() + producer.getSendErrorMsg().size()) < msgNum) {
             if (System.currentTimeMillis() - startTime < waitMills) {
-                TestUtil.waitForMonment(200);
+                TestUtil.waitForMoment(200);
             } else {
                 logger.error(String.format("time elapse:%s, but the message sending has not finished",
                     System.currentTimeMillis() - startTime));
