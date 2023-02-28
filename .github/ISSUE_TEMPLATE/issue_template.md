@@ -6,7 +6,7 @@ about: Describe this issue template's purpose here.
 
 The issue tracker is used for bug reporting purposes **ONLY** whereas feature request needs to follow the [RIP process](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal). To avoid unnecessary duplication, please check whether there is a previous issue before filing a new one.
 
-It is recommended to start a discussion thread in the [mailing lists](http://rocketmq.apache.org/about/contact/) in cases of discussing your deployment plan, API clarification, and other non-bug-reporting issues.
+It is recommended to start a discussion thread in the [mailing lists](http://rocketmq.apache.org/about/contact/) or [github discussions](https://github.com/apache/rocketmq/discussions) in cases of discussing your deployment plan, API clarification, and other non-bug-reporting issues.
 We welcome any friendly suggestions, bug fixes, collaboration, and other improvements.
 
 Please ensure that your bug report is clear and self-contained. Otherwise, it would take additional rounds of communication, thus more time, to understand the problem itself.

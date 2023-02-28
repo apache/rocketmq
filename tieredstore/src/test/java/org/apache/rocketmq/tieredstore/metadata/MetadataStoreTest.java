@@ -26,27 +26,29 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class MetadataStoreTest {
-    MessageQueue mq0;
-    MessageQueue mq1;
-    MessageQueue mq2;
-    TieredMessageStoreConfig storeConfig;
-    TieredMetadataStore metadataStore;
+    private MessageQueue mq0;
+    private MessageQueue mq1;
+    private MessageQueue mq2;
+    private TieredMessageStoreConfig storeConfig;
+    private TieredMetadataStore metadataStore;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         mq0 = new MessageQueue("MetadataStoreTest0", storeConfig.getBrokerName(), 0);
         mq1 = new MessageQueue("MetadataStoreTest1", storeConfig.getBrokerName(), 0);
         mq2 = new MessageQueue("MetadataStoreTest1", storeConfig.getBrokerName(), 1);
@@ -55,8 +57,8 @@ public class MetadataStoreTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     @Test

@@ -261,10 +261,11 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRenewReceiptHandleWhenTimeout() {
-        long newInvisibleTime = 0L;
+        long newInvisibleTime = 200L;
+        long maxRenewMs = ConfigurationManager.getProxyConfig().getRenewMaxTimeMillis();
         String newReceiptHandle = ReceiptHandle.builder()
             .startOffset(0L)
-            .retrieveTime(0)
+            .retrieveTime(System.currentTimeMillis() - maxRenewMs)
             .invisibleTime(newInvisibleTime)
             .reviveQueueId(1)
             .topicType(ReceiptHandle.NORMAL_TOPIC)
