@@ -168,7 +168,7 @@ public class ConsumerLagCalculator {
                 if (isPop) {
                     String retryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
                     TopicConfig retryTopicConfig = topicConfigManager.selectTopicConfig(retryTopic);
-                    int retryTopicPerm = topicConfig.getPerm() & brokerConfig.getBrokerPermission();
+                    int retryTopicPerm = retryTopicConfig.getPerm() & brokerConfig.getBrokerPermission();
                     if (PermName.isReadable(retryTopicPerm) || PermName.isWriteable(retryTopicPerm)) {
                         consumer.accept(new ProcessGroupInfo(group, topic, true, retryTopic));
                     } else {
