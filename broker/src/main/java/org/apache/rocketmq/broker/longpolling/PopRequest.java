@@ -71,19 +71,16 @@ public class PopRequest {
         return sb.toString();
     }
 
-    public static final Comparator<PopRequest> COMPARATOR = new Comparator<PopRequest>() {
-        @Override
-        public int compare(PopRequest o1, PopRequest o2) {
-            int ret = (int) (o1.getExpired() - o2.getExpired());
+    public static final Comparator<PopRequest> COMPARATOR = (o1, o2) -> {
+        int ret = (int) (o1.getExpired() - o2.getExpired());
 
-            if (ret != 0) {
-                return ret;
-            }
-            ret = (int) (o1.op - o2.op);
-            if (ret != 0) {
-                return ret;
-            }
-            return -1;
+        if (ret != 0) {
+            return ret;
         }
+        ret = (int) (o1.op - o2.op);
+        if (ret != 0) {
+            return ret;
+        }
+        return -1;
     };
 }
