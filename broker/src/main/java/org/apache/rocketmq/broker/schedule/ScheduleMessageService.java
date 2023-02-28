@@ -717,9 +717,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public PutResultProcess thenProcess() {
-            this.future.thenAccept(result -> {
-                this.handleResult(result);
-            });
+            this.future.thenAccept(this::handleResult);
 
             this.future.exceptionally(e -> {
                 log.error("ScheduleMessageService put message exceptionally, info: {}",
