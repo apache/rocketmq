@@ -175,6 +175,9 @@ public class SubscriptionGroupConfig {
         result = prime * result + retryQueueNums;
         result =
             prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
+        result = prime * result + groupSysFlag;
+        result = prime * result + consumeTimeoutMinute;
+        result = prime * result + subscriptionDataSet.hashCode();
         return result;
     }
 
@@ -198,6 +201,8 @@ public class SubscriptionGroupConfig {
             .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)
             .append(notifyConsumerIdsChangedEnable, other.notifyConsumerIdsChangedEnable)
             .append(groupSysFlag, other.groupSysFlag)
+            .append(consumeTimeoutMinute, other.consumeTimeoutMinute)
+            .append(subscriptionDataSet, other.subscriptionDataSet)
             .isEquals();
     }
 
