@@ -24,11 +24,13 @@ public class SimpleSubscriptionData {
     private String topic;
     private String expressionType;
     private String expression;
+    private long version;
 
-    public SimpleSubscriptionData(String topic, String expressionType, String expression) {
+    public SimpleSubscriptionData(String topic, String expressionType, String expression, long version) {
         this.topic = topic;
         this.expressionType = expressionType;
         this.expression = expression;
+        this.version = version;
     }
 
     public String getTopic() {
@@ -56,16 +58,18 @@ public class SimpleSubscriptionData {
     }
 
     @Override public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
+        }
         SimpleSubscriptionData that = (SimpleSubscriptionData) o;
-        return Objects.equals(topic, that.topic);
+        return version == that.version && Objects.equals(topic, that.topic);
     }
 
     @Override public int hashCode() {
-        return Objects.hash(topic);
+        return Objects.hash(topic, version);
     }
 
     @Override public String toString() {
@@ -73,6 +77,7 @@ public class SimpleSubscriptionData {
             .add("topic", topic)
             .add("expressionType", expressionType)
             .add("expression", expression)
+            .add("version", version)
             .toString();
     }
 }
