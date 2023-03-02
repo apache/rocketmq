@@ -77,6 +77,7 @@ import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant
 public class TieredStoreMetricsManager {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    private static String storageMedium = STORAGE_MEDIUM_BLOB;
 
     public static LongHistogram apiLatency = new NopLongHistogram();
 
@@ -113,7 +114,7 @@ public class TieredStoreMetricsManager {
             .build();
 
         View rpcLatencyView = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d, 10d, 100d, 200d, 400d, 600d, 800d, 1d * 1000, 1d * 1500, 1d * 3000)))
+            .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d, 3d, 5d, 7d, 10d, 100d, 200d, 400d, 600d, 800d, 1d * 1000, 1d * 1500, 1d * 3000)))
             .setDescription("tiered_store_rpc_latency_view")
             .build();
 
@@ -137,6 +138,10 @@ public class TieredStoreMetricsManager {
         res.add(new Pair<>(uploadBufferSizeSelector, bufferSizeView));
         res.add(new Pair<>(downloadBufferSizeSelector, bufferSizeView));
         return res;
+    }
+
+    public static void setStorageMedium(String storageMedium) {
+        TieredStoreMetricsManager.storageMedium = storageMedium;
     }
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
@@ -318,6 +323,6 @@ public class TieredStoreMetricsManager {
     public static AttributesBuilder newAttributesBuilder() {
         AttributesBuilder builder = attributesBuilderSupplier != null ? attributesBuilderSupplier.get() : Attributes.builder();
         return builder.put(LABEL_STORAGE_TYPE, "tiered")
-            .put(LABEL_STORAGE_MEDIUM, STORAGE_MEDIUM_BLOB);
+            .put(LABEL_STORAGE_MEDIUM, storageMedium);
     }
 }

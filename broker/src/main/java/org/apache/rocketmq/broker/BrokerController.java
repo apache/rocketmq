@@ -41,7 +41,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
@@ -357,9 +356,7 @@ public class BrokerController {
         if (brokerConfig.getBrokerConfigPath() != null && !brokerConfig.getBrokerConfigPath().isEmpty()) {
             brokerConfigPath = brokerConfig.getBrokerConfigPath();
         } else {
-            brokerConfigPath = FilenameUtils.concat(
-                FilenameUtils.getFullPathNoEndSeparator(BrokerPathConfigHelper.getBrokerConfigPath()),
-                this.brokerConfig.getCanonicalName() + ".properties");
+            brokerConfigPath = BrokerPathConfigHelper.getBrokerConfigPath();
         }
         this.configuration = new Configuration(
             LOG,
@@ -770,9 +767,8 @@ public class BrokerController {
         }
         if (messageStore != null) {
             registerMessageStoreHook();
+            result = result && this.messageStore.load();
         }
-
-        result = result && this.messageStore.load();
 
         if (messageStoreConfig.isTimerWheelEnable()) {
             result = result && this.timerMessageStore.load();

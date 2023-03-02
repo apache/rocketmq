@@ -678,10 +678,7 @@ public class RouteInfoManager {
                     if (null == brokerData) {
                         continue;
                     }
-                    BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(),
-                        brokerData.getBrokerName(),
-                        (HashMap<Long, String>) brokerData.getBrokerAddrs().clone(),
-                        brokerData.isEnableActingMaster(), brokerData.getZoneName());
+                    BrokerData brokerDataClone = new BrokerData(brokerData);
 
                     brokerDataList.add(brokerDataClone);
                     foundBrokerData = true;

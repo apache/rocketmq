@@ -161,6 +161,12 @@ public class BrokerStartup {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             brokerConfig.setBrokerId(-1);
         }
+
+        if (brokerConfig.isEnableControllerMode() && messageStoreConfig.isEnableDLegerCommitLog()) {
+            System.out.printf("The config enableControllerMode and enableDLegerCommitLog cannot both be true.%n");
+            System.exit(-4);
+        }
+
         messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
         brokerConfig.setInBrokerContainer(false);
 

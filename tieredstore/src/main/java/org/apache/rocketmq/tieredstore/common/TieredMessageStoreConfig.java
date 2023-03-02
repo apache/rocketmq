@@ -99,6 +99,12 @@ public class TieredMessageStoreConfig {
 
     private String tieredStoreFilepath = "";
 
+    // only for oss storage provider
+    private String ossEndpoint = "";
+    private String ossBucket = "";
+    private String ossAccessKey = "";
+    private String ossSecretKey = "";
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -330,5 +336,37 @@ public class TieredMessageStoreConfig {
 
     public void setTieredStoreFilepath(String tieredStoreFilepath) {
         this.tieredStoreFilepath = tieredStoreFilepath;
+    }
+
+    public String getOssEndpoint() {
+        return ossEndpoint;
+    }
+
+    public void setOssEndpoint(String ossEndpoint) {
+        this.ossEndpoint = ossEndpoint;
+    }
+
+    public String getOssBucket() {
+        return ossBucket;
+    }
+
+    public void setOssBucket(String ossBucket) {
+        this.ossBucket = ossBucket;
+    }
+
+    public String getOssAccessKey() {
+        return ossAccessKey;
+    }
+
+    public void setOssAccessKey(String ossAccessKey) {
+        this.ossAccessKey = ossAccessKey;
+    }
+
+    public String getOssSecretKey() {
+        return ossSecretKey;
+    }
+
+    public void setOssSecretKey(String ossSecretKey) {
+        this.ossSecretKey = ossSecretKey;
     }
 }

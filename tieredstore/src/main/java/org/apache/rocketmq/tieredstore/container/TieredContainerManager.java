@@ -44,12 +44,17 @@ public class TieredContainerManager {
     private final TieredMessageStoreConfig storeConfig;
 
     public static TieredContainerManager getInstance(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return instance;
+        }
+
         if (instance == null) {
             synchronized (TieredContainerManager.class) {
                 if (instance == null) {
                     try {
                         instance = new TieredContainerManager(storeConfig);
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        logger.error("TieredContainerManager#getInstance: create container manager failed", e);
                     }
                 }
             }
@@ -58,6 +63,10 @@ public class TieredContainerManager {
     }
 
     public static TieredIndexFile getIndexFile(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return indexFile;
+        }
+
         if (indexFile == null) {
             synchronized (TieredContainerManager.class) {
                 if (indexFile == null) {
@@ -233,6 +242,9 @@ public class TieredContainerManager {
     public void destroyContainer(MessageQueue mq) {
         TieredMessageQueueContainer container = messageQueueContainerMap.remove(mq);
         if (container != null) {
+            MessageQueue messageQueue = container.getMessageQueue();
+            logger.info("BlobContainerManager#destroyContainer: try to destroy container: topic: {}, queueId: {}",
+                messageQueue.getTopic(), messageQueue.getQueueId());
             container.destroy();
         }
     }

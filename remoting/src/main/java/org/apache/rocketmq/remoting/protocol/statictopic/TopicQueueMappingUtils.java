@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,18 +62,15 @@ public class TopicQueueMappingUtils {
             //reduce the remapping
             if (brokerNumMapBeforeRemapping != null
                     && !brokerNumMapBeforeRemapping.isEmpty()) {
-                Collections.sort(leastBrokers, new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        int i1 = 0, i2 = 0;
-                        if (brokerNumMapBeforeRemapping.containsKey(o1)) {
-                            i1 = brokerNumMapBeforeRemapping.get(o1);
-                        }
-                        if (brokerNumMapBeforeRemapping.containsKey(o2)) {
-                            i2 = brokerNumMapBeforeRemapping.get(o2);
-                        }
-                        return i1 - i2;
+                leastBrokers.sort((o1, o2) -> {
+                    int i1 = 0, i2 = 0;
+                    if (brokerNumMapBeforeRemapping.containsKey(o1)) {
+                        i1 = brokerNumMapBeforeRemapping.get(o1);
                     }
+                    if (brokerNumMapBeforeRemapping.containsKey(o2)) {
+                        i2 = brokerNumMapBeforeRemapping.get(o2);
+                    }
+                    return i1 - i2;
                 });
             } else {
                 //reduce the imbalance
@@ -342,12 +338,7 @@ public class TopicQueueMappingUtils {
 
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
-        Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
-            @Override
-            public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
-                return (int)(o2.getEpoch() - o1.getEpoch());
-            }
-        });
+        mappingDetailList.sort((o1, o2) -> (int) (o2.getEpoch() - o1.getEpoch()));
 
         int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();

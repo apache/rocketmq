@@ -45,7 +45,7 @@ public class FlowMonitor extends ServiceThread {
     }
 
     public int canTransferMaxByteNum() {
-        //Flow control is not started at present
+        // Flow control is not started at present
         if (this.isFlowControlEnable()) {
             long res = Math.max(this.maxTransferByteInSecond() - this.transferredByte.get(), 0);
             return res > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) res;

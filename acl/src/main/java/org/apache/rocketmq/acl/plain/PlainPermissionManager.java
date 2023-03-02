@@ -611,7 +611,7 @@ public class PlainPermissionManager {
         }
 
         if (plainAccessResource.getAccessKey() == null) {
-            throw new AclException(String.format("No accessKey is configured"));
+            throw new AclException("No accessKey is configured");
         }
 
         if (!accessKeyTable.containsKey(plainAccessResource.getAccessKey())) {
