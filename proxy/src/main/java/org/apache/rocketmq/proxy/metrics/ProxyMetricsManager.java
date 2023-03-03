@@ -24,6 +24,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
@@ -65,6 +66,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
+    private LoggingMetricExporter loggingMetricExporter;
 
     public static ObservableLongGauge proxyUp = null;
 
@@ -122,6 +124,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
             case OTLP_GRPC:
                 return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcExporterTarget());
             case PROM:
+                return true;
+            case LOGGER:
                 return true;
         }
         return false;
@@ -213,6 +217,14 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOGGER) {
+            loggingMetricExporter = LoggingMetricExporter.create(proxyConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
+                .setInterval(proxyConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .build();
+            providerBuilder.registerMetricReader(periodicMetricReader);
+        }
+
         Meter proxyMeter = OpenTelemetrySdk.builder()
             .setMeterProvider(providerBuilder.build())
             .build()
@@ -231,6 +243,11 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
+        }
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOGGER) {
+            periodicMetricReader.forceFlush();
+            periodicMetricReader.shutdown();
+            loggingMetricExporter.shutdown();
         }
     }
 }
