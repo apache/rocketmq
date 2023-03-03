@@ -26,6 +26,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -107,6 +108,7 @@ public class BrokerMetricsManager {
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
+    private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
     // broker stats metrics
@@ -220,6 +222,8 @@ public class BrokerMetricsManager {
                 return StringUtils.isNotBlank(brokerConfig.getMetricsGrpcExporterTarget());
             case PROM:
                 return true;
+            case LOGGER:
+                return true;
         }
         return false;
     }
@@ -307,6 +311,14 @@ public class BrokerMetricsManager {
                 .setPort(brokerConfig.getMetricsPromExporterPort())
                 .build();
             providerBuilder.registerMetricReader(prometheusHttpServer);
+        }
+
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOGGER) {
+            loggingMetricExporter = LoggingMetricExporter.create(brokerConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
+                .setInterval(brokerConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .build();
+            providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
         registerMetricsView(providerBuilder);
@@ -524,6 +536,11 @@ public class BrokerMetricsManager {
         if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
+        }
+        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOGGER) {
+            periodicMetricReader.forceFlush();
+            periodicMetricReader.shutdown();
+            loggingMetricExporter.shutdown();
         }
     }
 
