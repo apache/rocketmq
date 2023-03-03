@@ -53,7 +53,7 @@ public class SyncStateInfo {
     }
 
     public boolean isMasterExist() {
-        return masterAddress!=null && !this.masterAddress.isEmpty();
+        return masterAddress != null && !this.masterAddress.isEmpty();
     }
 
     public String getClusterName() {
