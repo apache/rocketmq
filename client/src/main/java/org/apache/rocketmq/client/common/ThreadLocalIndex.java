@@ -24,12 +24,7 @@ public class ThreadLocalIndex {
 
     private final Random random = new Random();
     private final static int POSITIVE_MASK = 0x7FFFFFFF;
-    private final ThreadLocal<AtomicInteger> threadLocalIndex = new ThreadLocal<AtomicInteger>() {
-        @Override
-        protected AtomicInteger initialValue(){
-            return new AtomicInteger(random.nextInt());
-        }
-    };
+    private final ThreadLocal<AtomicInteger> threadLocalIndex = ThreadLocal.withInitial(() -> new AtomicInteger(random.nextInt()));
 
     public int incrementAndGet() {
         Integer index = this.threadLocalIndex.get().getAndIncrement();
