@@ -381,7 +381,7 @@ public class BrokerConfig extends BrokerIdentity {
         }
     }
 
-    private MetricsExporterType metricsExporterType = MetricsExporterType.LOGGER;
+    private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
     private String metricsGrpcExporterTarget = "";
     private String metricsGrpcExporterHeader = "";
