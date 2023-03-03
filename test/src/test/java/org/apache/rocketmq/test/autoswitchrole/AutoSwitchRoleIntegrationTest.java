@@ -210,6 +210,23 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     }
 
     @Test
+    public void testBasicWorkWhenControllerShutdown() throws Exception {
+        String topic = "Foobar";
+        String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt();
+        initBroker(DEFAULT_FILE_SIZE, brokerName);
+        // Put message from 0 to 9
+        putMessage(this.brokerController1.getMessageStore(), topic);
+        checkMessage(this.brokerController2.getMessageStore(), topic, 10, 0);
+
+        // Shutdown Controller
+        controllerManager.shutdown();
+
+        // Put message from 10 to 19
+        putMessage(this.brokerController1.getMessageStore(), topic);
+        checkMessage(this.brokerController2.getMessageStore(), topic, 20, 0);
+    }
+
+    @Test
     public void testAddBroker() throws Exception {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
