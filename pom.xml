@@ -951,6 +951,11 @@
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-logging</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-sdk</artifactId>
                 <version>${opentelemetry.version}</version>
             </dependency>
