@@ -398,6 +398,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             try {
                 switch (this.currentState) {
                     case SHUTDOWN:
+                        this.flowMonitor.shutdown(true);
                         return;
                     case READY:
                         // Truncate invalid msg first
@@ -437,6 +438,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             }
         }
 
+        this.flowMonitor.shutdown(true);
+        LOGGER.info(this.getServiceName() + " service end");
     }
 
     /**
