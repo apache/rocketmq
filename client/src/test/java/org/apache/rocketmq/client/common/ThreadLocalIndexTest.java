@@ -49,6 +49,7 @@ public class ThreadLocalIndexTest {
 
         int initialVal = localIndex.incrementAndGet();
         assertThat(initialVal >= 0).isTrue();
+        System.out.println(initialVal);
     }
 
 }
