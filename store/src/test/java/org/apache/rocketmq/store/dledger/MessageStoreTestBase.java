@@ -53,9 +53,9 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
 
         storeConfig.setEnableDLegerCommitLog(true);
-        storeConfig.setdLegerGroup(group);
-        storeConfig.setdLegerPeers(peers);
-        storeConfig.setdLegerSelfId(selfId);
+        storeConfig.setDLegerGroup(group);
+        storeConfig.setDLegerPeers(peers);
+        storeConfig.setDLegerSelfId(selfId);
 
         storeConfig.setRecheckReputOffsetFromCq(true);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {

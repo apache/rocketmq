@@ -244,9 +244,9 @@ public class TieredMessageStoreTest {
         result2.addMessage(new SelectMappedBufferResult(0, null, 0, null));
         when(nextStore.queryMessage(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(result2);
         when(nextStore.getEarliestMessageTime()).thenReturn(100L);
-        Assert.assertEquals(2, store.queryMessage(mq.getTopic(), "key", 32, 0, 99).getMessageMapedList().size());
-        Assert.assertEquals(1, store.queryMessage(mq.getTopic(), "key", 32, 100, 200).getMessageMapedList().size());
-        Assert.assertEquals(3, store.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMapedList().size());
+        Assert.assertEquals(2, store.queryMessage(mq.getTopic(), "key", 32, 0, 99).getMessageMappedList().size());
+        Assert.assertEquals(1, store.queryMessage(mq.getTopic(), "key", 32, 100, 200).getMessageMappedList().size());
+        Assert.assertEquals(3, store.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMappedList().size());
     }
 
     @Test

@@ -304,7 +304,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                             .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                             .build();
                         TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
-                        for (SelectMappedBufferResult msg : tieredStoreResult.getMessageMapedList()) {
+                        for (SelectMappedBufferResult msg : tieredStoreResult.getMessageMappedList()) {
                             result.addMessage(msg);
                         }
                         return result;

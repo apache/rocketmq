@@ -59,9 +59,9 @@ public class DLedgerProduceAndConsumeIT {
         storeConfig.setHaListenPort(0);
         storeConfig.setMappedFileSizeCommitLog(10 * 1024 * 1024);
         storeConfig.setEnableDLegerCommitLog(true);
-        storeConfig.setdLegerGroup(brokerName);
-        storeConfig.setdLegerSelfId(selfId);
-        storeConfig.setdLegerPeers(peers);
+        storeConfig.setDLegerGroup(brokerName);
+        storeConfig.setDLegerSelfId(selfId);
+        storeConfig.setDLegerPeers(peers);
         return storeConfig;
     }
 

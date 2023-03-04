@@ -209,7 +209,7 @@ public class TieredMessageFetcher {
                 }
                 // put message into cache
                 List<Long> offsetList = result.getMessageQueueOffset();
-                List<SelectMappedBufferResult> msgList = result.getMessageMapedList();
+                List<SelectMappedBufferResult> msgList = result.getMessageMappedList();
                 if (offsetList.size() != msgList.size()) {
                     LOGGER.error("TieredMessageFetcher#prefetchAndPutMsgToCache: read ahead failed, result is illegal: topic: {}, queue: {}, queue offset: {}, batch size: {}, offsetList size: {}, msgList size: {}",
                         mq.getTopic(), mq.getQueueId(), queueOffset, batchSize, offsetList.size(), msgList.size());
@@ -319,7 +319,7 @@ public class TieredMessageFetcher {
                     newResult.setMaxOffset(container.getConsumeQueueCommitOffset());
 
                     List<Long> offsetList = result.getMessageQueueOffset();
-                    List<SelectMappedBufferResult> msgList = result.getMessageMapedList();
+                    List<SelectMappedBufferResult> msgList = result.getMessageMappedList();
                     Long minOffset = offsetList.get(0);
                     Long maxOffset = offsetList.get(offsetList.size() - 1);
                     int size = offsetList.size();
@@ -329,11 +329,11 @@ public class TieredMessageFetcher {
                         // put message into cache
                         SelectMappedBufferResultWrapper resultWrapper = putMessageToCache(container, offset, msg, minOffset, maxOffset, size, true);
                         // try to meet maxMsgNums
-                        if (newResult.getMessageMapedList().size() < maxMsgNums) {
+                        if (newResult.getMessageMappedList().size() < maxMsgNums) {
                             newResult.addMessage(resultWrapper.getDuplicateResult(), offset);
                         }
                     }
-                    newResult.setNextBeginOffset(queueOffset + newResult.getMessageMapedList().size());
+                    newResult.setNextBeginOffset(queueOffset + newResult.getMessageMappedList().size());
                     return newResult;
                 }, TieredStoreExecutor.FETCH_DATA_EXECUTOR);
 

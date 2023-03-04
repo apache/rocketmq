@@ -265,15 +265,15 @@ public class BrokerContainerTest {
         messageStoreConfig.setStorePathRootDir(baseDir);
         messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
         messageStoreConfig.setEnableDLegerCommitLog(true);
-        messageStoreConfig.setdLegerSelfId("n0");
-        messageStoreConfig.setdLegerGroup("group");
-        messageStoreConfig.setdLegerPeers(String.format("n0-localhost:%d", generatePort(30900, 10000)));
+        messageStoreConfig.setDLegerSelfId("n0");
+        messageStoreConfig.setDLegerGroup("group");
+        messageStoreConfig.setDLegerPeers(String.format("n0-localhost:%d", generatePort(30900, 10000)));
         InnerBrokerController dLedger = brokerContainer.addBroker(dLedgerBrokerConfig, messageStoreConfig);
         assertThat(dLedger).isNotNull();
         dLedger.start();
         assertThat(dLedger.isIsolated()).isFalse();
 
-        brokerContainer.removeBroker(new BrokerIdentity(dLedgerBrokerConfig.getBrokerClusterName(), dLedgerBrokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1))));
+        brokerContainer.removeBroker(new BrokerIdentity(dLedgerBrokerConfig.getBrokerClusterName(), dLedgerBrokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getDLegerSelfId().substring(1))));
         assertThat(brokerContainer.getMasterBrokers().size()).isEqualTo(0);
 
         brokerContainer.shutdown();

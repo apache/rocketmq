@@ -257,10 +257,10 @@ public class TieredMessageFetcherTest {
         Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
 
         TieredMessageFetcher fetcher = new TieredMessageFetcher(storeConfig);
-        Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
+        Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMappedList().size());
 
         TieredMessageQueueContainer container = TieredContainerManager.getInstance(storeConfig).getOrCreateMQContainer(mq);
-        Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
+        Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMappedList().size());
 
         container.initOffset(0);
         ByteBuffer buffer = MessageBufferUtilTest.buildMessageBuffer();
@@ -282,11 +282,11 @@ public class TieredMessageFetcherTest {
         container.commit(true);
         TieredIndexFile indexFile = TieredContainerManager.getIndexFile(storeConfig);
         indexFile.commit(true);
-        Assert.assertEquals(1, fetcher.queryMessageAsync(mq.getTopic(), "key", 1, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
+        Assert.assertEquals(1, fetcher.queryMessageAsync(mq.getTopic(), "key", 1, 0, Long.MAX_VALUE).join().getMessageMappedList().size());
 
         QueryMessageResult result = fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join();
-        Assert.assertEquals(2, result.getMessageMapedList().size());
-        Assert.assertEquals(1, result.getMessageMapedList().get(0).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
-        Assert.assertEquals(0, result.getMessageMapedList().get(1).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
+        Assert.assertEquals(2, result.getMessageMappedList().size());
+        Assert.assertEquals(1, result.getMessageMappedList().get(0).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
+        Assert.assertEquals(0, result.getMessageMappedList().get(1).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
     }
 }

@@ -102,9 +102,9 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
 
         storeConfig.setEnableDLegerCommitLog(true);
-        storeConfig.setdLegerGroup(group);
-        storeConfig.setdLegerPeers(peers);
-        storeConfig.setdLegerSelfId(selfId);
+        storeConfig.setDLegerGroup(group);
+        storeConfig.setDLegerPeers(peers);
+        storeConfig.setDLegerSelfId(selfId);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("DLedgerCommitLogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());

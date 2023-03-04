@@ -427,7 +427,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
         }
         // if not full , fetch retry again
-        if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
+        if (!needRetry && getMessageResult.getMessageMappedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
             TopicConfig retryTopicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
             if (retryTopicConfig != null) {
@@ -552,7 +552,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 );
             }
 
-            if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
+            if (getMessageResult.getMessageMappedList().size() >= requestHeader.getMaxMsgNums()) {
                 restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
                 future.complete(restNum);
                 return future;
@@ -568,7 +568,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         long finalOffset = offset;
         return this.brokerController.getMessageStore()
             .getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, offset,
-                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter)
+                requestHeader.getMaxMsgNums() - getMessageResult.getMessageMappedList().size(), messageFilter)
             .thenCompose(result -> {
                 if (result == null) {
                     return CompletableFuture.completedFuture(null);
@@ -586,7 +586,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         queueId, result.getNextBeginOffset());
                     atomicOffset.set(result.getNextBeginOffset());
                     return this.brokerController.getMessageStore().getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, atomicOffset.get(),
-                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
+                        requestHeader.getMaxMsgNums() - getMessageResult.getMessageMappedList().size(), messageFilter);
                 }
                 return CompletableFuture.completedFuture(result);
             }).thenApply(result -> {
@@ -594,7 +594,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
                     return atomicRestNum.get();
                 }
-                if (!result.getMessageMapedList().isEmpty()) {
+                if (!result.getMessageMappedList().isEmpty()) {
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), result.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
                         result.getMessageCount());
@@ -636,14 +636,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
                 atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
                 String brokerName = brokerController.getBrokerConfig().getBrokerName();
-                for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
+                for (SelectMappedBufferResult mappedBuffer : result.getMessageMappedList()) {
                     // We should not recode buffer for normal topic message
                     if (!isRetry) {
-                        getMessageResult.addMessage(mapedBuffer);
+                        getMessageResult.addMessage(mappedBuffer);
                     } else {
-                        List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
+                        List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mappedBuffer.getByteBuffer(),
                             true, false, true);
-                        mapedBuffer.release();
+                        mappedBuffer.release();
                         for (MessageExt messageExt : messageExtList) {
                             try {
                                 String ckInfo = ExtraInfoUtil.buildExtraInfo(finalOffset, popTime, requestHeader.getInvisibleTime(),
@@ -657,7 +657,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                                 byte[] encode = MessageDecoder.encode(messageExt, false);
                                 ByteBuffer buffer = ByteBuffer.wrap(encode);
                                 SelectMappedBufferResult tmpResult =
-                                    new SelectMappedBufferResult(mapedBuffer.getStartOffset(), buffer, encode.length, null);
+                                    new SelectMappedBufferResult(mappedBuffer.getStartOffset(), buffer, encode.length, null);
                                 getMessageResult.addMessage(tmpResult);
                             } catch (Exception e) {
                                 POP_LOGGER.error("Exception in recode retry message buffer, topic={}", topic, e);
@@ -803,7 +803,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // add check point msg to revive log
         final PopCheckPoint ck = new PopCheckPoint();
         ck.setBitMap(0);
-        ck.setNum((byte) getMessageTmpResult.getMessageMapedList().size());
+        ck.setNum((byte) getMessageTmpResult.getMessageMappedList().size());
         ck.setPopTime(popTime);
         ck.setInvisibleTime(requestHeader.getInvisibleTime());
         ck.setStartOffset(offset);

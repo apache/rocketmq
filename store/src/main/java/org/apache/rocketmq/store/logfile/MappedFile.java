@@ -315,7 +315,7 @@ public interface MappedFile {
     /**
      * Clean pageTable
      */
-    void cleanSwapedMap(boolean force);
+    void cleanSwappedMap(boolean force);
 
     /**
      * Get recent swap map time

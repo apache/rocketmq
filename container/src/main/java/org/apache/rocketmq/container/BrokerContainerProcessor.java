@@ -170,7 +170,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 BrokerIdentity brokerIdentity;
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
-                        brokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)));
+                        brokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getDLegerSelfId().substring(1)));
                 } else {
                     brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
                         brokerConfig.getBrokerName(), brokerConfig.getBrokerId());

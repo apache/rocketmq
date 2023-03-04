@@ -2040,7 +2040,7 @@ public class BrokerController {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             return new BrokerIdentity(
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
-                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
+                Integer.parseInt(messageStoreConfig.getDLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
         } else {
             return new BrokerIdentity(
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),

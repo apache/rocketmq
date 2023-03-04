@@ -656,7 +656,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
-    public void cleanSwapedMap(boolean force) {
+    public void cleanSwappedMap(boolean force) {
         try {
             if (this.mappedByteBufferWaitToClean == null) {
                 return;
@@ -668,9 +668,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
             UtilAll.cleanBuffer(this.mappedByteBufferWaitToClean);
             mappedByteBufferWaitToClean = null;
-            log.info("cleanSwapedMap file " + this.fileName + " success.");
+            log.info("cleanSwappedMap file " + this.fileName + " success.");
         } catch (Exception e) {
-            log.error("cleanSwapedMap file " + this.fileName + " Failed. ", e);
+            log.error("cleanSwappedMap file " + this.fileName + " Failed. ", e);
         }
     }
 

@@ -299,7 +299,7 @@ public class MappedFileQueueTest {
                         for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
                             mappedFile.swapMap();
                             Thread.sleep(10);
-                            mappedFile.cleanSwapedMap(true);
+                            mappedFile.cleanSwappedMap(true);
                         }
                     }
                 } catch (Throwable t) {
@@ -349,7 +349,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void testMappedFile_CleanSwapedMap() throws InterruptedException {
+    public void testMappedFile_CleanSwappedMap() throws InterruptedException {
         // four-byte string.
         final String fixedMsg = "abcd";
         final int mappedFileSize = 1024000;
@@ -376,8 +376,8 @@ public class MappedFileQueueTest {
             executor.submit(() -> {
                 try {
                     for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
-                        mappedFile.cleanSwapedMap(true);
-                        mappedFile.cleanSwapedMap(true);
+                        mappedFile.cleanSwappedMap(true);
+                        mappedFile.cleanSwappedMap(true);
                     }
                 } catch (Exception e) {
                     hasException.set(true);
