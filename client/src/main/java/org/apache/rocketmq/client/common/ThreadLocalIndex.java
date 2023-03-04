@@ -18,19 +18,16 @@
 package org.apache.rocketmq.client.common;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<>();
+
     private final Random random = new Random();
+    private final ThreadLocal<AtomicInteger> threadLocalIndex = ThreadLocal.withInitial(() -> new AtomicInteger(random.nextInt()));
     private final static int POSITIVE_MASK = 0x7FFFFFFF;
 
     public int incrementAndGet() {
-        Integer index = this.threadLocalIndex.get();
-        if (null == index) {
-            index = random.nextInt();
-        }
-        this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
+        return Math.abs(this.threadLocalIndex.get().incrementAndGet() & POSITIVE_MASK);
     }
 
     @Override
