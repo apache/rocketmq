@@ -346,7 +346,7 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
-    private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
+    private MessageExtBrokerInner messageTimeUp(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
@@ -402,11 +402,11 @@ public class ScheduleMessageService extends ConfigManager {
         public void run() {
             try {
                 if (isStarted()) {
-                    this.executeOnTimeup();
+                    this.executeOnTimeUp();
                 }
             } catch (Exception e) {
                 // XXX: warn and notify me
-                log.error("ScheduleMessageService, executeOnTimeup exception", e);
+                log.error("ScheduleMessageService, executeOnTimeUp exception", e);
                 this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
             }
         }
@@ -426,7 +426,7 @@ public class ScheduleMessageService extends ConfigManager {
             return result;
         }
 
-        public void executeOnTimeup() {
+        public void executeOnTimeUp() {
             ConsumeQueueInterface cq =
                 ScheduleMessageService.this.brokerController.getMessageStore().getConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
@@ -488,7 +488,7 @@ public class ScheduleMessageService extends ConfigManager {
                         continue;
                     }
 
-                    MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                    MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
                     if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                         log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                             msgInner.getTopic(), msgInner);
@@ -508,7 +508,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
                 }
             } catch (Exception e) {
-                log.error("ScheduleMessageService, messageTimeup execute error, offset = {}", nextOffset, e);
+                log.error("ScheduleMessageService, messageTimeUp execute error, offset = {}", nextOffset, e);
             } finally {
                 bufferCQ.release();
             }
@@ -808,7 +808,7 @@ public class ScheduleMessageService extends ConfigManager {
                     return;
                 }
 
-                MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
                 PutMessageResult result = ScheduleMessageService.this.brokerController.getEscapeBridge().putMessage(msgInner);
                 this.handleResult(result);
                 if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
