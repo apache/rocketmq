@@ -413,12 +413,6 @@ public class TimerMessageStoreTest {
         testStateAndRecoverCommon();
     }
 
-    @Test
-    public void testDledgerStateAndRecover() throws Exception {
-        initStore(true);
-        testStateAndRecoverCommon();
-    }
-
     public void testStateAndRecoverCommon() throws Exception {
         final String topic = "TimerTest_testStateAndRecover";
 
@@ -522,12 +516,6 @@ public class TimerMessageStoreTest {
     @Test
     public void testRollMessage() throws Exception {
         initStore(false);
-        testRollMessageCommon();
-    }
-
-    @Test
-    public void testDledgerRollMessage() throws Exception {
-        initStore(true);
         testRollMessageCommon();
     }
 
