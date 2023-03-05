@@ -41,9 +41,11 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathEpochFile = null;
 
-    private String storePathMetadata = storePathRootDir + File.separator + "metadata";
+    @ImportantField
+    private String storePathMetadata = null;
 
-    private String storePathTempMetadata = storePathRootDir + File.separator + "metadata-temp";
+    @ImportantField
+    private String storePathTempMetadata = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -642,6 +644,9 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathMetadata() {
+        if (storePathMetadata == null) {
+            return storePathRootDir + File.separator + "metadata";
+        }
         return storePathMetadata;
     }
 
@@ -650,6 +655,9 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathTempMetadata() {
+        if (storePathTempMetadata == null) {
+            return storePathRootDir + File.separator + "metadata-temp";
+        }
         return storePathTempMetadata;
     }
 
