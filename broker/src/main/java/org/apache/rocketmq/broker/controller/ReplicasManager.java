@@ -31,6 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -107,7 +108,7 @@ public class ReplicasManager {
         this.scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_", brokerController.getBrokerIdentity()));
         this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("ReplicasManager_scan_thread_", brokerController.getBrokerIdentity()));
+                new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("ReplicasManager_scan_thread_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
         this.availableControllerAddresses = new ConcurrentHashMap<>();
@@ -216,7 +217,7 @@ public class ReplicasManager {
     }
 
     public synchronized void changeBrokerRole(final Long newMasterBrokerId, final String newMasterAddress, final Integer newMasterEpoch,
-        final Integer syncStateSetEpoch) {
+                                              final Integer syncStateSetEpoch) {
         if (newMasterBrokerId != null && newMasterEpoch > this.masterEpoch) {
             if (newMasterBrokerId.equals(this.brokerControllerId)) {
                 changeToMaster(newMasterEpoch, syncStateSetEpoch);
@@ -355,7 +356,7 @@ public class ReplicasManager {
         // Broker try to elect itself as a master in broker set.
         try {
             ElectMasterResponseHeader tryElectResponse = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
-                this.brokerConfig.getBrokerName(), this.brokerControllerId);
+                    this.brokerConfig.getBrokerName(), this.brokerControllerId);
             final String masterAddress = tryElectResponse.getMasterAddress();
             final Long masterBrokerId = tryElectResponse.getMasterBrokerId();
             if (StringUtils.isEmpty(masterAddress) || masterBrokerId == null) {
@@ -399,12 +400,18 @@ public class ReplicasManager {
 
     /**
      * Register broker to controller, and persist the metadata to file
+     *
      * @return whether registering process succeeded
      */
     private boolean register() {
         try {
             // 1. confirm now registering state
             confirmNowRegisteringState();
+            // 2. check metadata/tempMetadata if valid
+            if (!checkMetadataValid()) {
+                LOGGER.error("Check and find that metadata/tempMetadata invalid, you can modify the broker config to make them valid");
+                return false;
+            }
             // 2. get next assigning brokerId, and create temp metadata file
             if (this.registerState == RegisterState.INITIAL) {
                 Long nextBrokerId = getNextBrokerId();
@@ -444,6 +451,7 @@ public class ReplicasManager {
 
     /**
      * Send GetNextBrokerRequest to controller for getting next assigning brokerId in this broker-set
+     *
      * @return next brokerId in this broker-set
      */
     private Long getNextBrokerId() {
@@ -458,6 +466,7 @@ public class ReplicasManager {
 
     /**
      * Create temp metadata file in local file system, records the brokerId and registerCheckCode
+     *
      * @param brokerId the brokerId that is expected to be assigned
      * @return whether the temp meta file is created successfully
      */
@@ -477,6 +486,7 @@ public class ReplicasManager {
 
     /**
      * Send applyBrokerId request to controller
+     *
      * @return whether controller has assigned this brokerId for this broker
      */
     private boolean applyBrokerId() {
@@ -493,6 +503,7 @@ public class ReplicasManager {
 
     /**
      * Create metadata file and delete temp metadata file
+     *
      * @return whether process success
      */
     private boolean createMetadataFileAndDeleteTemp() {
@@ -511,6 +522,7 @@ public class ReplicasManager {
 
     /**
      * Send registerSuccess request to inform controller that now broker has been registered successfully and controller should update broker ipAddress if changed
+     *
      * @return whether request success
      */
     private boolean registerBrokerToController() {
@@ -558,6 +570,34 @@ public class ReplicasManager {
         if (this.tempBrokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
         }
+    }
+
+    private boolean checkMetadataValid() {
+        if (this.registerState == RegisterState.CREATE_TEMP_METADATA_FILE_DONE) {
+            if (this.tempBrokerMetadata.getClusterName() == null || !this.tempBrokerMetadata.getClusterName().equals(this.brokerConfig.getBrokerClusterName())) {
+                LOGGER.error("The clusterName: {} in broker temp metadata is different from the clusterName: {} in broker config",
+                        this.tempBrokerMetadata.getClusterName(), this.brokerConfig.getBrokerClusterName());
+                return false;
+            }
+            if (this.tempBrokerMetadata.getBrokerName() == null || !this.tempBrokerMetadata.getBrokerName().equals(this.brokerConfig.getBrokerName())) {
+                LOGGER.error("The brokerName: {} in broker temp metadata is different from the brokerName: {} in broker config",
+                        this.tempBrokerMetadata.getBrokerName(), this.brokerConfig.getBrokerName());
+                return false;
+            }
+        }
+        if (this.registerState == RegisterState.CREATE_METADATA_FILE_DONE) {
+            if (this.brokerMetadata.getClusterName() == null || !this.brokerMetadata.getClusterName().equals(this.brokerConfig.getBrokerClusterName())) {
+                LOGGER.error("The clusterName: {} in broker metadata is different from the clusterName: {} in broker config",
+                        this.brokerMetadata.getClusterName(), this.brokerConfig.getBrokerClusterName());
+                return false;
+            }
+            if (this.brokerMetadata.getBrokerName() == null || !this.brokerMetadata.getBrokerName().equals(this.brokerConfig.getBrokerName())) {
+                LOGGER.error("The brokerName: {} in broker metadata is different from the brokerName: {} in broker config",
+                        this.brokerMetadata.getBrokerName(), this.brokerConfig.getBrokerName());
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -682,7 +722,7 @@ public class ReplicasManager {
             }
         } catch (final Exception e) {
             LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
-                this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
+                    this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
         }
     }
 
