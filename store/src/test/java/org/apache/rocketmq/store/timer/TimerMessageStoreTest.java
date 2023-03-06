@@ -54,8 +54,8 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -79,22 +79,15 @@ public class TimerMessageStoreTest {
 
     public static MessageStoreConfig storeConfig;
 
-    public void initStore(boolean enableDledger) throws Exception {
+    @Before
+    public void init() throws Exception {
         String baseDir = StoreTestUtils.createBaseDir();
         baseDirs.add(baseDir);
 
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
-        storeConfig = createStoreConfig(enableDledger, baseDir);
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
-        boolean load = messageStore.load();
-        assertTrue(load);
-        messageStore.start();
-    }
-
-    public MessageStoreConfig createStoreConfig(boolean enableDledger, String baseDir) {
-        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig = new MessageStoreConfig();
         storeConfig.setMappedFileSizeCommitLog(1024 * 1024 * 1024);
         storeConfig.setMappedFileSizeTimerLog(1024 * 1024 * 1024);
         storeConfig.setMappedFileSizeConsumeQueue(10240);
@@ -105,14 +98,11 @@ public class TimerMessageStoreTest {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
-        if (enableDledger) {
-            storeConfig.setEnableDLegerCommitLog(true);
-            String group = UUID.randomUUID().toString();
-            storeConfig.setdLegerGroup(group);
-            storeConfig.setdLegerSelfId("n0");
-            storeConfig.setdLegerPeers("n0-" + storeHost);
-        }
-        return storeConfig;
+
+        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
+        boolean load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
     }
 
     public TimerMessageStore createTimerMessageStore(String rootDir) throws IOException {
@@ -174,7 +164,8 @@ public class TimerMessageStoreTest {
         return null;
     }
 
-    public void testPutTimerMessageCommon() throws Exception {
+    @Test
+    public void testPutTimerMessage() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";
 
@@ -221,24 +212,7 @@ public class TimerMessageStoreTest {
     }
 
     @Test
-    public void testPutTimerMessage() throws Exception {
-        initStore(false);
-        testPutTimerMessageCommon();
-    }
-
-    @Test
-    public void testDledgerPutTimerMessage() throws Exception {
-        initStore(true);
-        testPutTimerMessageCommon();
-    }
-
-    @Test
     public void testTimerFlowControl() throws Exception {
-        initStore(false);
-        testTimerFlowControlCommon();
-    }
-
-    public void testTimerFlowControlCommon() throws Exception {
         String topic = "TimerTest_testTimerFlowControl";
 
         storeConfig.setTimerCongestNumEachSlot(100);
@@ -283,11 +257,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testPutExpiredTimerMessage() throws Exception {
-        initStore(false);
-        testPutExpiredTimerMessageCommon();
-    }
-
-    public void testPutExpiredTimerMessageCommon() throws Exception {
         // Skip on Mac to make CI pass
         Assume.assumeFalse(MixAll.isMac());
         Assume.assumeFalse(MixAll.isWindows());
@@ -316,11 +285,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testDeleteTimerMessage() throws Exception {
-        initStore(false);
-        testDeleteTimerMessageCommon();
-    }
-
-    public void testDeleteTimerMessageCommon() throws Exception {
         String topic = "TimerTest_testDeleteTimerMessage";
 
         TimerMessageStore timerMessageStore = createTimerMessageStore(null);
@@ -358,11 +322,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testPutDeleteTimerMessage() throws Exception {
-        initStore(false);
-        testPutDeleteTimerMessageCommon();
-    }
-
-    public void testPutDeleteTimerMessageCommon() throws Exception {
         String topic = "TimerTest_testPutDeleteTimerMessage";
 
         final TimerMessageStore timerMessageStore = createTimerMessageStore(null);
@@ -409,11 +368,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testStateAndRecover() throws Exception {
-        initStore(false);
-        testStateAndRecoverCommon();
-    }
-
-    public void testStateAndRecoverCommon() throws Exception {
         final String topic = "TimerTest_testStateAndRecover";
 
         String base = StoreTestUtils.createBaseDir();
@@ -489,11 +443,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testMaxDelaySec() throws Exception {
-        initStore(false);
-        testMaxDelaySecCommon();
-    }
-
-    public void testMaxDelaySecCommon() throws Exception {
         String topic = "TimerTest_testMaxDelaySec";
 
         TimerMessageStore first = createTimerMessageStore(null);
@@ -515,11 +464,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testRollMessage() throws Exception {
-        initStore(false);
-        testRollMessageCommon();
-    }
-
-    public void testRollMessageCommon() throws Exception {
         storeConfig.setTimerRollWindowSlot(2);
         String topic = "TimerTest_testRollMessage";
 
