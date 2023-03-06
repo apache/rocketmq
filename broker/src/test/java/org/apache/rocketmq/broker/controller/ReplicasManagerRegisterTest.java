@@ -136,6 +136,40 @@ public class ReplicasManagerRegisterTest {
     }
 
     @Test
+    public void testBrokerRegisterSuccessAndRestartWithChangedBrokerConfig() throws Exception {
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
+        when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
+        when(mockedBrokerOuterAPI.registerSuccess(any(), any(), anyLong(), any(), any())).thenReturn(new RegisterBrokerToControllerResponseHeader());
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1));
+
+        ReplicasManager replicasManager0 = new ReplicasManager(mockedBrokerController);
+        replicasManager0.start();
+        await().atMost(Duration.ofMillis(1000)).until(() ->
+                replicasManager0.getState() == ReplicasManager.State.RUNNING
+        );
+        Assert.assertEquals(ReplicasManager.RegisterState.REGISTERED, replicasManager0.getRegisterState());
+        Assert.assertEquals(1L, replicasManager0.getBrokerControllerId().longValue());
+        checkMetadataFile(replicasManager0.getBrokerMetadata(), 1L);
+        Assert.assertFalse(replicasManager0.getTempBrokerMetadata().isLoaded());
+        Assert.assertFalse(replicasManager0.getTempBrokerMetadata().fileExists());
+        replicasManager0.shutdown();
+
+        // change broker name in broker config
+        mockedBrokerController.getBrokerConfig().setBrokerName(BROKER_NAME + "1");
+        ReplicasManager replicasManagerRestart = new ReplicasManager(mockedBrokerController);
+        replicasManagerRestart.start();
+        Assert.assertEquals(ReplicasManager.RegisterState.CREATE_METADATA_FILE_DONE, replicasManagerRestart.getRegisterState());
+        mockedBrokerController.getBrokerConfig().setBrokerName(BROKER_NAME);
+
+        // change cluster name in broker config
+        mockedBrokerController.getBrokerConfig().setBrokerClusterName(CLUSTER_NAME + "1");
+        replicasManagerRestart = new ReplicasManager(mockedBrokerController);
+        replicasManagerRestart.start();
+        Assert.assertEquals(ReplicasManager.RegisterState.CREATE_METADATA_FILE_DONE, replicasManagerRestart.getRegisterState());
+
+    }
+
+    @Test
     public void testRegisterFailedAtGetNextBrokerId() throws Exception {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
         when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenThrow(new RuntimeException());
