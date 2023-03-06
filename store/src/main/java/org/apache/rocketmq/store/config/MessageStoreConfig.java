@@ -44,9 +44,6 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathMetadata = null;
 
-    @ImportantField
-    private String storePathTempMetadata = null;
-
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -652,17 +649,6 @@ public class MessageStoreConfig {
 
     public void setStorePathMetadata(String storePathMetadata) {
         this.storePathMetadata = storePathMetadata;
-    }
-
-    public String getStorePathTempMetadata() {
-        if (storePathTempMetadata == null) {
-            return storePathRootDir + File.separator + "metadata-temp";
-        }
-        return storePathTempMetadata;
-    }
-
-    public void setStorePathTempMetadata(String storePathTempMetadata) {
-        this.storePathTempMetadata = storePathTempMetadata;
     }
 
     public String getDeleteWhen() {
