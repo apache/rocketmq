@@ -87,7 +87,6 @@ public class ReplicasManagerRegisterTest {
         config.setStorePathCommitLog(config.getStorePathRootDir() + File.separator + "commitLog");
         config.setStorePathEpochFile(config.getStorePathRootDir() + File.separator + "epochFileCache");
         config.setStorePathMetadata(config.getStorePathRootDir() + File.separator + "metadata");
-        config.setStorePathTempMetadata(config.getStorePathRootDir() + File.separator + "tempMetadata");
         return config;
     }
 

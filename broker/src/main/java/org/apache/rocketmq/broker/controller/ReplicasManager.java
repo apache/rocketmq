@@ -114,7 +114,7 @@ public class ReplicasManager {
         this.syncStateSet = new HashSet<>();
         this.brokerAddress = brokerController.getBrokerAddr();
         this.brokerMetadata = new BrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathMetadata());
-        this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathTempMetadata());
+        this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathMetadata() + "-temp");
     }
 
     public long getConfirmOffset() {
