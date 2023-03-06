@@ -162,12 +162,11 @@ public class RouteActivity extends AbstractMessingActivity {
     }
 
     protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
-        int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
         for (Address address : endpoints.getAddressesList()) {
             addressList.add(new org.apache.rocketmq.proxy.common.Address(
                 org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
-                HostAndPort.fromParts(address.getHost(), port))
+                HostAndPort.fromParts(address.getHost(), address.getPort()))
             );
         }
         return addressList;
