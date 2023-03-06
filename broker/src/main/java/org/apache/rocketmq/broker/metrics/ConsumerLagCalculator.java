@@ -132,18 +132,25 @@ public class ConsumerLagCalculator {
 
             String group = subscriptionEntry.getKey();
             ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
-            if (consumerGroupInfo == null) {
-                continue;
+            boolean isPop = false;
+            if (consumerGroupInfo != null) {
+                isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
             }
-            boolean isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
             Set<String> topics;
             if (brokerConfig.isUseStaticSubscription()) {
                 SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
+                if (subscriptionGroupConfig.getSubscriptionDataSet() == null ||
+                    subscriptionGroupConfig.getSubscriptionDataSet().isEmpty()) {
+                    continue;
+                }
                 topics = subscriptionGroupConfig.getSubscriptionDataSet()
                     .stream()
                     .map(SimpleSubscriptionData::getTopic)
                     .collect(Collectors.toSet());
             } else {
+                if (consumerGroupInfo == null) {
+                    continue;
+                }
                 topics = consumerGroupInfo.getSubscribeTopics();
             }
 
