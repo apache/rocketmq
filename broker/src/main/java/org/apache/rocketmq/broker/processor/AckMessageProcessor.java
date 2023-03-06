@@ -46,8 +46,8 @@ import org.apache.rocketmq.store.pop.AckMsg;
 public class AckMessageProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
-    private String reviveTopic;
-    private PopReviveService[] popReviveServices;
+    private final String reviveTopic;
+    private final PopReviveService[] popReviveServices;
 
     public AckMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -71,7 +71,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     public void shutdownPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
-            popReviveService.stop();
+            popReviveService.shutdown();
         }
     }
 
@@ -94,7 +94,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request, true);
+        return this.processRequest(ctx.channel(), request);
     }
 
     @Override
@@ -102,8 +102,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
-        boolean brokerAllowSuspend) throws RemotingCommandException {
+    private RemotingCommand processRequest(final Channel channel, RemotingCommand request) throws RemotingCommandException {
         final AckMessageRequestHeader requestHeader = (AckMessageRequestHeader) request.decodeCommandCustomHeader(AckMessageRequestHeader.class);
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         AckMsg ackMsg = new AckMsg();
@@ -160,8 +159,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             if (requestHeader.getOffset() < oldOffset) {
                 return response;
             }
-            while (!this.brokerController.getPopMessageProcessor().getQueueLockManager().tryLock(lockKey)) {
-            }
+
             try {
                 oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
                     requestHeader.getTopic(), requestHeader.getQueueId());
