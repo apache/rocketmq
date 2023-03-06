@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.controller;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
@@ -113,7 +114,7 @@ public class ReplicasManagerTest {
         autoSwitchHAService = new AutoSwitchHAService();
         messageStoreConfig = new MessageStoreConfig();
         File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathTempMetadata());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathMetadata() + "-temp");
         metadataFile.deleteOnExit();
         tempMetadataFile.deleteOnExit();
         brokerConfig = new BrokerConfig();
@@ -161,7 +162,7 @@ public class ReplicasManagerTest {
         replicasManager.shutdown();
         brokerController.shutdown();
         File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathTempMetadata());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathMetadata() + "-temp");
         metadataFile.deleteOnExit();
         tempMetadataFile.deleteOnExit();
     }
@@ -170,11 +171,11 @@ public class ReplicasManagerTest {
     public void changeBrokerRoleTest() {
         // not equal to localAddress
         Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_2, NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
 
         // equal to localAddress
         Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_1, OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -185,6 +186,6 @@ public class ReplicasManagerTest {
     @Test
     public void changeToSlaveTest() {
         Assertions.assertThatCode(() -> replicasManager.changeToSlave(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, BROKER_ID_2))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 }
