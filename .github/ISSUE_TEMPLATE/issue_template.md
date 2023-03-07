@@ -41,7 +41,7 @@ As a result, it would be very helpful yet challenging if you could provide an is
 
 2. Provide any additional detail on your proposed use case for this feature.
 
-2. Indicate the importance of this issue to you (blocker, must-have, should-have, nice-to-have). Are you currently using any workarounds to address this issue?
+3. Indicate the importance of this issue to you (blocker, must-have, should-have, nice-to-have). Are you currently using any workarounds to address this issue?
 
 4. If there are some sub-tasks involved, use -[] for each sub-task and create a corresponding issue to map to the sub-task:
 
