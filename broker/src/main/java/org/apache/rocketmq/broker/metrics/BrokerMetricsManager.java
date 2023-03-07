@@ -60,6 +60,8 @@ import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
@@ -222,7 +224,7 @@ public class BrokerMetricsManager {
                 return StringUtils.isNotBlank(brokerConfig.getMetricsGrpcExporterTarget());
             case PROM:
                 return true;
-            case LOGGER:
+            case LOG:
                 return true;
         }
         return false;
@@ -313,8 +315,11 @@ public class BrokerMetricsManager {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOGGER) {
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+            SLF4JBridgeHandler.removeHandlersForRootLogger();
+            SLF4JBridgeHandler.install();
             loggingMetricExporter = LoggingMetricExporter.create(brokerConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
             periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
                 .setInterval(brokerConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
                 .build();
@@ -537,7 +542,7 @@ public class BrokerMetricsManager {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
         }
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOGGER) {
+        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             loggingMetricExporter.shutdown();
