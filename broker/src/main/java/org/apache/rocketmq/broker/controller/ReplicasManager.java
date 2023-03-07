@@ -197,6 +197,7 @@ public class ReplicasManager {
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected");
                 this.state = State.RUNNING;
+                this.brokerController.setIsolated(false);
             } else {
                 return false;
             }
@@ -369,7 +370,6 @@ public class ReplicasManager {
             } else {
                 changeToSlave(masterAddress, tryElectResponse.getMasterEpoch(), tryElectResponse.getMasterBrokerId());
             }
-            brokerController.setIsolated(false);
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to try elect", e);
@@ -521,7 +521,7 @@ public class ReplicasManager {
     }
 
     /**
-     * Send registerSuccess request to inform controller that now broker has been registered successfully and controller should update broker ipAddress if changed
+     * Send registerBrokerToController request to inform controller that now broker has been registered successfully and controller should update broker ipAddress if changed
      *
      * @return whether request success
      */
@@ -538,10 +538,9 @@ public class ReplicasManager {
             } else {
                 changeToSlave(masterAddress, response.getMasterEpoch(), masterBrokerId);
             }
-            brokerController.setIsolated(false);
             return true;
         } catch (Exception e) {
-            LOGGER.error("fail to send registerSuccess request to controller", e);
+            LOGGER.error("fail to send registerBrokerToController request to controller", e);
             return false;
         }
     }
