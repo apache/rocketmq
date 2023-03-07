@@ -107,10 +107,16 @@ public class ProxyConfig implements ConfigFile {
      */
     private int maxUserPropertySize = 16 * 1024;
     private int userPropertyMaxNum = 128;
+
     /**
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 64;
+
+    /**
+     * When a message pops, the message is invisible by default
+     */
+    private long defaultInvisibleTimeMills = Duration.ofSeconds(60).toMillis();
     private long minInvisibleTimeMillsForRecv = Duration.ofSeconds(10).toMillis();
     private long maxInvisibleTimeMills = Duration.ofHours(12).toMillis();
     private long maxDelayTimeMills = Duration.ofDays(1).toMillis();
@@ -180,7 +186,6 @@ public class ProxyConfig implements ConfigFile {
     private int renewThreadPoolQueueCapacity = 300;
     private long lockTimeoutMsInHandleGroup = TimeUnit.SECONDS.toMillis(3);
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
-    private long renewSliceTimeMillis = TimeUnit.SECONDS.toMillis(60);
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
@@ -553,6 +558,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMinInvisibleTimeMillsForRecv(long minInvisibleTimeMillsForRecv) {
         this.minInvisibleTimeMillsForRecv = minInvisibleTimeMillsForRecv;
+    }
+
+    public long getDefaultInvisibleTimeMills() {
+        return defaultInvisibleTimeMills;
+    }
+
+    public void setDefaultInvisibleTimeMills(long defaultInvisibleTimeMills) {
+        this.defaultInvisibleTimeMills = defaultInvisibleTimeMills;
     }
 
     public long getMaxInvisibleTimeMills() {
@@ -1017,14 +1030,6 @@ public class ProxyConfig implements ConfigFile {
 
     public void setRenewAheadTimeMillis(long renewAheadTimeMillis) {
         this.renewAheadTimeMillis = renewAheadTimeMillis;
-    }
-
-    public long getRenewSliceTimeMillis() {
-        return renewSliceTimeMillis;
-    }
-
-    public void setRenewSliceTimeMillis(long renewSliceTimeMillis) {
-        this.renewSliceTimeMillis = renewSliceTimeMillis;
     }
 
     public long getRenewMaxTimeMillis() {
