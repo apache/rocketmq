@@ -105,7 +105,7 @@ public interface Controller {
     RemotingCommand getControllerMetadata();
 
     /**
-     * Get inSyncStateData for target brokers, this api is used for admin tools.
+     * Get SyncStateData for target brokers, this api is used for admin tools.
      */
     CompletableFuture<RemotingCommand> getSyncStateData(final List<String> brokerNames);
 

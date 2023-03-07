@@ -194,7 +194,7 @@ public class DLedgerControllerTest {
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         assertEquals(1, replicaInfo.getMasterEpoch().intValue());
         assertEquals(DEFAULT_IP[0], replicaInfo.getMasterAddress());
-        // Try alter sync state set
+        // Try alter SyncStateSet
         final HashSet<Long> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add(1L);
         newSyncStateSet.add(2L);
