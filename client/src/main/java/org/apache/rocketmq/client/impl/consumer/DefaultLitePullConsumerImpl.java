@@ -1140,7 +1140,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 @Override
                 public void onException(Throwable e) {
-                    long pullDelayTimeMills = 0;
+                    long pullDelayTimeMills;
                     if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.FLOW_CONTROL) {
                         pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_BROKER_FLOW_CONTROL;
                     } else {
