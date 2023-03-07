@@ -142,7 +142,7 @@ public class MessageReceiptHandle {
         return this.renewRetryTimes.get();
     }
 
-    public RetryPolicy getRenewStrategyPolicy(){
+    public RetryPolicy getRenewStrategyPolicy() {
         return this.renewStrategyPolicy;
     }
 }
