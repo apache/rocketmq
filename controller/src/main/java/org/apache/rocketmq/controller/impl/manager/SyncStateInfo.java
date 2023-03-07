@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl.manager;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Manages the syncStateSet of broker replicas.
@@ -53,7 +54,7 @@ public class SyncStateInfo {
     }
 
     public boolean isMasterExist() {
-        return !this.masterAddress.isEmpty();
+        return !StringUtils.isBlank(masterAddress);
     }
 
     public String getClusterName() {
