@@ -1135,6 +1135,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             break;
                     }
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                    DefaultLitePullConsumerImpl.this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
                 }
 
                 @Override
