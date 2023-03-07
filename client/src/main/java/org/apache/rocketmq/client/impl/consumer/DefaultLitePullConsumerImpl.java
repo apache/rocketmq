@@ -133,6 +133,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
         new ConcurrentHashMap<>();
 
+    // Dummy value to associate with an Object in the backing Map
+    private static final Object PRESENT = new Object();
+
     private final ConcurrentMap<MessageQueue, Object> messageQueueTable =
         new ConcurrentHashMap<>();
 
@@ -463,7 +466,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 //                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
 //                this.taskTable.put(messageQueue, pullTask);
 //                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
-                this.messageQueueTable.put(messageQueue, new Object());
+                this.messageQueueTable.put(messageQueue, PRESENT);
                 this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
             }
         }
@@ -691,7 +694,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }
             assignedMessageQueue.setSeekOffset(messageQueue, offset);
             if (!this.messageQueueTable.containsKey(messageQueue)) {
-                this.messageQueueTable.put(messageQueue, null);
+                this.messageQueueTable.put(messageQueue, PRESENT);
                 this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
             }
         }
