@@ -280,6 +280,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
                 return false;
             }
         });
+
         assertEquals(6, count.get());
     }
 
