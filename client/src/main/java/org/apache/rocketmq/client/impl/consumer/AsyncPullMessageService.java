@@ -83,7 +83,7 @@ public class AsyncPullMessageService extends ServiceThread {
         return PullMessageService.class.getSimpleName();
     }
 
-    public Boolean removeMessageRequest(MessageQueue messageRequest) {
-        return this.messageQueueQueue.remove(messageRequest);
+    public Boolean removeMessageQueue(MessageQueue messageQueue) {
+        return this.messageQueueQueue.remove(messageQueue);
     }
 }

@@ -237,7 +237,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             Map.Entry<MessageQueue, Object> next = it.next();
             if (next.getKey().getTopic().equals(topic)) {
                 if (!mqNewSet.contains(next.getKey())) {
-                    this.asyncPullMessageService.removeMessageRequest(next.getKey());
+                    this.asyncPullMessageService.removeMessageQueue(next.getKey());
                     it.remove();
                 }
             }
@@ -463,20 +463,18 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 //                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
 //                this.taskTable.put(messageQueue, pullTask);
 //                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
-                PullRequest pullRequest = new PullRequest();
-                pullRequest.setMessageQueue(messageQueue);
-                this.messageQueueTable.put(messageQueue, pullRequest);
-                this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
+                this.messageQueueTable.put(messageQueue, new Object());
+                this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
             }
         }
     }
 
     private void updateAssignPullTask(Collection<MessageQueue> mqNewSet) {
-        Iterator<Map.Entry<MessageQueue, PullTaskImpl>> it = this.taskTable.entrySet().iterator();
+        Iterator<Map.Entry<MessageQueue, Object>> it = this.messageQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<MessageQueue, PullTaskImpl> next = it.next();
+            Map.Entry<MessageQueue, Object> next = it.next();
             if (!mqNewSet.contains(next.getKey())) {
-                next.getValue().setCancelled(true);
+                this.asyncPullMessageService.removeMessageQueue(next.getKey());
                 it.remove();
             }
         }
@@ -688,16 +686,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         synchronized (objLock) {
             clearMessageQueueInCache(messageQueue);
 
-            PullTaskImpl oldPullTaskImpl = this.taskTable.get(messageQueue);
-            if (oldPullTaskImpl != null) {
-                oldPullTaskImpl.tryInterrupt();
-                this.taskTable.remove(messageQueue);
+            if (this.messageQueueTable.containsKey(messageQueue)) {
+                this.asyncPullMessageService.removeMessageQueue(messageQueue);
             }
             assignedMessageQueue.setSeekOffset(messageQueue, offset);
-            if (!this.taskTable.containsKey(messageQueue)) {
-                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
-                this.taskTable.put(messageQueue, pullTask);
-                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
+            if (!this.messageQueueTable.containsKey(messageQueue)) {
+                this.messageQueueTable.put(messageQueue, null);
+                this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
             }
         }
     }
@@ -727,11 +722,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void removePullTask(final String topic) {
-        Iterator<Map.Entry<MessageQueue, PullTaskImpl>> it = this.taskTable.entrySet().iterator();
+        Iterator<Map.Entry<MessageQueue, Object>> it = this.messageQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<MessageQueue, PullTaskImpl> next = it.next();
+            Map.Entry<MessageQueue, Object> next = it.next();
             if (next.getKey().getTopic().equals(topic)) {
-                next.getValue().setCancelled(true);
+                this.asyncPullMessageService.removeMessageQueue(next.getKey());
                 it.remove();
             }
         }
