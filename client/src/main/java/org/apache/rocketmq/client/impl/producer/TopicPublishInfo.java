@@ -89,7 +89,7 @@ public class TopicPublishInfo {
         return this.messageQueueList.get(pos);
     }
 
-    public int getQueueIdByBroker(final String brokerName) {
+    public int getWriteQueueIdByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
             final QueueData queueData = this.topicRouteData.getQueueDatas().get(i);
             if (queueData.getBrokerName().equals(brokerName)) {
