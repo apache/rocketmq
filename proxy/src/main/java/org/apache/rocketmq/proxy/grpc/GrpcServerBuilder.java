@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -157,6 +158,10 @@ public class GrpcServerBuilder {
     public GrpcServerBuilder configInterceptor() {
         // grpc interceptors, including acl, logging etc.
         List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
+        if (accessValidators.isEmpty()) {
+            log.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
+            accessValidators.add(new PlainAccessValidator());
+        }
         if (!accessValidators.isEmpty()) {
             this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
         }

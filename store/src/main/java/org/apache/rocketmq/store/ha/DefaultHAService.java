@@ -342,7 +342,7 @@ public class DefaultHAService implements HAService {
 
                     if (selected != null) {
                         for (SelectionKey k : selected) {
-                            if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                            if (k.isAcceptable()) {
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {

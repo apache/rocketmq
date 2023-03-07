@@ -139,7 +139,7 @@ public class GrpcConverter {
         }
 
         // message_id
-        String uniqKey = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        String uniqKey = messageExt.getMsgId();
         if (uniqKey != null) {
             systemPropertiesBuilder.setMessageId(uniqKey);
         }

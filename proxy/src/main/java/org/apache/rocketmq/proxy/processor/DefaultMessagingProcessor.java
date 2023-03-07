@@ -108,7 +108,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     public static DefaultMessagingProcessor createForClusterMode() {
-        return createForClusterMode(AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE));
+        RPCHook rpcHook = null;
+        if (ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
+            rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
+        }
+        return createForClusterMode(rpcHook);
     }
 
     public static DefaultMessagingProcessor createForClusterMode(RPCHook rpcHook) {

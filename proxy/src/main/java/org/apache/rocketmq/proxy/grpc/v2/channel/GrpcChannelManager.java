@@ -50,12 +50,13 @@ public class GrpcChannelManager implements StartAndShutdown {
     public GrpcChannelManager(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager) {
         this.proxyRelayService = proxyRelayService;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
+        this.init();
     }
 
     protected void init() {
         this.scheduledExecutorService.scheduleAtFixedRate(
             this::scanExpireResultFuture,
-            10, 10, TimeUnit.SECONDS
+            10, 1, TimeUnit.SECONDS
         );
     }
 

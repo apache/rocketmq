@@ -233,13 +233,14 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
         try {
             long queueOffset = container.getDispatchOffset();
-            beforeOffset = queueOffset;
             if (minOffsetInQueue > queueOffset) {
+                logger.warn("BlobDispatcher#dispatchByMQContainer: message that needs to be dispatched does not exist: topic: {}, queueId: {}, message queue offset: {}, min queue offset: {}",
+                    topic, queueId, queueOffset, minOffsetInQueue);
                 container.initOffset(minOffsetInQueue);
                 queueOffset = minOffsetInQueue;
-                logger.warn("TieredDispatcher#dispatchByMQContainer: message that needs to be dispatched does not exist: topic: {}, queueId: {}, message queue offset: {}, min queue offset: {}",
-                    topic, queueId, queueOffset, minOffsetInQueue);
             }
+            beforeOffset = queueOffset;
+
             // TODO flow control based on message size
             long limit = Math.min(queueOffset + 100000, maxOffsetInQueue);
             ConsumeQueue consumeQueue = (ConsumeQueue) defaultStore.getConsumeQueue(topic, queueId);

@@ -398,6 +398,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             try {
                 switch (this.currentState) {
                     case SHUTDOWN:
+                        this.flowMonitor.shutdown(true);
                         return;
                     case READY:
                         // Truncate invalid msg first
@@ -437,6 +438,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             }
         }
 
+        this.flowMonitor.shutdown(true);
+        LOGGER.info(this.getServiceName() + " service end");
     }
 
     /**
@@ -495,7 +498,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE - 4);
                         long masterEpochStartOffset = 0;
                         long confirmOffset = 0;
-                        // if master send transfer header data, set masterEpochStartOffset and confirmOffset value.
+                        // If master send transfer header data, set masterEpochStartOffset and confirmOffset value.
                         if (masterState == HAConnectionState.TRANSFER.ordinal() && diff >= AutoSwitchHAConnection.TRANSFER_HEADER_SIZE) {
                             masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE - 16);
                             confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE - 8);
@@ -509,12 +512,12 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             return false;
                         }
 
-                        //flag whether the received data is complete
+                        // Flag whether the received data is complete
                         boolean isComplete = true;
                         switch (AutoSwitchHAClient.this.currentState) {
                             case HANDSHAKE: {
                                 if (diff < AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE + bodySize) {
-                                    //The received HANDSHAKE data is not complete
+                                    // The received HANDSHAKE data is not complete
                                     isComplete = false;
                                     break;
                                 }
@@ -540,7 +543,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             break;
                             case TRANSFER: {
                                 if (diff < AutoSwitchHAConnection.TRANSFER_HEADER_SIZE + bodySize) {
-                                    //The received TRANSFER data is not complete
+                                    // The received TRANSFER data is not complete
                                     isComplete = false;
                                     break;
                                 }
