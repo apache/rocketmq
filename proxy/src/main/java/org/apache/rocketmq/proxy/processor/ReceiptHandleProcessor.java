@@ -193,7 +193,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                         messageReceiptHandle.resetRenewRetryTimes();
                         resFuture.complete(messageReceiptHandle);
                     } else {
-                        log.error("renew response is not ok. result:{}, handle:{}", ackResult, messageReceiptHandle, throwable);
+                        log.error("renew response is not ok. result:{}", ackResult, messageReceiptHandle);
                         resFuture.complete(null);
                     }
                 });
