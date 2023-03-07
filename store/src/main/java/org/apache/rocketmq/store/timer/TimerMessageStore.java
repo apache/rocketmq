@@ -68,6 +68,8 @@ import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.util.PerfCounter;
 
+import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
+
 public class TimerMessageStore {
     public static final String TIMER_TOPIC = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
     public static final String TIMER_OUT_MS = MessageConst.PROPERTY_TIMER_OUT_MS;
@@ -617,6 +619,9 @@ public class TimerMessageStore {
         if (currQueueOffset < cq.getMinOffsetInQueue()) {
             LOGGER.warn("Timer currQueueOffset:{} is smaller than minOffsetInQueue:{}", currQueueOffset, cq.getMinOffsetInQueue());
             currQueueOffset = cq.getMinOffsetInQueue();
+        } else if (currQueueOffset > cq.getMaxOffsetInQueue()) {
+            LOGGER.warn("Timer currQueueOffset:{} is larger than maxOffsetInQueue:{}", currQueueOffset, cq.getMaxOffsetInQueue());
+            currQueueOffset = cq.getMaxOffsetInQueue();
         }
         long offset = currQueueOffset;
         SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(offset);
@@ -632,22 +637,23 @@ public class TimerMessageStore {
                     int sizePy = bufferCQ.getByteBuffer().getInt();
                     bufferCQ.getByteBuffer().getLong(); //tags code
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
+                    currQueueOffset = offset + (i / CQ_STORE_UNIT_SIZE);
                     if (null == msgExt) {
                         perfs.getCounter("enqueue_get_miss");
-                    } else {
-                        lastEnqueueButExpiredTime = System.currentTimeMillis();
-                        lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
-                        long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
-                        // use CQ offset, not offset in Message
-                        msgExt.setQueueOffset(offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE));
-                        TimerRequest timerRequest = new TimerRequest(offsetPy, sizePy, delayedTime, System.currentTimeMillis(), MAGIC_DEFAULT, msgExt);
-                        while (true) {
-                            if (enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
-                                break;
-                            }
-                            if (!isRunningEnqueue()) {
-                                return false;
-                            }
+                        continue;
+                    }
+                    lastEnqueueButExpiredTime = System.currentTimeMillis();
+                    lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
+                    long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
+                    // use CQ offset, not offset in Message
+                    msgExt.setQueueOffset(offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE));
+                    TimerRequest timerRequest = new TimerRequest(offsetPy, sizePy, delayedTime, System.currentTimeMillis(), MAGIC_DEFAULT, msgExt);
+                    while (true) {
+                        if (enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
+                            break;
+                        }
+                        if (!isRunningEnqueue()) {
+                            return false;
                         }
                     }
                 } catch (Exception e) {
@@ -665,7 +671,6 @@ public class TimerMessageStore {
                 if (!isRunningEnqueue()) {
                     return false;
                 }
-                currQueueOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
             }
             currQueueOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
             return i > 0;
