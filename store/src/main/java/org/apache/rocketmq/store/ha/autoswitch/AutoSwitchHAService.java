@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -228,8 +229,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe shrink the inSyncStateSet.
-     * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
+     * Check and maybe shrink the SyncStateSet.
+     * A slave will be removed from SyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
     public Set<Long> maybeShrinkInSyncStateSet() {
         final Set<Long> newSyncStateSet = getLocalSyncStateSet();
@@ -252,7 +253,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe add the slave to inSyncStateSet. A slave will be added to inSyncStateSet if its slaveMaxOffset >=
+     * Check and maybe add the slave to SyncStateSet. A slave will be added to SyncStateSet if its slaveMaxOffset >=
      * current confirmOffset, and it is caught up to an offset within the current leader epoch.
      */
     public void maybeExpandInSyncStateSet(final Long slaveBrokerId, final long slaveMaxOffset) {
