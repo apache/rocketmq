@@ -215,7 +215,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
             long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxPhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
             this.haService.updateConnectionLastCaughtUpTime(this.slaveId, caughtUpTimeMs);
-            this.haService.maybeExpandInSyncStateSet(this.slaveId, slaveMaxOffset);
+            this.haService.maybeExpandSyncStateSet(this.slaveId, slaveMaxOffset);
         }
     }
 

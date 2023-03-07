@@ -318,7 +318,7 @@ public class MessageStoreConfig {
     private int minInSyncReplicas = 1;
 
     /**
-     * Each message must be written successfully to all replicas in InSyncStateSet.
+     * Each message must be written successfully to all replicas in SyncStateSet.
      */
     @ImportantField
     private boolean allAckInSyncStateSet = false;
