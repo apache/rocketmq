@@ -1246,7 +1246,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 0,
                 this.defaultLitePullConsumer.getBrokerSuspendMaxTimeMillis(),
                 timeoutMillis,
-                CommunicationMode.SYNC,
+                CommunicationMode.ASYNC,
                 new PullCallback() {
                     @Override
                     public void onSuccess(PullResult pullResult) {
