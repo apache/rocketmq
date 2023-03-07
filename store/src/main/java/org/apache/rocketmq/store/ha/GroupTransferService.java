@@ -95,7 +95,7 @@ public class GroupTransferService extends ServiceThread {
                     }
 
                     if (allAckInSyncStateSet && this.haService instanceof AutoSwitchHAService) {
-                        // In this mode, we must wait for all replicas that in InSyncStateSet.
+                        // In this mode, we must wait for all replicas that in SyncStateSet.
                         final AutoSwitchHAService autoSwitchHAService = (AutoSwitchHAService) this.haService;
                         final Set<Long> syncStateSet = autoSwitchHAService.getSyncStateSet();
                         if (syncStateSet.size() <= 1) {

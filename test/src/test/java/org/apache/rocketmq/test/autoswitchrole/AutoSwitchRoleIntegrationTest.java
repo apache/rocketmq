@@ -126,7 +126,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         mockData(topic);
 
-        // Check sync state set
+        // Check SyncStateSet
         final ReplicasManager replicasManager = brokerController1.getReplicasManager();
         SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(2, syncStateSet.getSyncStateSet().size());
