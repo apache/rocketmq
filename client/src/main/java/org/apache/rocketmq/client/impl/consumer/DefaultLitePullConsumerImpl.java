@@ -1163,7 +1163,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());
     }
 
-    private void pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, PullCallback pullCallback)
+    private void pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
+        PullCallback pullCallback)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis(), pullCallback);
     }
@@ -1173,7 +1174,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
     }
 
-    private void pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout, PullCallback pullCallback)
+    private void pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout,
+        PullCallback pullCallback)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, true, timeout, pullCallback);
     }
@@ -1240,29 +1242,29 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
         boolean isTagType = ExpressionType.isTagType(subscriptionData.getExpressionType());
         this.pullAPIWrapper.pullKernelImpl(
-                mq,
-                subscriptionData.getSubString(),
-                subscriptionData.getExpressionType(),
-                isTagType ? 0L : subscriptionData.getSubVersion(),
-                offset,
-                maxNums,
-                sysFlag,
-                0,
-                this.defaultLitePullConsumer.getBrokerSuspendMaxTimeMillis(),
-                timeoutMillis,
-                CommunicationMode.ASYNC,
-                new PullCallback() {
-                    @Override
-                    public void onSuccess(PullResult pullResult) {
-                        DefaultLitePullConsumerImpl.this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
-                        pullCallback.onSuccess(pullResult);
-                    }
-
-                    @Override
-                    public void onException(Throwable e) {
-                        pullCallback.onException(e);
-                    }
+            mq,
+            subscriptionData.getSubString(),
+            subscriptionData.getExpressionType(),
+            isTagType ? 0L : subscriptionData.getSubVersion(),
+            offset,
+            maxNums,
+            sysFlag,
+            0,
+            this.defaultLitePullConsumer.getBrokerSuspendMaxTimeMillis(),
+            timeoutMillis,
+            CommunicationMode.ASYNC,
+            new PullCallback() {
+                @Override
+                public void onSuccess(PullResult pullResult) {
+                    DefaultLitePullConsumerImpl.this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+                    pullCallback.onSuccess(pullResult);
                 }
+
+                @Override
+                public void onException(Throwable e) {
+                    pullCallback.onException(e);
+                }
+            }
         );
     }
 

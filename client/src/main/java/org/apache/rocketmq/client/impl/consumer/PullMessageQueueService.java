@@ -34,12 +34,12 @@ public class PullMessageQueueService extends ServiceThread {
     public PullMessageQueueService(DefaultLitePullConsumerImpl consumer) {
         this.consumer = consumer;
         this.scheduledExecutorService = Executors
-                .newScheduledThreadPool(consumer.getDefaultLitePullConsumer().getPullThreadNums(), new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "PullMessageQueueServiceScheduledThread");
-                    }
-                });
+            .newScheduledThreadPool(consumer.getDefaultLitePullConsumer().getPullThreadNums(), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "PullMessageQueueServiceScheduledThread");
+                }
+            });
     }
 
     public void executeMessageRequestLater(final MessageQueue messageQueue, final long timeDelay) {
