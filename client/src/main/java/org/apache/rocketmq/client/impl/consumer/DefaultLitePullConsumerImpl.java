@@ -38,7 +38,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
-import org.apache.rocketmq.client.consumer.*;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
+import org.apache.rocketmq.client.consumer.MessageSelector;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -133,11 +138,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
         new ConcurrentHashMap<>();
 
-    // Dummy value to associate with an Object in the backing Map
-    private static final Object PRESENT = new Object();
-
-    private final ConcurrentMap<MessageQueue, Object> messageQueueTable =
-        new ConcurrentHashMap<>();
+    private final Set<MessageQueue> messageQueueSet =
+        ConcurrentHashMap.newKeySet();
 
     private AssignedMessageQueue assignedMessageQueue = new AssignedMessageQueue();
 
@@ -235,12 +237,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void updatePullTask(String topic, Set<MessageQueue> mqNewSet) {
-        Iterator<Map.Entry<MessageQueue, Object>> it = this.messageQueueTable.entrySet().iterator();
+        Iterator<MessageQueue> it = this.messageQueueSet.iterator();
         while (it.hasNext()) {
-            Map.Entry<MessageQueue, Object> next = it.next();
-            if (next.getKey().getTopic().equals(topic)) {
-                if (!mqNewSet.contains(next.getKey())) {
-                    this.pullMessageQueueService.removeMessageQueue(next.getKey());
+            MessageQueue next = it.next();
+            if (next.getTopic().equals(topic)) {
+                if (!mqNewSet.contains(next)) {
+                    this.pullMessageQueueService.removeMessageQueue(next);
                     it.remove();
                 }
             }
@@ -462,22 +464,19 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void startPullTask(Collection<MessageQueue> mqSet) {
         for (MessageQueue messageQueue : mqSet) {
-            if (!this.messageQueueTable.containsKey(messageQueue)) {
-//                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
-//                this.taskTable.put(messageQueue, pullTask);
-//                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
-                this.messageQueueTable.put(messageQueue, PRESENT);
+            if (!this.messageQueueSet.contains(messageQueue)) {
+                this.messageQueueSet.add(messageQueue);
                 this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
             }
         }
     }
 
     private void updateAssignPullTask(Collection<MessageQueue> mqNewSet) {
-        Iterator<Map.Entry<MessageQueue, Object>> it = this.messageQueueTable.entrySet().iterator();
+        Iterator<MessageQueue> it = this.messageQueueSet.iterator();
         while (it.hasNext()) {
-            Map.Entry<MessageQueue, Object> next = it.next();
-            if (!mqNewSet.contains(next.getKey())) {
-                this.pullMessageQueueService.removeMessageQueue(next.getKey());
+            MessageQueue next = it.next();
+            if (!mqNewSet.contains(next)) {
+                this.pullMessageQueueService.removeMessageQueue(next);
                 it.remove();
             }
         }
@@ -689,12 +688,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         synchronized (objLock) {
             clearMessageQueueInCache(messageQueue);
 
-            if (this.messageQueueTable.containsKey(messageQueue)) {
+            if (this.messageQueueSet.contains(messageQueue)) {
                 this.pullMessageQueueService.removeMessageQueue(messageQueue);
             }
             assignedMessageQueue.setSeekOffset(messageQueue, offset);
-            if (!this.messageQueueTable.containsKey(messageQueue)) {
-                this.messageQueueTable.put(messageQueue, PRESENT);
+            if (!this.messageQueueSet.contains(messageQueue)) {
+                this.messageQueueSet.add(messageQueue);
                 this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
             }
         }
@@ -725,11 +724,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void removePullTask(final String topic) {
-        Iterator<Map.Entry<MessageQueue, Object>> it = this.messageQueueTable.entrySet().iterator();
+        Iterator<MessageQueue> it = this.messageQueueSet.iterator();
         while (it.hasNext()) {
-            Map.Entry<MessageQueue, Object> next = it.next();
-            if (next.getKey().getTopic().equals(topic)) {
-                this.pullMessageQueueService.removeMessageQueue(next.getKey());
+            MessageQueue next = it.next();
+            if (next.getTopic().equals(topic)) {
+                this.pullMessageQueueService.removeMessageQueue(next);
                 it.remove();
             }
         }

@@ -16,13 +16,17 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-import java.util.concurrent.*;
 
 public class PullMessageQueueService extends ServiceThread {
     private final Logger logger = LoggerFactory.getLogger(PullMessageQueueService.class);
