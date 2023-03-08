@@ -195,6 +195,8 @@ public class DefaultHAConnection implements HAConnection {
                 log.error("", e);
             }
 
+            flowMonitor.shutdown(true);
+
             log.info(this.getServiceName() + " service end");
         }
 
@@ -397,6 +399,8 @@ public class DefaultHAConnection implements HAConnection {
             } catch (IOException e) {
                 DefaultHAConnection.log.error("", e);
             }
+
+            flowMonitor.shutdown(true);
 
             DefaultHAConnection.log.info(this.getServiceName() + " service end");
         }
