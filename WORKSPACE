@@ -120,7 +120,8 @@ buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
     name = "rbe_default",
-    sha256 = "6f2bd38cce60880fd05cf373b99118ad59a0fe7df88855e229e7a9b50a003af3",
+    # The sha256 digest of the tarball might change without notice. So it's not
+    # included here.
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 
