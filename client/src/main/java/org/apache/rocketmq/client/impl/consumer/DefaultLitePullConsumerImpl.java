@@ -128,7 +128,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
-    private AsyncPullMessageService asyncPullMessageService;
+    private PullMessageQueueService pullMessageQueueService;
 
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
         new ConcurrentHashMap<>();
@@ -240,7 +240,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             Map.Entry<MessageQueue, Object> next = it.next();
             if (next.getKey().getTopic().equals(topic)) {
                 if (!mqNewSet.contains(next.getKey())) {
-                    this.asyncPullMessageService.removeMessageQueue(next.getKey());
+                    this.pullMessageQueueService.removeMessageQueue(next.getKey());
                     it.remove();
                 }
             }
@@ -383,8 +383,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void initAsyncPullMessageService() {
-        this.asyncPullMessageService = new AsyncPullMessageService(this);
-        this.asyncPullMessageService.start();
+        this.pullMessageQueueService = new PullMessageQueueService(this);
+        this.pullMessageQueueService.start();
     }
 
     private void startScheduleTask() {
@@ -467,7 +467,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 //                this.taskTable.put(messageQueue, pullTask);
 //                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
                 this.messageQueueTable.put(messageQueue, PRESENT);
-                this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
+                this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
             }
         }
     }
@@ -477,7 +477,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         while (it.hasNext()) {
             Map.Entry<MessageQueue, Object> next = it.next();
             if (!mqNewSet.contains(next.getKey())) {
-                this.asyncPullMessageService.removeMessageQueue(next.getKey());
+                this.pullMessageQueueService.removeMessageQueue(next.getKey());
                 it.remove();
             }
         }
@@ -690,12 +690,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             clearMessageQueueInCache(messageQueue);
 
             if (this.messageQueueTable.containsKey(messageQueue)) {
-                this.asyncPullMessageService.removeMessageQueue(messageQueue);
+                this.pullMessageQueueService.removeMessageQueue(messageQueue);
             }
             assignedMessageQueue.setSeekOffset(messageQueue, offset);
             if (!this.messageQueueTable.containsKey(messageQueue)) {
                 this.messageQueueTable.put(messageQueue, PRESENT);
-                this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
+                this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
             }
         }
     }
@@ -729,7 +729,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         while (it.hasNext()) {
             Map.Entry<MessageQueue, Object> next = it.next();
             if (next.getKey().getTopic().equals(topic)) {
-                this.asyncPullMessageService.removeMessageQueue(next.getKey());
+                this.pullMessageQueueService.removeMessageQueue(next.getKey());
                 it.remove();
             }
         }
@@ -1034,7 +1034,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public void pullMessage(final MessageQueue messageQueue) {
         if (assignedMessageQueue.isPaused(messageQueue)) {
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_PAUSE);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_PAUSE);
             log.debug("Message Queue: {} has been paused!", messageQueue);
             return;
         }
@@ -1049,7 +1049,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         processQueue.setLastPullTimestamp(System.currentTimeMillis());
 
         if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
             if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
                 log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
             }
@@ -1060,7 +1060,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
 
         if (cachedMessageCount > defaultLitePullConsumer.getPullThresholdForQueue()) {
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
             if ((queueFlowControlTimes++ % 1000) == 0) {
                 log.warn(
                     "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
@@ -1070,7 +1070,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
 
         if (cachedMessageSizeInMiB > defaultLitePullConsumer.getPullThresholdSizeForQueue()) {
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
             if ((queueFlowControlTimes++ % 1000) == 0) {
                 log.warn(
                     "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
@@ -1080,7 +1080,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
 
         if (processQueue.getMaxSpan() > defaultLitePullConsumer.getConsumeMaxSpan()) {
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
             if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
                 log.warn(
                     "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
@@ -1094,7 +1094,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             offset = nextPullOffset(messageQueue);
         } catch (Exception e) {
             log.error("Failed to get next pull offset", e);
-            this.asyncPullMessageService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_ON_EXCEPTION);
+            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_ON_EXCEPTION);
             return;
         }
 
@@ -1135,7 +1135,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             break;
                     }
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
-                    DefaultLitePullConsumerImpl.this.asyncPullMessageService.executeMessageRequestImmediately(messageQueue);
+                    DefaultLitePullConsumerImpl.this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
                 }
 
                 @Override
@@ -1147,7 +1147,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         pullDelayTimeMills = pullTimeDelayMillsWhenException;
                     }
                     log.error("An error occurred in pull message process.", e);
-                    DefaultLitePullConsumerImpl.this.asyncPullMessageService.executeMessageRequestLater(messageQueue, pullDelayTimeMills);
+                    DefaultLitePullConsumerImpl.this.pullMessageQueueService.executeMessageRequestLater(messageQueue, pullDelayTimeMills);
                 }
             };
             this.pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize(), pullCallback);

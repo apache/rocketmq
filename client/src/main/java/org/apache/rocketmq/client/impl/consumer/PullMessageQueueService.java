@@ -8,20 +8,20 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.util.concurrent.*;
 
-public class AsyncPullMessageService extends ServiceThread {
-    private final Logger logger = LoggerFactory.getLogger(AsyncPullMessageService.class);
+public class PullMessageQueueService extends ServiceThread {
+    private final Logger logger = LoggerFactory.getLogger(PullMessageQueueService.class);
     private final LinkedBlockingQueue<MessageQueue> messageQueueQueue = new LinkedBlockingQueue<>();
 
     private final DefaultLitePullConsumerImpl consumer;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public AsyncPullMessageService(DefaultLitePullConsumerImpl consumer) {
+    public PullMessageQueueService(DefaultLitePullConsumerImpl consumer) {
         this.consumer = consumer;
         this.scheduledExecutorService = Executors
                 .newScheduledThreadPool(consumer.getDefaultLitePullConsumer().getPullThreadNums(), new ThreadFactory() {
                     @Override
                     public Thread newThread(Runnable r) {
-                        return new Thread(r, "AsyncPullMessageServiceScheduledThread");
+                        return new Thread(r, "PullMessageQueueServiceScheduledThread");
                     }
                 });
     }
@@ -31,11 +31,11 @@ public class AsyncPullMessageService extends ServiceThread {
             this.scheduledExecutorService.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    AsyncPullMessageService.this.executeMessageRequestImmediately(messageQueue);
+                    PullMessageQueueService.this.executeMessageRequestImmediately(messageQueue);
                 }
             }, timeDelay, TimeUnit.MILLISECONDS);
         } else {
-            logger.warn("AsyncPullMessageServiceScheduledThread has shutdown");
+            logger.warn("PullMessageQueueServiceScheduledThread has shutdown");
         }
     }
 
@@ -65,7 +65,7 @@ public class AsyncPullMessageService extends ServiceThread {
                 this.pullMessage(messageQueue);
             } catch (InterruptedException ignored) {
             } catch (Exception e) {
-                logger.error("Pull Message Service Run Method exception", e);
+                logger.error("Pull Message Queue Service Run Method exception", e);
             }
         }
 
