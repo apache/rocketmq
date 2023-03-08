@@ -22,27 +22,18 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
-    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
+    private final ConcurrentHashMap<String/*broker name*/, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
 
     private final ThreadLocalIndex randomItem = new ThreadLocalIndex();
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
-        FaultItem old = this.faultItemTable.get(name);
-        if (null == old) {
-            final FaultItem faultItem = new FaultItem(name);
-            faultItem.setCurrentLatency(currentLatency);
-            faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-
-            old = this.faultItemTable.putIfAbsent(name, faultItem);
-            if (old != null) {
-                old.setCurrentLatency(currentLatency);
-                old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-            }
-        } else {
+        FaultItem old = this.faultItemTable.putIfAbsent(name, new FaultItem(name, currentLatency, System.currentTimeMillis() + notAvailableDuration));
+        if (null != old) {
             old.setCurrentLatency(currentLatency);
             old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
         }
@@ -98,6 +89,12 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
         public FaultItem(final String name) {
             this.name = name;
+        }
+
+        public FaultItem(String name, long currentLatency, long startTimestamp) {
+            this.name = name;
+            this.currentLatency = currentLatency;
+            this.startTimestamp = startTimestamp;
         }
 
         @Override
