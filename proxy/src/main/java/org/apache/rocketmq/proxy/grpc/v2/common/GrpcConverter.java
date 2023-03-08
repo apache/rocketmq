@@ -143,9 +143,8 @@ public class GrpcConverter {
         if (uniqKey == null) {
             uniqKey = messageExt.getMsgId();
         }
-        if (uniqKey != null) {
-            systemPropertiesBuilder.setMessageId(uniqKey);
-        }
+
+        systemPropertiesBuilder.setMessageId(uniqKey);
 
         // body_digest & body_encoding
         String md5Result = BinaryUtil.generateMd5(messageExt.getBody());
