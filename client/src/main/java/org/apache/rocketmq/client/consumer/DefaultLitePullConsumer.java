@@ -103,7 +103,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Pull thread number
      */
-    private int pullThreadNums = 20;
+    private int pullThreadNums = 1;
 
     /**
      * Minimum commit offset interval time in milliseconds.
