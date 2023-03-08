@@ -48,6 +48,8 @@ public class DLedgerControllerStateMachine implements StateMachine {
     @Override
     public void onApply(CommittedEntryIterator iterator) {
         int applyingSize = 0;
+        long firstApplyIndex = -1;
+        long lastApplyIndex = -1;
         while (iterator.hasNext()) {
             final DLedgerEntry entry = iterator.next();
             final byte[] body = entry.getBody();
@@ -55,9 +57,11 @@ public class DLedgerControllerStateMachine implements StateMachine {
                 final EventMessage event = this.eventSerializer.deserialize(body);
                 this.replicasInfoManager.applyEvent(event);
             }
+            firstApplyIndex = firstApplyIndex == -1 ? entry.getIndex() : firstApplyIndex;
+            lastApplyIndex = entry.getIndex();
             applyingSize++;
         }
-        log.info("Apply {} events on controller {}", applyingSize, this.dLedgerId);
+        log.info("Apply {} events index from {} to {} on controller {}", applyingSize, firstApplyIndex, lastApplyIndex, this.dLedgerId);
     }
 
     @Override
@@ -68,7 +72,6 @@ public class DLedgerControllerStateMachine implements StateMachine {
     public boolean onSnapshotLoad(SnapshotReader reader) {
         return false;
     }
-
 
     @Override
     public void onShutdown() {
