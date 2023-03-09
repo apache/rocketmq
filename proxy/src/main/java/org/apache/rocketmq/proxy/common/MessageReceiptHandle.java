@@ -21,7 +21,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
 
 public class MessageReceiptHandle {
     private final String group;
@@ -33,9 +32,9 @@ public class MessageReceiptHandle {
     private final int reconsumeTimes;
 
     private final AtomicInteger renewRetryTimes = new AtomicInteger(0);
+    private final AtomicInteger renewTimes = new AtomicInteger(0);
     private final long consumeTimestamp;
     private volatile String receiptHandleStr;
-    private final RetryPolicy renewStrategyPolicy;
 
     public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
         long queueOffset, int reconsumeTimes) {
@@ -49,7 +48,6 @@ public class MessageReceiptHandle {
         this.queueOffset = queueOffset;
         this.reconsumeTimes = reconsumeTimes;
         this.consumeTimestamp = receiptHandle.getRetrieveTime();
-        this.renewStrategyPolicy = new RenewStrategyPolicy();
     }
 
     @Override
@@ -134,6 +132,14 @@ public class MessageReceiptHandle {
         return this.renewRetryTimes.incrementAndGet();
     }
 
+    public int incrementRenewTimes() {
+        return this.renewTimes.incrementAndGet();
+    }
+
+    public int getRenewTimes() {
+        return this.renewTimes.get();
+    }
+
     public void resetRenewRetryTimes() {
         this.renewRetryTimes.set(0);
     }
@@ -142,7 +148,4 @@ public class MessageReceiptHandle {
         return this.renewRetryTimes.get();
     }
 
-    public RetryPolicy getRenewStrategyPolicy() {
-        return this.renewStrategyPolicy;
-    }
 }

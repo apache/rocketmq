@@ -46,6 +46,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
+import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
@@ -175,10 +176,10 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 return CompletableFuture.completedFuture(null);
             }
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
-                RetryPolicy renewPolicy = messageReceiptHandle.getRenewStrategyPolicy();
+                RetryPolicy renewPolicy = new RenewStrategyPolicy();
                 CompletableFuture<AckResult> future =
                     messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
-                        messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), renewPolicy.nextDelayDuration(messageReceiptHandle.getRenewRetryTimes()));
+                        messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), renewPolicy.nextDelayDuration(messageReceiptHandle.getRenewTimes()));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
@@ -191,9 +192,10 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                     } else if (AckStatus.OK.equals(ackResult.getStatus())) {
                         messageReceiptHandle.updateReceiptHandle(ackResult.getExtraInfo());
                         messageReceiptHandle.resetRenewRetryTimes();
+                        messageReceiptHandle.incrementRenewTimes();
                         resFuture.complete(messageReceiptHandle);
                     } else {
-                        log.error("renew response is not ok. result:{}", ackResult, messageReceiptHandle);
+                        log.error("renew response is not ok. result:{}, handle:{}", ackResult, messageReceiptHandle);
                         resFuture.complete(null);
                     }
                 });
