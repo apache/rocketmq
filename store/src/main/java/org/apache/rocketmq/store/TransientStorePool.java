@@ -34,7 +34,7 @@ public class TransientStorePool {
     private final int fileSize;
     private final Deque<ByteBuffer> availableBuffers;
     private final DefaultMessageStore messageStore;
-    private volatile boolean isRealCommit;
+    private volatile boolean isRealCommit = true;
 
     public TransientStorePool(final DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
