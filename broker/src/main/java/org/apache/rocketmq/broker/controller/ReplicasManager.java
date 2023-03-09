@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -178,11 +179,18 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
+            Random random = new Random();
             for (int retryTimes = 0; retryTimes < 5; retryTimes++) {
                 if (register()) {
                     LOGGER.info("First time register broker success");
                     this.state = State.REGISTER_TO_CONTROLLER_DONE;
                     break;
+                }
+
+                try {
+                    Thread.sleep(random.nextInt(1000));
+                } catch (Exception ignore) {
+
                 }
             }
             // register 5 times but still unsuccessful
