@@ -115,21 +115,21 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     subscriptionGroupConfig.getRetryQueueNums(),
                     PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
             }
-
-            boolean changed = this.brokerController.getConsumerManager().registerConsumer(
-                consumerData.getGroupName(),
-                clientChannelInfo,
-                consumerData.getConsumeType(),
-                consumerData.getMessageModel(),
-                consumerData.getConsumeFromWhere(),
-                consumerData.getSubscriptionDataSet(),
-                isNotifyConsumerIdsChangedEnable
-            );
-
-            if (changed) {
-                LOGGER.info(
-                    "ClientManageProcessor: registerConsumer info changed, SDK address={}, consumerData={}",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), consumerData.toString());
+            if (null != subscriptionGroupConfig) {
+                boolean changed = this.brokerController.getConsumerManager().registerConsumer(
+                    consumerData.getGroupName(),
+                    clientChannelInfo,
+                    consumerData.getConsumeType(),
+                    consumerData.getMessageModel(),
+                    consumerData.getConsumeFromWhere(),
+                    consumerData.getSubscriptionDataSet(),
+                    isNotifyConsumerIdsChangedEnable
+                );
+                if (changed) {
+                    LOGGER.info(
+                        "ClientManageProcessor: registerConsumer info changed, SDK address={}, consumerData={}",
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()), consumerData.toString());
+                }
             }
         }
 
