@@ -42,7 +42,7 @@ public class MessageStoreConfig {
     private String storePathEpochFile = null;
 
     @ImportantField
-    private String storePathMetadata = null;
+    private String storePathBrokerIdentity = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -640,15 +640,15 @@ public class MessageStoreConfig {
         this.storePathEpochFile = storePathEpochFile;
     }
 
-    public String getStorePathMetadata() {
-        if (storePathMetadata == null) {
-            return storePathRootDir + File.separator + "metadata";
+    public String getStorePathBrokerIdentity() {
+        if (storePathBrokerIdentity == null) {
+            return storePathRootDir + File.separator + "brokerIdentity";
         }
-        return storePathMetadata;
+        return storePathBrokerIdentity;
     }
 
-    public void setStorePathMetadata(String storePathMetadata) {
-        this.storePathMetadata = storePathMetadata;
+    public void setStorePathBrokerIdentity(String storePathBrokerIdentity) {
+        this.storePathBrokerIdentity = storePathBrokerIdentity;
     }
 
     public String getDeleteWhen() {
