@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
     private final ConcurrentHashMap<String/*broker name*/, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
@@ -32,7 +33,8 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
-        FaultItem old = this.faultItemTable.putIfAbsent(name, new FaultItem(name, currentLatency, System.currentTimeMillis() + notAvailableDuration));
+        FaultItem old = ConcurrentHashMapUtils.computeIfAbsent(faultItemTable, name, 
+            key -> new FaultItem(name, currentLatency, System.currentTimeMillis() + notAvailableDuration));
         if (null != old) {
             old.setCurrentLatency(currentLatency);
             old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
