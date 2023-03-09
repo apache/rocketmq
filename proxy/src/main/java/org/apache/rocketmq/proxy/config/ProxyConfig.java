@@ -148,6 +148,7 @@ public class ProxyConfig implements ConfigFile {
     private int consumerProcessorThreadPoolNums = PROCESSOR_NUMBER;
     private int consumerProcessorThreadPoolQueueCapacity = 10000;
 
+    private boolean forceUseEndpointPort = false;
     private int topicRouteServiceCacheExpiredInSeconds = 20;
     private int topicRouteServiceCacheMaxNum = 20000;
     private int topicRouteServiceThreadPoolNums = PROCESSOR_NUMBER;
@@ -423,6 +424,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public boolean isForceUseEndpointPort() {
+        return forceUseEndpointPort;
+    }
+
+    public void setForceUseEndpointPort(boolean forceUseEndpointPort) {
+        this.forceUseEndpointPort = forceUseEndpointPort;
     }
 
     public boolean isTlsTestModeEnable() {

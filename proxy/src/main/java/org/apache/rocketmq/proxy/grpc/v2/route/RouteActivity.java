@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -52,7 +53,7 @@ import org.apache.rocketmq.remoting.protocol.route.QueueData;
 public class RouteActivity extends AbstractMessingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+                         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -64,7 +65,7 @@ public class RouteActivity extends AbstractMessingActivity {
 
             String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
-                ctx, addressList, topicName);
+                    ctx, addressList, topicName);
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
@@ -82,9 +83,9 @@ public class RouteActivity extends AbstractMessingActivity {
             }
 
             QueryRouteResponse response = QueryRouteResponse.newBuilder()
-                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                .addAllMessageQueues(messageQueueList)
-                .build();
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                    .addAllMessageQueues(messageQueueList)
+                    .build();
             future.complete(response);
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -161,12 +162,18 @@ public class RouteActivity extends AbstractMessingActivity {
     }
 
     protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
+
+        boolean useEndpointPort = ConfigurationManager.getProxyConfig().isForceUseEndpointPort();
+
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
         for (Address address : endpoints.getAddressesList()) {
+            int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
+            if (useEndpointPort) {
+                port = address.getPort();
+            }
             addressList.add(new org.apache.rocketmq.proxy.common.Address(
-                org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
-                HostAndPort.fromParts(address.getHost(), address.getPort()))
-            );
+                    org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
+                    HostAndPort.fromParts(address.getHost(), port)));
         }
         return addressList;
     }
