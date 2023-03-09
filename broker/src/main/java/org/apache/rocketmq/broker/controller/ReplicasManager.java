@@ -114,8 +114,8 @@ public class ReplicasManager {
         this.availableControllerAddresses = new ConcurrentHashMap<>();
         this.syncStateSet = new HashSet<>();
         this.brokerAddress = brokerController.getBrokerAddr();
-        this.brokerMetadata = new BrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathMetadata());
-        this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathMetadata() + "-temp");
+        this.brokerMetadata = new BrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity());
+        this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity() + "-temp");
     }
 
     public long getConfirmOffset() {
@@ -305,7 +305,7 @@ public class ReplicasManager {
                     try {
                         this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
                     } catch (final Throwable e) {
-                        LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to slave", e);
+                        LOGGER.error("Error happen when register broker to name server, Failed to change broker to slave", e);
                         return;
                     }
 

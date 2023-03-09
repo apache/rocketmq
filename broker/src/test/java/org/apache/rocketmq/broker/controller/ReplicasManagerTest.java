@@ -113,8 +113,8 @@ public class ReplicasManagerTest {
     public void before() throws Exception {
         autoSwitchHAService = new AutoSwitchHAService();
         messageStoreConfig = new MessageStoreConfig();
-        File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathMetadata() + "-temp");
+        File metadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity() + "-temp");
         metadataFile.deleteOnExit();
         tempMetadataFile.deleteOnExit();
         brokerConfig = new BrokerConfig();
@@ -161,8 +161,8 @@ public class ReplicasManagerTest {
     public void after() {
         replicasManager.shutdown();
         brokerController.shutdown();
-        File metadataFile = new File(messageStoreConfig.getStorePathMetadata());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathMetadata() + "-temp");
+        File metadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity());
+        File tempMetadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity() + "-temp");
         metadataFile.deleteOnExit();
         tempMetadataFile.deleteOnExit();
     }

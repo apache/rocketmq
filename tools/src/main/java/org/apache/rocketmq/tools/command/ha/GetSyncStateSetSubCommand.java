@@ -124,11 +124,11 @@ public class GetSyncStateSetSubCommand implements SubCommand {
                         next.getKey(), next.getValue().getMasterBrokerId(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
                         inSyncReplicas.size());
                 for (BrokerReplicasInfo.ReplicaIdentity member : inSyncReplicas) {
-                    System.out.printf("\n InSyncReplica:\t%s\n", member.toString());
+                    System.out.printf("\nInSyncReplica:\t%s\n", member.toString());
                 }
 
                 for (BrokerReplicasInfo.ReplicaIdentity member : notInSyncReplicas) {
-                    System.out.printf("\n NotInSyncReplica:\t%s\n", member.toString());
+                    System.out.printf("\nNotInSyncReplica:\t%s\n", member.toString());
                 }
             }
         }
