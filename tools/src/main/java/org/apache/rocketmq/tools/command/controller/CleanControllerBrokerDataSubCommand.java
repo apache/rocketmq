@@ -49,7 +49,7 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("n", "brokerName", true, "The broker name of the replicas that require to be manipulated");
+        opt = new Option("bn", "brokerName", true, "The broker name of the replicas that require to be manipulated");
         opt.setRequired(true);
         options.addOption(opt);
 
