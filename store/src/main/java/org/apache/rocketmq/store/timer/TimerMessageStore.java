@@ -1600,7 +1600,6 @@ public class TimerMessageStore {
                     timerLog.getMappedFileQueue().flush(0);
                     timerWheel.flush();
                     timerCheckpoint.flush();
-                    timerLog.getMappedFileQueue().flush(0);
                     if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
                         start = System.currentTimeMillis();
                         long tmpQueueOffset = currQueueOffset;
