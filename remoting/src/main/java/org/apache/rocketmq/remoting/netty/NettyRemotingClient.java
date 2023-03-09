@@ -61,7 +61,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,6 +69,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -139,37 +139,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             publicThreadNums = 4;
         }
 
-        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
-            private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
-            }
-        });
+        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyClientPublicExecutor_"));
 
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(32), new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "NettyClientScan_thread_" + this.threadIndex.incrementAndGet());
-                }
-            }
-        );
+            new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("NettyClientScan_thread_"));
 
         if (eventLoopGroup != null) {
             this.eventLoopGroupWorker = eventLoopGroup;
         } else {
-            this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
-                private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("NettyClientSelector_%d", this.threadIndex.incrementAndGet()));
-                }
-            });
+            this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactoryImpl("NettyClientSelector_"));
         }
         this.defaultEventExecutorGroup = eventExecutorGroup;
 
@@ -205,15 +183,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (this.defaultEventExecutorGroup == null) {
             this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
                 nettyClientConfig.getClientWorkerThreads(),
-                new ThreadFactory() {
-
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
-                    }
-                });
+                new ThreadFactoryImpl("NettyClientWorkerThread_"));
         }
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)

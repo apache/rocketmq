@@ -24,7 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -63,38 +63,20 @@ public final class ThreadUtils {
     }
 
     public static ThreadFactory newGenericThreadFactory(final String processName, final boolean isDaemon) {
-        return new ThreadFactory() {
-            private AtomicInteger threadIndex = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, String.format("%s_%d", processName, this.threadIndex.incrementAndGet()));
-                thread.setDaemon(isDaemon);
-                return thread;
-            }
-        };
+        return new ThreadFactoryImpl(processName + "_", isDaemon);
     }
 
     public static ThreadFactory newGenericThreadFactory(final String processName, final int threads,
         final boolean isDaemon) {
-        return new ThreadFactory() {
-            private AtomicInteger threadIndex = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, String.format("%s_%d_%d", processName, threads, this.threadIndex.incrementAndGet()));
-                thread.setDaemon(isDaemon);
-                return thread;
-            }
-        };
+        return new ThreadFactoryImpl(String.format("%s_%d_", processName, threads), isDaemon);
     }
 
     /**
      * Create a new thread
      *
-     * @param name The name of the thread
+     * @param name     The name of the thread
      * @param runnable The work for the thread to do
-     * @param daemon Should the thread block JVM stop?
+     * @param daemon   Should the thread block JVM stop?
      * @return The unstarted thread
      */
     public static Thread newThread(String name, Runnable runnable, boolean daemon) {
@@ -121,7 +103,7 @@ public final class ThreadUtils {
      * Shutdown passed thread using isAlive and join.
      *
      * @param millis Pass 0 if we're to wait forever.
-     * @param t Thread to stop
+     * @param t      Thread to stop
      */
     public static void shutdownGracefully(final Thread t, final long millis) {
         if (t == null)
@@ -141,7 +123,7 @@ public final class ThreadUtils {
      * {@link ExecutorService}.
      *
      * @param executor executor
-     * @param timeout timeout
+     * @param timeout  timeout
      * @param timeUnit timeUnit
      */
     public static void shutdownGracefully(ExecutorService executor, long timeout, TimeUnit timeUnit) {
