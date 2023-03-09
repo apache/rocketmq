@@ -54,6 +54,8 @@ public class MessageStoreConfig {
 
     private int compactionScheduleInternal = 15 * 60 * 1000;
 
+    private int compactionScheduleIdleTimes = 5;
+
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
     private int compactionThreadNum = 0;
@@ -1622,5 +1624,13 @@ public class MessageStoreConfig {
 
     public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
         this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
+    }
+
+    public int getCompactionScheduleIdleTimes() {
+        return compactionScheduleIdleTimes;
+    }
+
+    public void setCompactionScheduleIdleTimes(int compactionScheduleIdleTimes) {
+        this.compactionScheduleIdleTimes = compactionScheduleIdleTimes;
     }
 }

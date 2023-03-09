@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
@@ -94,9 +95,12 @@ public class CompactionLog {
     private TopicPartitionLog replicating;
     private CompactionPositionMgr positionMgr;
     private AtomicReference<State> state;
+    private final AtomicInteger compactionScheduleIdleTimes;
+    private final int scheduleIdleTimes;
     private long deleteRetentionMs = TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getDefaultValue();
 
-    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
+    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic,
+        final int queueId)
         throws IOException {
         this.topic = topic;
         this.queueId = queueId;
@@ -104,6 +108,9 @@ public class CompactionLog {
         this.compactionStore = compactionStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
         this.offsetMapMemorySize = compactionStore.getOffsetMapSize();
+        // default 5 times
+        this.scheduleIdleTimes = messageStore.getMessageStoreConfig().getCompactionScheduleIdleTimes();
+        this.compactionScheduleIdleTimes = new AtomicInteger(this.scheduleIdleTimes);
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -347,7 +354,7 @@ public class CompactionLog {
         if (hasBody) {
             return false;
         }
-        return message.getBornTimestamp() + deleteRetentionMs < System.currentTimeMillis();
+        return message.getStoreTimestamp() + deleteRetentionMs < System.currentTimeMillis();
     }
 
     public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
@@ -582,7 +589,6 @@ public class CompactionLog {
         List<MappedFile> newFiles = Lists.newArrayList();
         for (int i = 0; i < mappedFileList.size() - 1; i++) {
             MappedFile mf = mappedFileList.get(i);
-            newFiles.add(mf);
             long maxQueueOffsetInFile = getCQ().getMaxMsgOffsetFromFile(mf.getFile().getName());
             if (maxQueueOffsetInFile > positionMgr.getOffset(topic, queueId)) {
                 newFiles.add(mf);
@@ -600,7 +606,13 @@ public class CompactionLog {
         if (compactFiles == null || compactFiles.isEmpty()) {
             return;
         }
-
+        if (CollectionUtils.isEmpty(compactFiles.newFiles)) {
+            if (compactionScheduleIdleTimes.decrementAndGet() > 0) {
+                return;
+            } else {
+                log.info("Number of idle times of arrival scheduling {}, start compact.", scheduleIdleTimes - compactionScheduleIdleTimes.get());
+            }
+        }
         long startTime = System.nanoTime();
         // When the new file is empty, the history file will also be compacted to clear the empty message
         OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles);
@@ -609,6 +621,8 @@ public class CompactionLog {
         positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
         positionMgr.persist();
         compacting.clean(false, false);
+        // reset idle times
+        compactionScheduleIdleTimes.set(this.scheduleIdleTimes);
         log.info("this compaction elapsed {} milliseconds",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
 
@@ -630,7 +644,11 @@ public class CompactionLog {
 
     protected OffsetMap getOffsetMap(List<MappedFile> mappedFileList) throws NoSuchAlgorithmException, DigestException {
         OffsetMap offsetMap = new OffsetMap(offsetMapMemorySize);
-
+        if (CollectionUtils.isEmpty(mappedFileList)) {
+            // Set the last position
+            offsetMap.setLastOffset(positionMgr.getOffset(topic, queueId));
+            return offsetMap;
+        }
         for (MappedFile mappedFile : mappedFileList) {
             Iterator<SelectMappedBufferResult> iterator = mappedFile.iterator(0);
             while (iterator.hasNext()) {
@@ -918,12 +936,17 @@ public class CompactionLog {
                 }
                 dataBytes.get(hash2);
                 tryNum++;
-            } while (!Arrays.equals(hash1, hash2));
+            }
+            while (!Arrays.equals(hash1, hash2));
             return dataBytes.getLong();
         }
 
         public long getLastOffset() {
             return lastOffset;
+        }
+
+        public void setLastOffset(long lastOffset) {
+            this.lastOffset = lastOffset;
         }
 
         private boolean isEmpty(int pos) {
@@ -1111,7 +1134,7 @@ public class CompactionLog {
         }
 
         boolean isEmpty() {
-            return CollectionUtils.isEmpty(newFiles) || CollectionUtils.isEmpty(toCompactFiles);
+            return CollectionUtils.isEmpty(newFiles) && CollectionUtils.isEmpty(toCompactFiles);
         }
     }
 
