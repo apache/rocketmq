@@ -127,20 +127,15 @@ public class ReplicasManager {
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
-
         REGISTER_TO_CONTROLLER_DONE,
-
         RUNNING,
         SHUTDOWN,
     }
 
     enum RegisterState {
         INITIAL,
-
         CREATE_TEMP_METADATA_FILE_DONE,
-
         CREATE_METADATA_FILE_DONE,
-
         REGISTERED
     }
 

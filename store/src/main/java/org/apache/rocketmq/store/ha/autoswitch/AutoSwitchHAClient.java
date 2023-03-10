@@ -357,11 +357,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return this.socketChannel != null;
     }
 
-    private boolean transferFromMaster(HAConnectionState currentState) throws IOException {
+    private boolean transferFromMaster() throws IOException {
         boolean result;
         if (isTimeToReportOffset()) {
             LOGGER.info("Slave report current offset {}", this.currentReportedOffset);
-            result = reportSlaveOffset(currentState, this.currentReportedOffset);
+            result = reportSlaveOffset(HAConnectionState.TRANSFER, this.currentReportedOffset);
             if (!result) {
                 return false;
             }
@@ -374,7 +374,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             return false;
         }
 
-        return this.reportSlaveMaxOffset(currentState);
+        return this.reportSlaveMaxOffset(HAConnectionState.TRANSFER);
     }
 
     @Override
@@ -403,7 +403,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         handshakeWithMaster();
                         continue;
                     case TRANSFER:
-                        if (!transferFromMaster(HAConnectionState.TRANSFER)) {
+                        if (!transferFromMaster()) {
                             closeMasterAndWait();
                             continue;
                         }
@@ -433,7 +433,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     /**
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
-    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset, HAConnectionState currentState) throws IOException {
+    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws IOException {
         if (this.epochCache.getEntrySize() == 0) {
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
@@ -463,7 +463,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             changeCurrentState(HAConnectionState.TRANSFER);
             this.currentReportedOffset = truncateOffset;
         }
-        if (!reportSlaveMaxOffset(currentState)) {
+        if (!reportSlaveMaxOffset(HAConnectionState.TRANSFER)) {
             LOGGER.error("AutoSwitchHAClient report max offset to master failed");
             return false;
         }
@@ -522,7 +522,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 byteBufferRead.position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += bodySize;
                                 LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
-                                if (!doTruncate(epochEntries, masterOffset, HAConnectionState.HANDSHAKE)) {
+                                if (!doTruncate(epochEntries, masterOffset)) {
                                     waitForRunning(1000 * 2);
                                     LOGGER.error("AutoSwitchHAClient truncate log failed in handshake state");
                                     return false;
