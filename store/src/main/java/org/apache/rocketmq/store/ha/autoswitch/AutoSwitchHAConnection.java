@@ -363,7 +363,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 break;
                             default:
                                 LOGGER.error("Current state illegal {}", currentState);
-                                break;
+                                return false;
                         }
 
                         if (!slaveState.equals(currentState)) {
