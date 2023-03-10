@@ -53,7 +53,7 @@ import org.apache.rocketmq.remoting.protocol.route.QueueData;
 public class RouteActivity extends AbstractMessingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
-                         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -65,7 +65,7 @@ public class RouteActivity extends AbstractMessingActivity {
 
             String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
-                    ctx, addressList, topicName);
+                ctx, addressList, topicName);
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
@@ -83,9 +83,9 @@ public class RouteActivity extends AbstractMessingActivity {
             }
 
             QueryRouteResponse response = QueryRouteResponse.newBuilder()
-                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                    .addAllMessageQueues(messageQueueList)
-                    .build();
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                .addAllMessageQueues(messageQueueList)
+                .build();
             future.complete(response);
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -172,8 +172,8 @@ public class RouteActivity extends AbstractMessingActivity {
                 port = address.getPort();
             }
             addressList.add(new org.apache.rocketmq.proxy.common.Address(
-                    org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
-                    HostAndPort.fromParts(address.getHost(), port)));
+                org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
+                HostAndPort.fromParts(address.getHost(), port)));
         }
         return addressList;
     }
@@ -200,9 +200,9 @@ public class RouteActivity extends AbstractMessingActivity {
                     .setName(brokerName)
                     .setId(Math.toIntExact(brokerId))
                     .setEndpoints(Endpoints.newBuilder()
-                        .setScheme(addressScheme)
-                        .addAllAddresses(addressList)
-                        .build())
+                    .setScheme(addressScheme)
+                    .addAllAddresses(addressList)
+                    .build())
                     .build();
 
                 brokerIdMap.put(brokerId, broker);
@@ -212,7 +212,8 @@ public class RouteActivity extends AbstractMessingActivity {
         return brokerMap;
     }
 
-    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, TopicMessageType topicMessageType, Broker broker) {
+    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic,
+        TopicMessageType topicMessageType, Broker broker) {
         List<MessageQueue> messageQueueList = new ArrayList<>();
 
         int r = 0;
