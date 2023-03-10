@@ -102,6 +102,7 @@ public class ReplicasManager {
     private String masterAddress = "";
     private int masterEpoch = 0;
     private long lastSyncTimeMs = System.currentTimeMillis();
+    private Random random = new Random();
 
     public ReplicasManager(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -179,7 +180,6 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
-            Random random = new Random();
             for (int retryTimes = 0; retryTimes < 5; retryTimes++) {
                 if (register()) {
                     LOGGER.info("First time register broker success");
@@ -187,6 +187,7 @@ public class ReplicasManager {
                     break;
                 }
 
+                // Try to avoid registration concurrency conflicts in random sleep
                 try {
                     Thread.sleep(random.nextInt(1000));
                 } catch (Exception ignore) {
