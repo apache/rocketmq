@@ -377,19 +377,25 @@ public class ReplicasInfoManager {
 
         final String clusterName = requestHeader.getClusterName();
         final String brokerName = requestHeader.getBrokerName();
-        final String brokerIdSetToClean = requestHeader.getBrokerIdSetToClean();
+        final String brokerControllerIdsToClean = requestHeader.getBrokerControllerIdsToClean();
 
         Set<Long> brokerIdSet = null;
         if (!requestHeader.isCleanLivingBroker()) {
             //if SyncStateInfo.masterAddress is not empty, at least one broker with the same BrokerName is alive
             SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
-            if (StringUtils.isBlank(brokerIdSetToClean) && null != syncStateInfo && syncStateInfo.getMasterBrokerId() != null) {
+            if (StringUtils.isBlank(brokerControllerIdsToClean) && null != syncStateInfo && syncStateInfo.getMasterBrokerId() != null) {
                 String remark = String.format("Broker %s is still alive, clean up failure", requestHeader.getBrokerName());
                 result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark);
                 return result;
             }
-            if (StringUtils.isNotBlank(brokerIdSetToClean)) {
-                brokerIdSet = Stream.of(brokerIdSetToClean.split(";")).map(idStr -> Long.valueOf(idStr)).collect(Collectors.toSet());
+            if (StringUtils.isNotBlank(brokerControllerIdsToClean)) {
+                try {
+                    brokerIdSet = Stream.of(brokerControllerIdsToClean.split(";")).map(idStr -> Long.valueOf(idStr)).collect(Collectors.toSet());
+                } catch (NumberFormatException numberFormatException) {
+                    String remark = String.format("Please set the option <brokerControllerIdsToClean> according to the format, exception: %s", numberFormatException);
+                    result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark);
+                    return result;
+                }
                 for (Long brokerId : brokerIdSet) {
                     if (validPredicate.check(clusterName, brokerName, brokerId)) {
                         String remark = String.format("Broker [%s,  %s] is still alive, clean up failure", requestHeader.getBrokerName(), brokerId);

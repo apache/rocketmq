@@ -76,6 +76,7 @@ public class ReplicasInfoManagerTest {
         this.config.setScanNotActiveBrokerInterval(300000000);
         this.replicasInfoManager = new ReplicasInfoManager(config);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(config);
+        this.heartbeatManager.initialize();
         this.heartbeatManager.start();
     }
 
