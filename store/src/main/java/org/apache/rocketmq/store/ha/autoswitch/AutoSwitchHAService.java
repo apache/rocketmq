@@ -147,8 +147,8 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
-
         this.defaultMessageStore.recoverTopicQueueTable();
+        this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
@@ -177,6 +177,8 @@ public class AutoSwitchHAService extends DefaultHAService {
                 waitingForAllCommit();
                 defaultMessageStore.getTransientStorePool().setRealCommit(false);
             }
+
+            this.defaultMessageStore.setStateMachineVersion(newMasterEpoch);
 
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
