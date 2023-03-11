@@ -55,7 +55,7 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
-import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerDataSubCommand;
+import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerMetaSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
 import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
@@ -261,7 +261,7 @@ public class MQAdminStartup {
         initCommand(new GetControllerConfigSubCommand());
         initCommand(new UpdateControllerConfigSubCommand());
         initCommand(new ReElectMasterSubCommand());
-        initCommand(new CleanControllerBrokerDataSubCommand());
+        initCommand(new CleanControllerBrokerMetaSubCommand());
         initCommand(new DumpCompactionLogCommand());
     }
 

@@ -26,16 +26,16 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class CleanControllerBrokerDataSubCommand implements SubCommand {
+public class CleanControllerBrokerMetaSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "cleanBrokerData";
+        return "cleanBrokerMetadata";
     }
 
     @Override
     public String commandDesc() {
-        return "Clean data of broker on controller";
+        return "Clean metadata of broker on controller";
     }
 
     @Override
@@ -93,7 +93,7 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
             defaultMQAdminExt.cleanControllerBrokerData(controllerAddress, clusterName, brokerName, brokerAddress, isCleanLivingBroker);
-            System.out.printf("clear broker %s data from controller success! \n", brokerName);
+            System.out.printf("clear broker %s metadata from controller success! \n", brokerName);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
