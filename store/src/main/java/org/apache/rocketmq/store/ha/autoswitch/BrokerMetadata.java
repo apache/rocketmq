@@ -94,4 +94,14 @@ public class BrokerMetadata extends MetadataFile {
     public int hashCode() {
         return Objects.hash(clusterName, brokerName, brokerId);
     }
+
+    @Override
+    public String toString() {
+        return "BrokerMetadata{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerId=" + brokerId +
+                ", filePath='" + filePath + '\'' +
+                '}';
+    }
 }

@@ -81,4 +81,15 @@ public class TempBrokerMetadata extends BrokerMetadata {
     public String getRegisterCheckCode() {
         return registerCheckCode;
     }
+
+    @Override
+    public String toString() {
+        return "TempBrokerMetadata{" +
+                "registerCheckCode='" + registerCheckCode + '\'' +
+                ", clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerId=" + brokerId +
+                ", filePath='" + filePath + '\'' +
+                '}';
+    }
 }
