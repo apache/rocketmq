@@ -76,6 +76,7 @@ public class ControllerManager {
         this.configuration = new Configuration(log, this.controllerConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
     }
 
     public boolean initialize() {
@@ -92,7 +93,6 @@ public class ControllerManager {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
-        this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
         }
@@ -102,6 +102,9 @@ public class ControllerManager {
         this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
             this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
             new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
+
+        // Initialize the basic resources
+        this.heartbeatManager.initialize();
 
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(this::onBrokerInactive);

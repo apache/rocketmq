@@ -84,7 +84,7 @@ public class ReplicasManager {
     private volatile String controllerLeaderAddress = "";
     private volatile State state = State.INITIAL;
 
-    private RegisterState registerState = RegisterState.INITIAL;
+    private volatile RegisterState registerState = RegisterState.INITIAL;
 
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private ScheduledFuture<?> slaveSyncFuture;
@@ -191,6 +191,7 @@ public class ReplicasManager {
             }
             // register 5 times but still unsuccessful
             if (this.state != State.REGISTER_TO_CONTROLLER_DONE) {
+                LOGGER.error("Register to broker failed 5 times");
                 return false;
             }
         }
