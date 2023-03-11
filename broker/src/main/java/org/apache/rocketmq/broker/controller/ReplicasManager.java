@@ -420,6 +420,7 @@ public class ReplicasManager {
             if (this.registerState == RegisterState.INITIAL) {
                 Long nextBrokerId = getNextBrokerId();
                 if (nextBrokerId == null || !createTempMetadataFile(nextBrokerId)) {
+                    LOGGER.error("Failed to create temp metadata file, nextBrokerId: {}", nextBrokerId);
                     return false;
                 }
                 this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
@@ -435,6 +436,7 @@ public class ReplicasManager {
                     return false;
                 }
                 if (!createMetadataFileAndDeleteTemp()) {
+                    LOGGER.error("Failed to create metadata file and delete temp metadata file, temp metadata: {}", this.brokerMetadata);
                     return false;
                 }
                 this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
