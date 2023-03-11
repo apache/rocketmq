@@ -32,14 +32,14 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
      * brokerId
      * for brokerTrigger electMaster: this brokerId will be elected as a master when it is the first time to elect
      * in this broker-set
-     * for adminTrigger electMaster: this brokerAddress is also named assignedBrokerId, which means we must prefer to elect
+     * for adminTrigger electMaster: this brokerId is also named assignedBrokerId, which means we must prefer to elect
      * it as a new master when this broker is valid.
      */
     @CFNotNull
     private Long brokerId;
 
     @CFNotNull
-    private Boolean forceElect = false;
+    private Boolean designateElect = false;
 
     public ElectMasterRequestHeader() {
     }
@@ -54,11 +54,11 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.brokerId = brokerId;
     }
 
-    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId, boolean forceElect) {
+    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId, boolean designateElect) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerId = brokerId;
-        this.forceElect = forceElect;
+        this.designateElect = designateElect;
     }
 
     public static ElectMasterRequestHeader ofBrokerTrigger(String clusterName, String brokerName,
@@ -98,8 +98,8 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.clusterName = clusterName;
     }
 
-    public boolean isForceElect() {
-        return this.forceElect;
+    public boolean getDesignateElect() {
+        return this.designateElect;
     }
 
     @Override
@@ -108,29 +108,11 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
                 ", brokerId=" + brokerId +
-                ", forceElect=" + forceElect +
+                ", designateElect=" + designateElect +
                 '}';
     }
 
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-    /**
-     * The elect master request's type
-     */
-    public enum ElectMasterTriggerType {
-        /**
-         * Trigger by broker
-         */
-        BROKER_TRIGGER,
-        /**
-         * Trigger by controller
-         */
-        CONTROLLER_TRIGGER,
-        /**
-         * Trigger by admin
-         */
-        ADMIN_TRIGGER
     }
 }

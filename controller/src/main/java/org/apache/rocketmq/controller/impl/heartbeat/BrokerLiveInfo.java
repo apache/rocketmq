@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
 
