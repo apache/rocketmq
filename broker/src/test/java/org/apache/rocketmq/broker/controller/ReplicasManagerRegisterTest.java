@@ -166,7 +166,7 @@ public class ReplicasManagerRegisterTest {
         replicasManagerRestart = new ReplicasManager(mockedBrokerController);
         replicasManagerRestart.start();
         Assert.assertEquals(ReplicasManager.RegisterState.CREATE_METADATA_FILE_DONE, replicasManagerRestart.getRegisterState());
-
+        mockedBrokerController.getBrokerConfig().setBrokerClusterName(CLUSTER_NAME);
     }
 
     @Test
