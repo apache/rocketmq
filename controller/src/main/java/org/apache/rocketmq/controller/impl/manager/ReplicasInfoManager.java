@@ -187,8 +187,8 @@ public class ReplicasInfoManager {
 
         // elect by policy
         if (newMaster == null) {
-            // we should assign this assignedBrokerAddr when the brokerAddress need to be elected by force
-            Long assignedBrokerId = request.isForceElect() ? brokerId : null;
+            // we should assign this assignedBrokerId when the brokerAddress need to be elected by force
+            Long assignedBrokerId = request.getDesignateElect() ? brokerId : null;
             newMaster = electPolicy.elect(brokerReplicaInfo.getClusterName(), brokerReplicaInfo.getBrokerName(), syncStateSet, allReplicaBrokers, oldMaster, assignedBrokerId);
         }
 

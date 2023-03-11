@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.junit.Before;
 import org.junit.Test;
 

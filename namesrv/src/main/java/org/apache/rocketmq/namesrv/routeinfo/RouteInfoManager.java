@@ -1129,7 +1129,7 @@ class BrokerAddrInfo {
 
     @Override
     public String toString() {
-        return "BrokerAddrInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
+        return "BrokerIdentityInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
     }
 }
 
