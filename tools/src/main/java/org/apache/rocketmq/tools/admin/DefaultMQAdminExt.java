@@ -841,7 +841,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     @Override
     public void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr, boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException {
-        this.defaultMQAdminExtImpl.cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerAddr,isCleanLivingBroker);
+        String brokerControllerIdsToClean, boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException {
+        this.defaultMQAdminExtImpl.cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerControllerIdsToClean, isCleanLivingBroker);
     }
 }

@@ -470,7 +470,7 @@ public interface MQAdminExt extends MQAdmin {
      * clean controller broker meta data
      */
     void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr,
+        String brokerControllerIdsToClean,
         boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
 
 }
