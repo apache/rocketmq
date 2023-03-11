@@ -34,6 +34,7 @@ public class DefaultBrokerHeartbeatManagerTest {
         final ControllerConfig config = new ControllerConfig();
         config.setScanNotActiveBrokerInterval(2000);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(config);
+        this.heartbeatManager.initialize();
         this.heartbeatManager.start();
     }
 
