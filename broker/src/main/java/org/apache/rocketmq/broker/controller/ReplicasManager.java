@@ -531,7 +531,7 @@ public class ReplicasManager {
      */
     private boolean registerBrokerToController() {
         try {
-            RegisterBrokerToControllerResponseHeader response = this.brokerOuterAPI.registerSuccess(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
+            RegisterBrokerToControllerResponseHeader response = this.brokerOuterAPI.registerBrokerToController(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
             final Long masterBrokerId = response.getMasterBrokerId();
             final String masterAddress = response.getMasterAddress();
             if (masterBrokerId == null) {
