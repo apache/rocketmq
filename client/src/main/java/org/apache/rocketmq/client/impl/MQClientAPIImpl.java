@@ -3096,7 +3096,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public void cleanControllerBrokerData(String controllerAddr, String clusterName,
-        String brokerName, String brokerAddr, boolean isCleanLivingBroker)
+        String brokerName, String brokerControllerIdsToClean, boolean isCleanLivingBroker)
         throws RemotingException, InterruptedException, MQBrokerException {
 
         //get controller leader address
@@ -3105,7 +3105,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         assert controllerMetaData.getControllerLeaderAddress() != null;
         final String leaderAddress = controllerMetaData.getControllerLeaderAddress();
 
-        CleanControllerBrokerDataRequestHeader cleanHeader = new CleanControllerBrokerDataRequestHeader(clusterName, brokerName, brokerAddr, isCleanLivingBroker);
+        CleanControllerBrokerDataRequestHeader cleanHeader = new CleanControllerBrokerDataRequestHeader(clusterName, brokerName, brokerControllerIdsToClean, isCleanLivingBroker);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CLEAN_BROKER_DATA, cleanHeader);
 
         final RemotingCommand response = this.remotingClient.invokeSync(leaderAddress, request, 3000);
