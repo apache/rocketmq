@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;

@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.controller.impl.heartbeat;
 
 import java.util.Objects;
 
-public class BrokerAddrInfo {
+public class BrokerIdentityInfo {
     private final String clusterName;
 
     private final String brokerName;
 
     private final Long brokerId;
 
-    public BrokerAddrInfo(String clusterName, String brokerName, Long brokerId) {
+    public BrokerIdentityInfo(String clusterName, String brokerName, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerId = brokerId;
@@ -56,8 +56,8 @@ public class BrokerAddrInfo {
             return false;
         }
 
-        if (obj instanceof BrokerAddrInfo) {
-            BrokerAddrInfo addr = (BrokerAddrInfo) obj;
+        if (obj instanceof BrokerIdentityInfo) {
+            BrokerIdentityInfo addr = (BrokerIdentityInfo) obj;
             return clusterName.equals(addr.clusterName) && brokerName.equals(addr.brokerName) && brokerId.equals(addr.brokerId);
         }
         return false;
@@ -70,7 +70,7 @@ public class BrokerAddrInfo {
 
     @Override
     public String toString() {
-        return "BrokerAddrInfo{" +
+        return "BrokerIdentityInfo{" +
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
                 ", brokerId=" + brokerId +
