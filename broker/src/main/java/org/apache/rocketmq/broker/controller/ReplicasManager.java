@@ -436,7 +436,7 @@ public class ReplicasManager {
                     return false;
                 }
                 if (!createMetadataFileAndDeleteTemp()) {
-                    LOGGER.error("Failed to create metadata file and delete temp metadata file, temp metadata: {}", this.brokerMetadata);
+                    LOGGER.error("Failed to create metadata file and delete temp metadata file, temp metadata: {}", this.tempBrokerMetadata);
                     return false;
                 }
                 this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
