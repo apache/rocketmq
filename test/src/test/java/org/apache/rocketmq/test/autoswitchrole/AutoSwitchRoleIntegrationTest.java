@@ -60,6 +60,9 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     private static ControllerManager controllerManager;
     private static String nameserverAddress;
     private static String controllerAddress;
+
+    private static ControllerConfig controllerConfig;
+
     private BrokerController brokerController1;
     private BrokerController brokerController2;
     private Random random = new Random();
@@ -75,17 +78,21 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         int namesrvPort = nextPort();
         serverConfig.setListenPort(namesrvPort);
 
-        ControllerConfig controllerConfig = buildControllerConfig("n0", peers);
+        controllerConfig = buildControllerConfig("n0", peers);
         namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig());
         assertTrue(namesrvController.initialize());
         namesrvController.start();
 
-        controllerManager = new ControllerManager(controllerConfig, new NettyServerConfig(), new NettyClientConfig());
-        assertTrue(controllerManager.initialize());
-        controllerManager.start();
+        initAndStartControllerManager();
 
         nameserverAddress = "127.0.0.1:" + namesrvPort + ";";
         controllerAddress = "127.0.0.1:" + controllerPort + ";";
+    }
+
+    private static void initAndStartControllerManager() {
+        controllerManager = new ControllerManager(controllerConfig, new NettyServerConfig(), new NettyClientConfig());
+        assertTrue(controllerManager.initialize());
+        controllerManager.start();
     }
 
     public void initBroker(int mappedFileSize, String brokerName) throws Exception {
@@ -148,6 +155,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         initBroker(DEFAULT_FILE_SIZE, brokerName);
+        int listenPort = brokerController1.getBrokerConfig().getListenPort();
+        int nettyPort = brokerController1.getNettyServerConfig().getListenPort();
         mockData(topic);
 
         // Let master shutdown
@@ -160,7 +169,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
+        brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), listenPort, nettyPort, BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(brokerController1.getMessageStore());
 
         assertFalse(brokerController1.getReplicasManager().isMasterState());
@@ -224,6 +233,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Put message from 10 to 19
         putMessage(this.brokerController1.getMessageStore(), topic);
         checkMessage(this.brokerController2.getMessageStore(), topic, 20, 0);
+
+        initAndStartControllerManager();
     }
 
     @Test

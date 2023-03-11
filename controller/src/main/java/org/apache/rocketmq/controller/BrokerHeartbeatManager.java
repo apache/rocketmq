@@ -22,6 +22,11 @@ import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 public interface BrokerHeartbeatManager {
 
     /**
+     * initialize the resources
+     * @return
+     */
+    void initialize();
+    /**
      * Broker new heartbeat.
      */
     void onBrokerHeartbeat(final String clusterName, final String brokerName, final String brokerAddr,

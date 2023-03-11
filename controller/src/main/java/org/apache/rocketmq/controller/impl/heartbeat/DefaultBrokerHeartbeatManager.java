@@ -38,8 +38,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
-    private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
-    private final ExecutorService executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
+    private ScheduledExecutorService scheduledService;
+    private ExecutorService executor;
 
     private final ControllerConfig controllerConfig;
     private final Map<BrokerIdentityInfo/* brokerIdentity*/, BrokerLiveInfo> brokerLiveTable;
@@ -60,6 +60,12 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     public void shutdown() {
         this.scheduledService.shutdown();
         this.executor.shutdown();
+    }
+
+    @Override
+    public void initialize() {
+        this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
+        this.executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
     }
 
     public void scanNotActiveBroker() {
