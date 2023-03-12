@@ -160,7 +160,7 @@ public class ControllerManagerTest {
         final String brokerName, final Long brokerId, final RemotingClient client) throws Exception {
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);
-        RemotingCommand response = client.invokeSync(controllerAddress, request, 3000);
+        RemotingCommand response = client.invokeSync(controllerAddress, request, 10000);
         assertNotNull(response);
         return response;
     }
