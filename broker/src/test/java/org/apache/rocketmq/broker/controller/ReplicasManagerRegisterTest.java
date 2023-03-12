@@ -37,7 +37,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -90,20 +89,20 @@ public class ReplicasManagerRegisterTest {
         return config;
     }
 
-    @Mock
     private BrokerController mockedBrokerController;
 
-    @Mock
     private DefaultMessageStore mockedMessageStore;
 
-    @Mock
     private BrokerOuterAPI mockedBrokerOuterAPI;
 
-    @Mock
     private AutoSwitchHAService mockedAutoSwitchHAService;
 
     @Before
     public void setUp() throws Exception {
+        this.mockedBrokerController = Mockito.mock(BrokerController.class);
+        this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
+        this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
+        this.mockedAutoSwitchHAService = Mockito.mock(AutoSwitchHAService.class);
         when(mockedBrokerController.getBrokerOuterAPI()).thenReturn(mockedBrokerOuterAPI);
         when(mockedBrokerController.getMessageStore()).thenReturn(mockedMessageStore);
         when(mockedBrokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
