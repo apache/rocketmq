@@ -68,7 +68,7 @@ public class ReElectMasterSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String controllerAddress = commandLine.getOptionValue("a").trim();
         String clusterName = commandLine.getOptionValue('c').trim();
-        String brokerName = commandLine.getOptionValue('n').trim();
+        String brokerName = commandLine.getOptionValue("bn").trim();
         Long brokerId = Long.valueOf(commandLine.getOptionValue("b").trim());
 
         try {
