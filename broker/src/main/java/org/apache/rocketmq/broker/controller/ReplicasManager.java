@@ -167,8 +167,8 @@ public class ReplicasManager {
     private boolean startBasicService() {
         if (this.state == State.INITIAL) {
             if (schedulingSyncControllerMetadata()) {
-                LOGGER.info("First time sync controller metadata success");
                 this.state = State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE;
+                LOGGER.info("First time sync controller metadata success, change state to: {}", this.state);
             } else {
                 return false;
             }
@@ -177,8 +177,8 @@ public class ReplicasManager {
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
             for (int retryTimes = 0; retryTimes < 5; retryTimes++) {
                 if (register()) {
-                    LOGGER.info("First time register broker success");
                     this.state = State.REGISTER_TO_CONTROLLER_DONE;
+                    LOGGER.info("First time register broker success, change state to: {}", this.state);
                     break;
                 }
 
@@ -200,9 +200,10 @@ public class ReplicasManager {
             // The scheduled task for heartbeat sending is not starting now, so we should manually send heartbeat request
             this.sendHeartbeatToController();
             if (this.masterBrokerId != null || brokerElect()) {
-                LOGGER.info("Master in this broker set is elected");
+                LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterAddress, this.masterBrokerId);
                 this.state = State.RUNNING;
                 this.brokerController.setIsolated(false);
+                LOGGER.info("All register process has been done, change state to: {}", this.state);
             } else {
                 return false;
             }
@@ -271,7 +272,7 @@ public class ReplicasManager {
                         LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
                         return;
                     }
-                    LOGGER.info("Change broker [id:{}][address:{}] to master success, masterEpoch {}, syncStateSetEpoch:{}", this.brokerConfig, this.brokerAddress, newMasterEpoch, syncStateSetEpoch);
+                    LOGGER.info("Change broker [id:{}][address:{}] to master success, masterEpoch {}, syncStateSetEpoch:{}", this.brokerControllerId, this.brokerAddress, newMasterEpoch, syncStateSetEpoch);
                 });
             }
         }
@@ -412,6 +413,7 @@ public class ReplicasManager {
         try {
             // 1. confirm now registering state
             confirmNowRegisteringState();
+            LOGGER.info("Confirm now register state: {}", this.registerState);
             // 2. check metadata/tempMetadata if valid
             if (!checkMetadataValid()) {
                 LOGGER.error("Check and find that metadata/tempMetadata invalid, you can modify the broker config to make them valid");
@@ -425,6 +427,7 @@ public class ReplicasManager {
                     return false;
                 }
                 this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
+                LOGGER.info("Register state change to {}, temp metadata: {}", this.registerState, this.tempBrokerMetadata);
             }
             // 3. apply brokerId to controller, and create metadata file
             if (this.registerState == RegisterState.CREATE_TEMP_METADATA_FILE_DONE) {
@@ -441,13 +444,16 @@ public class ReplicasManager {
                     return false;
                 }
                 this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
+                LOGGER.info("Register state change to: {}, metadata: {}", this.registerState, this.brokerMetadata);
             }
             // 4. register
             if (this.registerState == RegisterState.CREATE_METADATA_FILE_DONE) {
                 if (!registerBrokerToController()) {
+                    LOGGER.error("Failed to register broker to controller");
                     return false;
                 }
                 this.registerState = RegisterState.REGISTERED;
+                LOGGER.info("Register state change to: {}, masterBrokerId: {}, masterBrokerAddr: {}", this.registerState, this.masterBrokerId, this.masterAddress);
             }
             return true;
         } catch (final Exception e) {
@@ -560,7 +566,7 @@ public class ReplicasManager {
         try {
             this.brokerMetadata.readFromFile();
         } catch (Exception e) {
-            LOGGER.error("read metadata file failed", e);
+            LOGGER.error("Read metadata file failed", e);
         }
         if (this.brokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
@@ -571,7 +577,7 @@ public class ReplicasManager {
         try {
             this.tempBrokerMetadata.readFromFile();
         } catch (Exception e) {
-            LOGGER.error("read temp metadata file failed", e);
+            LOGGER.error("Read temp metadata file failed", e);
         }
         if (this.tempBrokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_TEMP_METADATA_FILE_DONE;
