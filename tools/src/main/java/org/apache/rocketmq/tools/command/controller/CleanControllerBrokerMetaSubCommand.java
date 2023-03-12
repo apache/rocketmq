@@ -55,11 +55,11 @@ public class CleanControllerBrokerMetaSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "the clusterName of broker");
+        opt = new Option("c", "clusterName", true, "The clusterName of broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("l", "cleanLivingBroker", false, " whether clean up living brokers,default value is false");
+        opt = new Option("l", "cleanLivingBroker", false, "Whether clean up living brokers,default value is false");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -73,7 +73,7 @@ public class CleanControllerBrokerMetaSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         String controllerAddress = commandLine.getOptionValue('a').trim();
-        String brokerName = commandLine.getOptionValue('n').trim();
+        String brokerName = commandLine.getOptionValue("bn").trim();
         String clusterName = null;
         String brokerControllerIdsToClean = null;
 
