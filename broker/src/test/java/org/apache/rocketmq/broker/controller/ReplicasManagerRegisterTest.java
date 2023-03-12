@@ -132,6 +132,7 @@ public class ReplicasManagerRegisterTest {
         checkMetadataFile(replicasManager0.getBrokerMetadata(), 1L);
         Assert.assertFalse(replicasManager0.getTempBrokerMetadata().isLoaded());
         Assert.assertFalse(replicasManager0.getTempBrokerMetadata().fileExists());
+        replicasManager0.shutdown();
     }
 
     @Test
@@ -159,6 +160,7 @@ public class ReplicasManagerRegisterTest {
         replicasManagerRestart.start();
         Assert.assertEquals(ReplicasManager.RegisterState.CREATE_METADATA_FILE_DONE, replicasManagerRestart.getRegisterState());
         mockedBrokerController.getBrokerConfig().setBrokerName(BROKER_NAME);
+        replicasManagerRestart.shutdown();
 
         // change cluster name in broker config
         mockedBrokerController.getBrokerConfig().setBrokerClusterName(CLUSTER_NAME + "1");
@@ -166,6 +168,7 @@ public class ReplicasManagerRegisterTest {
         replicasManagerRestart.start();
         Assert.assertEquals(ReplicasManager.RegisterState.CREATE_METADATA_FILE_DONE, replicasManagerRestart.getRegisterState());
         mockedBrokerController.getBrokerConfig().setBrokerClusterName(CLUSTER_NAME);
+        replicasManagerRestart.shutdown();
     }
 
     @Test
@@ -180,6 +183,7 @@ public class ReplicasManagerRegisterTest {
         Assert.assertFalse(replicasManager.getTempBrokerMetadata().fileExists());
         Assert.assertFalse(replicasManager.getBrokerMetadata().fileExists());
         Assert.assertNull(replicasManager.getBrokerControllerId());
+        replicasManager.shutdown();
     }
 
     @Test
@@ -199,6 +203,7 @@ public class ReplicasManagerRegisterTest {
         Assert.assertFalse(spyReplicasManager.getTempBrokerMetadata().fileExists());
         Assert.assertFalse(spyReplicasManager.getBrokerMetadata().fileExists());
         Assert.assertNull(spyReplicasManager.getBrokerControllerId());
+        spyReplicasManager.shutdown();
     }
 
     @Test
@@ -261,7 +266,7 @@ public class ReplicasManagerRegisterTest {
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().isLoaded());
         Assert.assertEquals(1L, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
         Assert.assertEquals(1L, replicasManagerNew.getBrokerControllerId().longValue());
-
+        replicasManagerNew.shutdown();
     }
 
     @Test
@@ -313,6 +318,7 @@ public class ReplicasManagerRegisterTest {
         Assert.assertTrue(replicasManagerNew.getBrokerMetadata().isLoaded());
         Assert.assertEquals(1L, replicasManagerNew.getBrokerMetadata().getBrokerId().longValue());
         Assert.assertEquals(1L, replicasManagerNew.getBrokerControllerId().longValue());
+        replicasManagerNew.shutdown();
     }
 
 
