@@ -140,6 +140,7 @@ public class ReplicasManager {
     }
 
     public void start() {
+        this.state = State.INITIAL;
         updateControllerAddr();
         scanAvailableControllerAddresses();
         this.scheduledService.scheduleAtFixedRate(this::updateControllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
@@ -165,6 +166,7 @@ public class ReplicasManager {
     }
 
     private boolean startBasicService() {
+        if (this.state == State.SHUTDOWN) return false;
         if (this.state == State.INITIAL) {
             if (schedulingSyncControllerMetadata()) {
                 this.state = State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE;
@@ -219,8 +221,9 @@ public class ReplicasManager {
     public void shutdown() {
         this.state = State.SHUTDOWN;
         this.registerState = RegisterState.INITIAL;
-        this.executorService.shutdown();
-        this.scheduledService.shutdown();
+        this.executorService.shutdownNow();
+        this.scheduledService.shutdownNow();
+        this.scanExecutor.shutdownNow();
     }
 
     public synchronized void changeBrokerRole(final Long newMasterBrokerId, final String newMasterAddress, final Integer newMasterEpoch,
@@ -437,6 +440,7 @@ public class ReplicasManager {
                     this.tempBrokerMetadata.clear();
                     // back to the first step
                     this.registerState = RegisterState.INITIAL;
+                    LOGGER.info("Register state change to: {}", this.registerState);
                     return false;
                 }
                 if (!createMetadataFileAndDeleteTemp()) {
