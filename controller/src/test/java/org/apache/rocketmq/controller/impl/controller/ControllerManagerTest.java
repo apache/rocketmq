@@ -24,8 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -57,16 +57,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ControllerManagerTest {
-    private List<String> baseDirs;
+
+    public static final String STORE_BASE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "ControllerManagerTest";
+
+    public static final String STORE_PATH = STORE_BASE_PATH + File.separator + UUID.randomUUID();
+
     private List<ControllerManager> controllers;
     private NettyRemotingClient remotingClient;
     private NettyRemotingClient remotingClient1;
 
     public ControllerManager launchManager(final String group, final String peers, final String selfId) {
-        String tmpdir = System.getProperty("java.io.tmpdir");
-        final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
-        baseDirs.add(path);
-
+        final String path = STORE_PATH + File.separator + group + File.separator + selfId;
         final ControllerConfig config = new ControllerConfig();
         config.setControllerDLegerGroup(group);
         config.setControllerDLegerPeers(peers);
@@ -87,7 +88,7 @@ public class ControllerManagerTest {
 
     @Before
     public void startup() {
-        this.baseDirs = new ArrayList<>();
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
         this.controllers = new ArrayList<>();
         this.remotingClient = new NettyRemotingClient(new NettyClientConfig());
         this.remotingClient.start();
@@ -246,9 +247,7 @@ public class ControllerManagerTest {
         for (ControllerManager controller : this.controllers) {
             controller.shutdown();
         }
-        for (String dir : this.baseDirs) {
-            new File(dir).delete();
-        }
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
         this.remotingClient.shutdown();
         this.remotingClient1.shutdown();
     }

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.controller;
 
 import java.io.File;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.broker.BrokerController;
@@ -25,6 +26,7 @@ import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
@@ -50,6 +52,10 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReplicasManagerTest {
+
+    public static final String STORE_BASE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "ReplicasManagerTest";
+
+    public static final String STORE_PATH = STORE_BASE_PATH + File.separator + UUID.randomUUID();
 
     @Mock
     private BrokerController brokerController;
@@ -111,12 +117,10 @@ public class ReplicasManagerTest {
 
     @Before
     public void before() throws Exception {
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
         autoSwitchHAService = new AutoSwitchHAService();
         messageStoreConfig = new MessageStoreConfig();
-        File metadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity() + "-temp");
-        metadataFile.deleteOnExit();
-        tempMetadataFile.deleteOnExit();
+        messageStoreConfig.setStorePathRootDir(STORE_PATH);
         brokerConfig = new BrokerConfig();
         slaveSynchronize = new SlaveSynchronize(brokerController);
         getMetaDataResponseHeader = new GetMetaDataResponseHeader(GROUP, LEADER_ID, OLD_MASTER_ADDRESS, IS_LEADER, PEERS);
@@ -161,10 +165,7 @@ public class ReplicasManagerTest {
     public void after() {
         replicasManager.shutdown();
         brokerController.shutdown();
-        File metadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity());
-        File tempMetadataFile = new File(messageStoreConfig.getStorePathBrokerIdentity() + "-temp");
-        metadataFile.deleteOnExit();
-        tempMetadataFile.deleteOnExit();
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
     }
 
     @Test
