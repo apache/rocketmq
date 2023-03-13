@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class BrokerReplicasInfo extends RemotingSerializable  {
+public class BrokerReplicasInfo extends RemotingSerializable {
     private Map<String/*brokerName*/, ReplicasInfo> replicasInfoTable;
 
     public BrokerReplicasInfo() {
@@ -37,7 +37,7 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
     }
 
     public void setReplicasInfoTable(
-        Map<String, ReplicasInfo> replicasInfoTable) {
+            Map<String, ReplicasInfo> replicasInfoTable) {
         this.replicasInfoTable = replicasInfoTable;
     }
 
@@ -49,8 +49,8 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         private List<ReplicaIdentity> notInSyncReplicas;
 
         public ReplicasInfo(String masterAddress, int masterEpoch, int syncStateSetEpoch,
-            List<ReplicaIdentity> inSyncReplicas,
-            List<ReplicaIdentity> notInSyncReplicas) {
+                            List<ReplicaIdentity> inSyncReplicas,
+                            List<ReplicaIdentity> notInSyncReplicas) {
             this.masterAddress = masterAddress;
             this.masterEpoch = masterEpoch;
             this.syncStateSetEpoch = syncStateSetEpoch;
@@ -87,7 +87,7 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         }
 
         public void setInSyncReplicas(
-            List<ReplicaIdentity> inSyncReplicas) {
+                List<ReplicaIdentity> inSyncReplicas) {
             this.inSyncReplicas = inSyncReplicas;
         }
 
@@ -96,7 +96,7 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         }
 
         public void setNotInSyncReplicas(
-            List<ReplicaIdentity> notInSyncReplicas) {
+                List<ReplicaIdentity> notInSyncReplicas) {
             this.notInSyncReplicas = notInSyncReplicas;
         }
     }
@@ -104,10 +104,12 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
     public static class ReplicaIdentity extends RemotingSerializable {
         private String address;
         private Long brokerId;
+        private Boolean online;
 
-        public ReplicaIdentity(String address, Long brokerId) {
+        public ReplicaIdentity(String address, Long brokerId, Boolean online) {
             this.address = address;
             this.brokerId = brokerId;
+            this.online = online;
         }
 
         public String getAddress() {
@@ -126,12 +128,21 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
             this.brokerId = brokerId;
         }
 
+        public void setOnline(Boolean online) {
+            this.online = online;
+        }
+
+        public Boolean getOnline() {
+            return online;
+        }
+
         @Override
         public String toString() {
             return "{" +
-                "address='" + address + '\'' +
-                ", brokerId=" + brokerId +
-                '}';
+                    "address='" + address + '\'' +
+                    ", brokerId=" + brokerId + '\'' +
+                    ",online=" + online +
+                    '}';
         }
     }
 }
