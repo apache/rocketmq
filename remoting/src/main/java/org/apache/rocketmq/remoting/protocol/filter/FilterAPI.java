@@ -16,49 +16,31 @@
  */
 package org.apache.rocketmq.remoting.protocol.filter;
 
-import java.net.URL;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
+import java.util.Arrays;
+
 public class FilterAPI {
-    public static URL classFile(final String className) {
-        final String javaSource = simpleClassName(className) + ".java";
-        URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
-        return url;
-    }
-
-    public static String simpleClassName(final String className) {
-        String simple = className;
-        int index = className.lastIndexOf(".");
-        if (index >= 0) {
-            simple = className.substring(index + 1);
-        }
-
-        return simple;
-    }
 
     public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
-        SubscriptionData subscriptionData = new SubscriptionData();
+        final SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
         subscriptionData.setSubString(subString);
 
-        if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
+        if (StringUtils.isEmpty(subString) || subString.equals(SubscriptionData.SUB_ALL)) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
+            return subscriptionData;
+        }
+        String[] tags = subString.split("\\|\\|");
+        if (tags.length > 0) {
+            Arrays.stream(tags).map(String::trim).filter(tag -> !tag.isEmpty()).forEach(tag -> {
+                subscriptionData.getTagsSet().add(tag);
+                subscriptionData.getCodeSet().add(tag.hashCode());
+            });
         } else {
-            String[] tags = subString.split("\\|\\|");
-            if (tags.length > 0) {
-                for (String tag : tags) {
-                    if (tag.length() > 0) {
-                        String trimString = tag.trim();
-                        if (trimString.length() > 0) {
-                            subscriptionData.getTagsSet().add(trimString);
-                            subscriptionData.getCodeSet().add(trimString.hashCode());
-                        }
-                    }
-                }
-            } else {
-                throw new Exception("subString split error");
-            }
+            throw new Exception("subString split error");
         }
 
         return subscriptionData;
@@ -70,7 +52,7 @@ public class FilterAPI {
             return buildSubscriptionData(topic, subString);
         }
 
-        if (subString == null || subString.length() < 1) {
+        if (StringUtils.isEmpty(subString)) {
             throw new IllegalArgumentException("Expression can't be null! " + type);
         }
 
