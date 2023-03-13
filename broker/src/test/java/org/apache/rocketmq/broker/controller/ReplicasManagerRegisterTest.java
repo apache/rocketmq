@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.controller;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
@@ -105,9 +106,11 @@ public class ReplicasManagerRegisterTest {
         this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
         this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
         this.mockedAutoSwitchHAService = Mockito.mock(AutoSwitchHAService.class);
+        TopicConfigManager mockedTopicConfigManager = new TopicConfigManager();
         when(mockedBrokerController.getBrokerOuterAPI()).thenReturn(mockedBrokerOuterAPI);
         when(mockedBrokerController.getMessageStore()).thenReturn(mockedMessageStore);
         when(mockedBrokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
+        when(mockedBrokerController.getTopicConfigManager()).thenReturn(mockedTopicConfigManager);
         when(mockedMessageStore.getHaService()).thenReturn(mockedAutoSwitchHAService);
         when(mockedBrokerController.getSlaveSynchronize()).thenReturn(new SlaveSynchronize(mockedBrokerController));
 
