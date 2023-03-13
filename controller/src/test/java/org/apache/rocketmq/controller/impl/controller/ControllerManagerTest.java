@@ -76,6 +76,7 @@ public class ControllerManagerTest {
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(true);
         config.setScanNotActiveBrokerInterval(1000L);
+        config.setNotifyBrokerRoleChanged(false);
 
         final NettyServerConfig serverConfig = new NettyServerConfig();
 
