@@ -56,7 +56,7 @@ public class MessageStoreConfig {
 
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
-    private int compactionThreadNum = 0;
+    private int compactionThreadNum = 6;
 
     private boolean enableCompaction = true;
 

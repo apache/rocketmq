@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store.kv;
 
+import java.util.Random;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -64,11 +67,8 @@ public class CompactionStore {
         this.compactionLogPath = Paths.get(compactionPath, COMPACTION_LOG_DIR).toString();
         this.compactionCqPath = Paths.get(compactionPath, COMPACTION_CQ_DIR).toString();
         this.positionMgr = new CompactionPositionMgr(compactionPath);
-        if (config.getCompactionThreadNum() <= 0) {
-            this.compactionThreadNum = Runtime.getRuntime().availableProcessors();
-        } else {
-            this.compactionThreadNum = config.getCompactionThreadNum();
-        }
+        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), config.getCompactionThreadNum());
+
         this.compactionSchedule = Executors.newScheduledThreadPool(this.compactionThreadNum,
             new ThreadFactoryImpl("compactionSchedule_"));
         this.offsetMapSize = config.getMaxOffsetMapSize() / compactionThreadNum;
@@ -99,7 +99,8 @@ public class CompactionStore {
                                 CompactionLog log = new CompactionLog(defaultMessageStore, this, topic, queueId);
                                 log.load(exitOk);
                                 compactionLogTable.put(topic + "_" + queueId, log);
-                                compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
+                                int randomDelay = 1000 + new Random(System.currentTimeMillis()).nextInt(compactionInterval);
+                                compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval + randomDelay, compactionInterval + randomDelay, TimeUnit.MILLISECONDS);
                             } else {
                                 log.error("{}:{} compactionLog mismatch with compactionCq", topic, queueId);
                             }
