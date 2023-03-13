@@ -175,6 +175,7 @@ public class RouteActivity extends AbstractMessingActivity {
                 org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
                 HostAndPort.fromParts(address.getHost(), port)));
         }
+
         return addressList;
     }
 
