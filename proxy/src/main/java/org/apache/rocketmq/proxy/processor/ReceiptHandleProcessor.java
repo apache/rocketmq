@@ -64,6 +64,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
     protected ThreadPoolExecutor renewalWorkerService;
     protected final MessagingProcessor messagingProcessor;
+    protected final static RetryPolicy RENEW_POLICY = new RenewStrategyPolicy();
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor) {
         this.messagingProcessor = messagingProcessor;
@@ -176,10 +177,9 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 return CompletableFuture.completedFuture(null);
             }
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
-                RetryPolicy renewPolicy = new RenewStrategyPolicy();
                 CompletableFuture<AckResult> future =
                     messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
-                        messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), renewPolicy.nextDelayDuration(messageReceiptHandle.getRenewTimes()));
+                        messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
