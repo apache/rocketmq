@@ -452,7 +452,7 @@ public class AutoSwitchHATest {
     public void testCheckSynchronizingSyncStateSetFlag() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
         init(defaultMappedFileSize);
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
 
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
@@ -461,14 +461,14 @@ public class AutoSwitchHATest {
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
         Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
-        Set<String> syncStateSet = masterHAService.getSyncStateSet();
+        Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
-        Assert.assertTrue(syncStateSet.contains("127.0.0.1:8001"));
+        Assert.assertTrue(syncStateSet.contains(1L));
 
         // Step3: set new syncStateSet
-        HashSet<String> newSyncStateSet = new HashSet<String>() {{
-                add("127.0.0.1:8000");
-                add("127.0.0.1:8001");
+        HashSet<Long> newSyncStateSet = new HashSet<Long>() {{
+                add(1L);
+                add(2L);
                 }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
