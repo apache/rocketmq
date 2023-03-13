@@ -56,8 +56,9 @@ import static org.mockito.Mockito.when;
 @PrepareForTest(ReplicasManager.class)
 public class ReplicasManagerRegisterTest {
 
-    public static final String STORE_BASE_PATH = System.getProperty("user.home") + File.separator + "BrokerControllerRegisterTest" + File.separator +
-            UUID.randomUUID().toString().replace("-", "");
+    public static final String STORE_BASE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "ReplicasManagerRegisterTest";
+
+    public static final String STORE_PATH = STORE_BASE_PATH + File.separator + UUID.randomUUID();
 
     public static final String BROKER_NAME = "default-broker";
 
@@ -82,7 +83,7 @@ public class ReplicasManagerRegisterTest {
 
     private MessageStoreConfig buildMessageStoreConfig(int id) {
         MessageStoreConfig config = new MessageStoreConfig();
-        config.setStorePathRootDir(STORE_BASE_PATH + File.separator + id);
+        config.setStorePathRootDir(STORE_PATH + File.separator + id);
         config.setStorePathCommitLog(config.getStorePathRootDir() + File.separator + "commitLog");
         config.setStorePathEpochFile(config.getStorePathRootDir() + File.separator + "epochFileCache");
         config.setStorePathBrokerIdentity(config.getStorePathRootDir() + File.separator + "brokerIdentity");
@@ -99,6 +100,7 @@ public class ReplicasManagerRegisterTest {
 
     @Before
     public void setUp() throws Exception {
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
         this.mockedBrokerController = Mockito.mock(BrokerController.class);
         this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
         this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
@@ -332,8 +334,7 @@ public class ReplicasManagerRegisterTest {
 
     @After
     public void clear() {
-        File file = new File(STORE_BASE_PATH);
-        UtilAll.deleteFile(file);
+        UtilAll.deleteFile(new File(STORE_BASE_PATH));
     }
 
 
