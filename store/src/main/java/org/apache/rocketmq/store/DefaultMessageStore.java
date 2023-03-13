@@ -198,6 +198,8 @@ public class DefaultMessageStore implements MessageStore {
 
     private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
 
+    private long stateMachineVersion = 0L;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -1909,7 +1911,11 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getStateMachineVersion() {
-        return 0L;
+        return stateMachineVersion;
+    }
+
+    public void setStateMachineVersion(long stateMachineVersion) {
+        this.stateMachineVersion = stateMachineVersion;
     }
 
     public BrokerStatsManager getBrokerStatsManager() {
@@ -3215,4 +3221,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.messageStoreConfig.isTransientStorePoolEnable() &&
             (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
     }
+
+
 }
