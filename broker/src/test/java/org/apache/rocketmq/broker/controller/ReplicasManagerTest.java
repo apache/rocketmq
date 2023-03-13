@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.UtilAll;
@@ -139,6 +140,7 @@ public class ReplicasManagerTest {
         getReplicaInfoResponseHeader.setMasterEpoch(NEW_MASTER_EPOCH);
         syncStateSet = new SyncStateSet(Sets.newLinkedHashSet(SYNC_STATE), NEW_MASTER_EPOCH);
         result = new Pair<>(getReplicaInfoResponseHeader, syncStateSet);
+        TopicConfigManager topicConfigManager = new TopicConfigManager();
         when(defaultMessageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(brokerController.getMessageStore().getHaService()).thenReturn(autoSwitchHAService);
@@ -147,6 +149,7 @@ public class ReplicasManagerTest {
         when(brokerController.getSlaveSynchronize()).thenReturn(slaveSynchronize);
         when(brokerController.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
         when(brokerController.getBrokerAddr()).thenReturn(OLD_MASTER_ADDRESS);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerOuterAPI.getControllerMetaData(any())).thenReturn(getMetaDataResponseHeader);
         when(brokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
         when(brokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(getNextBrokerIdResponseHeader);
