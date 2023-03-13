@@ -163,12 +163,12 @@ public class RouteActivity extends AbstractMessingActivity {
 
     protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
 
-        boolean useEndpointPort = ConfigurationManager.getProxyConfig().isForceUseEndpointPort();
+        boolean useEndpointPortFromRequest = ConfigurationManager.getProxyConfig().isUseEndpointPortFromRequest();
 
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
         for (Address address : endpoints.getAddressesList()) {
             int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
-            if (useEndpointPort) {
+            if (useEndpointPortFromRequest) {
                 port = address.getPort();
             }
             addressList.add(new org.apache.rocketmq.proxy.common.Address(
@@ -200,9 +200,9 @@ public class RouteActivity extends AbstractMessingActivity {
                     .setName(brokerName)
                     .setId(Math.toIntExact(brokerId))
                     .setEndpoints(Endpoints.newBuilder()
-                    .setScheme(addressScheme)
-                    .addAllAddresses(addressList)
-                    .build())
+                        .setScheme(addressScheme)
+                        .addAllAddresses(addressList)
+                        .build())
                     .build();
 
                 brokerIdMap.put(brokerId, broker);
