@@ -177,6 +177,7 @@ public class RouteActivity extends AbstractMessingActivity {
         }
 
         return addressList;
+
     }
 
     protected Map<String /*brokerName*/, Map<Long /*brokerID*/, Broker>> buildBrokerMap(
