@@ -521,7 +521,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     }
                 } else {
                     sendCallback.onException(
-                        new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
+                            new RemotingTimeoutException("DEFAULT ASYNC send call timeout"));
                 }
             }
         };
@@ -697,7 +697,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             MQClientException mqClientException = new MQClientException(info, exception);
             if (callTimeout) {
-                throw new RemotingTooMuchRequestException("sendDefaultImpl call timeout");
+                throw new RemotingTimeoutException("sendDefaultImpl call timeout");
             }
 
             if (exception instanceof MQBrokerException) {
@@ -866,7 +866,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                         long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                         if (timeout < costTimeAsync) {
-                            throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
+                            throw new RemotingTimeoutException("sendKernelImpl call timeout");
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
@@ -886,7 +886,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     case SYNC:
                         long costTimeSync = System.currentTimeMillis() - beginStartTime;
                         if (timeout < costTimeSync) {
-                            throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
+                            throw new RemotingTimeoutException("sendKernelImpl call timeout");
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
@@ -1059,7 +1059,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         long costTime = System.currentTimeMillis() - beginStartTime;
         if (timeout < costTime) {
-            throw new RemotingTooMuchRequestException("call timeout");
+            throw new RemotingTimeoutException("call timeout");
         }
 
         return this.sendKernelImpl(msg, mq, CommunicationMode.SYNC, null, null, timeout);
@@ -1108,7 +1108,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             throw new MQClientException("unknown exception", e);
                         }
                     } else {
-                        sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                        sendCallback.onException(new RemotingTimeoutException("call timeout"));
                     }
                 } catch (Exception e) {
                     sendCallback.onException(e);
@@ -1176,7 +1176,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeout < costTime) {
-                throw new RemotingTooMuchRequestException("sendSelectImpl call timeout");
+                throw new RemotingTimeoutException("sendSelectImpl call timeout");
             }
             if (mq != null) {
                 return this.sendKernelImpl(msg, mq, communicationMode, sendCallback, null, timeout - costTime);
@@ -1232,7 +1232,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         sendCallback.onException(e);
                     }
                 } else {
-                    sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                    sendCallback.onException(new RemotingTimeoutException("call timeout"));
                 }
             }
 

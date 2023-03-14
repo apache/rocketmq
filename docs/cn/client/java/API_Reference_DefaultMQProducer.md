@@ -489,7 +489,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 10. send
 
@@ -515,7 +515,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 11. send
 
@@ -542,7 +542,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 12. send
 
@@ -570,7 +570,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 13. send
 
@@ -595,7 +595,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 14. send
 
@@ -621,7 +621,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 15. send
 
@@ -646,7 +646,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 16. send
 
@@ -672,7 +672,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 17. send
 
@@ -753,7 +753,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 20. send
 
@@ -783,7 +783,7 @@ public class Producer {
 		RemotingException - 网络异常。<br>
 		MQBrokerException - broker发生错误。<br>
 		InterruptedException - 发送线程中断。<br>
-		RemotingTooMuchRequestException - 发送超时。
+	    RemotingTimeoutException - 发送超时。
 
 21. send
 
