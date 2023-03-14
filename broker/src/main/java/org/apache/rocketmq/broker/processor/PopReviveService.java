@@ -114,6 +114,7 @@ public class PopReviveService extends ServiceThread {
             MessageAccessor.setProperties(msgInner, new HashMap<>());
         }
         msgInner.setBornTimestamp(messageExt.getBornTimestamp());
+        msgInner.setFlag(messageExt.getFlag());
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
