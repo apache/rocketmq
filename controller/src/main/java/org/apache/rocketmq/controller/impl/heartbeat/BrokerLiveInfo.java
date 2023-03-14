@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
 
 public class BrokerLiveInfo {
     private final String brokerName;
 
-    private final String brokerAddr;
+    private String brokerAddr;
     private long heartbeatTimeoutMillis;
-    private final Channel channel;
+    private Channel channel;
     private long brokerId;
     private long lastUpdateTimestamp;
     private int epoch;
@@ -141,4 +141,11 @@ public class BrokerLiveInfo {
         return confirmOffset;
     }
 
+    public void setBrokerAddr(String brokerAddr) {
+        this.brokerAddr = brokerAddr;
+    }
+
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
 }

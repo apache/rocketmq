@@ -102,7 +102,7 @@ public class AutoSwitchHATest {
 
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
-        storeConfig1.setHaSendHeartbeatInterval(1000);
+        storeConfig2.setHaSendHeartbeatInterval(1000);
         storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#2");
         storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "commitlog");
         storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "EpochFileCache");
@@ -112,12 +112,12 @@ public class AutoSwitchHATest {
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
         this.store2HaAddress = "127.0.0.1:10943";
 
-        messageStore1 = buildMessageStore(storeConfig1, 0L);
-        messageStore2 = buildMessageStore(storeConfig2, 1L);
+        messageStore1 = buildMessageStore(storeConfig1, 1L);
+        messageStore2 = buildMessageStore(storeConfig2, 2L);
 
         storeConfig3 = new MessageStoreConfig();
         storeConfig3.setBrokerRole(BrokerRole.SLAVE);
-        storeConfig1.setHaSendHeartbeatInterval(1000);
+        storeConfig3.setHaSendHeartbeatInterval(1000);
         storeConfig3.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#3");
         storeConfig3.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "commitlog");
         storeConfig3.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "EpochFileCache");
@@ -134,9 +134,9 @@ public class AutoSwitchHATest {
         messageStore2.start();
         messageStore3.start();
 
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
-        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
-        ((AutoSwitchHAService) this.messageStore3.getHaService()).setLocalAddress("127.0.0.1:8002");
+//        ((AutoSwitchHAService) this.messageStore1.getHaService()).("127.0.0.1:8000");
+//        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
+//        ((AutoSwitchHAService) this.messageStore3.getHaService()).setLocalAddress("127.0.0.1:8002");
     }
 
     public void init(int mappedFileSize, boolean allAckInSyncStateSet) throws Exception {
@@ -164,16 +164,16 @@ public class AutoSwitchHATest {
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
         this.store2HaAddress = "127.0.0.1:10943";
 
-        messageStore1 = buildMessageStore(storeConfig1, 0L);
-        messageStore2 = buildMessageStore(storeConfig2, 1L);
+        messageStore1 = buildMessageStore(storeConfig1, 1L);
+        messageStore2 = buildMessageStore(storeConfig2, 2L);
 
         assertTrue(messageStore1.load());
         assertTrue(messageStore2.load());
         messageStore1.start();
         messageStore2.start();
 
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
-        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
+//        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+//        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
     }
 
     private boolean changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
@@ -208,7 +208,7 @@ public class AutoSwitchHATest {
     public void testConfirmOffset() throws Exception {
         init(defaultMappedFileSize, true);
         // Step1, set syncStateSet, if both broker1 and broker2 are in syncStateSet, the confirmOffset will be computed as the min slaveAckOffset(broker2's ack)
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Arrays.asList("127.0.0.1:8000", "127.0.0.1:8001")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Arrays.asList(1L, 2L)));
         boolean masterAndPutMessage = changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         assertTrue(masterAndPutMessage);
         checkMessage(this.messageStore2, 10, 0);
@@ -233,7 +233,7 @@ public class AutoSwitchHATest {
         assertTrue(messageStore2.load());
         messageStore2.start();
         messageStore2.getHaService().changeToMaster(2);
-        ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8001")));
+        ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
 
         // Put message on master
         for (int i = 0; i < 10; i++) {
@@ -254,7 +254,7 @@ public class AutoSwitchHATest {
     @Test
     public void testAsyncLearnerBrokerRole() throws Exception {
         init(defaultMappedFileSize);
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
 
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
@@ -267,15 +267,15 @@ public class AutoSwitchHATest {
             messageStore1.putMessage(buildMessage());
         }
         checkMessage(messageStore2, 10, 0);
-        final Set<String> syncStateSet = ((AutoSwitchHAService) this.messageStore1.getHaService()).getSyncStateSet();
-        assertFalse(syncStateSet.contains("127.0.0.1:8001"));
+        final Set<Long> syncStateSet = ((AutoSwitchHAService) this.messageStore1.getHaService()).getSyncStateSet();
+        assertFalse(syncStateSet.contains(2L));
     }
 
     @Test
     public void testOptionAllAckInSyncStateSet() throws Exception {
         init(defaultMappedFileSize, true);
-        AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        AtomicReference<Set<Long>> syncStateSet = new AtomicReference<>();
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
         ((AutoSwitchHAService) this.messageStore1.getHaService()).registerSyncStateSetChangedListener(newSyncStateSet -> {
             syncStateSet.set(newSyncStateSet);
         });
@@ -283,9 +283,9 @@ public class AutoSwitchHATest {
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
         // Check syncStateSet
-        final Set<String> result = syncStateSet.get();
-        assertTrue(result.contains("127.0.0.1:8000"));
-        assertTrue(result.contains("127.0.0.1:8001"));
+        final Set<Long> result = syncStateSet.get();
+        assertTrue(result.contains(1L));
+        assertTrue(result.contains(2L));
 
         // Now, shutdown store2
         this.messageStore2.shutdown();
@@ -306,12 +306,12 @@ public class AutoSwitchHATest {
 
         // Step1, change store1 to master, store2 to follower
         init(defaultMappedFileSize);
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
         // Step2, change store1 to follower, store2 to master, epoch = 2
-        ((AutoSwitchHAService) this.messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8001")));
+        ((AutoSwitchHAService) this.messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
         changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore1, 1, this.storeConfig1, 2, store2HaAddress, 10);
         checkMessage(this.messageStore1, 20, 0);
 
@@ -324,7 +324,7 @@ public class AutoSwitchHATest {
     public void testAddBroker() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
         init(defaultMappedFileSize);
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
 
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
@@ -343,7 +343,7 @@ public class AutoSwitchHATest {
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
 
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
@@ -380,7 +380,7 @@ public class AutoSwitchHATest {
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
 
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
@@ -408,7 +408,7 @@ public class AutoSwitchHATest {
         checkMessage(messageStore3, 10, 10);
 
         // Step5: change broker2 as leader, broker3 as follower
-        ((AutoSwitchHAService) this.messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8001")));
+        ((AutoSwitchHAService) this.messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
         changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore3, 3, this.storeConfig3, 3, this.store2HaAddress, 10);
         checkMessage(messageStore3, 20, 10);
 
@@ -426,7 +426,7 @@ public class AutoSwitchHATest {
 
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
@@ -452,7 +452,7 @@ public class AutoSwitchHATest {
     public void testCheckSynchronizingSyncStateSetFlag() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
         init(defaultMappedFileSize);
-        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
 
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
@@ -461,14 +461,14 @@ public class AutoSwitchHATest {
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
         Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
-        Set<String> syncStateSet = masterHAService.getSyncStateSet();
+        Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
-        Assert.assertTrue(syncStateSet.contains("127.0.0.1:8001"));
+        Assert.assertTrue(syncStateSet.contains(1L));
 
         // Step3: set new syncStateSet
-        HashSet<String> newSyncStateSet = new HashSet<String>() {{
-                add("127.0.0.1:8000");
-                add("127.0.0.1:8001");
+        HashSet<Long> newSyncStateSet = new HashSet<Long>() {{
+                add(1L);
+                add(2L);
                 }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());

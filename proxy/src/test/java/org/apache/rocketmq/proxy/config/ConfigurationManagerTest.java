@@ -34,6 +34,12 @@ public class ConfigurationManagerTest extends InitConfigTest {
     }
 
     @Test
+    public void testGetProxyHome() {
+        // test configured proxy home
+        assertThat(ConfigurationManager.getProxyHome()).isIn(mockProxyHome, "./");
+    }
+
+    @Test
     public void testGetProxyConfig() {
         assertThat(ConfigurationManager.getProxyConfig()).isNotNull();
     }

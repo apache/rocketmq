@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,13 +34,14 @@ public class DefaultBrokerHeartbeatManagerTest {
         final ControllerConfig config = new ControllerConfig();
         config.setScanNotActiveBrokerInterval(2000);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(config);
+        this.heartbeatManager.initialize();
         this.heartbeatManager.start();
     }
 
     @Test
     public void testDetectBrokerAlive() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
-        this.heartbeatManager.addBrokerLifecycleListener((clusterName, brokerName, brokerAddress, brokerId) -> {
+        this.heartbeatManager.addBrokerLifecycleListener((clusterName, brokerName, brokerId) -> {
             latch.countDown();
         });
         this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 1L,3000L, null,
