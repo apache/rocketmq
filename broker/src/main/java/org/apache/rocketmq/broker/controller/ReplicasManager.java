@@ -717,7 +717,7 @@ public class ReplicasManager {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
         this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
-            final Set<Long> newSyncStateSet = this.haService.maybeShrinkInSyncStateSet();
+            final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
             newSyncStateSet.add(this.brokerControllerId);
             synchronized (this) {
                 if (this.syncStateSet != null) {
