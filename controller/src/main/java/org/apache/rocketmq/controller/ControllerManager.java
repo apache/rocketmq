@@ -17,9 +17,13 @@
 package org.apache.rocketmq.controller;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -27,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -67,6 +72,8 @@ public class ControllerManager {
     private ExecutorService controllerRequestExecutor;
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
 
+    private NotifyService notifyService;
+
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
         NettyClientConfig nettyClientConfig) {
         this.controllerConfig = controllerConfig;
@@ -93,6 +100,8 @@ public class ControllerManager {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
+        this.notifyService = new NotifyService();
+        this.notifyService.initialize();
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
         }
@@ -164,7 +173,7 @@ public class ControllerManager {
             // Inform all active brokers
             final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
             brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
-                    .forEach(x -> doNotifyBrokerRoleChanged(x.getValue(), entry));
+                    .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
         }
     }
 
@@ -214,6 +223,7 @@ public class ControllerManager {
     public void shutdown() {
         this.heartbeatManager.shutdown();
         this.controllerRequestExecutor.shutdown();
+        this.notifyService.shutdown();
         this.controller.shutdown();
         this.remotingClient.shutdown();
     }
@@ -244,5 +254,78 @@ public class ControllerManager {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+    class NotifyService {
+        private ExecutorService executorService;
+
+        private Map<String/*brokerAddress*/, NotifyTask/*currentNotifyTask*/> currentNotifyFutures;
+
+        public NotifyService() {
+        }
+
+        public void initialize() {
+            this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ControllerManager_NotifyService_"));
+            this.currentNotifyFutures = new ConcurrentHashMap<>();
+        }
+
+        public void notifyBroker(String brokerAddress, RoleChangeNotifyEntry entry) {
+            int masterEpoch = entry.getMasterEpoch();
+            NotifyTask oldTask = this.currentNotifyFutures.get(brokerAddress);
+            if (oldTask != null && masterEpoch > oldTask.getMasterEpoch()) {
+                // cancel current future
+                Future oldFuture = oldTask.getFuture();
+                if (oldFuture != null && !oldFuture.isDone()) {
+                    oldFuture.cancel(true);
+                }
+            }
+            final NotifyTask task = new NotifyTask(masterEpoch, null);
+            Runnable runnable = () -> {
+                doNotifyBrokerRoleChanged(brokerAddress, entry);
+                this.currentNotifyFutures.remove(brokerAddress, task);
+            };
+            this.currentNotifyFutures.put(brokerAddress, task);
+            Future<?> future = this.executorService.submit(runnable);
+            task.setFuture(future);
+        }
+
+        public void shutdown() {
+            if (!this.executorService.isShutdown()) {
+                this.executorService.shutdownNow();
+            }
+        }
+
+        class NotifyTask extends Pair<Integer/*epochMaster*/, Future/*notifyFuture*/> {
+            public NotifyTask(Integer masterEpoch, Future future) {
+                super(masterEpoch, future);
+            }
+
+            public Integer getMasterEpoch() {
+                return super.getObject1();
+            }
+
+            public Future getFuture() {
+                return super.getObject2();
+            }
+
+            public void setFuture(Future future) {
+                super.setObject2(future);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(super.getObject1());
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (this == obj) return true;
+                if (!(obj instanceof NotifyTask)) {
+                    return false;
+                }
+                NotifyTask task = (NotifyTask) obj;
+                return super.getObject1().equals(task.getObject1());
+            }
+        }
     }
 }

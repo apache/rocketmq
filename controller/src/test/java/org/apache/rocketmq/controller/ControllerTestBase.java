@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.impl.controller;
+package org.apache.rocketmq.controller;
 
 public class ControllerTestBase {
 
