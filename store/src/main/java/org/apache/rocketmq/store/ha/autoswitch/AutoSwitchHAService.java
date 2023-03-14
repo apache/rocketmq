@@ -229,10 +229,10 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe shrink the inSyncStateSet.
+     * Check and maybe shrink the SyncStateSet.
      * A slave will be removed from SyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
-    public Set<Long> maybeShrinkInSyncStateSet() {
+    public Set<Long> maybeShrinkSyncStateSet() {
         final Set<Long> newSyncStateSet = getLocalSyncStateSet();
         boolean isSyncStateSetChanged = false;
         final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
@@ -253,7 +253,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Check and maybe add the slave to inSyncStateSet. A slave will be added to SyncStateSet if its slaveMaxOffset >=
+     * Check and maybe add the slave to SyncStateSet. A slave will be added to SyncStateSet if its slaveMaxOffset >=
      * current confirmOffset, and it is caught up to an offset within the current leader epoch.
      */
     public void maybeExpandInSyncStateSet(final Long slaveBrokerId, final long slaveMaxOffset) {
