@@ -1357,7 +1357,7 @@ public class DefaultMessageStore implements MessageStore {
             // destroy consume queue dir
             String consumeQueueDir = StorePathConfigHelper.getStorePathConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueue(
+            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueueExt(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
             String batchConsumeQueueDir = StorePathConfigHelper.getStorePathBatchConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
