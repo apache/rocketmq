@@ -360,6 +360,8 @@ public abstract class NettyRemotingAbstract {
 
             responseTable.remove(opaque);
 
+            doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), responseFuture.getRequestCommand(), cmd);
+
             if (responseFuture.getInvokeCallback() != null) {
                 executeInvokeCallback(responseFuture);
             } else {
