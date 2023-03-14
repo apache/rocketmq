@@ -243,6 +243,7 @@ public class ReplicasManager {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
 
                 this.masterEpoch = newMasterEpoch;
+                boolean isLastRoleMaster = this.masterBrokerId == this.brokerControllerId;
 
                 // Change SyncStateSet
                 final HashSet<Long> newSyncStateSet = new HashSet<>();
@@ -257,7 +258,7 @@ public class ReplicasManager {
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 // Notify ha service, change to master
-                this.haService.changeToMaster(newMasterEpoch);
+                this.haService.changeToMaster(newMasterEpoch, isLastRoleMaster);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
@@ -287,6 +288,7 @@ public class ReplicasManager {
                 LOGGER.info("Begin to change to slave, brokerName={}, brokerId={}, newMasterBrokerId={}, newMasterAddress={}, newMasterEpoch={}",
                         this.brokerConfig.getBrokerName(), this.brokerControllerId, newMasterBrokerId, newMasterAddress, newMasterEpoch);
 
+                boolean isMasterChange = this.masterBrokerId != newMasterBrokerId;
                 // Change record
                 this.masterAddress = newMasterAddress;
                 this.masterEpoch = newMasterEpoch;
@@ -305,7 +307,7 @@ public class ReplicasManager {
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
                 // Notify ha service, change to slave
-                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, brokerControllerId);
+                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, brokerControllerId, isMasterChange);
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
 

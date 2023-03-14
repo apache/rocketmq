@@ -87,7 +87,10 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                                 Thread.sleep(100);
                             }
                             if (succ) {
-                                messageStore.recoverTopicQueueTable();
+                                if (BrokerRole.SYNC_MASTER == brokerController.getMessageStoreConfig().getBrokerRole()) {
+                                    // when the last role is also master, no need to recover topicQueueTable
+                                    messageStore.recoverTopicQueueTable();
+                                }
                                 changeToMaster(BrokerRole.SYNC_MASTER);
                             }
                             break;

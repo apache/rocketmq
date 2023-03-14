@@ -109,20 +109,24 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToMaster(int masterEpoch) {
+    public boolean changeToMaster(int masterEpoch, boolean isLastRoleMaster) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
         }
-        destroyConnections();
         // Stop ha client if needed
         if (this.haClient != null) {
             this.haClient.shutdown();
         }
 
         // Truncate dirty file
-        final long truncateOffset = truncateInvalidMsg();
+        long truncateOffset = -1;
+        // when the last role is also master, no need to destroy connections with slave and truncate commitlog
+        if (!isLastRoleMaster) {
+            destroyConnections();
+            truncateOffset = truncateInvalidMsg();
+        }
 
         updateConfirmOffset(computeConfirmOffset());
 
@@ -137,29 +141,34 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
         this.epochCache.appendEntry(newEpochEntry);
 
-        // Waiting consume queue dispatch
-        while (defaultMessageStore.dispatchBehindBytes() > 0) {
-            try {
-                Thread.sleep(100);
-            } catch (Exception ignored) {
+        // when the last role is also master, no need to wait for consume queue dispatch and recover topicQueueTable
+        if (!isLastRoleMaster) {
+            // Waiting consume queue dispatch
+            while (defaultMessageStore.dispatchBehindBytes() > 0) {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ignored) {
 
+                }
             }
-        }
 
-        if (defaultMessageStore.isTransientStorePoolEnable()) {
-            waitingForAllCommit();
-            defaultMessageStore.getTransientStorePool().setRealCommit(true);
+            if (defaultMessageStore.isTransientStorePoolEnable()) {
+                waitingForAllCommit();
+                defaultMessageStore.getTransientStorePool().setRealCommit(true);
+            }
+            this.defaultMessageStore.recoverTopicQueueTable();
         }
 
         LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
-        this.defaultMessageStore.recoverTopicQueueTable();
+
+
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
 
     @Override
-    public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
+    public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId, boolean isMasterChange) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (newMasterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to slave", newMasterEpoch, lastEpoch);
@@ -167,14 +176,22 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
         try {
             destroyConnections();
+            boolean needToStart = true;
             if (this.haClient == null) {
                 this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache, slaveId);
             } else {
-                this.haClient.reOpen();
+                if (!isMasterChange) {
+                    // master doesn't change, no need to reOpen and start haClient
+                    needToStart = false;
+                } else {
+                    this.haClient.reOpen();
+                }
             }
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
-            this.haClient.start();
+            if (needToStart) {
+                this.haClient.start();
+            }
 
             if (defaultMessageStore.isTransientStorePoolEnable()) {
                 waitingForAllCommit();
