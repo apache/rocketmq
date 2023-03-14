@@ -39,6 +39,7 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.MessageSelector;
+import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -856,7 +857,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
-    public class PullTaskImpl implements Runnable {
+    private class PullTaskImpl implements Runnable {
         private final MessageQueue messageQueue;
         private volatile boolean cancelled = false;
         private Thread currentThread;
@@ -962,27 +963,40 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression4Assign);
                     }
 
-                    PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
-                    if (this.isCancelled() || processQueue.isDropped()) {
-                        return;
-                    }
-                    switch (pullResult.getPullStatus()) {
-                        case FOUND:
-                            final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
-                            synchronized (objLock) {
-                                if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
-                                    processQueue.putMessage(pullResult.getMsgFoundList());
-                                    submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
-                                }
+                    pullAsync(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize(), new PullCallback() {
+                        @Override
+                        public void onSuccess(PullResult pullResult) {
+                            DefaultLitePullConsumerImpl.this.pullAPIWrapper.processPullResult(messageQueue, pullResult, subscriptionData);
+                            if (PullTaskImpl.this.isCancelled() || processQueue.isDropped()) {
+                                return;
                             }
-                            break;
-                        case OFFSET_ILLEGAL:
-                            log.warn("The pull request offset illegal, {}", pullResult.toString());
-                            break;
-                        default:
-                            break;
-                    }
-                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                            switch (pullResult.getPullStatus()) {
+                                case FOUND:
+                                    final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
+                                    synchronized (objLock) {
+                                        if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
+                                            processQueue.putMessage(pullResult.getMsgFoundList());
+                                            submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
+                                        }
+                                    }
+                                    break;
+                                case OFFSET_ILLEGAL:
+                                    log.warn("The pull request offset illegal, {}", pullResult.toString());
+                                    break;
+                                default:
+                                    break;
+                            }
+                            updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                            DefaultLitePullConsumerImpl.this.scheduledThreadPoolExecutor.schedule(PullTaskImpl.this, 0L, TimeUnit.MILLISECONDS);
+                        }
+
+                        @Override
+                        public void onException(Throwable e) {
+                            log.warn("execute the pull request exception", e);
+                            DefaultLitePullConsumerImpl.this.scheduledThreadPoolExecutor.schedule(PullTaskImpl.this, pullTimeDelayMillsWhenException, TimeUnit.MILLISECONDS);
+                        }
+                    });
+
                 } catch (InterruptedException interruptedException) {
                     log.warn("Polling thread was interrupted.", interruptedException);
                 } catch (Throwable e) {
@@ -1015,19 +1029,20 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums)
+    private PullResult pullAsync(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
+        PullCallback pullCallback)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());
+        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis(), CommunicationMode.ASYNC, pullCallback);
     }
 
-    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout)
+    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout,
+        CommunicationMode communicationMode, PullCallback pullCallback)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
+        return this.pullImpl(mq, subscriptionData, offset, maxNums, true, timeout, communicationMode, pullCallback);
     }
 
-    private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
-        boolean block,
-        long timeout)
+    private PullResult pullImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
+        boolean block, long timeout, CommunicationMode communicationMode, PullCallback pullCallback)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
 
         if (null == mq) {
@@ -1040,6 +1055,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
         if (maxNums <= 0) {
             throw new MQClientException("maxNums <= 0", null);
+        }
+
+        if (CommunicationMode.ASYNC == communicationMode && pullCallback == null) {
+            throw new MQClientException("Async communication mode but callback is null", null);
         }
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false, true);
@@ -1058,8 +1077,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             0,
             this.defaultLitePullConsumer.getBrokerSuspendMaxTimeMillis(),
             timeoutMillis,
-            CommunicationMode.SYNC,
-            null
+            communicationMode,
+            pullCallback
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
         return pullResult;
