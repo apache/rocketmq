@@ -52,9 +52,8 @@ public interface HAService {
      * Change to master state
      *
      * @param masterEpoch the new masterEpoch
-     * @param isLastRoleMaster is last role master?
      */
-    default boolean changeToMaster(int masterEpoch, boolean isLastRoleMaster) {
+    default boolean changeToMaster(int masterEpoch) {
         return false;
     }
 
@@ -63,9 +62,8 @@ public interface HAService {
      *
      * @param newMasterAddr new master addr
      * @param newMasterEpoch new masterEpoch
-     * @param isMasterChange is master change
      */
-    default boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId, boolean isMasterChange) {
+    default boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
         return false;
     }
 
