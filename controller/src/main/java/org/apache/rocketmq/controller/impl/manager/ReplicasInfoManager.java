@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,8 +64,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.Register
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
- * state machine It should be noted that this class is not thread safe, and the upper layer needs to ensure that it can
- * be called sequentially
+ * state machine. If the upper layer want to update the statemachine, it must sequentially call its methods.
  */
 public class ReplicasInfoManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
@@ -74,8 +74,8 @@ public class ReplicasInfoManager {
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
-        this.replicaInfoTable = new HashMap<>();
-        this.syncStateSetInfoTable = new HashMap<>();
+        this.replicaInfoTable = new ConcurrentHashMap<>();
+        this.syncStateSetInfoTable = new ConcurrentHashMap<>();
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
