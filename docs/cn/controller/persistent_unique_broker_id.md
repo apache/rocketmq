@@ -8,7 +8,9 @@
 在Controller侧采用`BrokerName:BrokerId`作为唯一标识，不再以`BrokerAddress`作为唯一标识。并且需要对`BrokerId`进行持久化存储，由于`ClusterName`和`BrokerName`都是启动的时候在配置文件中配置好的，所以只需要处理`BrokerId`的分配和持久化问题。
 Broker第一次上线的时候，只有配置文件中配置的`ClusterName`和`BrokerName`，以及自身的`BrokerAddress`。那么我们需要和`Controller`协商出一个在整个集群生命周期中都唯一确定的标识：`BrokerId`，该`BrokerId`从1开始分配。当Broker被选为Master的时候，它会在Name Server中重新注册，此时为了兼容之前的无HA的Master-Slave架构，那么需要在这一步暂时更改为`BrokerId`为0(之前的逻辑里面id为0代表着Broker是Master身份)。
 ### 上线流程
+
 ![](../image/controller/persistent_unique_broker_id/register_process.png)
+
 #### 1. GetNextBrokerId Request
 这时候发起一个`GetNextBrokerId`的请求到Controller，为了拿到当前的下一个待分配的`BrokerId`(从1开始分配)。
 #### 1.1 ReadFromDLedger
@@ -34,23 +36,33 @@ Controller比对当前该Broker在Controller状态机中保存的`BrokerAddress`
 #### 6 RegisterBrokerToController Response
 Controller侧在更新完`BrokerAddress`之后可携带着当前该Broker所在的`Broker-set`的主从信息返回，用于通知Broker进行相应的身份转变。
 ### 注册状态轮转
+
 ![](../image/controller/persistent_unique_broker_id/register_state_transfer.png)
+
 ### 故障容错
 > 如果在正常上线流程中出现了各种情况的宕机，则以下流程保证正确的`BrokerId`分配
 
 #### 正常重启后的节点上线
 若是正常重启，那么则已经在双方协商出唯一的`BrokerId`，并且本地也在`broker.meta`中有该`BrokerId`的数据，那么就该注册流程不需要进行，直接继续后面的流程即可。即从`RegisterBrokerToController`处继续上线即可。
+
 ![image.png](../image/controller/persistent_unique_broker_id/normal_restart.png)
+
 #### CreateTempMetaFile失败
-![image.png](../image/controller/persistent_unique_broker_id/fail_create_temp_metadata_file.png)
+
+![image.png](../image/controller/persistent_unique_broker_id/fail_create_temp_metadata_file.png) 
+
 如果是上图中的流程失败的话，那么Broker重启后，Controller侧的状态机本身也没有分配任何`BrokerId`。Broker自身也没有任何数据被保存。因此直接重新按照上述流程从头开始走即可。
 #### CreateTempMetaFile成功，ApplyBrokerId未成功
 若是Controller侧已经认为本次`ApplyBrokerId`请求不对(请求去分配一个已被分配的`BrokerId`并且该	`RegisterCode`不相等)，并且此时返回当前的`NextBrokerId`给Broker，那么此时Broker直接删除`.broker.meta.temp`文件，接下来回到第2步，重新开始该流程以及后续流程。
+
 ![image.png](../image/controller/persistent_unique_broker_id/fail_apply_broker_id.png)
+
 #### ApplyBrokerId成功，CreateMetaFileFromTemp未成功
 上述情况可以出现在`ApplyResult`丢失、CAS删除并创建`broker.meta`失败，这俩流程中。
 那么重启后，Controller侧是已经认为我们`ApplyBrokerId`流程是成功的了，而且也已经在状态机中修改了BrokerId的分配数据，那么我们这时候重新直接开始步骤3，也就是发送`ApplyBrokerId`请求的这一步。
+
 ![image.png](../image/controller/persistent_unique_broker_id/fail_create_metadata_file_and_delete_temp.png)
+
 因为我们有`.broker.meta.temp`文件，可以从中拿到我们之前成功在Controller侧应用的`BrokerId`和`RegisterCode`，那么直接发送给Controller，如果Controller中存在该`BrokerId`并且`RegisterCode`和请求中的`RegisterCode`相等，那么视为成功。
 ### 正确上线后使用BrokerId作为唯一标识
 当正确上线之后，之后Broker的请求和状态记录都以`BrokerId`作为唯一标识。心跳等数据的记录都以`BrokerId`为标识。
@@ -91,7 +103,9 @@ nohup sh bin/mqcontroller -c ./conf/controller/controller-standalone.conf &
 ```bash
 sh bin/mqadmin getControllerMetaData -a localhost:9878
 ```
+
 ![image.png](../image/controller/persistent_unique_broker_id/test_1.png)
+
 > 先后启动旧版broker0和broker1
 
 ```bash
@@ -105,64 +119,85 @@ nohup sh bin/mqbroker -c conf/controller/quick-start/broker-n1.conf &
 ```bash
 sh bin/mqadmin getSyncStateSet -a localhost:9878 -b broker-a
 ```
+
 ![image.png](../image/controller/persistent_unique_broker_id/test_2.png)
+
 > 发送消息
 
 ```bash
 sh bin/mqadmin sendMessage -p "hello" -n localhost:9876 -b broker-a -t default
 ```
+
 ![image.png](../image/controller/persistent_unique_broker_id/test_3.png)
+
 > 检查两个节点是否正确append
 
 ```bash
 sh bin/mqadmin getBrokerEpoch -n localhost:9876 -b broker-a
 ```
+
 ![image.png](../image/controller/persistent_unique_broker_id/test_4.png)
+
 > controller下线
 
 将controller进程杀死。
 测试此时是否可以正常收发消息。
+
 ![image.png](../image/controller/persistent_unique_broker_id/test_5.png)
+
 > 清除controller数据文件
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_6.png)
+
 > 上线新版controller
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_7.png)
+
 > 检查当前是否正常收发消息
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_8.png)
+
 > 分别将broker的从节点和主节点先后停机
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_9.png)
+
 > 清除每个broker的epoch文件
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_10.png)
+
 > 将原来的主broker先更新上线
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_11.png)
+
 > 从broker更新上线
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_12.png)
+
 > 测试收发消息
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_13.png)
+
 > 上线一个新节点broker2
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_14.png)
+
 > 下线broker0，触发切主
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_15.png)
+
 broker1成为master
 > 下线broker1，触发切主
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_16.png)
+
 > 测试消息收发
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_17.png)
+
 > 重启broker0和broker1
 
 ![image.png](../image/controller/persistent_unique_broker_id/test_18.png)
+
 ### 兼容性
 
 |  | 5.0旧Controller | 新Controller |
