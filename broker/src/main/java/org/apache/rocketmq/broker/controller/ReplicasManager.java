@@ -202,7 +202,7 @@ public class ReplicasManager {
             // The scheduled task for heartbeat sending is not starting now, so we should manually send heartbeat request
             this.sendHeartbeatToController();
             if (this.masterBrokerId != null || brokerElect()) {
-                LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterAddress, this.masterBrokerId);
+                LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterBrokerId, this.masterAddress);
                 this.state = State.RUNNING;
                 this.brokerController.setIsolated(false);
                 LOGGER.info("All register process has been done, change state to: {}", this.state);
