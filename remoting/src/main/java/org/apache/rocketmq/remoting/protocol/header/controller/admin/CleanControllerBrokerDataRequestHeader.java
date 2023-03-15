@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.header.controller;
+package org.apache.rocketmq.remoting.protocol.header.controller.admin;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -31,23 +31,23 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     private String brokerName;
 
     @CFNullable
-    private String brokerAddress;
+    private String brokerControllerIdsToClean;
 
     private boolean isCleanLivingBroker = false;
 
     public CleanControllerBrokerDataRequestHeader() {
     }
 
-    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerAddress,
+    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerIdSetToClean,
         boolean isCleanLivingBroker) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.brokerControllerIdsToClean = brokerIdSetToClean;
         this.isCleanLivingBroker = isCleanLivingBroker;
     }
 
-    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerAddress) {
-        this(clusterName, brokerName, brokerAddress, false);
+    public CleanControllerBrokerDataRequestHeader(String clusterName, String brokerName, String brokerIdSetToClean) {
+        this(clusterName, brokerName, brokerIdSetToClean, false);
     }
 
     @Override
@@ -71,12 +71,12 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
         this.brokerName = brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public String getBrokerControllerIdsToClean() {
+        return brokerControllerIdsToClean;
     }
 
-    public void setBrokerAddress(String brokerAddress) {
-        this.brokerAddress = brokerAddress;
+    public void setBrokerControllerIdsToClean(String brokerIdSetToClean) {
+        this.brokerControllerIdsToClean = brokerIdSetToClean;
     }
 
     public boolean isCleanLivingBroker() {
@@ -90,10 +90,10 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     @Override
     public String toString() {
         return "CleanControllerBrokerDataRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            ", isCleanLivingBroker=" + isCleanLivingBroker +
-            '}';
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerIdSetToClean='" + brokerControllerIdsToClean + '\'' +
+                ", isCleanLivingBroker=" + isCleanLivingBroker +
+                '}';
     }
 }

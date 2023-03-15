@@ -131,6 +131,7 @@ public class AutoSwitchRoleBase {
         storeConfig.setStorePathRootDir(STORE_PATH_ROOT_DIR + File.separator + brokerDir);
         storeConfig.setStorePathCommitLog(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "commitlog");
         storeConfig.setStorePathEpochFile(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "EpochFileCache");
+        storeConfig.setStorePathBrokerIdentity(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "brokerIdentity");
         storeConfig.setTotalReplicas(3);
         storeConfig.setInSyncReplicas(2);
 

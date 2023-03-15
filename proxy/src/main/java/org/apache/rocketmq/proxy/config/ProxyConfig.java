@@ -148,6 +148,7 @@ public class ProxyConfig implements ConfigFile {
     private int consumerProcessorThreadPoolNums = PROCESSOR_NUMBER;
     private int consumerProcessorThreadPoolQueueCapacity = 10000;
 
+    private boolean useEndpointPortFromRequest = false;
     private int topicRouteServiceCacheExpiredInSeconds = 20;
     private int topicRouteServiceCacheMaxNum = 20000;
     private int topicRouteServiceThreadPoolNums = PROCESSOR_NUMBER;
@@ -205,6 +206,7 @@ public class ProxyConfig implements ConfigFile {
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
@@ -423,6 +425,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public boolean isUseEndpointPortFromRequest() {
+        return useEndpointPortFromRequest;
+    }
+
+    public void setUseEndpointPortFromRequest(boolean useEndpointPortFromRequest) {
+        this.useEndpointPortFromRequest = useEndpointPortFromRequest;
     }
 
     public boolean isTlsTestModeEnable() {
@@ -1147,6 +1157,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMetricGrpcExporterIntervalInMills(long metricGrpcExporterIntervalInMills) {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
+    }
+
+    public long getMetricLoggingExporterIntervalInMills() {
+        return metricLoggingExporterIntervalInMills;
+    }
+
+    public void setMetricLoggingExporterIntervalInMills(long metricLoggingExporterIntervalInMills) {
+        this.metricLoggingExporterIntervalInMills = metricLoggingExporterIntervalInMills;
     }
 
     public int getMetricsPromExporterPort() {

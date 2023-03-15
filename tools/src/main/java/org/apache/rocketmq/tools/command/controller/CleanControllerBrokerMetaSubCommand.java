@@ -26,16 +26,18 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class CleanControllerBrokerDataSubCommand implements SubCommand {
+import java.util.Arrays;
+
+public class CleanControllerBrokerMetaSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "cleanBrokerData";
+        return "cleanBrokerMetadata";
     }
 
     @Override
     public String commandDesc() {
-        return "Clean data of broker on controller";
+        return "Clean metadata of broker on controller";
     }
 
     @Override
@@ -45,19 +47,19 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerAddress", true, "The address of the broker which requires to clean metadata. eg: 192.168.0.1:30911;192.168.0.2:30911");
+        opt = new Option("b", "brokerControllerIdsToClean", true, "The brokerController id list which requires to clean metadata. eg: 1;2;3, means that clean broker-1, broker-2 and broker-3");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("n", "brokerName", true, "The broker name of the replicas that require to be manipulated");
+        opt = new Option("bn", "brokerName", true, "The broker name of the replicas that require to be manipulated");
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "the clusterName of broker");
+        opt = new Option("c", "clusterName", true, "The clusterName of broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("l", "cleanLivingBroker", false, " whether clean up living brokers,default value is false");
+        opt = new Option("l", "cleanLivingBroker", false, "Whether clean up living brokers,default value is false");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -71,15 +73,20 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         String controllerAddress = commandLine.getOptionValue('a').trim();
-        String brokerName = commandLine.getOptionValue('n').trim();
+        String brokerName = commandLine.getOptionValue("bn").trim();
         String clusterName = null;
-        String brokerAddress = null;
+        String brokerControllerIdsToClean = null;
 
         if (commandLine.hasOption('c')) {
             clusterName = commandLine.getOptionValue('c').trim();
         }
         if (commandLine.hasOption('b')) {
-            brokerAddress = commandLine.getOptionValue('b').trim();
+            brokerControllerIdsToClean = commandLine.getOptionValue('b').trim();
+            try {
+                Arrays.stream(brokerControllerIdsToClean.split(";")).map(idStr -> Long.parseLong(idStr));
+            } catch (NumberFormatException numberFormatException) {
+                throw new IllegalArgumentException("please set the option <brokerControllerIdsToClean> according to the format", numberFormatException);
+            }
         }
         boolean isCleanLivingBroker = false;
         if (commandLine.hasOption('l')) {
@@ -92,8 +99,8 @@ public class CleanControllerBrokerDataSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            defaultMQAdminExt.cleanControllerBrokerData(controllerAddress, clusterName, brokerName, brokerAddress, isCleanLivingBroker);
-            System.out.printf("clear broker %s data from controller success! \n", brokerName);
+            defaultMQAdminExt.cleanControllerBrokerData(controllerAddress, clusterName, brokerName, brokerControllerIdsToClean, isCleanLivingBroker);
+            System.out.printf("clear broker %s metadata from controller success! \n", brokerName);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
