@@ -140,7 +140,6 @@ public class ReplicasManagerTest {
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         brokerTryElectResponseHeader.setMasterEpoch(OLD_MASTER_EPOCH);
         brokerTryElectResponseHeader.setSyncStateSetEpoch(OLD_MASTER_EPOCH);
-        brokerTryElectResponseHeader.setSyncStateSet(SYNC_STATE_SET_1);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader.setMasterBrokerId(BROKER_ID_1);
@@ -163,7 +162,7 @@ public class ReplicasManagerTest {
         when(brokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(applyBrokerIdResponseHeader);
         when(brokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenReturn(registerBrokerToControllerResponseHeader);
         when(brokerOuterAPI.getReplicaInfo(any(), any())).thenReturn(result);
-        when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(brokerTryElectResponseHeader);
+        when(brokerOuterAPI.brokerElect(any(), any(), any(), any())).thenReturn(new Pair<>(brokerTryElectResponseHeader, SYNC_STATE_SET_1));
         replicasManager = new ReplicasManager(brokerController);
         autoSwitchHAService.init(defaultMessageStore);
         replicasManager.start();

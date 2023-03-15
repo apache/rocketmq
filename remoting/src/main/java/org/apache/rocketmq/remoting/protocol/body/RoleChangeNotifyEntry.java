@@ -50,10 +50,15 @@ public class RoleChangeNotifyEntry {
     public static RoleChangeNotifyEntry convert(RemotingCommand electMasterResponse) {
         final ElectMasterResponseHeader header = (ElectMasterResponseHeader) electMasterResponse.readCustomHeader();
         BrokerMemberGroup brokerMemberGroup = null;
+        Set<Long> syncStateSet = null;
+
         if (electMasterResponse.getBody() != null && electMasterResponse.getBody().length > 0) {
-            brokerMemberGroup = RemotingSerializable.decode(electMasterResponse.getBody(), BrokerMemberGroup.class);
+            ElectMasterResponseBody body = RemotingSerializable.decode(electMasterResponse.getBody(), ElectMasterResponseBody.class);
+            brokerMemberGroup = body.getBrokerMemberGroup();
+            syncStateSet = body.getSyncStateSet();
         }
-        return new RoleChangeNotifyEntry(brokerMemberGroup, header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch(), header.getSyncStateSet());
+
+        return new RoleChangeNotifyEntry(brokerMemberGroup, header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch(), syncStateSet);
     }
 
 

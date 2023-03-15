@@ -80,6 +80,7 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerOffsetSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.ElectMasterResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetBrokerMemberGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
@@ -1172,7 +1173,7 @@ public class BrokerOuterAPI {
     /**
      * Broker try to elect itself as a master in broker set
      */
-    public ElectMasterResponseHeader brokerElect(String controllerAddress, String clusterName, String brokerName,
+    public Pair<ElectMasterResponseHeader, Set<Long>> brokerElect(String controllerAddress, String clusterName, String brokerName,
                                                  Long brokerId) throws Exception {
 
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
@@ -1188,8 +1189,11 @@ public class BrokerOuterAPI {
             case CONTROLLER_ELECT_MASTER_FAILED:
             case CONTROLLER_MASTER_STILL_EXIST:
             case SUCCESS:
-                return (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
+                final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
+                final ElectMasterResponseBody responseBody = RemotingSerializable.decode(response.getBody(), ElectMasterResponseBody.class);
+                return new Pair<>(responseHeader, responseBody.getSyncStateSet());
         }
+
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 

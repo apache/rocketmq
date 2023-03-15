@@ -26,17 +26,15 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
     private Integer masterEpoch;
     private Integer syncStateSetEpoch;
     private Long masterBrokerId;
-    private Set<Long> syncStateSet;
 
     public NotifyBrokerRoleChangedRequestHeader() {
     }
 
-    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, Long masterBrokerId, Integer masterEpoch, Integer syncStateSetEpoch, Set<Long> syncStateSet) {
+    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, Long masterBrokerId, Integer masterEpoch, Integer syncStateSetEpoch) {
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
         this.masterBrokerId = masterBrokerId;
-        this.syncStateSet = syncStateSet;
     }
 
     public String getMasterAddress() {
@@ -69,14 +67,6 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
 
     public void setMasterBrokerId(Long masterBrokerId) {
         this.masterBrokerId = masterBrokerId;
-    }
-
-    public Set<Long> getSyncStateSet() {
-        return syncStateSet;
-    }
-
-    public void setSyncStateSet(Set<Long> syncStateSet) {
-        this.syncStateSet = syncStateSet;
     }
 
     @Override

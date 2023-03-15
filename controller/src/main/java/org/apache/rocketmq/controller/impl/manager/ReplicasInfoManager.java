@@ -44,6 +44,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
+import org.apache.rocketmq.remoting.protocol.body.ElectMasterResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
@@ -201,7 +202,8 @@ public class ReplicasInfoManager {
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
             response.setMasterBrokerId(oldMaster);
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(oldMaster));
-            response.setSyncStateSet(syncStateSet);
+
+            result.setBody(new ElectMasterResponseBody(syncStateSet).encode());
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, err);
             return result;
         }
@@ -217,11 +219,14 @@ public class ReplicasInfoManager {
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(newMaster));
             response.setMasterEpoch(masterEpoch + 1);
             response.setSyncStateSetEpoch(syncStateSetEpoch + 1);
-            response.setSyncStateSet(newSyncStateSet);
+            ElectMasterResponseBody responseBody = new ElectMasterResponseBody(newSyncStateSet);
+
             BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
             if (null != brokerMemberGroup) {
-                result.setBody(brokerMemberGroup.encode());
+                responseBody.setBrokerMemberGroup(brokerMemberGroup);
             }
+
+            result.setBody(responseBody.encode());
             final ElectMasterEvent event = new ElectMasterEvent(brokerName, newMaster);
             result.addEvent(event);
             return result;

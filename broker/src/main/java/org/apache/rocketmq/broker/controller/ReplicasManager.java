@@ -364,8 +364,10 @@ public class ReplicasManager {
     private boolean brokerElect() {
         // Broker try to elect itself as a master in broker set.
         try {
-            ElectMasterResponseHeader tryElectResponse = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
+            Pair<ElectMasterResponseHeader, Set<Long>> tryElectResponsePair = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
                     this.brokerConfig.getBrokerName(), this.brokerControllerId);
+            ElectMasterResponseHeader tryElectResponse = tryElectResponsePair.getObject1();
+            Set<Long> syncStateSet = tryElectResponsePair.getObject2();
             final String masterAddress = tryElectResponse.getMasterAddress();
             final Long masterBrokerId = tryElectResponse.getMasterBrokerId();
             if (StringUtils.isEmpty(masterAddress) || masterBrokerId == null) {
@@ -374,7 +376,7 @@ public class ReplicasManager {
             }
 
             if (masterBrokerId.equals(this.brokerControllerId)) {
-                changeToMaster(tryElectResponse.getMasterEpoch(), tryElectResponse.getSyncStateSetEpoch(), tryElectResponse.getSyncStateSet());
+                changeToMaster(tryElectResponse.getMasterEpoch(), tryElectResponse.getSyncStateSetEpoch(), syncStateSet);
             } else {
                 changeToSlave(masterAddress, tryElectResponse.getMasterEpoch(), tryElectResponse.getMasterBrokerId());
             }
