@@ -243,6 +243,13 @@ public class ReplicasManager {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
 
                 this.masterEpoch = newMasterEpoch;
+                if (this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                    // if master doesn't change
+                    this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
+                    this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                    registerBrokerWhenRoleChange();
+                    return;
+                }
 
                 // Change SyncStateSet
                 final HashSet<Long> newSyncStateSet = new HashSet<>();
@@ -266,17 +273,7 @@ public class ReplicasManager {
                 schedulingCheckSyncStateSet();
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
-
-                this.executorService.submit(() -> {
-                    // Register broker to name-srv
-                    try {
-                        this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
-                    } catch (final Throwable e) {
-                        LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
-                        return;
-                    }
-                    LOGGER.info("Change broker [id:{}][address:{}] to master success, masterEpoch {}, syncStateSetEpoch:{}", this.brokerControllerId, this.brokerAddress, newMasterEpoch, syncStateSetEpoch);
-                });
+                registerBrokerWhenRoleChange();
             }
         }
     }
@@ -287,9 +284,17 @@ public class ReplicasManager {
                 LOGGER.info("Begin to change to slave, brokerName={}, brokerId={}, newMasterBrokerId={}, newMasterAddress={}, newMasterEpoch={}",
                         this.brokerConfig.getBrokerName(), this.brokerControllerId, newMasterBrokerId, newMasterAddress, newMasterEpoch);
 
+                this.masterEpoch = newMasterEpoch;
+                if (this.masterBrokerId == newMasterBrokerId) {
+                    // if master doesn't change
+                    this.haService.changeToSlaveWhenMasterNotChange(newMasterAddress, newMasterEpoch);
+                    this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                    registerBrokerWhenRoleChange();
+                    return;
+                }
+
                 // Change record
                 this.masterAddress = newMasterAddress;
-                this.masterEpoch = newMasterEpoch;
                 this.masterBrokerId = newMasterBrokerId;
 
                 // Stop checking syncStateSet because only master is able to check
@@ -308,20 +313,25 @@ public class ReplicasManager {
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, brokerControllerId);
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
-
-                this.executorService.submit(() -> {
-                    // Register broker to name-srv
-                    try {
-                        this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
-                    } catch (final Throwable e) {
-                        LOGGER.error("Error happen when register broker to name server, Failed to change broker to slave", e);
-                        return;
-                    }
-
-                    LOGGER.info("Change broker [id:{}][address:{}] to slave, newMasterBrokerId:{}, newMasterAddress:{}, newMasterEpoch:{}", this.brokerControllerId, this.brokerAddress, newMasterBrokerId, newMasterAddress, newMasterEpoch);
-                });
+                registerBrokerWhenRoleChange();
             }
         }
+    }
+
+    public void registerBrokerWhenRoleChange() {
+        String currentRole = this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE) ? "slave" : "master";
+
+        this.executorService.submit(() -> {
+            // Register broker to name-srv
+            try {
+                this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+            } catch (final Throwable e) {
+                LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", currentRole, e);
+                return;
+            }
+            LOGGER.info("Change broker [id:{}][address:{}] to {}, newMasterBrokerId:{}, newMasterAddress:{}, newMasterEpoch:{}, syncStateSetEpoch:{}",
+                this.brokerControllerId, this.brokerAddress, currentRole, this.masterBrokerId, this.masterAddress, this.masterEpoch, this.syncStateSetEpoch);
+        });
     }
 
     private void changeSyncStateSet(final Set<Long> newSyncStateSet, final int newSyncStateSetEpoch) {

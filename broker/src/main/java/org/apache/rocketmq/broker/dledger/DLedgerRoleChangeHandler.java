@@ -87,6 +87,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                                 Thread.sleep(100);
                             }
                             if (succ) {
+                                messageStore.recoverTopicQueueTable();
                                 changeToMaster(BrokerRole.SYNC_MASTER);
                             }
                             break;

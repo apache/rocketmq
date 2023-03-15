@@ -191,6 +191,40 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override
+    public boolean changeToMasterWhenLastRoleIsMaster(int masterEpoch) {
+        final int lastEpoch = this.epochCache.lastEpoch();
+        if (masterEpoch < lastEpoch) {
+            LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
+            return false;
+        }
+        // Append new epoch to epochFile
+        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
+        if (this.epochCache.lastEpoch() >= masterEpoch) {
+            this.epochCache.truncateSuffixByEpoch(masterEpoch);
+        }
+        this.epochCache.appendEntry(newEpochEntry);
+
+        this.defaultMessageStore.setStateMachineVersion(masterEpoch);
+        LOGGER.info("Change ha to master success, last role is master, newMasterEpoch:{}, startOffset:{}",
+            masterEpoch, newEpochEntry.getStartOffset());
+        return true;
+    }
+
+    @Override
+    public boolean changeToSlaveWhenMasterNotChange(String newMasterAddr, int newMasterEpoch) {
+        final int lastEpoch = this.epochCache.lastEpoch();
+        if (newMasterEpoch < lastEpoch) {
+            LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to slave", newMasterEpoch, lastEpoch);
+            return false;
+        }
+
+        this.defaultMessageStore.setStateMachineVersion(newMasterEpoch);
+        LOGGER.info("Change ha to slave success, master doesn't change, newMasterAddress:{}, newMasterEpoch:{}",
+            newMasterAddr, newMasterEpoch);
+        return true;
+    }
+
     public void waitingForAllCommit() {
         while (getDefaultMessageStore().remainHowManyDataToCommit() > 0) {
             getDefaultMessageStore().getCommitLog().getFlushManager().wakeUpCommit();
