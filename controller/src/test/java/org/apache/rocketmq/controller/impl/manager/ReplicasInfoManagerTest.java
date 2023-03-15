@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.controller.impl.manager;
+package org.apache.rocketmq.controller.impl.manager;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,7 +29,6 @@ import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManag
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
-import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
@@ -51,9 +50,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.rocketmq.controller.impl.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
-import static org.apache.rocketmq.controller.impl.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
-import static org.apache.rocketmq.controller.impl.controller.ControllerTestBase.DEFAULT_IP;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_IP;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
