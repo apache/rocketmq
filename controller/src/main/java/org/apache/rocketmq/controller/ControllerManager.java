@@ -84,6 +84,7 @@ public class ControllerManager {
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
+        this.notifyService = new NotifyService();
     }
 
     public boolean initialize() {
@@ -100,7 +101,6 @@ public class ControllerManager {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
-        this.notifyService = new NotifyService();
         this.notifyService.initialize();
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
