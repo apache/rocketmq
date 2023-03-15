@@ -20,6 +20,8 @@ package org.apache.rocketmq.remoting.protocol.header.controller.register;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.util.Set;
+
 public class RegisterBrokerToControllerResponseHeader implements CommandCustomHeader {
 
     private String clusterName;
@@ -33,6 +35,8 @@ public class RegisterBrokerToControllerResponseHeader implements CommandCustomHe
     private Integer masterEpoch;
 
     private Integer syncStateSetEpoch;
+
+    private Set<Long> syncStateSet;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -93,5 +97,13 @@ public class RegisterBrokerToControllerResponseHeader implements CommandCustomHe
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public Set<Long> getSyncStateSet() {
+        return syncStateSet;
+    }
+
+    public void setSyncStateSet(Set<Long> syncStateSet) {
+        this.syncStateSet = syncStateSet;
     }
 }

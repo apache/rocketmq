@@ -19,21 +19,25 @@ package org.apache.rocketmq.remoting.protocol.header.controller;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.util.Set;
+
 public class ElectMasterResponseHeader implements CommandCustomHeader {
 
     private Long masterBrokerId;
     private String masterAddress;
     private Integer masterEpoch;
     private Integer syncStateSetEpoch;
+    private Set<Long> syncStateSet;
 
     public ElectMasterResponseHeader() {
     }
 
-    public ElectMasterResponseHeader(Long masterBrokerId, String masterAddress, Integer masterEpoch, Integer syncStateSetEpoch) {
+    public ElectMasterResponseHeader(Long masterBrokerId, String masterAddress, Integer masterEpoch, Integer syncStateSetEpoch, Set<Long> syncStateSet) {
         this.masterBrokerId = masterBrokerId;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
+        this.syncStateSet = syncStateSet;
     }
 
     public String getMasterAddress() {
@@ -66,6 +70,14 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
 
     public Long getMasterBrokerId() {
         return masterBrokerId;
+    }
+
+    public void setSyncStateSet(Set<Long> syncStateSet) {
+        this.syncStateSet = syncStateSet;
+    }
+
+    public Set<Long> getSyncStateSet() {
+        return this.syncStateSet;
     }
 
     @Override

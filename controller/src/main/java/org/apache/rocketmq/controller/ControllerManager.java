@@ -177,7 +177,7 @@ public class ControllerManager {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
-                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
+                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch(), entry.getSyncStateSet());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             try {
                 this.remotingClient.invokeOneway(brokerAddr, request, 3000);

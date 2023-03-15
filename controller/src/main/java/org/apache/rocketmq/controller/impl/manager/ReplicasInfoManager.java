@@ -201,6 +201,7 @@ public class ReplicasInfoManager {
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
             response.setMasterBrokerId(oldMaster);
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(oldMaster));
+            response.setSyncStateSet(syncStateSet);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, err);
             return result;
         }
@@ -209,10 +210,14 @@ public class ReplicasInfoManager {
         if (newMaster != null) {
             final int masterEpoch = syncStateInfo.getMasterEpoch();
             final int syncStateSetEpoch = syncStateInfo.getSyncStateSetEpoch();
+            final HashSet<Long> newSyncStateSet = new HashSet<>();
+            newSyncStateSet.add(newMaster);
+
             response.setMasterBrokerId(newMaster);
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(newMaster));
             response.setMasterEpoch(masterEpoch + 1);
             response.setSyncStateSetEpoch(syncStateSetEpoch + 1);
+            response.setSyncStateSet(newSyncStateSet);
             BrokerMemberGroup brokerMemberGroup = buildBrokerMemberGroup(brokerName);
             if (null != brokerMemberGroup) {
                 result.setBody(brokerMemberGroup.encode());
@@ -313,6 +318,7 @@ public class ReplicasInfoManager {
             response.setMasterBrokerId(syncStateInfo.getMasterBrokerId());
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+            response.setSyncStateSet(syncStateInfo.getSyncStateSet());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
         }
         // if this broker's address has been changed, we need to update it

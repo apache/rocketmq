@@ -18,6 +18,8 @@
 package org.apache.rocketmq.broker.controller;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -116,6 +118,10 @@ public class ReplicasManagerTest {
 
     private static final Long SYNC_STATE = 1L;
 
+    private static final HashSet<Long> SYNC_STATE_SET_1 = new HashSet<Long>(Arrays.asList(BROKER_ID_1));
+
+    private static final HashSet<Long> SYNC_STATE_SET_2 = new HashSet<Long>(Arrays.asList(BROKER_ID_2));
+
     @Before
     public void before() throws Exception {
         UtilAll.deleteFile(new File(STORE_BASE_PATH));
@@ -134,6 +140,7 @@ public class ReplicasManagerTest {
         brokerTryElectResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         brokerTryElectResponseHeader.setMasterEpoch(OLD_MASTER_EPOCH);
         brokerTryElectResponseHeader.setSyncStateSetEpoch(OLD_MASTER_EPOCH);
+        brokerTryElectResponseHeader.setSyncStateSet(SYNC_STATE_SET_1);
         getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
         getReplicaInfoResponseHeader.setMasterAddress(OLD_MASTER_ADDRESS);
         getReplicaInfoResponseHeader.setMasterBrokerId(BROKER_ID_1);
@@ -173,18 +180,24 @@ public class ReplicasManagerTest {
 
     @Test
     public void changeBrokerRoleTest() {
+        HashSet<Long> syncStateSetA = new HashSet<>();
+        syncStateSetA.add(BROKER_ID_1);
+        HashSet<Long> syncStateSetB = new HashSet<>();
+        syncStateSetA.add(BROKER_ID_2);
         // not equal to localAddress
-        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_2, NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
+        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_2, NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, syncStateSetB))
                 .doesNotThrowAnyException();
 
         // equal to localAddress
-        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_1, OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH))
+        Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_1, OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, syncStateSetA))
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void changeToMasterTest() {
-        Assertions.assertThatCode(() -> replicasManager.changeToMaster(NEW_MASTER_EPOCH, OLD_MASTER_EPOCH)).doesNotThrowAnyException();
+        HashSet<Long> syncStateSet = new HashSet<>();
+        syncStateSet.add(BROKER_ID_1);
+        Assertions.assertThatCode(() -> replicasManager.changeToMaster(NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, syncStateSet)).doesNotThrowAnyException();
     }
 
     @Test

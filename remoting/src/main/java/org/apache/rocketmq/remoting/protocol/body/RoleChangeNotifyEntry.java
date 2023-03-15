@@ -22,6 +22,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 
+import java.util.Set;
+
 public class RoleChangeNotifyEntry {
 
     private final BrokerMemberGroup brokerMemberGroup;
@@ -34,12 +36,15 @@ public class RoleChangeNotifyEntry {
 
     private final int syncStateSetEpoch;
 
-    public RoleChangeNotifyEntry(BrokerMemberGroup brokerMemberGroup, String masterAddress, Long masterBrokerId, int masterEpoch, int syncStateSetEpoch) {
+    private final Set<Long> syncStateSet;
+
+    public RoleChangeNotifyEntry(BrokerMemberGroup brokerMemberGroup, String masterAddress, Long masterBrokerId, int masterEpoch, int syncStateSetEpoch, Set<Long> syncStateSet) {
         this.brokerMemberGroup = brokerMemberGroup;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
         this.masterBrokerId = masterBrokerId;
+        this.syncStateSet = syncStateSet;
     }
 
     public static RoleChangeNotifyEntry convert(RemotingCommand electMasterResponse) {
@@ -48,7 +53,7 @@ public class RoleChangeNotifyEntry {
         if (electMasterResponse.getBody() != null && electMasterResponse.getBody().length > 0) {
             brokerMemberGroup = RemotingSerializable.decode(electMasterResponse.getBody(), BrokerMemberGroup.class);
         }
-        return new RoleChangeNotifyEntry(brokerMemberGroup, header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch());
+        return new RoleChangeNotifyEntry(brokerMemberGroup, header.getMasterAddress(), header.getMasterBrokerId(), header.getMasterEpoch(), header.getSyncStateSetEpoch(), header.getSyncStateSet());
     }
 
 
@@ -70,5 +75,9 @@ public class RoleChangeNotifyEntry {
 
     public Long getMasterBrokerId() {
         return masterBrokerId;
+    }
+
+    public Set<Long> getSyncStateSet() {
+        return syncStateSet;
     }
 }
