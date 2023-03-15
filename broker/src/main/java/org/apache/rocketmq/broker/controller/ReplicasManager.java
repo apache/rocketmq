@@ -545,15 +545,17 @@ public class ReplicasManager {
      */
     private boolean registerBrokerToController() {
         try {
-            RegisterBrokerToControllerResponseHeader response = this.brokerOuterAPI.registerBrokerToController(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
-            if (response == null) return false;
+            Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> responsePair = this.brokerOuterAPI.registerBrokerToController(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
+            if (responsePair == null) return false;
+            RegisterBrokerToControllerResponseHeader response = responsePair.getObject1();
+            Set<Long> syncStateSet = responsePair.getObject2();
             final Long masterBrokerId = response.getMasterBrokerId();
             final String masterAddress = response.getMasterAddress();
             if (masterBrokerId == null) {
                 return true;
             }
             if (this.brokerControllerId.equals(masterBrokerId)) {
-                changeToMaster(response.getMasterEpoch(), response.getSyncStateSetEpoch(), response.getSyncStateSet());
+                changeToMaster(response.getMasterEpoch(), response.getSyncStateSetEpoch(), syncStateSet);
             } else {
                 changeToSlave(masterAddress, response.getMasterEpoch(), masterBrokerId);
             }

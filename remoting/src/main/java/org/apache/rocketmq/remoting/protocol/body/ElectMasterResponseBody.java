@@ -19,11 +19,7 @@ package org.apache.rocketmq.remoting.protocol.body;
 
 import com.google.common.base.Objects;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class ElectMasterResponseBody extends RemotingSerializable {

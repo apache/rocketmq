@@ -323,9 +323,9 @@ public class ReplicasInfoManager {
             response.setMasterBrokerId(syncStateInfo.getMasterBrokerId());
             response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
             response.setMasterEpoch(syncStateInfo.getMasterEpoch());
-            response.setSyncStateSet(syncStateInfo.getSyncStateSet());
             response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
         }
+        result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
         // if this broker's address has been changed, we need to update it
         if (!brokerAddress.equals(brokerReplicaInfo.getBrokerAddress(brokerId))) {
             final UpdateBrokerAddressEvent event = new UpdateBrokerAddressEvent(clusterName, brokerName, brokerAddress, brokerId);

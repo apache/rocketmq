@@ -19,8 +19,6 @@ package org.apache.rocketmq.remoting.protocol.header;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-import java.util.Set;
-
 public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader {
     private String masterAddress;
     private Integer masterEpoch;
