@@ -243,7 +243,7 @@ public class ReplicasManager {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
 
                 this.masterEpoch = newMasterEpoch;
-                if (this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
                     // if master doesn't change
                     this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
@@ -274,18 +274,19 @@ public class ReplicasManager {
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                 registerBrokerWhenRoleChange();
+                LOGGER.info("Change broker [id:{}][address:{}] to master success, masterEpoch {}, syncStateSetEpoch:{}", this.brokerControllerId, this.brokerAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
     }
 
-    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, long newMasterBrokerId) {
+    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, Long newMasterBrokerId) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to slave, brokerName={}, brokerId={}, newMasterBrokerId={}, newMasterAddress={}, newMasterEpoch={}",
                         this.brokerConfig.getBrokerName(), this.brokerControllerId, newMasterBrokerId, newMasterAddress, newMasterEpoch);
 
                 this.masterEpoch = newMasterEpoch;
-                if (this.masterBrokerId == newMasterBrokerId) {
+                if (newMasterBrokerId.equals(this.masterBrokerId)) {
                     // if master doesn't change
                     this.haService.changeToSlaveWhenMasterNotChange(newMasterAddress, newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
