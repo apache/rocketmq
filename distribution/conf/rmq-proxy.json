@@ -1,4 +1,3 @@
 {
-  "rocketMQClusterName": "DefaultCluster",
-  "namesrvAddr": "127.0.0.7:9876"
+  "rocketMQClusterName": "DefaultCluster"
 }
