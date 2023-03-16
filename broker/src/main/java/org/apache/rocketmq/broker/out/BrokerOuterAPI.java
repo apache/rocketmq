@@ -1185,8 +1185,8 @@ public class BrokerOuterAPI {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
             }
             case CONTROLLER_BROKER_NEED_TO_BE_REGISTERED:
-                throw new MQBrokerException(response.getCode(), response.getRemark());
             case CONTROLLER_ELECT_MASTER_FAILED:
+                throw new MQBrokerException(response.getCode(), response.getRemark());
             case CONTROLLER_MASTER_STILL_EXIST:
             case SUCCESS:
                 final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
