@@ -198,6 +198,9 @@ public class DefaultMessageStore implements MessageStore {
 
     private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
 
+    private final ScheduledExecutorService scheduledCleanQueueExecutorService =
+        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
+
     private long stateMachineVersion = 0L;
 
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
