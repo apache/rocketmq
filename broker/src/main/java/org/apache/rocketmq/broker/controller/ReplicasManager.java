@@ -274,7 +274,6 @@ public class ReplicasManager {
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                 registerBrokerWhenRoleChange();
-                LOGGER.info("Change broker [id:{}][address:{}] to master success, masterEpoch {}, syncStateSetEpoch:{}", this.brokerControllerId, this.brokerAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
     }
