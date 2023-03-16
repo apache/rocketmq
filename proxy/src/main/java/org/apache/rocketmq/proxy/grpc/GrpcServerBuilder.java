@@ -162,9 +162,8 @@ public class GrpcServerBuilder {
             log.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
             accessValidators.add(new PlainAccessValidator());
         }
-        if (!accessValidators.isEmpty()) {
-            this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
-        }
+
+        this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
 
         this.serverBuilder
             .intercept(new GlobalExceptionInterceptor())
