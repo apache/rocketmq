@@ -34,7 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ServiceThread;
@@ -43,6 +42,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
+import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
@@ -58,11 +58,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 
 /**
  * The implementation of controller, based on DLedger (raft).
@@ -78,19 +80,20 @@ public class DLedgerController implements Controller {
     private final EventSerializer eventSerializer;
     private final RoleChangeHandler roleHandler;
     private final DLedgerControllerStateMachine statemachine;
-    // use for checking whether the broker is alive
-    private BiPredicate<String, String> brokerAlivePredicate;
+
+    // Usr for checking whether the broker is alive
+    private BrokerValidPredicate brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;
 
     private AtomicBoolean isScheduling = new AtomicBoolean(false);
 
-    public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
+    public DLedgerController(final ControllerConfig config, final BrokerValidPredicate brokerAlivePredicate) {
         this(config, brokerAlivePredicate, null, null, null, null);
     }
 
     public DLedgerController(final ControllerConfig controllerConfig,
-        final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
+        final BrokerValidPredicate brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
         final ElectPolicy electPolicy) {
         this.controllerConfig = controllerConfig;
@@ -107,7 +110,7 @@ public class DLedgerController implements Controller {
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
-        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
+        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getGroup(), dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
@@ -164,9 +167,18 @@ public class DLedgerController implements Controller {
     }
 
     @Override
+    public CompletableFuture<RemotingCommand> getNextBrokerId(GetNextBrokerIdRequestHeader request) {
+        return this.scheduler.appendEvent("getNextBrokerId", () -> this.replicasInfoManager.getNextBrokerId(request), false);
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> applyBrokerId(ApplyBrokerIdRequestHeader request) {
+        return this.scheduler.appendEvent("applyBrokerId", () -> this.replicasInfoManager.applyBrokerId(request), true);
+    }
+
+    @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
-        return this.scheduler.appendEvent("registerBroker",
-            () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
+        return this.scheduler.appendEvent("registerSuccess", () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
     }
 
     @Override
@@ -229,7 +241,7 @@ public class DLedgerController implements Controller {
         return this.dLedgerServer.getMemberState();
     }
 
-    public void setBrokerAlivePredicate(BiPredicate<String, String> brokerAlivePredicate) {
+    public void setBrokerAlivePredicate(BrokerValidPredicate brokerAlivePredicate) {
         this.brokerAlivePredicate = brokerAlivePredicate;
     }
 

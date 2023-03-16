@@ -31,6 +31,10 @@ public class ConfigurationManager {
         if (StringUtils.isEmpty(proxyHome)) {
             proxyHome = System.getProperty(RMQ_PROXY_HOME, DEFAULT_RMQ_PROXY_HOME);
         }
+
+        if (proxyHome == null) {
+            proxyHome = "./";
+        }
     }
 
     public static void intConfig() throws Exception {
