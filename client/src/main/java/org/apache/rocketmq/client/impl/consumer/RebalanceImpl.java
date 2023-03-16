@@ -521,13 +521,19 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = createProcessQueue(topic);
                 pq.setLocked(true);
-                ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
-                if (pre != null) {
-                    log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
-                } else {
-                    log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
-                    try {
-                        long nextOffset = this.computePullFromWhereWithException(mq);
+                long nextOffset;
+                try {
+                    nextOffset = this.computePullFromWhereWithException(mq);
+                } catch (MQClientException e) {
+                    log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                    continue;
+                }
+                if (nextOffset >= 0) {
+                    ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
+                    if (pre != null) {
+                        log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
+                    } else {
+                        log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);
@@ -535,9 +541,9 @@ public abstract class RebalanceImpl {
                         pullRequest.setProcessQueue(pq);
                         pullRequestList.add(pullRequest);
                         changed = true;
-                    } catch (MQClientException ignored) {
-                        log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
                     }
+                } else {
+                    log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
                 }
             }
 
