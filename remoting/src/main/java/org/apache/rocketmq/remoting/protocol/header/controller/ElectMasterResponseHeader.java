@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.protocol.header.controller;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+
 public class ElectMasterResponseHeader implements CommandCustomHeader {
 
     private Long masterBrokerId;
