@@ -227,17 +227,17 @@ public class ReplicasManager {
     }
 
     public synchronized void changeBrokerRole(final Long newMasterBrokerId, final String newMasterAddress, final Integer newMasterEpoch,
-                                              final Integer syncStateSetEpoch) {
+                                              final Integer syncStateSetEpoch, final Set<Long> syncStateSet) {
         if (newMasterBrokerId != null && newMasterEpoch > this.masterEpoch) {
             if (newMasterBrokerId.equals(this.brokerControllerId)) {
-                changeToMaster(newMasterEpoch, syncStateSetEpoch);
+                changeToMaster(newMasterEpoch, syncStateSetEpoch, syncStateSet);
             } else {
                 changeToSlave(newMasterAddress, newMasterEpoch, newMasterBrokerId);
             }
         }
     }
 
-    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
+    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch, final Set<Long> syncStateSet) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
@@ -245,8 +245,7 @@ public class ReplicasManager {
                 this.masterEpoch = newMasterEpoch;
 
                 // Change SyncStateSet
-                final HashSet<Long> newSyncStateSet = new HashSet<>();
-                newSyncStateSet.add(this.brokerControllerId);
+                final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
                 // Change record
@@ -365,8 +364,10 @@ public class ReplicasManager {
     private boolean brokerElect() {
         // Broker try to elect itself as a master in broker set.
         try {
-            ElectMasterResponseHeader tryElectResponse = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
+            Pair<ElectMasterResponseHeader, Set<Long>> tryElectResponsePair = this.brokerOuterAPI.brokerElect(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(),
                     this.brokerConfig.getBrokerName(), this.brokerControllerId);
+            ElectMasterResponseHeader tryElectResponse = tryElectResponsePair.getObject1();
+            Set<Long> syncStateSet = tryElectResponsePair.getObject2();
             final String masterAddress = tryElectResponse.getMasterAddress();
             final Long masterBrokerId = tryElectResponse.getMasterBrokerId();
             if (StringUtils.isEmpty(masterAddress) || masterBrokerId == null) {
@@ -375,7 +376,7 @@ public class ReplicasManager {
             }
 
             if (masterBrokerId.equals(this.brokerControllerId)) {
-                changeToMaster(tryElectResponse.getMasterEpoch(), tryElectResponse.getSyncStateSetEpoch());
+                changeToMaster(tryElectResponse.getMasterEpoch(), tryElectResponse.getSyncStateSetEpoch(), syncStateSet);
             } else {
                 changeToSlave(masterAddress, tryElectResponse.getMasterEpoch(), tryElectResponse.getMasterBrokerId());
             }
@@ -544,15 +545,17 @@ public class ReplicasManager {
      */
     private boolean registerBrokerToController() {
         try {
-            RegisterBrokerToControllerResponseHeader response = this.brokerOuterAPI.registerBrokerToController(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
-            if (response == null) return false;
+            Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> responsePair = this.brokerOuterAPI.registerBrokerToController(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), brokerControllerId, brokerAddress, controllerLeaderAddress);
+            if (responsePair == null) return false;
+            RegisterBrokerToControllerResponseHeader response = responsePair.getObject1();
+            Set<Long> syncStateSet = responsePair.getObject2();
             final Long masterBrokerId = response.getMasterBrokerId();
             final String masterAddress = response.getMasterAddress();
             if (masterBrokerId == null) {
                 return true;
             }
             if (this.brokerControllerId.equals(masterBrokerId)) {
-                changeToMaster(response.getMasterEpoch(), response.getSyncStateSetEpoch());
+                changeToMaster(response.getMasterEpoch(), response.getSyncStateSetEpoch(), syncStateSet);
             } else {
                 changeToSlave(masterAddress, response.getMasterEpoch(), masterBrokerId);
             }
@@ -635,7 +638,7 @@ public class ReplicasManager {
                         if (StringUtils.isNoneEmpty(newMasterAddress) && masterBrokerId != null) {
                             if (masterBrokerId.equals(this.brokerControllerId)) {
                                 // If this broker is now the master
-                                changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
+                                changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch(), syncStateSet.getSyncStateSet());
                             } else {
                                 // If this broker is now the slave, and master has been changed
                                 changeToSlave(newMasterAddress, newMasterEpoch, masterBrokerId);

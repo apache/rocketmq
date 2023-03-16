@@ -246,6 +246,16 @@ public class AutoSwitchHAService extends DefaultHAService {
                 }
             }
         }
+
+        // If the slaveBrokerId is in syncStateSet but not in connectionCaughtUpTimeTable,
+        // it means that the broker has not connected.
+        for (Long slaveBrokerId : newSyncStateSet) {
+            if (!this.connectionCaughtUpTimeTable.containsKey(slaveBrokerId)) {
+                newSyncStateSet.remove(slaveBrokerId);
+                isSyncStateSetChanged = true;
+            }
+        }
+
         if (isSyncStateSetChanged) {
             markSynchronizingSyncStateSet(newSyncStateSet);
         }
