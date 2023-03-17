@@ -611,9 +611,6 @@ public class BrokerOuterAPI {
             case ResponseCode.SUCCESS: {
                 return;
             }
-            case ResponseCode.SYSTEM_ERROR: {
-                throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
-            }
             default:
                 break;
         }
@@ -981,30 +978,15 @@ public class BrokerOuterAPI {
         final Message msg,
         final RemotingCommand response
     ) throws MQBrokerException, RemotingCommandException {
+        SendStatus sendStatus = SendStatus.SEND_OK;
         switch (response.getCode()) {
             case ResponseCode.FLUSH_DISK_TIMEOUT:
+                sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
             case ResponseCode.FLUSH_SLAVE_TIMEOUT:
+                sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
             case ResponseCode.SLAVE_NOT_AVAILABLE:
+                sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
             case ResponseCode.SUCCESS: {
-                SendStatus sendStatus = SendStatus.SEND_OK;
-                switch (response.getCode()) {
-                    case ResponseCode.FLUSH_DISK_TIMEOUT:
-                        sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
-                        break;
-                    case ResponseCode.FLUSH_SLAVE_TIMEOUT:
-                        sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
-                        break;
-                    case ResponseCode.SLAVE_NOT_AVAILABLE:
-                        sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
-                        break;
-                    case ResponseCode.SUCCESS:
-                        sendStatus = SendStatus.SEND_OK;
-                        break;
-                    default:
-                        assert false;
-                        break;
-                }
-
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
@@ -1163,9 +1145,6 @@ public class BrokerOuterAPI {
                 assert response.getBody() != null;
                 return RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
             }
-            case CONTROLLER_NOT_LEADER: {
-                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
-            }
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
@@ -1181,12 +1160,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-            case CONTROLLER_NOT_LEADER: {
-                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
-            }
-            case CONTROLLER_BROKER_NEED_TO_BE_REGISTERED:
-            case CONTROLLER_ELECT_MASTER_FAILED:
-                throw new MQBrokerException(response.getCode(), response.getRemark());
+            // Only record success response.
             case CONTROLLER_MASTER_STILL_EXIST:
             case SUCCESS:
                 final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
@@ -1247,12 +1221,6 @@ public class BrokerOuterAPI {
                 assert response.getBody() != null;
                 final SyncStateSet stateSet = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
                 return new Pair<>(header, stateSet);
-            }
-            case CONTROLLER_NOT_LEADER: {
-                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
-            }
-            case CONTROLLER_BROKER_METADATA_NOT_EXIST: {
-                throw new MQBrokerException(response.getCode(), response.getRemark());
             }
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
