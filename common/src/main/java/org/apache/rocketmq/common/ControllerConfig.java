@@ -43,7 +43,7 @@ public class ControllerConfig {
     private String controllerDLegerPeers;
     private String controllerDLegerSelfId;
     private int mappedFileSize = 1024 * 1024 * 1024;
-    private String controllerStorePath = System.getProperty("user.home") + File.separator + "DLedgerController";
+    private String controllerStorePath = System.getProperty("user.home") + File.separator + "DledgerController";
 
     /**
      * Whether the controller can elect a master which is not in the syncStateSet.
