@@ -111,6 +111,9 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerCheckpoint;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.TimerMetrics;
 
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -159,6 +162,8 @@ public class BrokerController {
     private ExecutorService sendMessageExecutor;
     private ExecutorService putMessageFutureExecutor;
     private ExecutorService pullMessageExecutor;
+    private TimerMessageStore timerMessageStore;
+    private TimerCheckpoint timerCheckpoint;
     private ExecutorService replyMessageExecutor;
     private ExecutorService queryMessageExecutor;
     private ExecutorService adminBrokerExecutor;
@@ -261,6 +266,12 @@ public class BrokerController {
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
+                if (messageStoreConfig.isTimerWheelEnable()) {
+                    this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
+                    TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
+                    this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
+                    messageStore.setTimerMessageStore(this.timerMessageStore);
+                }
             } catch (IOException e) {
                 result = false;
                 log.error("Failed to initialize", e);
@@ -268,7 +279,9 @@ public class BrokerController {
         }
 
         result = result && this.messageStore.load();
-
+        if (messageStoreConfig.isTimerWheelEnable()) {
+            result = result && this.timerMessageStore.load();
+        }
         if (result) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
@@ -759,7 +772,10 @@ public class BrokerController {
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.shutdown();
         }
-
+        //it is better to make sure the timerMessageStore shutdown firstly
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.shutdown();
+        }
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
@@ -853,6 +869,10 @@ public class BrokerController {
     public void start() throws Exception {
         if (this.messageStore != null) {
             this.messageStore.start();
+        }
+
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.start();
         }
 
         if (this.remotingServer != null) {

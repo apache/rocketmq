@@ -518,6 +518,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("[LMQ_CONSUME_QUEUE_NUM_EXCEEDED]broker config enableLmq and enableMultiDispatch, lmq consumeQueue num exceed maxLmqConsumeQueueNum config num, default limit 2w.");
                 break;
+            case WHEEL_TIMER_MSG_ILLEGAL:
+                response.setCode(ResponseCode.WHEEL_TIMER_MSG_ILLEGAL);
+                response.setRemark(String.format("the accurate delay message is illegal, delay time max limit %dms, or send message too fast, triggered the flow control or check props if setting TIMER_DEL_UNIQKEY or not",
+                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000));
+                break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UNKNOWN_ERROR");
