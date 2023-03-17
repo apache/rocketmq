@@ -331,7 +331,7 @@ public class ReplicasManager {
             try {
                 this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
             } catch (final Throwable e) {
-                LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE), e);
+                LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", this.brokerController.getMessageStoreConfig().getBrokerRole(), e);
                 return;
             }
             LOGGER.info("Change broker [id:{}][address:{}] to {}, newMasterBrokerId:{}, newMasterAddress:{}, newMasterEpoch:{}, syncStateSetEpoch:{}",
