@@ -55,7 +55,7 @@ public class MQClientAPIFactory implements StartAndShutdown {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false");
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         if (StringUtils.isEmpty(proxyConfig.getNamesrvDomain())) {
-            if (proxyConfig.getNamesrvAddr() == null) {
+            if (proxyConfig.getNamesrvAddr() == null || proxyConfig.getNamesrvAddr().isEmpty()) {
                 throw new RuntimeException("The configuration item NamesrvAddr is not configured");
             }
             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, proxyConfig.getNamesrvAddr());
