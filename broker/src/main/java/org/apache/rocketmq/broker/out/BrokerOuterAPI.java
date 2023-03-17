@@ -135,11 +135,7 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
-import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
-import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED;
-import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_ELECT_MASTER_FAILED;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
-import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 
 public class BrokerOuterAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -978,50 +974,57 @@ public class BrokerOuterAPI {
         final Message msg,
         final RemotingCommand response
     ) throws MQBrokerException, RemotingCommandException {
-        SendStatus sendStatus = SendStatus.SEND_OK;
+        SendStatus sendStatus = null;
         switch (response.getCode()) {
             case ResponseCode.FLUSH_DISK_TIMEOUT:
                 sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
+                break;
             case ResponseCode.FLUSH_SLAVE_TIMEOUT:
                 sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
+                break;
             case ResponseCode.SLAVE_NOT_AVAILABLE:
                 sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
+                break;
             case ResponseCode.SUCCESS: {
-                SendMessageResponseHeader responseHeader =
-                    (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-
-                //If namespace not null , reset Topic without namespace.
-                String topic = msg.getTopic();
-
-                MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
-
-                String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
-                if (msg instanceof MessageBatch) {
-                    StringBuilder sb = new StringBuilder();
-                    for (Message message : (MessageBatch) msg) {
-                        sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));
-                    }
-                    uniqMsgId = sb.toString();
-                }
-                SendResult sendResult = new SendResult(sendStatus,
-                    uniqMsgId,
-                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
-                sendResult.setTransactionId(responseHeader.getTransactionId());
-                String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
-                String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
-                if (regionId == null || regionId.isEmpty()) {
-                    regionId = MixAll.DEFAULT_TRACE_REGION_ID;
-                }
-                if (traceOn != null && traceOn.equals("false")) {
-                    sendResult.setTraceOn(false);
-                } else {
-                    sendResult.setTraceOn(true);
-                }
-                sendResult.setRegionId(regionId);
-                return sendResult;
+                sendStatus = SendStatus.SEND_OK;
+                break;
             }
             default:
                 break;
+        }
+        if (sendStatus != null) {
+            SendMessageResponseHeader responseHeader =
+                    (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+
+            //If namespace not null , reset Topic without namespace.
+            String topic = msg.getTopic();
+
+            MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
+
+            String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
+            if (msg instanceof MessageBatch) {
+                StringBuilder sb = new StringBuilder();
+                for (Message message : (MessageBatch) msg) {
+                    sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));
+                }
+                uniqMsgId = sb.toString();
+            }
+            SendResult sendResult = new SendResult(sendStatus,
+                    uniqMsgId,
+                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+            sendResult.setTransactionId(responseHeader.getTransactionId());
+            String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
+            String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
+            if (regionId == null || regionId.isEmpty()) {
+                regionId = MixAll.DEFAULT_TRACE_REGION_ID;
+            }
+            if (traceOn != null && traceOn.equals("false")) {
+                sendResult.setTraceOn(false);
+            } else {
+                sendResult.setTraceOn(true);
+            }
+            sendResult.setRegionId(regionId);
+            return sendResult;
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
