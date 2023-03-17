@@ -244,9 +244,13 @@ public class ReplicasManager {
 
                 this.masterEpoch = newMasterEpoch;
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                    // Change SyncStateSet
+                    final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
+                    changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                     // if master doesn't change
                     this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                    this.executorService.submit(this::checkSyncStateSetAndDoReport);
                     registerBrokerWhenRoleChange();
                     return;
                 }
@@ -272,6 +276,7 @@ public class ReplicasManager {
                 schedulingCheckSyncStateSet();
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                this.executorService.submit(this::checkSyncStateSetAndDoReport);
                 registerBrokerWhenRoleChange();
             }
         }
@@ -318,19 +323,19 @@ public class ReplicasManager {
     }
 
     public void registerBrokerWhenRoleChange() {
-        String currentRole = this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE) ? "slave" : "master";
 
         this.executorService.submit(() -> {
             // Register broker to name-srv
             try {
                 this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
             } catch (final Throwable e) {
-                LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", currentRole, e);
+                LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE), e);
                 return;
             }
             LOGGER.info("Change broker [id:{}][address:{}] to {}, newMasterBrokerId:{}, newMasterAddress:{}, newMasterEpoch:{}, syncStateSetEpoch:{}",
-                this.brokerControllerId, this.brokerAddress, currentRole, this.masterBrokerId, this.masterAddress, this.masterEpoch, this.syncStateSetEpoch);
+                this.brokerControllerId, this.brokerAddress, this.brokerController.getMessageStoreConfig().getBrokerRole(), this.masterBrokerId, this.masterAddress, this.masterEpoch, this.syncStateSetEpoch);
         });
+
     }
 
     private void changeSyncStateSet(final Set<Long> newSyncStateSet, final int newSyncStateSetEpoch) {
@@ -730,18 +735,22 @@ public class ReplicasManager {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
         this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
-            final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
-            newSyncStateSet.add(this.brokerControllerId);
-            synchronized (this) {
-                if (this.syncStateSet != null) {
-                    // Check if syncStateSet changed
-                    if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
-                        return;
-                    }
+            checkSyncStateSetAndDoReport();
+        }, 3 * 1000, this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+    }
+
+    private void checkSyncStateSetAndDoReport(){
+        final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
+        newSyncStateSet.add(this.brokerControllerId);
+        synchronized (this) {
+            if (this.syncStateSet != null) {
+                // Check if syncStateSet changed
+                if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
+                    return;
                 }
             }
-            doReportSyncStateSetChanged(newSyncStateSet);
-        }, 3 * 1000, this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+        }
+        doReportSyncStateSetChanged(newSyncStateSet);
     }
 
     private void doReportSyncStateSetChanged(Set<Long> newSyncStateSet) {
