@@ -353,7 +353,7 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames) {
+    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames, final BrokerValidPredicate brokerAlivePredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
         final BrokerReplicasInfo brokerReplicasInfo = new BrokerReplicasInfo();
         for (String brokerName : brokerNames) {
@@ -367,14 +367,16 @@ public class ReplicasInfoManager {
                 final ArrayList<BrokerReplicasInfo.ReplicaIdentity> notInSyncReplicas = new ArrayList<>();
 
                 brokerReplicaInfo.getBrokerIdTable().forEach((brokerId, brokerAddress) -> {
+                    Boolean isAlive = brokerAlivePredicate.check(this.replicaInfoTable.get(brokerName).getClusterName(), brokerName, brokerId);
                     if (syncStateSet.contains(brokerId)) {
-                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress));
+                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress, isAlive));
                     } else {
-                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress));
+                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress, isAlive));
                     }
                 });
 
-                final BrokerReplicasInfo.ReplicasInfo inSyncState = new BrokerReplicasInfo.ReplicasInfo(masterBrokerId, brokerReplicaInfo.getBrokerAddress(masterBrokerId), syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(), inSyncReplicas, notInSyncReplicas);
+                final BrokerReplicasInfo.ReplicasInfo inSyncState = new BrokerReplicasInfo.ReplicasInfo(masterBrokerId, brokerReplicaInfo.getBrokerAddress(masterBrokerId), syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(),
+                        inSyncReplicas, notInSyncReplicas);
                 brokerReplicasInfo.addReplicaInfo(brokerName, inSyncState);
             }
         }
