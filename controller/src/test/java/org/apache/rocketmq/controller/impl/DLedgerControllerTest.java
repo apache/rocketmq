@@ -75,7 +75,7 @@ public class DLedgerControllerTest {
         config.setControllerStorePath(path);
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
-
+        config.setScanInactiveMasterInterval(1000);
         final DLedgerController controller = new DLedgerController(config, (str1, str2, str3) -> true);
 
         controller.startup();
@@ -283,7 +283,7 @@ public class DLedgerControllerTest {
             assertEquals(DEFAULT_BROKER_NAME, brokerName);
             atomicBoolean.set(true);
         });
-        Thread.sleep(6000);
+        Thread.sleep(2000);
         assertTrue(atomicBoolean.get());
     }
 

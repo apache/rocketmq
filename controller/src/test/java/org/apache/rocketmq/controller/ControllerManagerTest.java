@@ -240,19 +240,6 @@ public class ControllerManagerTest {
         assertTrue(flag);
 
         executor.shutdown();
-
-        // shutdown two slave controller
-        for (ControllerManager controller : controllers) {
-            if (controller != leader) {
-                controller.shutdown();
-            }
-        }
-
-        //
-
-
-        // Resume a normal heartbeat for broker1, but
-
     }
 
     @After
