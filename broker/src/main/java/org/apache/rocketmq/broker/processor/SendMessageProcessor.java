@@ -398,6 +398,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
                      this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
+                break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                 response.setRemark(
