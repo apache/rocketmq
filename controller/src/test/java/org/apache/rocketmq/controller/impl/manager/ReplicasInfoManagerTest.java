@@ -87,7 +87,7 @@ public class ReplicasInfoManagerTest {
     }
 
     private BrokerReplicasInfo.ReplicasInfo getReplicasInfo(String brokerName) {
-        ControllerResult<Void> syncStateData = this.replicasInfoManager.getSyncStateData(Arrays.asList(brokerName));
+        ControllerResult<Void> syncStateData = this.replicasInfoManager.getSyncStateData(Arrays.asList(brokerName), (a, b, c) -> true);
         BrokerReplicasInfo replicasInfo = RemotingSerializable.decode(syncStateData.getBody(), BrokerReplicasInfo.class);
         return replicasInfo.getReplicasInfoTable().get(brokerName);
     }
