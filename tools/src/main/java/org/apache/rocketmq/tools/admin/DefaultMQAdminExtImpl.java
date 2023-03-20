@@ -48,6 +48,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -78,6 +79,7 @@ import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
 import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
@@ -1851,9 +1853,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName,
-        String brokerName, String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
-        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerAddr);
+    public Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName,
+                                                                          String brokerName, Long brokerId) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().electMaster(controllerAddr, clusterName, brokerName, brokerId);
     }
 
     @Override
@@ -1895,9 +1897,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr, boolean isCleanLivingBroker)
+        String brokerIdSetToClean, boolean isCleanLivingBroker)
         throws RemotingException, InterruptedException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerAddr, isCleanLivingBroker);
+        this.mqClientInstance.getMQClientAPIImpl().cleanControllerBrokerData(controllerAddr, clusterName, brokerName, brokerIdSetToClean, isCleanLivingBroker);
     }
 
     public MQClientInstance getMqClientInstance() {

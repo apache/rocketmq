@@ -61,6 +61,7 @@ JAVA_OPT="${JAVA_OPT} -XX:+PerfDisableSharedMem"
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
+JAVA_OPT="${JAVA_OPT} -Drmq.logback.configurationFile=${BASE_DIR}/conf/rmq.client.logback.xml"
 
 if [ -z "$JAVA_HOME" ]; then
   JAVA_HOME=/usr/java

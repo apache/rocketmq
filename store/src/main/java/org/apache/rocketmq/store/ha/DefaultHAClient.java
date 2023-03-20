@@ -309,6 +309,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
             try {
                 switch (this.currentState) {
                     case SHUTDOWN:
+                        this.flowMonitor.shutdown(true);
                         return;
                     case READY:
                         if (!this.connectMaster()) {
@@ -339,6 +340,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
             }
         }
 
+        this.flowMonitor.shutdown(true);
         log.info(this.getServiceName() + " service end");
     }
 

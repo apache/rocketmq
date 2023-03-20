@@ -114,6 +114,7 @@ public class PopReviveService extends ServiceThread {
             MessageAccessor.setProperties(msgInner, new HashMap<>());
         }
         msgInner.setBornTimestamp(messageExt.getBornTimestamp());
+        msgInner.setFlag(messageExt.getFlag());
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
@@ -597,6 +598,11 @@ public class PopReviveService extends ServiceThread {
                 this.waitForRunning(brokerController.getBrokerConfig().getReviveInterval());
                 if (!shouldRunPopRevive) {
                     POP_LOGGER.info("skip start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                    continue;
+                }
+
+                if (!brokerController.getMessageStore().getMessageStoreConfig().isTimerWheelEnable()) {
+                    POP_LOGGER.warn("skip revive topic because timerWheelEnable is false");
                     continue;
                 }
 
