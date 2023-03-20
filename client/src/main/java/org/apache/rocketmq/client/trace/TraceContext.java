@@ -131,6 +131,14 @@ public class TraceContext implements Comparable<TraceContext> {
         return Long.compare(this.timeStamp, o.getTimeStamp());
     }
 
+    public AccessChannel getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(1024);
