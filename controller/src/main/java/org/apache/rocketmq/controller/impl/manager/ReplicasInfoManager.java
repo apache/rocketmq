@@ -373,7 +373,7 @@ public class ReplicasInfoManager {
                 brokerReplicaInfo.getBrokerIdTable().forEach((brokerId, brokerAddress) -> {
                     Boolean isAlive = brokerAlivePredicate.check(brokerReplicaInfo.getClusterName(), brokerName, brokerId);
                     BrokerReplicasInfo.ReplicaIdentity replica = new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress);
-                    replica.setIsAlive(isAlive);
+                    replica.setAlive(isAlive);
                     if (syncStateSet.contains(brokerId)) {
                         inSyncReplicas.add(replica);
                     } else {

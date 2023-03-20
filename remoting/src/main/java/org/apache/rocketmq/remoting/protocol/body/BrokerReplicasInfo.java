@@ -163,12 +163,12 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
             this.brokerId = brokerId;
         }
 
-        public Boolean getIsAlive() {
-            return this.isAlive;
+        public Boolean getAlive() {
+            return isAlive;
         }
 
-        public void setIsAlive(Boolean isAlive) {
-            this.isAlive = isAlive;
+        public void setAlive(Boolean alive) {
+            isAlive = alive;
         }
 
         @Override
