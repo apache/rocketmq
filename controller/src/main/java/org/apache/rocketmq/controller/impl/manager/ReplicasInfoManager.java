@@ -366,12 +366,18 @@ public class ReplicasInfoManager {
                 final ArrayList<BrokerReplicasInfo.ReplicaIdentity> inSyncReplicas = new ArrayList<>();
                 final ArrayList<BrokerReplicasInfo.ReplicaIdentity> notInSyncReplicas = new ArrayList<>();
 
+                if (brokerReplicaInfo == null) {
+                    continue;
+                }
+
                 brokerReplicaInfo.getBrokerIdTable().forEach((brokerId, brokerAddress) -> {
-                    Boolean isAlive = brokerAlivePredicate.check(this.replicaInfoTable.get(brokerName).getClusterName(), brokerName, brokerId);
+                    Boolean isAlive = brokerAlivePredicate.check(brokerReplicaInfo.getClusterName(), brokerName, brokerId);
+                    BrokerReplicasInfo.ReplicaIdentity replica = new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress);
+                    replica.setIsAlive(isAlive);
                     if (syncStateSet.contains(brokerId)) {
-                        inSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress, isAlive));
+                        inSyncReplicas.add(replica);
                     } else {
-                        notInSyncReplicas.add(new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress, isAlive));
+                        notInSyncReplicas.add(replica);
                     }
                 });
 

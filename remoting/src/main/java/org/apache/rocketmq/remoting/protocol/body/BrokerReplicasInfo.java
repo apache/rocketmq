@@ -114,13 +114,11 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         }
 
         public boolean isExistInSync(String brokerName, Long brokerId, String brokerAddress) {
-            return this.getInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress, true))
-                    || this.getInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress, false)) ;
+            return this.getInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress));
         }
 
         public boolean isExistInNotSync(String brokerName, Long brokerId, String brokerAddress) {
-            return this.getNotInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress, true))
-                    || this.getNotInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress, false));
+            return this.getNotInSyncReplicas().contains(new ReplicaIdentity(brokerName, brokerId, brokerAddress));
         }
 
         public boolean isExistInAllReplicas(String brokerName, Long brokerId, String brokerAddress) {
@@ -133,13 +131,12 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
         private Long brokerId;
 
         private String brokerAddress;
-        private Boolean isAlive;
+        private Boolean isAlive = false;
 
-        public ReplicaIdentity(String brokerName, Long brokerId, String brokerAddress, Boolean isAlive) {
+        public ReplicaIdentity(String brokerName, Long brokerId, String brokerAddress) {
             this.brokerName = brokerName;
             this.brokerId = brokerId;
             this.brokerAddress = brokerAddress;
-            this.isAlive = isAlive;
         }
 
         public String getBrokerName() {
@@ -164,6 +161,14 @@ public class BrokerReplicasInfo extends RemotingSerializable  {
 
         public void setBrokerId(Long brokerId) {
             this.brokerId = brokerId;
+        }
+
+        public Boolean getIsAlive() {
+            return this.isAlive;
+        }
+
+        public void setIsAlive(Boolean isAlive) {
+            this.isAlive = isAlive;
         }
 
         @Override
