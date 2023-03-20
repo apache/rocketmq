@@ -67,19 +67,16 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName == null) {
-            return selectOneMessageQueue();
-        } else {
+        if (lastBrokerName != null) {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
-                int index = this.sendWhichQueue.incrementAndGet();
-                int pos = index % this.messageQueueList.size();
-                MessageQueue mq = this.messageQueueList.get(pos);
+                MessageQueue mq = selectOneMessageQueue();
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
             }
-            return selectOneMessageQueue();
         }
+
+        return selectOneMessageQueue();
     }
 
     public MessageQueue selectOneMessageQueue() {
