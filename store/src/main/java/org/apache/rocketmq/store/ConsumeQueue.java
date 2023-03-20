@@ -43,6 +43,19 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * ConsumeQueue's store unit. Format:
+     * <pre>
+     * ┌───────────────────────────────┬───────────────────┬───────────────────────────────┐
+     * │    CommitLog Physical Offset  │      Body Size    │            Tag HashCode       │
+     * │          (8 Bytes)            │      (4 Bytes)    │             (8 Bytes)         │
+     * ├───────────────────────────────┴───────────────────┴───────────────────────────────┤
+     * │                                     Store Unit                                    │
+     * │                                                                                   │
+     * </pre>
+     * ConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
+     */
     public static final int CQ_STORE_UNIT_SIZE = 20;
     public static final int MSG_TAG_OFFSET_INDEX = 12;
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
