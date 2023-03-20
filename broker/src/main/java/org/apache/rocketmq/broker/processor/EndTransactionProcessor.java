@@ -183,7 +183,6 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             return false;
         }
         long transactionTimeout = brokerController.getBrokerConfig().getTransactionTimeOut();
-        long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
 
         String checkImmunityTimeStr = messageExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
         if (StringUtils.isNotEmpty(checkImmunityTimeStr)) {
