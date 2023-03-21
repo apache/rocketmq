@@ -36,7 +36,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
