@@ -32,6 +32,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -42,6 +44,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
+import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
@@ -80,6 +83,11 @@ public class DLedgerController implements Controller {
     private final EventSerializer eventSerializer;
     private final RoleChangeHandler roleHandler;
     private final DLedgerControllerStateMachine statemachine;
+    private final ScheduledExecutorService scanInactiveMasterService;
+
+    private ScheduledFuture scanInactiveMasterFuture;
+
+    private List<BrokerLifecycleListener> brokerLifecycleListeners;
 
     // Usr for checking whether the broker is alive
     private BrokerValidPredicate brokerAlivePredicate;
@@ -116,6 +124,8 @@ public class DLedgerController implements Controller {
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
         this.dLedgerServer.registerStateMachine(this.statemachine);
         this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
+        this.scanInactiveMasterService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DLedgerController_scanInactiveService_"));
+        this.brokerLifecycleListeners = new ArrayList<>();
     }
 
     @Override
@@ -125,6 +135,7 @@ public class DLedgerController implements Controller {
 
     @Override
     public void shutdown() {
+        this.cancelScanInactiveFuture();
         this.dLedgerServer.shutdown();
     }
 
@@ -194,6 +205,11 @@ public class DLedgerController implements Controller {
     }
 
     @Override
+    public void registerBrokerLifecycleListener(BrokerLifecycleListener listener) {
+        this.brokerLifecycleListeners.add(listener);
+    }
+
+    @Override
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
         final Map<String, String> peers = state.getPeerMap();
@@ -219,18 +235,39 @@ public class DLedgerController implements Controller {
     }
 
     /**
+     * Scan all broker-set in statemachine, find that the broker-set which
+     * its master has been timeout but still has at least one broker keep alive with controller,
+     * and we trigger an election to update its state.
+     */
+    private void scanInactiveMasterAndTriggerReelect() {
+        if (!this.roleHandler.isLeaderState()) {
+            cancelScanInactiveFuture();
+            return;
+        }
+        List<String> brokerSets = this.replicasInfoManager.scanNeedReelectBrokerSets(this.brokerAlivePredicate);
+        for (String brokerName : brokerSets) {
+            // Notify ControllerManager
+            this.brokerLifecycleListeners.forEach(listener -> listener.onBrokerInactive(null, brokerName, null));
+        }
+    }
+
+    /**
      * Append the request to DLedger, and wait for DLedger to commit the request.
      */
-    private boolean appendToDLedgerAndWait(final AppendEntryRequest request) throws Throwable {
+    private boolean appendToDLedgerAndWait(final AppendEntryRequest request) {
         if (request != null) {
             request.setGroup(this.dLedgerConfig.getGroup());
             request.setRemoteId(this.dLedgerConfig.getSelfId());
-
-            final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dLedgerFuture.getPos() == -1) {
+            try {
+                final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+                if (dLedgerFuture.getPos() == -1) {
+                    return false;
+                }
+                dLedgerFuture.get(5, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.error("Failed to append entry to DLedger", e);
                 return false;
             }
-            dLedgerFuture.get(5, TimeUnit.SECONDS);
             return true;
         }
         return false;
@@ -247,6 +284,13 @@ public class DLedgerController implements Controller {
 
     public void setElectPolicy(ElectPolicy electPolicy) {
         this.electPolicy = electPolicy;
+    }
+
+    private void cancelScanInactiveFuture() {
+        if (this.scanInactiveMasterFuture != null) {
+            this.scanInactiveMasterFuture.cancel(true);
+            this.scanInactiveMasterFuture = null;
+        }
     }
 
     /**
@@ -433,11 +477,13 @@ public class DLedgerController implements Controller {
                         this.currentRole = MemberState.Role.CANDIDATE;
                         log.info("Controller {} change role to candidate", this.selfId);
                         DLedgerController.this.stopScheduling();
+                        DLedgerController.this.cancelScanInactiveFuture();
                         break;
                     case FOLLOWER:
                         this.currentRole = MemberState.Role.FOLLOWER;
                         log.info("Controller {} change role to Follower, leaderId:{}", this.selfId, getMemberState().getLeaderId());
                         DLedgerController.this.stopScheduling();
+                        DLedgerController.this.cancelScanInactiveFuture();
                         break;
                     case LEADER: {
                         log.info("Controller {} change role to leader, try process a initial proposal", this.selfId);
@@ -452,6 +498,12 @@ public class DLedgerController implements Controller {
                                 if (appendToDLedgerAndWait(request)) {
                                     this.currentRole = MemberState.Role.LEADER;
                                     DLedgerController.this.startScheduling();
+                                    if (DLedgerController.this.scanInactiveMasterFuture == null) {
+                                        long scanInactiveMasterInterval = DLedgerController.this.controllerConfig.getScanInactiveMasterInterval();
+                                        DLedgerController.this.scanInactiveMasterFuture =
+                                                DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
+                                                        scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
+                                    }
                                     break;
                                 }
                             } catch (final Throwable e) {
