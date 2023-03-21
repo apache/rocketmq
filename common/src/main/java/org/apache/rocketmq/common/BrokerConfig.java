@@ -263,7 +263,7 @@ public class BrokerConfig extends BrokerIdentity {
      * Transaction message check interval.
      */
     @ImportantField
-    private long transactionCheckInterval = 60 * 1000;
+    private long transactionCheckInterval = 30 * 1000;
 
     /**
      * transaction batch op message
