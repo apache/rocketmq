@@ -30,6 +30,19 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int hashSlotSize = 4;
+    /**
+     * Each index's store unit. Format:
+     * <pre>
+     * ┌───────────────┬───────────────────────────────┬───────────────┬───────────────┐
+     * │ Key HashCode  │        Physical Offset        │   Time Diff   │ Next Index Pos│
+     * │   (4 Bytes)   │          (8 Bytes)            │   (4 Bytes)   │   (4 Bytes)   │
+     * ├───────────────┴───────────────────────────────┴───────────────┴───────────────┤
+     * │                                 Index Store Unit                              │
+     * │                                                                               │
+     * </pre>
+     * Each index's store unit. Size:
+     * Key HashCode(4) + Physical Offset(8) + Time Diff(4) + Next Index Pos(4) = 20 Bytes
+     */
     private static int indexSize = 20;
     private static int invalidIndex = 0;
     private final int hashSlotNum;
