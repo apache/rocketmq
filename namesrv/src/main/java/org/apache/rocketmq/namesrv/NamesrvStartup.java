@@ -26,6 +26,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -125,7 +126,7 @@ public class NamesrvStartup {
             System.exit(0);
         }
 
-        if (null == namesrvConfig.getRocketmqHome()) {
+        if (StringUtils.isEmpty(namesrvConfig.getRocketmqHome())) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
         }
