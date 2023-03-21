@@ -19,6 +19,8 @@ package org.apache.rocketmq.controller;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
@@ -108,6 +110,12 @@ public interface Controller {
      * Get SyncStateData for target brokers, this api is used for admin tools.
      */
     CompletableFuture<RemotingCommand> getSyncStateData(final List<String> brokerNames);
+
+    /**
+     * Add broker's lifecycle listener
+     * @param listener listener
+     */
+    void registerBrokerLifecycleListener(final BrokerLifecycleListener listener);
 
     /**
      * Get the remotingServer used by the controller, the upper layer will reuse this remotingServer.

@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
+import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -99,7 +100,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void addBrokerLifecycleListener(BrokerLifecycleListener listener) {
+    public void registerBrokerLifecycleListener(BrokerLifecycleListener listener) {
         this.brokerLifecycleListeners.add(listener);
     }
 
