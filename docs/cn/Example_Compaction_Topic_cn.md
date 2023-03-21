@@ -3,7 +3,7 @@
 ## 使用方式
 
 ### 打开namesrv上支持顺序消息的开关
-
+CompactionTopic依赖顺序消息来保障一致性
 ```shell
 $ bin/mqadmin updateNamesrvConfig -k orderMessageEnable -v true
 ```
@@ -21,23 +21,23 @@ TopicConfig [topicName=ctopic, readQueueNums=8, writeQueueNums=8, perm=RW-, topi
 与普通消息一样
 
 ```java
-DefaultMQProducer producer=new DefaultMQProducer("CompactionTestGroup");
-        producer.setNamesrvAddr("localhost:9876");
-        producer.start();
+DefaultMQProducer producer = new DefaultMQProducer("CompactionTestGroup");
+producer.setNamesrvAddr("localhost:9876");
+producer.start();
 
-        String topic="ctopic";
-        String tag="tag1";
-        String key="key1";
-        Message msg=new Message(topic,tag,key,"bodys"getBytes(StandardCharsets.UTF_8));
-        SendResult sendResult=producer.send(msg,(mqs,message,shardingKey)->{
-        int select=Math.abs(shardingKey.hashCode());
-        if(select< 0){
-        select=0;
-        }
-        return mqs.get(select%mqs.size());
-        },key);
+String topic = "ctopic";
+String tag = "tag1";
+String key = "key1";
+Message msg = new Message(topic, tag, key, "bodys"getBytes(StandardCharsets.UTF_8));
+SendResult sendResult = producer.send(msg, (mqs, message, shardingKey) -> {
+    int select = Math.abs(shardingKey.hashCode());
+    if (select < 0) {
+        select = 0;
+    }
+    return mqs.get(select % mqs.size());
+}, key);
 
-        System.out.printf("%s%n",sendResult);
+System.out.printf("%s%n", sendResult);
 ``` 
 
 ### 消费数据
@@ -46,28 +46,28 @@ DefaultMQProducer producer=new DefaultMQProducer("CompactionTestGroup");
 在compaction场景下，大部分消费都是从0开始消费完整的数据
 
 ```java
-DefaultLitePullConsumer consumer=new DefaultLitePullConsumer("compactionTestGroup");
-        consumer.setNamesrvAddr("localhost:9876");
-        consumer.setPullThreadNums(4);
-        consumer.start();
+DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("compactionTestGroup");
+consumer.setNamesrvAddr("localhost:9876");
+consumer.setPullThreadNums(4);
+consumer.start();
 
-        Collection<MessageQueue> messageQueueList=consumer.fetchMessageQueues("ctopic");
-        consumer.assign(messageQueueList);
-        messageQueueList.forEach(mq->{
-        try{
+Collection<MessageQueue> messageQueueList = consumer.fetchMessageQueues("ctopic");
+consumer.assign(messageQueueList);
+messageQueueList.forEach(mq -> {
+    try {
         consumer.seekToBegin(mq);
-        }catch(MQClientException e){
+    } catch (MQClientException e) {
         e.printStackTrace();
-        }
-        });
+    }
+});
 
-        Map<String, byte[]>kvStore=Maps.newHashMap();
-        while(true){
-        List<MessageExt> msgList=consumer.poll(1000);
-        if(msgList!=null){
-        msgList.forEach(msg->kvStore.put(msg.getKeys(),msg.getBody()));
-        }
-        }
+Map<String, byte[]> kvStore = Maps.newHashMap();
+while (true) {
+    List<MessageExt> msgList = consumer.poll(1000);
+    if (msgList != null) {
+        msgList.forEach(msg -> kvStore.put(msg.getKeys(), msg.getBody()));
+    }
+}
 
 //use the kvStore
 ```
