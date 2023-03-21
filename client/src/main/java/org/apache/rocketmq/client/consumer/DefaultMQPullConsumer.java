@@ -452,4 +452,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
     }
+
+    public void persist(MessageQueue mq) {
+        this.getOffsetStore().persist(queueWithNamespace(mq));
+    }
 }
