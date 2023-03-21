@@ -36,6 +36,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -898,61 +900,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 this.currentThread = Thread.currentThread();
 
-                if (assignedMessageQueue.isPaused(messageQueue)) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_PAUSE, TimeUnit.MILLISECONDS);
-                    log.debug("Message Queue: {} has been paused!", messageQueue);
+                LongConsumer messageQueueConsumer = delay -> scheduledThreadPoolExecutor.schedule(this, delay, TimeUnit.MILLISECONDS);
+                if (!DefaultLitePullConsumerImpl.this.prePullMessage(messageQueue, messageQueueConsumer)) {
                     return;
                 }
 
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
-
-                if (null == processQueue || processQueue.isDropped()) {
-                    log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
-                    return;
-                }
-
-                processQueue.setLastPullTimestamp(System.currentTimeMillis());
-
-                if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
-                        log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
-                    }
-                    return;
-                }
-
-                long cachedMessageCount = processQueue.getMsgCount().get();
-                long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
-
-                if (cachedMessageCount > defaultLitePullConsumer.getPullThresholdForQueue()) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueFlowControlTimes++ % 1000) == 0) {
-                        log.warn(
-                            "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
-                            defaultLitePullConsumer.getPullThresholdForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
-                    }
-                    return;
-                }
-
-                if (cachedMessageSizeInMiB > defaultLitePullConsumer.getPullThresholdSizeForQueue()) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueFlowControlTimes++ % 1000) == 0) {
-                        log.warn(
-                            "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
-                            defaultLitePullConsumer.getPullThresholdSizeForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
-                    }
-                    return;
-                }
-
-                if (processQueue.getMaxSpan() > defaultLitePullConsumer.getConsumeMaxSpan()) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
-                        log.warn(
-                            "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
-                            processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), processQueue.getMaxSpan(), queueMaxSpanFlowControlTimes);
-                    }
-                    return;
-                }
 
                 long offset = 0L;
                 try {
@@ -982,23 +935,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (this.isCancelled() || processQueue.isDropped()) {
                         return;
                     }
-                    switch (pullResult.getPullStatus()) {
-                        case FOUND:
-                            final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
-                            synchronized (objLock) {
-                                if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
-                                    processQueue.putMessage(pullResult.getMsgFoundList());
-                                    submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
-                                }
-                            }
-                            break;
-                        case OFFSET_ILLEGAL:
-                            log.warn("The pull request offset illegal, {}", pullResult.toString());
-                            break;
-                        default:
-                            break;
-                    }
-                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                    DefaultLitePullConsumerImpl.this.addResultToQueue(pullResult, processQueue, messageQueue);
                 } catch (InterruptedException interruptedException) {
                     log.warn("Polling thread was interrupted.", interruptedException);
                 } catch (Throwable e) {
@@ -1032,62 +969,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public void pullMessage(final MessageQueue messageQueue) {
-        if (assignedMessageQueue.isPaused(messageQueue)) {
-            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_PAUSE);
-            log.debug("Message Queue: {} has been paused!", messageQueue);
+        LongConsumer messageQueueConsumer = delay -> this.pullMessageQueueService.executeMessageRequestLater(messageQueue, delay);
+        if (!this.prePullMessage(messageQueue, messageQueueConsumer)) {
             return;
         }
 
         ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
-
-        if (null == processQueue || processQueue.isDropped()) {
-            log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), messageQueue);
-            return;
-        }
-
-        processQueue.setLastPullTimestamp(System.currentTimeMillis());
-
-        if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
-            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
-            if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
-                log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
-            }
-            return;
-        }
-
-        long cachedMessageCount = processQueue.getMsgCount().get();
-        long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
-
-        if (cachedMessageCount > defaultLitePullConsumer.getPullThresholdForQueue()) {
-            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
-            if ((queueFlowControlTimes++ % 1000) == 0) {
-                log.warn(
-                    "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
-                    defaultLitePullConsumer.getPullThresholdForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
-            }
-            return;
-        }
-
-        if (cachedMessageSizeInMiB > defaultLitePullConsumer.getPullThresholdSizeForQueue()) {
-            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
-            if ((queueFlowControlTimes++ % 1000) == 0) {
-                log.warn(
-                    "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
-                    defaultLitePullConsumer.getPullThresholdSizeForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
-            }
-            return;
-        }
-
-        if (processQueue.getMaxSpan() > defaultLitePullConsumer.getConsumeMaxSpan()) {
-            this.pullMessageQueueService.executeMessageRequestLater(messageQueue, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
-            if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
-                log.warn(
-                    "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
-                    processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), processQueue.getMaxSpan(), queueMaxSpanFlowControlTimes);
-            }
-            return;
-        }
-
         long offset = 0L;
         try {
             offset = nextPullOffset(messageQueue);
@@ -1117,23 +1004,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (processQueue.isDropped()) {
                         return;
                     }
-                    switch (pullResult.getPullStatus()) {
-                        case FOUND:
-                            final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
-                            synchronized (objLock) {
-                                if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
-                                    processQueue.putMessage(pullResult.getMsgFoundList());
-                                    submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
-                                }
-                            }
-                            break;
-                        case OFFSET_ILLEGAL:
-                            log.warn("The pull request offset illegal, {}", pullResult.toString());
-                            break;
-                        default:
-                            break;
-                    }
-                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                    DefaultLitePullConsumerImpl.this.addResultToQueue(pullResult, processQueue, messageQueue);
                     DefaultLitePullConsumerImpl.this.pullMessageQueueService.executeMessageRequestImmediately(messageQueue);
                 }
 
@@ -1155,6 +1026,85 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         } catch (Throwable e) {
             log.error("An error occurred in pull message process.", e);
         }
+    }
+
+    private boolean prePullMessage(MessageQueue messageQueue, LongConsumer messageQueueConsumer) {
+        if (assignedMessageQueue.isPaused(messageQueue)) {
+            messageQueueConsumer.accept(PULL_TIME_DELAY_MILLS_WHEN_PAUSE);
+            log.debug("Message Queue: {} has been paused!", messageQueue);
+            return false;
+        }
+
+        ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
+
+        if (null == processQueue || processQueue.isDropped()) {
+            log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), messageQueue);
+            return false;
+        }
+
+        processQueue.setLastPullTimestamp(System.currentTimeMillis());
+
+        if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
+            messageQueueConsumer.accept(PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
+                log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
+            }
+            return false;
+        }
+
+        long cachedMessageCount = processQueue.getMsgCount().get();
+        long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
+
+        if (cachedMessageCount > defaultLitePullConsumer.getPullThresholdForQueue()) {
+            messageQueueConsumer.accept(PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            if ((queueFlowControlTimes++ % 1000) == 0) {
+                log.warn(
+                    "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
+                    defaultLitePullConsumer.getPullThresholdForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
+            }
+            return false;
+        }
+
+        if (cachedMessageSizeInMiB > defaultLitePullConsumer.getPullThresholdSizeForQueue()) {
+            messageQueueConsumer.accept(PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            if ((queueFlowControlTimes++ % 1000) == 0) {
+                log.warn(
+                    "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
+                    defaultLitePullConsumer.getPullThresholdSizeForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
+            }
+            return false;
+        }
+
+        if (processQueue.getMaxSpan() > defaultLitePullConsumer.getConsumeMaxSpan()) {
+            messageQueueConsumer.accept(PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL);
+            if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
+                log.warn(
+                    "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
+                    processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), processQueue.getMaxSpan(), queueMaxSpanFlowControlTimes);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private void addResultToQueue(PullResult pullResult, ProcessQueue processQueue, MessageQueue messageQueue) {
+        switch (pullResult.getPullStatus()) {
+            case FOUND:
+                final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
+                synchronized (objLock) {
+                    if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
+                        processQueue.putMessage(pullResult.getMsgFoundList());
+                        submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
+                    }
+                }
+                break;
+            case OFFSET_ILLEGAL:
+                log.warn("The pull request offset illegal, {}", pullResult.toString());
+                break;
+            default:
+                break;
+        }
+        updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
     }
 
     private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums)
