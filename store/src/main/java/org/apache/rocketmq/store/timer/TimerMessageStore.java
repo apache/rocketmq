@@ -74,13 +74,13 @@ public class TimerMessageStore {
     public static final String TIMER_ENQUEUE_MS = MessageConst.PROPERTY_TIMER_ENQUEUE_MS;
     public static final String TIMER_DEQUEUE_MS = MessageConst.PROPERTY_TIMER_DEQUEUE_MS;
     public static final String TIMER_ROLL_TIMES = MessageConst.PROPERTY_TIMER_ROLL_TIMES;
-    public static final String TIMER_DELETE_UNIQKEY = MessageConst.PROPERTY_TIMER_DEL_UNIQKEY;
+    public static final String TIMER_DELETE_UNIQUE_KEY = MessageConst.PROPERTY_TIMER_DEL_UNIQKEY;
     public static final Random RANDOM = new Random();
     public static final int PUT_OK = 0, PUT_NEED_RETRY = 1, PUT_NO_RETRY = 2;
     public static final int DAY_SECS = 24 * 3600;
     // The total days in the timer wheel when precision is 1000ms.
     // If the broker shutdown last more than the configured days, will cause message loss
-    public static final int TIMER_WHELL_TTL_DAY = 7;
+    public static final int TIMER_WHEEL_TTL_DAY = 7;
     public static final int TIMER_BLANK_SLOTS = 60;
     public static final int MAGIC_DEFAULT = 1;
     public static final int MAGIC_ROLL = 1 << 1;
@@ -152,7 +152,7 @@ public class TimerMessageStore {
         this.timerLogFileSize = storeConfig.getMappedFileSizeTimerLog();
         this.precisionMs = storeConfig.getTimerPrecisionMs();
         // TimerWheel contains the fixed number of slots regardless of precision.
-        this.slotsTotal = TIMER_WHELL_TTL_DAY * DAY_SECS;
+        this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
         this.timerWheel = new TimerWheel(getTimerWheelPath(storeConfig.getStorePathRootDir()),
             this.slotsTotal, precisionMs);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize);
@@ -274,8 +274,8 @@ public class TimerMessageStore {
         if (currReadTimeMs < nextReadTimeMs) {
             currReadTimeMs = nextReadTimeMs;
         }
-        //the timer wheel may contain physical offset bigger than timerlog
-        //This will only happen when the timerlog is damaged
+        //the timer wheel may contain physical offset bigger than timerLog
+        //This will only happen when the timerLog is damaged
         //hard to test
         long minFirst = timerWheel.checkPhyPos(currReadTimeMs, processOffset);
         if (debug) {
@@ -353,10 +353,10 @@ public class TimerMessageStore {
         }
     }
 
-    //recover timerlog and revise timerwheel
+    //recover timerLog and revise timerWheel
     //return process offset
     private long recoverAndRevise(long beginOffset, boolean checkTimerLog) {
-        LOGGER.info("Begin to recover timerlog offset:{} check:{}", beginOffset, checkTimerLog);
+        LOGGER.info("Begin to recover timerLog offset:{} check:{}", beginOffset, checkTimerLog);
         MappedFile lastFile = timerLog.getMappedFileQueue().getLastMappedFile();
         if (null == lastFile) {
             return 0;
@@ -398,7 +398,7 @@ public class TimerMessageStore {
                         timerWheel.reviseSlot(delayTime, TimerWheel.IGNORE, sbr.getStartOffset() + position, true);
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Recover timerlog error", e);
+                    LOGGER.error("Recover timerLog error", e);
                     stopCheck = true;
                     break;
                 }
@@ -445,7 +445,7 @@ public class TimerMessageStore {
                     int checkOffset = timerLog.getOffsetForLastUnit();
                     timerLog.getMappedFileQueue().deleteExpiredFileByOffsetForTimerLog(minPy, checkOffset, TimerLog.UNIT_SIZE);
                 } catch (Exception e) {
-                    LOGGER.error("Error in cleaning timerlog", e);
+                    LOGGER.error("Error in cleaning timerLog", e);
                 }
             }
         }, 30, 30, TimeUnit.SECONDS);
@@ -470,7 +470,7 @@ public class TimerMessageStore {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Error in cleaning timerlog", e);
+                    LOGGER.error("Error in cleaning timerLog", e);
                 }
             }
         }, 45, 45, TimeUnit.MINUTES);
@@ -692,7 +692,7 @@ public class TimerMessageStore {
                 delayedTime = tmpWriteTimeMs + timerRollWindowSlots * precisionMs;
             }
         }
-        boolean isDelete = messageExt.getProperty(TIMER_DELETE_UNIQKEY) != null;
+        boolean isDelete = messageExt.getProperty(TIMER_DELETE_UNIQUE_KEY) != null;
         if (isDelete) {
             magic = magic | MAGIC_DELETE;
         }
@@ -909,7 +909,7 @@ public class TimerMessageStore {
                 }
             }
             if (deleteMsgStack.size() == 0 && normalMsgStack.size() == 0) {
-                LOGGER.warn("dequeue time:{} but read nothing from timerlog", currReadTimeMs);
+                LOGGER.warn("dequeue time:{} but read nothing from timerLog", currReadTimeMs);
             }
             for (SelectMappedBufferResult sbr : sbrs) {
                 if (null != sbr) {
@@ -1000,7 +1000,7 @@ public class TimerMessageStore {
                 msgExt = MessageDecoder.decode(bufferLocal.get(), true, false, false);
             }
             if (null == msgExt) {
-                LOGGER.warn("Fail to read msg from commitlog offsetPy:{} sizePy:{}", offsetPy, sizePy);
+                LOGGER.warn("Fail to read msg from commitLog offsetPy:{} sizePy:{}", offsetPy, sizePy);
             } else {
                 return msgExt;
             }
@@ -1144,14 +1144,14 @@ public class TimerMessageStore {
         //check the hash collision between small ons and big ons
         for (Map.Entry<String, TimerMetrics.Metric> bjgEntry : bigOnes.entrySet()) {
             if (smallHashs.containsKey(hashTopicForMetrics(bjgEntry.getKey()))) {
-                Iterator<Map.Entry<String, TimerMetrics.Metric>> smalllIt = smallOnes.entrySet().iterator();
-                while (smalllIt.hasNext()) {
-                    Map.Entry<String, TimerMetrics.Metric> smallEntry = smalllIt.next();
+                Iterator<Map.Entry<String, TimerMetrics.Metric>> smallIt = smallOnes.entrySet().iterator();
+                while (smallIt.hasNext()) {
+                    Map.Entry<String, TimerMetrics.Metric> smallEntry = smallIt.next();
                     if (hashTopicForMetrics(smallEntry.getKey()) == hashTopicForMetrics(bjgEntry.getKey())) {
                         LOGGER.warn("[CheckAndReviseMetrics]Metric hash collision between small-big code:{} small topic:{}{} big topic:{}{}", hashTopicForMetrics(smallEntry.getKey()),
                             smallEntry.getKey(), smallEntry.getValue(),
                             bjgEntry.getKey(), bjgEntry.getValue());
-                        smalllIt.remove();
+                        smallIt.remove();
                     }
                 }
             }
@@ -1494,11 +1494,11 @@ public class TimerMessageStore {
                                     tr.idempotentRelease();
                                     doRes = true;
                                 } else {
-                                    String uniqkey = MessageClientIDSetter.getUniqID(msgExt);
-                                    if (null == uniqkey) {
-                                        LOGGER.warn("No uniqkey for msg:{}", msgExt);
+                                    String uniqueKey = MessageClientIDSetter.getUniqID(msgExt);
+                                    if (null == uniqueKey) {
+                                        LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
-                                    if (null != uniqkey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqkey)) {
+                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfs.getCounter("dequeue_delete").flow(1);

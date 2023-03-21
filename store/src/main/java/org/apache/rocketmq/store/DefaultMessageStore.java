@@ -200,6 +200,9 @@ public class DefaultMessageStore implements MessageStore {
 
     private long stateMachineVersion = 0L;
 
+    private final ScheduledExecutorService scheduledCleanQueueExecutorService =
+        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -456,7 +459,11 @@ public class DefaultMessageStore implements MessageStore {
             this.shutdown = true;
 
             this.scheduledExecutorService.shutdown();
+            this.scheduledCleanQueueExecutorService.shutdown();
+
             try {
+                this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+                this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
                 Thread.sleep(1000 * 3);
             } catch (InterruptedException e) {
                 LOGGER.error("shutdown Exception, ", e);
@@ -1357,7 +1364,7 @@ public class DefaultMessageStore implements MessageStore {
             // destroy consume queue dir
             String consumeQueueDir = StorePathConfigHelper.getStorePathConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueue(
+            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueueExt(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
             String batchConsumeQueueDir = StorePathConfigHelper.getStorePathBatchConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
@@ -1771,6 +1778,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 1, TimeUnit.SECONDS);
 
+        this.scheduledCleanQueueExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                DefaultMessageStore.this.cleanQueueFilesPeriodically();
+            }
+        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+
+
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
         // @Override
         // public void run() {
@@ -1781,8 +1796,11 @@ public class DefaultMessageStore implements MessageStore {
 
     private void cleanFilesPeriodically() {
         this.cleanCommitLogService.run();
-        this.cleanConsumeQueueService.run();
+    }
+
+    private void cleanQueueFilesPeriodically() {
         this.correctLogicOffsetService.run();
+        this.cleanConsumeQueueService.run();
     }
 
     private void checkSelf() {

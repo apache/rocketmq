@@ -350,7 +350,8 @@ public class BrokerConfig extends BrokerIdentity {
     public enum MetricsExporterType {
         DISABLE(0),
         OTLP_GRPC(1),
-        PROM(2);
+        PROM(2),
+        LOG(3);
 
         private final int value;
 
@@ -368,6 +369,8 @@ public class BrokerConfig extends BrokerIdentity {
                     return OTLP_GRPC;
                 case 2:
                     return PROM;
+                case 3:
+                    return LOG;
                 default:
                     return DISABLE;
             }
@@ -384,6 +387,7 @@ public class BrokerConfig extends BrokerIdentity {
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
@@ -1568,6 +1572,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricGrpcExporterIntervalInMills(long metricGrpcExporterIntervalInMills) {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
+    }
+
+    public long getMetricLoggingExporterIntervalInMills() {
+        return metricLoggingExporterIntervalInMills;
+    }
+
+    public void setMetricLoggingExporterIntervalInMills(long metricLoggingExporterIntervalInMills) {
+        this.metricLoggingExporterIntervalInMills = metricLoggingExporterIntervalInMills;
     }
 
     public String getMetricsLabel() {
