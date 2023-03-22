@@ -28,14 +28,15 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -43,7 +44,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 
 public class IntegrationTestBase {
-    public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
+    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
 
     protected static final String SEP = File.separator;
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
@@ -84,6 +85,7 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         UtilAll.deleteFile(file);
                     }
+                    MQAdminTestUtils.shutdownAdmin();
                 } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
@@ -133,6 +135,8 @@ public class IntegrationTestBase {
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
+        brokerConfig.setEnableCalcFilterBitMap(true);
+        storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
@@ -195,4 +199,12 @@ public class IntegrationTestBase {
         UtilAll.deleteFile(file);
     }
 
+    public static void initMQAdmin(String nsAddr) {
+        try {
+            MQAdminTestUtils.startAdmin(nsAddr);
+        } catch (MQClientException e) {
+            logger.info("MQAdmin start failed");
+            System.exit(1);
+        }
+    }
 }

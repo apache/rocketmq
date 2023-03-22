@@ -23,14 +23,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.UnsupportedEncodingException;
@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TimerProducer {
-    private static final InternalLogger LOGGER = ClientLogger.getLog();
+    private static final Logger log = LoggerFactory.getLogger(TimerProducer.class);
 
     private final String topic;
     private final int threadCount;
@@ -188,17 +188,17 @@ public class TimerProducer {
                                 }
                             } catch (RemotingException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                                LOGGER.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                                 sleep(3000);
                             } catch (InterruptedException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                                 sleep(3000);
                             } catch (MQClientException e) {
                                 statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                                LOGGER.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             } catch (MQBrokerException e) {
                                 statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
-                                LOGGER.error("[BENCHMARK_PRODUCER] Send Exception", e);
+                                log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                                 sleep(3000);
                             }
                         }

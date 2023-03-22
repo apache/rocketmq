@@ -27,6 +27,8 @@ public class MessageExtBrokerInner extends MessageExt {
 
     private ByteBuffer encodedBuff;
 
+    private MessageVersion version = MessageVersion.MESSAGE_VERSION_V1;
+
     public ByteBuffer getEncodedBuff() {
         return encodedBuff;
     }
@@ -59,5 +61,13 @@ public class MessageExtBrokerInner extends MessageExt {
 
     public void setTagsCode(long tagsCode) {
         this.tagsCode = tagsCode;
+    }
+
+    public MessageVersion getVersion() {
+        return version;
+    }
+
+    public void setVersion(MessageVersion version) {
+        this.version = version;
     }
 }

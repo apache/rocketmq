@@ -24,16 +24,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.DataConverter;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -41,7 +42,7 @@ import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 public class PopBufferMergeService extends ServiceThread {
-    private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     ConcurrentHashMap<String/*mergeKey*/, PopCheckPointWrapper>
         buffer = new ConcurrentHashMap<>(1024 * 16);
     ConcurrentHashMap<String/*topic@cid@queueId*/, QueueWithTime<PopCheckPointWrapper>> commitOffsets =
@@ -77,7 +78,7 @@ public class PopBufferMergeService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerController != null && this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerIdentity().getLoggerIdentifier() + PopBufferMergeService.class.getSimpleName();
+            return brokerController.getBrokerIdentity().getIdentifier() + PopBufferMergeService.class.getSimpleName();
         }
         return PopBufferMergeService.class.getSimpleName();
     }
@@ -104,7 +105,7 @@ public class PopBufferMergeService extends ServiceThread {
 
                 this.waitForRunning(interval);
 
-                if (!this.serving && this.buffer.size() == 0 && totalSize() == 0) {
+                if (!this.serving && this.buffer.size() == 0 && getOffsetTotalSize() == 0) {
                     this.serving = true;
                 }
             } catch (Throwable e) {
@@ -121,7 +122,7 @@ public class PopBufferMergeService extends ServiceThread {
         if (!isShouldRunning()) {
             return;
         }
-        while (this.buffer.size() > 0 || totalSize() > 0) {
+        while (this.buffer.size() > 0 || getOffsetTotalSize() > 0) {
             scan();
         }
     }
@@ -304,6 +305,7 @@ public class PopBufferMergeService extends ServiceThread {
                     eclipse, count, countCk, counter.get(), offsetBufferSize);
             }
         }
+        PopMetricsManager.recordPopBufferScanTimeConsume(eclipse);
         scanTimes++;
 
         if (scanTimes >= countOfMinute1) {
@@ -312,7 +314,7 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
-    private int totalSize() {
+    public int getOffsetTotalSize() {
         int count = 0;
         Iterator<Map.Entry<String, QueueWithTime<PopCheckPointWrapper>>> iterator = this.commitOffsets.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -321,6 +323,10 @@ public class PopBufferMergeService extends ServiceThread {
             count += queue.size();
         }
         return count;
+    }
+
+    public int getBufferedCKSize() {
+        return this.counter.get();
     }
 
     private void markBitCAS(AtomicInteger setBits, int index) {
@@ -416,10 +422,10 @@ public class PopBufferMergeService extends ServiceThread {
         ck.setNum((byte) 0);
         ck.setPopTime(popTime);
         ck.setInvisibleTime(invisibleTime);
-        ck.getStartOffset(startOffset);
+        ck.setStartOffset(startOffset);
         ck.setCId(group);
         ck.setTopic(topic);
-        ck.setQueueId((byte) queueId);
+        ck.setQueueId(queueId);
         ck.setBrokerName(brokerName);
 
         PopCheckPointWrapper pointWrapper = new PopCheckPointWrapper(reviveQueueId, Long.MAX_VALUE, ck, nextBeginOffset, true);
@@ -540,6 +546,7 @@ public class PopBufferMergeService extends ServiceThread {
         }
         MessageExtBrokerInner msgInner = popMessageProcessor.buildCkMsg(pointWrapper.getCk(), pointWrapper.getReviveQueueId());
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+        PopMetricsManager.incPopReviveCkPutCount(pointWrapper.getCk(), putMessageResult.getPutMessageStatus());
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
@@ -584,6 +591,7 @@ public class PopBufferMergeService extends ServiceThread {
 
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT

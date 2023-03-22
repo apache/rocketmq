@@ -17,27 +17,33 @@
 
 package org.apache.rocketmq.test.smoke;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.awaitility.Awaitility;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -108,4 +114,41 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         }
 
     }
+
+    @Test
+    public void testSynSendMessageWhenEnableBuildConsumeQueueConcurrently() throws Exception {
+        resetStoreConfigWithEnableBuildConsumeQueueConcurrently(true);
+
+        testSynSendMessage();
+
+        resetStoreConfigWithEnableBuildConsumeQueueConcurrently(false);
+    }
+
+    void resetStoreConfigWithEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        {
+            brokerController1.shutdown();
+            MessageStoreConfig storeConfig = brokerController1.getMessageStoreConfig();
+            BrokerConfig brokerConfig = brokerController1.getBrokerConfig();
+            storeConfig.setEnableBuildConsumeQueueConcurrently(enableBuildConsumeQueueConcurrently);
+            brokerController1 = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
+        }
+        {
+            brokerController2.shutdown();
+            MessageStoreConfig storeConfig = brokerController2.getMessageStoreConfig();
+            BrokerConfig brokerConfig = brokerController2.getBrokerConfig();
+            storeConfig.setEnableBuildConsumeQueueConcurrently(enableBuildConsumeQueueConcurrently);
+            brokerController2 = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
+        }
+        {
+            brokerController3.shutdown();
+            MessageStoreConfig storeConfig = brokerController3.getMessageStoreConfig();
+            BrokerConfig brokerConfig = brokerController3.getBrokerConfig();
+            storeConfig.setEnableBuildConsumeQueueConcurrently(enableBuildConsumeQueueConcurrently);
+            brokerController3 = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
+        }
+        brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
+        brokerControllerMap = brokerControllerList.stream().collect(
+                Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
+    }
+
 }

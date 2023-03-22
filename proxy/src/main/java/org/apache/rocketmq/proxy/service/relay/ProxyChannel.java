@@ -33,22 +33,22 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
 
 public abstract class ProxyChannel extends SimpleChannel {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final SocketAddress remoteSocketAddress;
     protected final SocketAddress localSocketAddress;
 
@@ -58,16 +58,16 @@ public abstract class ProxyChannel extends SimpleChannel {
         String localAddress) {
         super(parent, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
-        this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
-        this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
+        this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
+        this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
     }
 
     protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress,
         String localAddress) {
         super(parent, id, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
-        this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
-        this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
+        this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
+        this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
     }
 
     @Override

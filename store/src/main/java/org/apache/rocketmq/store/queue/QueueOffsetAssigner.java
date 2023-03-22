@@ -17,18 +17,21 @@
 
 package org.apache.rocketmq.store.queue;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * QueueOffsetAssigner is a component for assigning offsets for queues.
  */
 public class QueueOffsetAssigner {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private ConcurrentMap<String, Long> topicQueueTable = new ConcurrentHashMap<>(1024);
     private ConcurrentMap<String, Long> batchTopicQueueTable = new ConcurrentHashMap<>(1024);
@@ -80,6 +83,16 @@ public class QueueOffsetAssigner {
 
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.topicQueueTable = topicQueueTable;
+    }
+
+    public void setLmqTopicQueueTable(ConcurrentMap<String, Long> lmqTopicQueueTable) {
+        ConcurrentMap<String, Long> table = new ConcurrentHashMap<String, Long>(1024);
+        for (Map.Entry<String, Long> entry : lmqTopicQueueTable.entrySet()) {
+            if (MixAll.isLmq(entry.getKey())) {
+                table.put(entry.getKey(), entry.getValue());
+            }
+        }
+        this.lmqTopicQueueTable = table;
     }
 
     public ConcurrentMap<String, Long> getTopicQueueTable() {

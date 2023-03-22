@@ -19,8 +19,8 @@ package org.apache.rocketmq.tools.command.broker;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsItem;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsItem;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
@@ -39,13 +39,12 @@ public class BrokerStatusSubCommandTest extends ServerResponseMocker {
     public void testExecute() throws SubCommandException {
         BrokerStatusSubCommand cmd = new BrokerStatusSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort(), "-c default-cluster"};
+        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort()};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options), new DefaultParser());
 
         cmd.execute(commandLine, options, null);
     }
-
 
 }

@@ -18,10 +18,11 @@
 package org.apache.rocketmq.broker.plugin;
 
 import io.netty.channel.Channel;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingContext;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageFilter;
 
@@ -49,5 +50,6 @@ public interface PullMessageResultHandler {
                            final SubscriptionGroupConfig subscriptionGroupConfig,
                            final boolean brokerAllowSuspend,
                            final MessageFilter messageFilter,
-                           final RemotingCommand response);
+                           final RemotingCommand response,
+                           final TopicQueueMappingContext mappingContext);
 }

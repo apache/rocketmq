@@ -39,7 +39,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
@@ -49,6 +48,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
 public class RouteActivity extends AbstractMessingActivity {
 
@@ -162,15 +162,22 @@ public class RouteActivity extends AbstractMessingActivity {
     }
 
     protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
-        int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
+
+        boolean useEndpointPort = ConfigurationManager.getProxyConfig().isUseEndpointPortFromRequest();
+
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
         for (Address address : endpoints.getAddressesList()) {
+            int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
+            if (useEndpointPort) {
+                port = address.getPort();
+            }
             addressList.add(new org.apache.rocketmq.proxy.common.Address(
                 org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
-                HostAndPort.fromParts(address.getHost(), port))
-            );
+                HostAndPort.fromParts(address.getHost(), port)));
         }
+
         return addressList;
+
     }
 
     protected Map<String /*brokerName*/, Map<Long /*brokerID*/, Broker>> buildBrokerMap(
@@ -207,7 +214,8 @@ public class RouteActivity extends AbstractMessingActivity {
         return brokerMap;
     }
 
-    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, TopicMessageType topicMessageType, Broker broker) {
+    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic,
+        TopicMessageType topicMessageType, Broker broker) {
         List<MessageQueue> messageQueueList = new ArrayList<>();
 
         int r = 0;

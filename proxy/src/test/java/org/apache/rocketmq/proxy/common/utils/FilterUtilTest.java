@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.common.utils;
 
-import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,4 +48,4 @@ public class FilterUtilTest {
         assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), null)).isFalse();
     }
 
-} 
+}

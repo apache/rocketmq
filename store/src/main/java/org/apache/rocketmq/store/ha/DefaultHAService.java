@@ -31,10 +31,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -42,7 +42,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class DefaultHAService implements HAService {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected final AtomicInteger connectionCount = new AtomicInteger(0);
 
@@ -270,7 +270,7 @@ public class DefaultHAService implements HAService {
         @Override
         public String getServiceName() {
             if (defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + AcceptSocketService.class.getSimpleName();
+                return defaultMessageStore.getBrokerConfig().getIdentifier() + AcceptSocketService.class.getSimpleName();
             }
             return DefaultAcceptSocketService.class.getSimpleName();
         }
@@ -298,7 +298,7 @@ public class DefaultHAService implements HAService {
          */
         public void beginAccept() throws Exception {
             this.serverSocketChannel = ServerSocketChannel.open();
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.serverSocketChannel.socket().setReuseAddress(true);
             this.serverSocketChannel.socket().bind(this.socketAddressListen);
             if (0 == messageStoreConfig.getHaListenPort()) {
@@ -342,7 +342,7 @@ public class DefaultHAService implements HAService {
 
                     if (selected != null) {
                         for (SelectionKey k : selected) {
-                            if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                            if (k.isAcceptable()) {
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {

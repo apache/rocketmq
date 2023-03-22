@@ -59,7 +59,7 @@ public class Producer {
 
 ### construction method 
 
-|方法名称|方法描述|
+|Method name|Method description|
 |-------|------------|
 |DefaultMQProducer()| creates a producer with default parameter values             |
 |DefaultMQProducer(final String producerGroup)| creates a producer with producer group name.                 |

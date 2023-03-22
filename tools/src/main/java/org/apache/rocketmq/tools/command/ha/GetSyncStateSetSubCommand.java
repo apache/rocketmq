@@ -20,11 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -95,7 +96,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
     }
 
     private void innerExec(CommandLine commandLine, Options options,
-        DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+                           DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         String controllerAddress = commandLine.getOptionValue('a').trim().split(";")[0];
         if (commandLine.hasOption('b')) {
             String brokerName = commandLine.getOptionValue('b').trim();
@@ -112,19 +113,25 @@ public class GetSyncStateSetSubCommand implements SubCommand {
     }
 
     private void printData(String controllerAddress, List<String> brokerNames,
-        DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+                           DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         if (brokerNames.size() > 0) {
-            final InSyncStateData syncStateData = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
-            final Map<String, InSyncStateData.InSyncStateSet> syncTable = syncStateData.getInSyncStateTable();
-            for (Map.Entry<String, InSyncStateData.InSyncStateSet> next : syncTable.entrySet()) {
-                final List<InSyncStateData.InSyncMember> syncMembers = next.getValue().getInSyncMembers();
-                System.out.printf("\n#brokerName\t%s\n#MasterAddr\t%s\n#MasterEpoch\t%d\n#SyncStateSetEpoch\t%d\n#SyncStateSetMemberNums\t%d\n",
-                    next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
-                    syncMembers.size());
-                for (InSyncStateData.InSyncMember member : syncMembers) {
-                    System.out.printf("\n member:\t%s\n", member.toString());
+            final BrokerReplicasInfo brokerReplicasInfo = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
+            final Map<String, BrokerReplicasInfo.ReplicasInfo> replicasInfoTable = brokerReplicasInfo.getReplicasInfoTable();
+            for (Map.Entry<String, BrokerReplicasInfo.ReplicasInfo> next : replicasInfoTable.entrySet()) {
+                final List<BrokerReplicasInfo.ReplicaIdentity> inSyncReplicas = next.getValue().getInSyncReplicas();
+                final List<BrokerReplicasInfo.ReplicaIdentity> notInSyncReplicas = next.getValue().getNotInSyncReplicas();
+                System.out.printf("\n#brokerName\t%s\n#MasterBrokerId\t%d\n#MasterAddr\t%s\n#MasterEpoch\t%d\n#SyncStateSetEpoch\t%d\n#SyncStateSetNums\t%d\n",
+                        next.getKey(), next.getValue().getMasterBrokerId(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
+                        inSyncReplicas.size());
+                for (BrokerReplicasInfo.ReplicaIdentity member : inSyncReplicas) {
+                    System.out.printf("\nInSyncReplica:\t%s\n", member.toString());
+                }
+
+                for (BrokerReplicasInfo.ReplicaIdentity member : notInSyncReplicas) {
+                    System.out.printf("\nNotInSyncReplica:\t%s\n", member.toString());
                 }
             }
         }
     }
 }
+

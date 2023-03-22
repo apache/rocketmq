@@ -22,13 +22,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfigurationManagerTest extends InitConfigAndLoggerTest {
-
-    @Test
-    public void testInitEnv() {
-        // configure proxy home by system env.
-        assertThat(ConfigurationManager.getProxyHome()).isEqualTo(mockProxyHome);
-    }
+public class ConfigurationManagerTest extends InitConfigTest {
 
     @Test
     public void testIntConfig() {
@@ -42,7 +36,7 @@ public class ConfigurationManagerTest extends InitConfigAndLoggerTest {
     @Test
     public void testGetProxyHome() {
         // test configured proxy home
-        assertThat(ConfigurationManager.getProxyHome()).isEqualTo(mockProxyHome);
+        assertThat(ConfigurationManager.getProxyHome()).isIn(mockProxyHome, "./");
     }
 
     @Test

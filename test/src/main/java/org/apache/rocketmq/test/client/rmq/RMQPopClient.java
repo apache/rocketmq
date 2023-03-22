@@ -26,16 +26,18 @@ import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.test.clientinterface.MQConsumer;
 import org.apache.rocketmq.test.util.RandomUtil;
 
 public class RMQPopClient implements MQConsumer {
+
     private static final long DEFAULT_TIMEOUT = 3000;
+
     private MQClientAPIImpl mqClientAPI;
 
     @Override
@@ -50,10 +52,8 @@ public class RMQPopClient implements MQConsumer {
 
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyClientConfig.setUseTLS(useTLS);
-        this.mqClientAPI = new MQClientAPIImpl(nettyClientConfig,
-            new ClientRemotingProcessor(null),
-            null,
-            clientConfig);
+        this.mqClientAPI = new MQClientAPIImpl(
+            nettyClientConfig, new ClientRemotingProcessor(null), null, clientConfig);
     }
 
     @Override
@@ -103,8 +103,9 @@ public class RMQPopClient implements MQConsumer {
         return future;
     }
 
-    public CompletableFuture<AckResult> ackMessageAsync(String brokerAddr, String topic, String consumerGroup,
-        String extraInfo) {
+    public CompletableFuture<AckResult> ackMessageAsync(
+        String brokerAddr, String topic, String consumerGroup, String extraInfo) {
+
         String[] extraInfoStrs = ExtraInfoUtil.split(extraInfo);
         AckMessageRequestHeader requestHeader = new AckMessageRequestHeader();
         requestHeader.setTopic(ExtraInfoUtil.getRealTopic(extraInfoStrs, topic, consumerGroup));

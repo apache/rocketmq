@@ -24,14 +24,30 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class DefaultHAConnection implements HAConnection {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
+    /**
+     * Transfer Header buffer size. Schema: physic offset and body size. Format:
+     *
+     * <pre>
+     * ┌───────────────────────────────────────────────┬───────────────────────┐
+     * │                  physicOffset                 │         bodySize      │
+     * │                    (8bytes)                   │         (4bytes)      │
+     * ├───────────────────────────────────────────────┴───────────────────────┤
+     * │                                                                       │
+     * │                           Transfer Header                             │
+     * </pre>
+     * <p>
+     */
+    public static final int TRANSFER_HEADER_SIZE = 8 + 4;
+
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final DefaultHAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddress;
@@ -127,7 +143,7 @@ public class DefaultHAConnection implements HAConnection {
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.setDaemon(true);
@@ -179,13 +195,15 @@ public class DefaultHAConnection implements HAConnection {
                 log.error("", e);
             }
 
+            flowMonitor.shutdown(true);
+
             log.info(this.getServiceName() + " service end");
         }
 
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + ReadSocketService.class.getSimpleName();
             }
             return ReadSocketService.class.getSimpleName();
         }
@@ -204,8 +222,8 @@ public class DefaultHAConnection implements HAConnection {
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
                         this.lastReadTimestamp = DefaultHAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
-                        if ((this.byteBufferRead.position() - this.processPosition) >= 8) {
-                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
+                        if ((this.byteBufferRead.position() - this.processPosition) >= DefaultHAClient.REPORT_HEADER_SIZE) {
+                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % DefaultHAClient.REPORT_HEADER_SIZE);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPosition = pos;
 
@@ -239,8 +257,7 @@ public class DefaultHAConnection implements HAConnection {
         private final Selector selector;
         private final SocketChannel socketChannel;
 
-        private final int headerSize = 8 + 4;
-        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);
+        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(TRANSFER_HEADER_SIZE);
         private long nextTransferFromWhere = -1;
         private SelectMappedBufferResult selectMappedBufferResult;
         private boolean lastWriteOver = true;
@@ -248,7 +265,7 @@ public class DefaultHAConnection implements HAConnection {
         private long lastWriteTimestamp = System.currentTimeMillis();
 
         public WriteSocketService(final SocketChannel socketChannel) throws IOException {
-            this.selector = RemotingUtil.openSelector();
+            this.selector = NetworkUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
             this.setDaemon(true);
@@ -298,7 +315,7 @@ public class DefaultHAConnection implements HAConnection {
 
                             // Build Header
                             this.byteBufferHeader.position(0);
-                            this.byteBufferHeader.limit(headerSize);
+                            this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                             this.byteBufferHeader.putLong(this.nextTransferFromWhere);
                             this.byteBufferHeader.putInt(0);
                             this.byteBufferHeader.flip();
@@ -340,7 +357,7 @@ public class DefaultHAConnection implements HAConnection {
 
                         // Build Header
                         this.byteBufferHeader.position(0);
-                        this.byteBufferHeader.limit(headerSize);
+                        this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                         this.byteBufferHeader.putLong(thisOffset);
                         this.byteBufferHeader.putInt(size);
                         this.byteBufferHeader.flip();
@@ -382,6 +399,8 @@ public class DefaultHAConnection implements HAConnection {
             } catch (IOException e) {
                 DefaultHAConnection.log.error("", e);
             }
+
+            flowMonitor.shutdown(true);
 
             DefaultHAConnection.log.info(this.getServiceName() + " service end");
         }
@@ -440,7 +459,7 @@ public class DefaultHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getIdentifier() + WriteSocketService.class.getSimpleName();
             }
             return WriteSocketService.class.getSimpleName();
         }

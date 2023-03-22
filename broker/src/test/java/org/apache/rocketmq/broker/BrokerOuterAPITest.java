@@ -32,25 +32,27 @@ import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
@@ -58,12 +60,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -107,7 +111,7 @@ public class BrokerOuterAPITest {
         when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(response);
         List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
         assertTrue(booleanList.size() > 0);
-        assertEquals(false, booleanList.contains(Boolean.FALSE));
+        assertFalse(booleanList.contains(Boolean.FALSE));
     }
 
     @Test
@@ -142,7 +146,7 @@ public class BrokerOuterAPITest {
                 }
             });
 
-        assertEquals(true, success);
+        assertTrue(success);
 
     }
 
@@ -194,17 +198,9 @@ public class BrokerOuterAPITest {
 
         when(nettyRemotingClient.getAvailableNameSrvList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
         final ArgumentCaptor<Long> timeoutMillisCaptor = ArgumentCaptor.forClass(Long.class);
-        final ArgumentCaptor<String> namesrvCaptor = ArgumentCaptor.forClass(String.class);
-        when(nettyRemotingClient.invokeSync(namesrvCaptor.capture(), any(RemotingCommand.class),
-            timeoutMillisCaptor.capture())).thenAnswer((Answer<RemotingCommand>) invocation -> {
-                final String namesrv = namesrvCaptor.getValue();
-                if (nameserver1.equals(namesrv) || nameserver2.equals(namesrv)) {
-                    return response;
-                }
-                long delayTimeMillis = 1000;
-                TimeUnit.MILLISECONDS.sleep(timeoutMillisCaptor.getValue() + delayTimeMillis);
-                return response;
-            });
+        when(nettyRemotingClient.invokeSync(or(ArgumentMatchers.eq(nameserver1), ArgumentMatchers.eq(nameserver2)), any(RemotingCommand.class),
+            timeoutMillisCaptor.capture())).thenReturn(response);
+        when(nettyRemotingClient.invokeSync(ArgumentMatchers.eq(nameserver3), any(RemotingCommand.class), anyLong())).thenThrow(RemotingTimeoutException.class);
         List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, new BrokerIdentity());
 
         assertEquals(2, registerBrokerResultList.size());
@@ -243,7 +239,7 @@ public class BrokerOuterAPITest {
         init();
         brokerOuterAPI.start();
         Class<BrokerOuterAPI> clazz = BrokerOuterAPI.class;
-        Method method = clazz.getDeclaredMethod("lookupNameServerAddress", String.class);
+        Method method = clazz.getDeclaredMethod("dnsLookupAddressByDomain", String.class);
         method.setAccessible(true);
         List<String> addressList = (List<String>) method.invoke(brokerOuterAPI, "localhost:6789");
         AtomicBoolean result = new AtomicBoolean(false);

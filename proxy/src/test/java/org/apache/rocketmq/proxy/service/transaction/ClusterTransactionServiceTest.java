@@ -26,14 +26,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +59,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, null,
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.mqClientAPIFactory);
 
         MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
@@ -108,6 +108,8 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
     @Test
     public void testScanProducerHeartBeat() throws Exception {
+        when(this.producerManager.groupOnline(anyString())).thenReturn(true);
+
         Mockito.reset(this.topicRouteService);
         String brokerName2 = "broker-2-01";
         String clusterName2 = "broker-2";

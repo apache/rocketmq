@@ -19,8 +19,8 @@ package org.apache.rocketmq.tools.monitor;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.topic.OffsetMovedEvent;
 import org.junit.Before;
 import org.junit.Test;
 

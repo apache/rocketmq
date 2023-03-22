@@ -17,18 +17,21 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 
 public interface BrokerHeartbeatManager {
 
     /**
+     * initialize the resources
+     * @return
+     */
+    void initialize();
+    /**
      * Broker new heartbeat.
      */
-    void onBrokerHeartbeat(final String clusterName, final String brokerAddr, final Integer epoch, final Long maxOffset, final Long confirmOffset);
-
-    /**
-     * Change the metadata(brokerId ..) for a broker.
-     */
-    void changeBrokerMetadata(final String clusterName, final String brokerAddr, final Long brokerId);
+    void onBrokerHeartbeat(final String clusterName, final String brokerName, final String brokerAddr,
+        final Long brokerId, final Long timeoutMillis, final Channel channel, final Integer epoch,
+        final Long maxOffset, final Long confirmOffset, final Integer electionPriority);
 
     /**
      * Start heartbeat manager.
@@ -46,12 +49,6 @@ public interface BrokerHeartbeatManager {
     void addBrokerLifecycleListener(final BrokerLifecycleListener listener);
 
     /**
-     * Register new broker to heartManager.
-     */
-    void registerBroker(final String clusterName, final String brokerName, final String brokerAddr, final long brokerId,
-                        final Long timeoutMillis, final Channel channel, final Integer epoch, final Long maxOffset);
-
-    /**
      * Broker channel close
      */
     void onBrokerChannelClose(final Channel channel);
@@ -59,17 +56,17 @@ public interface BrokerHeartbeatManager {
     /**
      * Get broker live information by clusterName and brokerAddr
      */
-    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerAddr);
+    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId);
 
     /**
      * Check whether broker active
      */
-    boolean isBrokerActive(final String clusterName, final String brokerAddr);
+    boolean isBrokerActive(final String clusterName, final String brokerName, final Long brokerId);
 
     interface BrokerLifecycleListener {
         /**
          * Trigger when broker inactive.
          */
-        void onBrokerInactive(final String clusterName, final String brokerName, final String brokerAddress, final long brokerId);
+        void onBrokerInactive(final String clusterName, final String brokerName, final Long brokerId);
     }
 }

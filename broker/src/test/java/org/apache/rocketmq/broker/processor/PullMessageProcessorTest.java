@@ -16,14 +16,14 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -34,17 +34,17 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
@@ -62,7 +62,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -73,6 +72,7 @@ public class PullMessageProcessorTest {
         new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
+    private final EmbeddedChannel embeddedChannel = new EmbeddedChannel();
     @Mock
     private MessageStore messageStore;
     private ClientChannelInfo clientChannelInfo;
@@ -84,12 +84,11 @@ public class PullMessageProcessorTest {
         brokerController.setMessageStore(messageStore);
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
-        Channel mockChannel = mock(Channel.class);
-        when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
-        when(handlerContext.channel()).thenReturn(mockChannel);
+        when(brokerController.getPullMessageProcessor()).thenReturn(pullMessageProcessor);
+        when(handlerContext.channel()).thenReturn(embeddedChannel);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
-        clientChannelInfo = new ClientChannelInfo(mockChannel);
+        clientChannelInfo = new ClientChannelInfo(embeddedChannel);
         ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(
             consumerData.getGroupName(),
@@ -134,10 +133,11 @@ public class PullMessageProcessorTest {
     @Test
     public void testProcessRequest_Found() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        pullMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -145,7 +145,7 @@ public class PullMessageProcessorTest {
     @Test
     public void testProcessRequest_FoundWithHook() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
         List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
         final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
         ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
@@ -166,7 +166,8 @@ public class PullMessageProcessorTest {
         consumeMessageHookList.add(consumeMessageHook);
         pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        pullMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(messageContext[0]).isNotNull();
@@ -179,10 +180,11 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        pullMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_RETRY_IMMEDIATELY);
     }
@@ -191,10 +193,11 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_NoMsgInQueue() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        pullMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
     }
@@ -230,10 +233,11 @@ public class PullMessageProcessorTest {
     @Test
     public void testCommitPullOffset() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        pullMessageProcessor.processRequest(handlerContext, request);
+        RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(this.brokerController.getConsumerOffsetManager().queryPullOffset(group, topic, 1))

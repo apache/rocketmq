@@ -40,15 +40,15 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class GrpcConverter {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected static final Object INSTANCE_CREATE_LOCK = new Object();
     protected static volatile GrpcConverter instance;
@@ -140,6 +140,11 @@ public class GrpcConverter {
 
         // message_id
         String uniqKey = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+
+        if (uniqKey == null) {
+            uniqKey = messageExt.getMsgId();
+        }
+
         if (uniqKey != null) {
             systemPropertiesBuilder.setMessageId(uniqKey);
         }
@@ -193,7 +198,7 @@ public class GrpcConverter {
         // store_host
         SocketAddress storeHost = messageExt.getStoreHost();
         if (storeHost != null) {
-            systemPropertiesBuilder.setStoreHost(RemotingUtil.socketAddress2String(storeHost));
+            systemPropertiesBuilder.setStoreHost(NetworkUtil.socketAddress2String(storeHost));
         }
 
         // delivery_timestamp

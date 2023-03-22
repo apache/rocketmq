@@ -23,8 +23,8 @@ import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PlainAccessValidator implements AccessValidator {
@@ -56,8 +56,8 @@ public class PlainAccessValidator implements AccessValidator {
     }
 
     @Override
-    public boolean deleteAccessConfig(String accesskey) {
-        return aclPlugEngine.deleteAccessConfig(accesskey);
+    public boolean deleteAccessConfig(String accessKey) {
+        return aclPlugEngine.deleteAccessConfig(accessKey);
     }
 
     @Override

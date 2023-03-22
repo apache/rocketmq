@@ -37,10 +37,6 @@ public class AssignedMessageQueue {
         this.rebalanceImpl = rebalanceImpl;
     }
 
-    public Set<MessageQueue> messageQueues() {
-        return assignedMessageQueueState.keySet();
-    }
-
     public boolean isPaused(MessageQueue messageQueue) {
         MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
         if (messageQueueState != null) {

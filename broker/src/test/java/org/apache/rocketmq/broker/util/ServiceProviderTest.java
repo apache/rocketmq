@@ -31,21 +31,20 @@ public class ServiceProviderTest {
 
     @Test
     public void loadTransactionMsgServiceTest() {
-        TransactionalMessageService transactionService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID,
-            TransactionalMessageService.class);
+        TransactionalMessageService transactionService = ServiceProvider.loadClass(TransactionalMessageService.class);
         assertThat(transactionService).isNotNull();
     }
 
     @Test
     public void loadAbstractTransactionListenerTest() {
-        AbstractTransactionalMessageCheckListener listener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID,
-            AbstractTransactionalMessageCheckListener.class);
+        AbstractTransactionalMessageCheckListener listener = ServiceProvider.loadClass(
+                AbstractTransactionalMessageCheckListener.class);
         assertThat(listener).isNotNull();
     }
-
+    
     @Test
     public void loadAccessValidatorTest() {
-        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
         assertThat(accessValidators).isNotNull();
     }
 }

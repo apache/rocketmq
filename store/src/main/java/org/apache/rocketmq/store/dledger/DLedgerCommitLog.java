@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageVersion;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -263,6 +264,23 @@ public class DLedgerCommitLog extends CommitLog {
 
         return null;
     }
+     
+    @Override
+    public boolean getData(final long offset, final int size, final ByteBuffer byteBuffer) {
+        if (offset < dividedCommitlogOffset) {
+            return super.getData(offset, size, byteBuffer);
+        }
+        if (offset >= dLedgerFileStore.getCommittedPos()) {
+            return false;
+        }
+        int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
+        MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
+        if (mappedFile != null) {
+            int pos = (int) (offset % mappedFileSize);
+            return mappedFile.getData(pos, size, byteBuffer);
+        }
+        return false;
+    }
 
     private void recover(long maxPhyOffsetOfConsumeQueue) {
         dLedgerFileStore.load();
@@ -339,7 +357,9 @@ public class DLedgerCommitLog extends CommitLog {
             int magic = byteBuffer.getInt();
             //In dledger, this field is size, it must be gt 0, so it could prevent collision
             int magicOld = byteBuffer.getInt();
-            if (magicOld == CommitLog.BLANK_MAGIC_CODE || magicOld == CommitLog.MESSAGE_MAGIC_CODE) {
+            if (magicOld == CommitLog.BLANK_MAGIC_CODE
+                || magicOld == MessageDecoder.MESSAGE_MAGIC_CODE
+                || magicOld == MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
                 byteBuffer.position(pos);
                 return super.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, readBody);
             }
@@ -399,6 +419,13 @@ public class DLedgerCommitLog extends CommitLog {
         setMessageInfo(msg, tranType);
 
         final String finalTopic = msg.getTopic();
+
+        msg.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && msg.getTopic().length() > Byte.MAX_VALUE) {
+            msg.setVersion(MessageVersion.MESSAGE_VERSION_V2);
+        }
 
         // Back to Results
         AppendMessageResult appendResult;
@@ -506,6 +533,13 @@ public class DLedgerCommitLog extends CommitLog {
         InetSocketAddress storeSocketAddress = (InetSocketAddress) messageExtBatch.getStoreHost();
         if (storeSocketAddress.getAddress() instanceof Inet6Address) {
             messageExtBatch.setStoreHostAddressV6Flag();
+        }
+
+        messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
+        boolean autoMessageVersionOnTopicLen =
+            this.defaultMessageStore.getMessageStoreConfig().isAutoMessageVersionOnTopicLen();
+        if (autoMessageVersionOnTopicLen && messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+            messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V2);
         }
 
         // Back to Results
@@ -768,7 +802,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
-            final int msgLen = MessageExtEncoder.calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
+            final int msgLen = MessageExtEncoder.calMsgLength(msgInner.getVersion(), msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
 
             ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
@@ -783,7 +817,7 @@ public class DLedgerCommitLog extends CommitLog {
             // 1 TOTALSIZE
             msgStoreItemMemory.putInt(msgLen);
             // 2 MAGICCODE
-            msgStoreItemMemory.putInt(DLedgerCommitLog.MESSAGE_MAGIC_CODE);
+            msgStoreItemMemory.putInt(msgInner.getVersion().getMagicCode());
             // 3 BODYCRC
             msgStoreItemMemory.putInt(msgInner.getBodyCRC());
             // 4 QUEUEID
@@ -817,7 +851,7 @@ public class DLedgerCommitLog extends CommitLog {
                 msgStoreItemMemory.put(msgInner.getBody());
             }
             // 16 TOPIC
-            msgStoreItemMemory.put((byte) topicLength);
+            msgInner.getVersion().putTopicLength(msgStoreItemMemory, topicLength);
             msgStoreItemMemory.put(topicData);
             // 17 PROPERTIES
             msgStoreItemMemory.putShort((short) propertiesLength);
@@ -871,7 +905,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 final int topicLength = topicData.length;
 
-                final int msgLen = MessageExtEncoder.calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
+                final int msgLen = MessageExtEncoder.calMsgLength(messageExtBatch.getVersion(), messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
                 ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
                 totalMsgLen += msgLen;
@@ -881,7 +915,7 @@ public class DLedgerCommitLog extends CommitLog {
                 // 1 TOTALSIZE
                 msgStoreItemMemory.putInt(msgLen);
                 // 2 MAGICCODE
-                msgStoreItemMemory.putInt(DLedgerCommitLog.MESSAGE_MAGIC_CODE);
+                msgStoreItemMemory.putInt(messageExtBatch.getVersion().getMagicCode());
                 // 3 BODYCRC
                 msgStoreItemMemory.putInt(bodyCrc);
                 // 4 QUEUEID
@@ -914,7 +948,7 @@ public class DLedgerCommitLog extends CommitLog {
                     msgStoreItemMemory.put(messagesByteBuff.array(), bodyPos, bodyLen);
                 }
                 // 16 TOPIC
-                msgStoreItemMemory.put((byte) topicLength);
+                messageExtBatch.getVersion().putTopicLength(msgStoreItemMemory, topicLength);
                 msgStoreItemMemory.put(topicData);
                 // 17 PROPERTIES
                 msgStoreItemMemory.putShort(propertiesLen);

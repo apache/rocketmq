@@ -6,7 +6,7 @@ about: Describe this issue template's purpose here.
 
 The issue tracker is used for bug reporting purposes **ONLY** whereas feature request needs to follow the [RIP process](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal). To avoid unnecessary duplication, please check whether there is a previous issue before filing a new one.
 
-It is recommended to start a discussion thread in the [mailing lists](http://rocketmq.apache.org/about/contact/) in cases of discussing your deployment plan, API clarification, and other non-bug-reporting issues.
+It is recommended to start a discussion thread in the [mailing lists](http://rocketmq.apache.org/about/contact/) or [github discussions](https://github.com/apache/rocketmq/discussions) in cases of discussing your deployment plan, API clarification, and other non-bug-reporting issues.
 We welcome any friendly suggestions, bug fixes, collaboration, and other improvements.
 
 Please ensure that your bug report is clear and self-contained. Otherwise, it would take additional rounds of communication, thus more time, to understand the problem itself.
@@ -41,7 +41,7 @@ As a result, it would be very helpful yet challenging if you could provide an is
 
 2. Provide any additional detail on your proposed use case for this feature.
 
-2. Indicate the importance of this issue to you (blocker, must-have, should-have, nice-to-have). Are you currently using any workarounds to address this issue?
+3. Indicate the importance of this issue to you (blocker, must-have, should-have, nice-to-have). Are you currently using any workarounds to address this issue?
 
 4. If there are some sub-tasks involved, use -[] for each sub-task and create a corresponding issue to map to the sub-task:
 

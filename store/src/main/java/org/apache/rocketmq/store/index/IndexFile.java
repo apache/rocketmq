@@ -22,14 +22,27 @@ import java.nio.MappedByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 public class IndexFile {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int hashSlotSize = 4;
+    /**
+     * Each index's store unit. Format:
+     * <pre>
+     * ┌───────────────┬───────────────────────────────┬───────────────┬───────────────┐
+     * │ Key HashCode  │        Physical Offset        │   Time Diff   │ Next Index Pos│
+     * │   (4 Bytes)   │          (8 Bytes)            │   (4 Bytes)   │   (4 Bytes)   │
+     * ├───────────────┴───────────────────────────────┴───────────────┴───────────────┤
+     * │                                 Index Store Unit                              │
+     * │                                                                               │
+     * </pre>
+     * Each index's store unit. Size:
+     * Key HashCode(4) + Physical Offset(8) + Time Diff(4) + Next Index Pos(4) = 20 Bytes
+     */
     private static int indexSize = 20;
     private static int invalidIndex = 0;
     private final int hashSlotNum;

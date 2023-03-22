@@ -18,7 +18,6 @@ package org.apache.rocketmq.acl.plain;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.PermissionChecker;
 import org.apache.rocketmq.acl.common.AclConstants;
@@ -43,18 +41,18 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.srvutil.AclFileWatchService;
 
 public class PlainPermissionManager {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -441,27 +439,27 @@ public class PlainPermissionManager {
         return newAccountsMap;
     }
 
-    public boolean deleteAccessConfig(String accesskey) {
-        if (StringUtils.isEmpty(accesskey)) {
-            log.error("Parameter value accesskey is null or empty String,Please check your parameter");
+    public boolean deleteAccessConfig(String accessKey) {
+        if (StringUtils.isEmpty(accessKey)) {
+            log.error("Parameter value accessKey is null or empty String,Please check your parameter");
             return false;
         }
 
-        if (accessKeyTable.containsKey(accesskey)) {
-            String aclFileName = accessKeyTable.get(accesskey);
+        if (accessKeyTable.containsKey(accessKey)) {
+            String aclFileName = accessKeyTable.get(accessKey);
             Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(aclFileName,
                 Map.class);
             if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
-                log.warn("No data found in {} when deleting access config of {}", aclFileName, accesskey);
+                log.warn("No data found in {} when deleting access config of {}", aclFileName, accessKey);
                 return true;
             }
             List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
             Iterator<Map<String, Object>> itemIterator = accounts.iterator();
             while (itemIterator.hasNext()) {
-                if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
+                if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accessKey)) {
                     // Delete the related acl config element
                     itemIterator.remove();
-                    accessKeyTable.remove(accesskey);
+                    accessKeyTable.remove(accessKey);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
                     return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
                 }
@@ -613,14 +611,14 @@ public class PlainPermissionManager {
         }
 
         if (plainAccessResource.getAccessKey() == null) {
-            throw new AclException(String.format("No accessKey is configured"));
+            throw new AclException("No accessKey is configured");
         }
 
         if (!accessKeyTable.containsKey(plainAccessResource.getAccessKey())) {
             throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));
         }
 
-        // Check the white addr for accesskey
+        // Check the white addr for accessKey
         String aclFileName = accessKeyTable.get(plainAccessResource.getAccessKey());
         PlainAccessResource ownedAccess = aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey());
         if (null == ownedAccess) {
