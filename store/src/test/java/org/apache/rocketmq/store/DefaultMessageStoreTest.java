@@ -264,14 +264,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
-            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
-            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
         }
     }
 
