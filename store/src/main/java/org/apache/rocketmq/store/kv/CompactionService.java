@@ -67,7 +67,7 @@ public class CompactionService extends ServiceThread {
     }
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId,
-        final long offset, final int maxMsgNums, final int maxTotalMsgSize) {
+                                       final long offset, final int maxMsgNums, final int maxTotalMsgSize) {
         return compactionStore.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize);
     }
 
@@ -126,6 +126,13 @@ public class CompactionService extends ServiceThread {
     @Override
     public void shutdown() {
         super.shutdown();
+        while (!compactionMsgQ.isEmpty()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+
+            }
+        }
         compactionStore.shutdown();
     }
 

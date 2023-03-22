@@ -1,9 +1,16 @@
 # Compaction Topic
 
 ## use example
+
+### Turn on the opening of support for orderMessages on namesrv
+CompactionTopic relies on orderMessages to ensure consistency
+```shell
+$ bin/mqadmin updateNamesrvConfig -k orderMessageEnable -v true
+```
+
 ### create compaction topic
 ```shell
-$ bin/mqadmin updateTopic -w 8 -r 8 -a +delete.policy=COMPACTION -n localhost:9876 -t ctopic -c DefaultCluster
+$ bin/mqadmin updateTopic -w 8 -r 8 -a +cleanup.policy=COMPACTION -n localhost:9876 -t ctopic -o true -c DefaultCluster
 create topic to 127.0.0.1:10911 success.
 TopicConfig [topicName=ctopic, readQueueNums=8, writeQueueNums=8, perm=RW-, topicFilterType=SINGLE_TAG, topicSysFlag=0, order=false, attributes={+delete.policy=COMPACTION}]
 ```
@@ -15,8 +22,17 @@ DefaultMQProducer producer = new DefaultMQProducer("CompactionTestGroup");
 producer.setNamesrvAddr("localhost:9876");
 producer.start();
 
-Message msg = new Message(topic, "tags", "keys", "bodys"getBytes(StandardCharsets.UTF_8));
-SendResult sendResult = producer.send(msg);
+String topic = "ctopic";
+String tag = "tag1";
+String key = "key1";
+Message msg = new Message(topic, tag, key, "bodys"getBytes(StandardCharsets.UTF_8));
+SendResult sendResult = producer.send(msg, (mqs, message, shardingKey) -> {
+    int select = Math.abs(shardingKey.hashCode());
+    if (select < 0) {
+        select = 0;
+    }
+    return mqs.get(select % mqs.size());
+}, key);
 
 System.out.printf("%s%n", sendResult);
 ```
