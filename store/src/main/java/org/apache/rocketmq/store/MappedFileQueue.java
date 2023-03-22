@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
-
-import com.google.common.collect.Lists;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -461,44 +459,45 @@ public class MappedFileQueue implements Swappable {
         final int deleteFileBatchMax) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        if (null == mfs) {
+        if (null == mfs)
             return 0;
-        }
 
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<>();
         int skipFileNum = 0;
-        //do check before deleting
-        checkSelf();
-        for (int i = 0; i < mfsLength; i++) {
-            MappedFile mappedFile = (MappedFile) mfs[i];
-            long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
-            if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
-                if (skipFileNum > 0) {
-                    log.info("Delete CommitLog {} but skip {} files", mappedFile.getFileName(), skipFileNum);
-                }
-                if (mappedFile.destroy(intervalForcibly)) {
-                    files.add(mappedFile);
-                    deleteCount++;
+        if (null != mfs) {
+            //do check before deleting
+            checkSelf();
+            for (int i = 0; i < mfsLength; i++) {
+                MappedFile mappedFile = (MappedFile) mfs[i];
+                long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
+                if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                    if (skipFileNum > 0) {
+                        log.info("Delete CommitLog {} but skip {} files", mappedFile.getFileName(), skipFileNum);
+                    }
+                    if (mappedFile.destroy(intervalForcibly)) {
+                        files.add(mappedFile);
+                        deleteCount++;
 
-                    if (files.size() >= deleteFileBatchMax) {
+                        if (files.size() >= deleteFileBatchMax) {
+                            break;
+                        }
+
+                        if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
+                            try {
+                                Thread.sleep(deleteFilesInterval);
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    } else {
                         break;
                     }
-
-                    if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
-                        try {
-                            Thread.sleep(deleteFilesInterval);
-                        } catch (InterruptedException e) {
-                        }
-                    }
                 } else {
+                    skipFileNum++;
+                    //avoid deleting files in the middle
                     break;
                 }
-            } else {
-                skipFileNum++;
-                //avoid deleting files in the middle
-                break;
             }
         }
 
