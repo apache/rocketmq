@@ -71,7 +71,7 @@ GenTestRules(
         ":tests",
     ],
     exclude_tests = [
-        # This test is buggy, exlcude it.
+        # This test is buggy, exclude it.
         "src/test/java/org/apache/rocketmq/controller/impl/DLedgerControllerTest",
     ],
     medium_tests = [
