@@ -861,6 +861,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         private final MessageQueue messageQueue;
         private volatile boolean cancelled = false;
         private Thread currentThread;
+        // Set pullDelayTimeMills as a global variable so that we can use it in the PullCallback
+        private long pullDelayTimeMills = 0;
         private final CommunicationMode communicationMode;
 
         public PullTaskImpl(final MessageQueue messageQueue) {
@@ -958,7 +960,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 if (this.isCancelled() || processQueue.isDropped()) {
                     return;
                 }
-                long pullDelayTimeMills = 0;
+
                 try {
                     SubscriptionData subscriptionData;
                     String topic = this.messageQueue.getTopic();
@@ -981,7 +983,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                                 @Override
                                 public void onException(Throwable e) {
-                                    log.warn("AsyncPull onException, info: {}", e.toString());
+                                    handleError(e);
                                 }
                             };
                             pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize(), pullCallback);
@@ -999,21 +1001,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             assert false;
                             break;
                     }
-                } catch (InterruptedException interruptedException) {
-                    log.warn("Polling thread was interrupted.", interruptedException);
-                } catch (Throwable e) {
-                    if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.FLOW_CONTROL) {
-                        pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_BROKER_FLOW_CONTROL;
-                    } else {
-                        pullDelayTimeMills = pullTimeDelayMillsWhenException;
-                    }
-                    log.error("An error occurred in pull message process.", e);
-                }
-
-                if (!this.isCancelled()) {
-                    scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
-                } else {
-                    log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
+                } catch (Exception e) {
+                    // For pull() sync and FilterAPI.buildSubscriptionData
+                    handleError(e);
                 }
             }
         }
@@ -1036,6 +1026,25 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     break;
             }
             updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+
+            if (!this.isCancelled()) {
+                scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
+            } else {
+                log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
+            }
+        }
+
+        private void handleError(Throwable e) {
+            if (e instanceof InterruptedException) {
+                log.warn("Polling thread was interrupted.", e);
+            } else {
+                if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.FLOW_CONTROL) {
+                    pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_BROKER_FLOW_CONTROL;
+                } else {
+                    pullDelayTimeMills = pullTimeDelayMillsWhenException;
+                }
+                log.error("An error occurred in pull message process.", e);
+            }
         }
 
         public boolean isCancelled() {
