@@ -105,9 +105,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0
-            && corePoolSize <= Short.MAX_VALUE
-            && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
+        if (corePoolSize > 0 && corePoolSize <= Short.MAX_VALUE) {
+            this.consumeExecutor.setMaximumPoolSize(corePoolSize);
             this.consumeExecutor.setCorePoolSize(corePoolSize);
         }
     }
