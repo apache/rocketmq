@@ -125,7 +125,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache,
         String key) throws Exception {
         MessageQueueView res = topicCache.get(key);
-        if (res.isEmptyCachedQueue()) {
+        if (res != null && res.isEmptyCachedQueue()) {
             throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
                 "No topic route info in name server for the topic: " + key);
         }
