@@ -52,10 +52,10 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
         this.nettyServerConfig = nettyServerConfig;
 
         this.remotingProtocolHandler = new RemotingProtocolHandler(
-            this.getEncoder(),
-            this.getDistributionHandler(),
-            this.getConnectionManageHandler(),
-            this.getServerHandler());
+            this::getEncoder,
+            this::getDistributionHandler,
+            this::getConnectionManageHandler,
+            this::getServerHandler);
         this.http2ProtocolProxyHandler = new Http2ProtocolProxyHandler();
     }
 
