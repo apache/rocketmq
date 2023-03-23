@@ -87,7 +87,7 @@ public class TieredIndexFile {
         this.curFilePath = storeConfig.getStorePathRootDir() + File.separator + INDEX_FILE_DIR_NAME + File.separator + CUR_INDEX_FILE_NAME;
         this.preFilepath = storeConfig.getStorePathRootDir() + File.separator + INDEX_FILE_DIR_NAME + File.separator + PRE_INDEX_FILE_NAME;
         initFile();
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 curFileLock.lock();
                 try {
@@ -100,7 +100,7 @@ public class TieredIndexFile {
                             rollingFile();
                         }
                         if (inflightCompactFuture.isDone() && preMappedFile != null && preMappedFile.isAvailable()) {
-                            inflightCompactFuture = TieredStoreExecutor.COMPACT_INDEX_FILE_EXECUTOR.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
+                            inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
                         }
                     }
                 } finally {
@@ -154,7 +154,7 @@ public class TieredIndexFile {
         if (preFileExists) {
             synchronized (TieredIndexFile.class) {
                 if (inflightCompactFuture.isDone()) {
-                    inflightCompactFuture = TieredStoreExecutor.COMPACT_INDEX_FILE_EXECUTOR.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
+                    inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
                 }
             }
         }
@@ -187,7 +187,7 @@ public class TieredIndexFile {
     private void tryToCompactPreFile() throws IOException {
         synchronized (TieredIndexFile.class) {
             if (inflightCompactFuture.isDone()) {
-                inflightCompactFuture = TieredStoreExecutor.COMPACT_INDEX_FILE_EXECUTOR.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
+                inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
             }
         }
     }

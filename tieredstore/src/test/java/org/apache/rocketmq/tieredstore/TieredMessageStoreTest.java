@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -104,6 +105,7 @@ public class TieredMessageStoreTest {
 
     @After
     public void tearDown() throws IOException {
+        TieredStoreExecutor.shutdown();
         TieredStoreTestUtil.destroyContainerManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
@@ -290,7 +292,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testShutdownAndDestroy() {
+        store.shutdown();
         store.destroy();
-//        store.shutdown();
     }
 }
