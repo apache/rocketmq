@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
@@ -47,6 +48,7 @@ public class TieredContainerManagerTest {
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredContainerManagerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
@@ -54,6 +56,7 @@ public class TieredContainerManagerTest {
         TieredStoreTestUtil.destroyContainerManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
 

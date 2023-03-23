@@ -69,6 +69,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         TieredStoreUtil.addSystemTopic(storeConfig.getBrokerClusterName());
         TieredStoreUtil.addSystemTopic(brokerName);
 
+        TieredStoreExecutor.init();
         this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         this.fetcher = new TieredMessageFetcher(storeConfig);
         this.dispatcher = new TieredDispatcher(next, storeConfig);
