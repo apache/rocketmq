@@ -105,7 +105,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0 && corePoolSize != this.consumeExecutor.getCorePoolSize() && corePoolSize <= Short.MAX_VALUE) {
+        if (corePoolSize > 0 && corePoolSize != this.consumeExecutor.getCorePoolSize()
+                && corePoolSize <= Short.MAX_VALUE) {
             if (corePoolSize > this.consumeExecutor.getMaximumPoolSize()) {
                 this.consumeExecutor.setMaximumPoolSize(corePoolSize);
             }
