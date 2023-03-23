@@ -27,28 +27,21 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 public class TieredStoreExecutor {
     private static final int QUEUE_CAPACITY = 10000;
-    private static final BlockingQueue<Runnable> DISPATCH_THREAD_POOL_QUEUE;
-    public static final ExecutorService DISPATCH_EXECUTOR;
-    public static final ScheduledExecutorService COMMON_SCHEDULED_EXECUTOR;
+    public static ExecutorService DISPATCH_EXECUTOR;
+    public static ScheduledExecutorService COMMON_SCHEDULED_EXECUTOR;
+    public static ScheduledExecutorService COMMIT_EXECUTOR;
+    public static ScheduledExecutorService CLEAN_EXPIRED_FILE_EXECUTOR;
+    public static ExecutorService FETCH_DATA_EXECUTOR;
+    public static ExecutorService COMPACT_INDEX_FILE_EXECUTOR;
 
-    public static final ScheduledExecutorService COMMIT_EXECUTOR;
-
-    public static final ScheduledExecutorService CLEAN_EXPIRED_FILE_EXECUTOR;
-
-    private static final BlockingQueue<Runnable> FETCH_DATA_THREAD_POOL_QUEUE;
-    public static final ExecutorService FETCH_DATA_EXECUTOR;
-
-    private static final BlockingQueue<Runnable> COMPACT_INDEX_FILE_THREAD_POOL_QUEUE;
-    public static final ExecutorService COMPACT_INDEX_FILE_EXECUTOR;
-
-    static {
-        DISPATCH_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+    public static void init() {
+        BlockingQueue<Runnable> dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         DISPATCH_EXECUTOR = new ThreadPoolExecutor(
             Math.max(2, Runtime.getRuntime().availableProcessors()),
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            DISPATCH_THREAD_POOL_QUEUE,
+            dispatchThreadPoolQueue,
             new ThreadFactoryImpl("TieredCommonExecutor_"));
 
         COMMON_SCHEDULED_EXECUTOR = new ScheduledThreadPoolExecutor(
@@ -63,31 +56,44 @@ public class TieredStoreExecutor {
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCleanExpiredFileExecutor_"));
 
-        FETCH_DATA_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        BlockingQueue<Runnable> fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         FETCH_DATA_EXECUTOR = new ThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             Math.max(64, Runtime.getRuntime().availableProcessors() * 8),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            FETCH_DATA_THREAD_POOL_QUEUE,
+            fetchDataThreadPoolQueue,
             new ThreadFactoryImpl("TieredFetchDataExecutor_"));
 
-        COMPACT_INDEX_FILE_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        BlockingQueue<Runnable> compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         COMPACT_INDEX_FILE_EXECUTOR = new ThreadPoolExecutor(
             1,
             1,
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            COMPACT_INDEX_FILE_THREAD_POOL_QUEUE,
+            compactIndexFileThreadPoolQueue,
             new ThreadFactoryImpl("TieredCompactIndexFileExecutor_"));
     }
 
     public static void shutdown() {
-        DISPATCH_EXECUTOR.shutdown();
-        COMMON_SCHEDULED_EXECUTOR.shutdown();
-        COMMIT_EXECUTOR.shutdown();
-        CLEAN_EXPIRED_FILE_EXECUTOR.shutdown();
-        FETCH_DATA_EXECUTOR.shutdown();
-        COMPACT_INDEX_FILE_EXECUTOR.shutdown();
+        shutdownExecutor(DISPATCH_EXECUTOR);
+        shutdownExecutor(COMMON_SCHEDULED_EXECUTOR);
+        shutdownExecutor(COMMIT_EXECUTOR);
+        shutdownExecutor(CLEAN_EXPIRED_FILE_EXECUTOR);
+        shutdownExecutor(FETCH_DATA_EXECUTOR);
+        shutdownExecutor(COMPACT_INDEX_FILE_EXECUTOR);
+    }
+
+    private static void shutdownExecutor(ExecutorService executor) {
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+            }
+        }
     }
 }
