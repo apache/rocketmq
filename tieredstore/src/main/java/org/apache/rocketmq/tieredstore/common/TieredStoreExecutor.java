@@ -27,16 +27,16 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 public class TieredStoreExecutor {
     private static final int QUEUE_CAPACITY = 10000;
-    public static ExecutorService DISPATCH_EXECUTOR;
-    public static ScheduledExecutorService COMMON_SCHEDULED_EXECUTOR;
-    public static ScheduledExecutorService COMMIT_EXECUTOR;
-    public static ScheduledExecutorService CLEAN_EXPIRED_FILE_EXECUTOR;
-    public static ExecutorService FETCH_DATA_EXECUTOR;
-    public static ExecutorService COMPACT_INDEX_FILE_EXECUTOR;
+    public static ExecutorService dispatchExecutor;
+    public static ScheduledExecutorService commonScheduledExecutor;
+    public static ScheduledExecutorService commitExecutor;
+    public static ScheduledExecutorService cleanExpiredFileExecutor;
+    public static ExecutorService fetchDataExecutor;
+    public static ExecutorService compactIndexFileExecutor;
 
     public static void init() {
         BlockingQueue<Runnable> dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        DISPATCH_EXECUTOR = new ThreadPoolExecutor(
+        dispatchExecutor = new ThreadPoolExecutor(
             Math.max(2, Runtime.getRuntime().availableProcessors()),
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             1000 * 60,
@@ -44,20 +44,20 @@ public class TieredStoreExecutor {
             dispatchThreadPoolQueue,
             new ThreadFactoryImpl("TieredCommonExecutor_"));
 
-        COMMON_SCHEDULED_EXECUTOR = new ScheduledThreadPoolExecutor(
+        commonScheduledExecutor = new ScheduledThreadPoolExecutor(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCommonScheduledExecutor_"));
 
-        COMMIT_EXECUTOR = new ScheduledThreadPoolExecutor(
+        commitExecutor = new ScheduledThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             new ThreadFactoryImpl("TieredCommitExecutor_"));
 
-        CLEAN_EXPIRED_FILE_EXECUTOR = new ScheduledThreadPoolExecutor(
+        cleanExpiredFileExecutor = new ScheduledThreadPoolExecutor(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCleanExpiredFileExecutor_"));
 
         BlockingQueue<Runnable> fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        FETCH_DATA_EXECUTOR = new ThreadPoolExecutor(
+        fetchDataExecutor = new ThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             Math.max(64, Runtime.getRuntime().availableProcessors() * 8),
             1000 * 60,
@@ -66,7 +66,7 @@ public class TieredStoreExecutor {
             new ThreadFactoryImpl("TieredFetchDataExecutor_"));
 
         BlockingQueue<Runnable> compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        COMPACT_INDEX_FILE_EXECUTOR = new ThreadPoolExecutor(
+        compactIndexFileExecutor = new ThreadPoolExecutor(
             1,
             1,
             1000 * 60,
@@ -76,12 +76,12 @@ public class TieredStoreExecutor {
     }
 
     public static void shutdown() {
-        shutdownExecutor(DISPATCH_EXECUTOR);
-        shutdownExecutor(COMMON_SCHEDULED_EXECUTOR);
-        shutdownExecutor(COMMIT_EXECUTOR);
-        shutdownExecutor(CLEAN_EXPIRED_FILE_EXECUTOR);
-        shutdownExecutor(FETCH_DATA_EXECUTOR);
-        shutdownExecutor(COMPACT_INDEX_FILE_EXECUTOR);
+        shutdownExecutor(dispatchExecutor);
+        shutdownExecutor(commonScheduledExecutor);
+        shutdownExecutor(commitExecutor);
+        shutdownExecutor(cleanExpiredFileExecutor);
+        shutdownExecutor(fetchDataExecutor);
+        shutdownExecutor(compactIndexFileExecutor);
     }
 
     private static void shutdownExecutor(ExecutorService executor) {

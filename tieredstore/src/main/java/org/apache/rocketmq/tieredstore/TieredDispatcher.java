@@ -72,11 +72,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         this.dispatchRequestWriteMap = new ConcurrentHashMap<>();
         this.dispatchRequestListLock = new ReentrantLock();
 
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
                     if (!container.getQueueLock().isLocked()) {
-                        TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+                        TieredStoreExecutor.dispatchExecutor.execute(() -> {
                             try {
                                 dispatchByMQContainer(container);
                             } catch (Throwable throwable) {
@@ -88,7 +88,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             } catch (Throwable ignore) {
             }
         }, 30, 10, TimeUnit.SECONDS);
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
                     container.flushMetadata();
@@ -180,7 +180,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         } else {
             if (!container.getQueueLock().isLocked()) {
                 try {
-                    TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+                    TieredStoreExecutor.dispatchExecutor.execute(() -> {
                         try {
                             dispatchByMQContainer(container);
                         } catch (Throwable throwable) {
@@ -281,7 +281,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
         // If this queue dispatch falls too far, dispatch again immediately
         if (container.getDispatchOffset() < maxOffsetInQueue && !container.getQueueLock().isLocked()) {
-            TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+            TieredStoreExecutor.dispatchExecutor.execute(() -> {
                 try {
                     dispatchByMQContainer(container);
                 } catch (Throwable throwable) {
