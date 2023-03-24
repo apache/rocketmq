@@ -261,7 +261,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
         Assert.assertEquals(0, consumeQueue.getOffsetInQueueByTime(0));
         Assert.assertEquals(50, consumeQueue.getOffsetInQueueByTime(timeMid));
-        Assert.assertEquals(99, consumeQueue.getOffsetInQueueByTime(timeMid + Integer.MAX_VALUE));
+        Assert.assertEquals(100, consumeQueue.getOffsetInQueueByTime(timeMid + Integer.MAX_VALUE));
         Assert.assertEquals(100, consumeQueue.getMaxOffsetInQueue());
         //check the messagestore
         Assert.assertEquals(100, messageStore.getMessageTotalInQueue(topic, 0));
