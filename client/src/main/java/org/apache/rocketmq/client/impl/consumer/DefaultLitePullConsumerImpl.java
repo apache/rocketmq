@@ -979,21 +979,19 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                                 @Override
                                 public void onSuccess(PullResult pullResult) {
                                     addResultToQueue(pullResult, processQueue);
+                                    executeThreadWithDelay();
                                 }
 
                                 @Override
                                 public void onException(Throwable e) {
                                     handleError(e);
+                                    executeThreadWithDelay();
                                 }
                             };
                             pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize(), pullCallback);
-                            break;
+                            return;
                         case SYNC:
                             pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
-
-                            if (this.isCancelled() || processQueue.isDropped()) {
-                                return;
-                            }
 
                             addResultToQueue(pullResult, processQueue);
                             break;
@@ -1005,10 +1003,15 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     // For pull() sync and FilterAPI.buildSubscriptionData
                     handleError(e);
                 }
+                executeThreadWithDelay();
             }
         }
 
         private void addResultToQueue(PullResult pullResult, ProcessQueue processQueue) {
+            if (this.isCancelled() || processQueue.isDropped()) {
+                return;
+            }
+
             switch (pullResult.getPullStatus()) {
                 case FOUND:
                     final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
@@ -1026,12 +1029,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     break;
             }
             updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
-
-            if (!this.isCancelled()) {
-                scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
-            } else {
-                log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
-            }
         }
 
         private void handleError(Throwable e) {
@@ -1044,6 +1041,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     pullDelayTimeMills = pullTimeDelayMillsWhenException;
                 }
                 log.error("An error occurred in pull message process.", e);
+            }
+        }
+
+        private void executeThreadWithDelay() {
+            if (!this.isCancelled()) {
+                scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
+            } else {
+                log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
             }
         }
 
