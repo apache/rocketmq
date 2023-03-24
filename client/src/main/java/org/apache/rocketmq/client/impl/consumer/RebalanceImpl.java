@@ -525,7 +525,7 @@ public abstract class RebalanceImpl {
                 try {
                     nextOffset = this.computePullFromWhereWithException(mq);
                 } catch (MQClientException e) {
-                    log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                    log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
                     continue;
                 }
                 if (nextOffset >= 0) {
@@ -686,7 +686,7 @@ public abstract class RebalanceImpl {
                     try {
                         nextOffset = this.computePullFromWhereWithException(mq);
                     } catch (Exception e) {
-                        log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                        log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
                         continue;
                     }
 
