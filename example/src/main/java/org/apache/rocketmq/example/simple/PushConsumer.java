@@ -32,7 +32,10 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
-        consumer.setNamesrvAddr(NAMESRV_ADDR);
+
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        consumer.setNamesrvAddr(NAMESRV_ADDR);
+
         consumer.subscribe(TOPIC, "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         //wrong time format 2017_0422_221800
