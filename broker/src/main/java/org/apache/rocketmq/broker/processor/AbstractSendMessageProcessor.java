@@ -216,11 +216,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
         MessageAccessor.setProperties(msgInner, msgExt.getProperties());
-        // avoid build consumeQueue again
-        if (msgInner.getProperties() != null) {
-            msgInner.getProperties().remove(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-            msgInner.getProperties().remove(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        }
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
 
