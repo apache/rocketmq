@@ -524,7 +524,7 @@ public class CompactionLog {
                                     nextPhyFileStartOffset = rollNextFile(offsetPy);
                                     continue;
                                 }
-
+                                this.defaultMessageStore.getStoreStatsService().getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
                                 getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                                 status = GetMessageStatus.FOUND;
                                 nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -542,6 +542,14 @@ public class CompactionLog {
                 status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
             }
+
+            if (GetMessageStatus.FOUND == status) {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalFound().add(getResult.getMessageCount());
+            } else {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalMiss().add(getResult.getMessageCount());
+            }
+            long elapsedTime = this.defaultMessageStore.getSystemClock().now() - beginTime;
+            this.defaultMessageStore.getStoreStatsService().setGetMessageEntireTimeMax(elapsedTime);
 
             getResult.setStatus(status);
             getResult.setNextBeginOffset(nextBeginOffset);
