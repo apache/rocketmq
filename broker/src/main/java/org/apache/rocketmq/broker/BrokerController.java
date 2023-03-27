@@ -106,6 +106,7 @@ import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -1107,7 +1108,7 @@ public class BrokerController {
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
+            slowTimeMills = rt == null ? 0 : SystemClock.elapsedMillis(rt.getCreateNano());
         }
 
         if (slowTimeMills < 0) {

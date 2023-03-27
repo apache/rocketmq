@@ -639,9 +639,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean isOSPageCacheBusy() {
-        long begin = this.getCommitLog().getBeginTimeInLock();
-        long diff = this.systemClock.now() - begin;
-
+        long diff = this.lockTimeMills();
         return diff < 10000000
             && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
@@ -1756,7 +1754,7 @@ public class DefaultMessageStore implements MessageStore {
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDebugLockEnable()) {
                     try {
                         if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
-                            long lockTime = System.currentTimeMillis() - DefaultMessageStore.this.commitLog.getBeginTimeInLock();
+                            long lockTime = SystemClock.elapsedMillis(DefaultMessageStore.this.commitLog.getBeginNanoInLock());
                             if (lockTime > 1000 && lockTime < 10000000) {
 
                                 String stack = UtilAll.jstack();

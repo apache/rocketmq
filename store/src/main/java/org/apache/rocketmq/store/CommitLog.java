@@ -31,8 +31,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -74,7 +76,7 @@ public class CommitLog implements Swappable {
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
-
+    private volatile long beginNanoInLock = 0L;
     protected final PutMessageLock putMessageLock;
 
     protected final TopicQueueLock topicQueueLock;
@@ -727,6 +729,10 @@ public class CommitLog implements Swappable {
         return beginTimeInLock;
     }
 
+    public long getBeginNanoInLock() {
+        return beginNanoInLock;
+    }
+
     public String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
         keyBuilder.setLength(0);
         keyBuilder.append(messageExt.getTopic());
@@ -837,7 +843,9 @@ public class CommitLog implements Swappable {
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             try {
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+                long beginLockNano = this.defaultMessageStore.getSystemClock().nano();
                 this.beginTimeInLock = beginLockTimestamp;
+                this.beginNanoInLock = beginLockNano;
 
                 // Here settings are stored timestamp, in order to ensure an orderly
                 // global
@@ -851,6 +859,7 @@ public class CommitLog implements Swappable {
                 if (null == mappedFile) {
                     log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                     beginTimeInLock = 0;
+                    beginNanoInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
@@ -868,6 +877,7 @@ public class CommitLog implements Swappable {
                             // XXX: warn and notify me
                             log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                             beginTimeInLock = 0;
+                            beginNanoInLock = 0;
                             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
                         result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
@@ -878,17 +888,21 @@ public class CommitLog implements Swappable {
                     case MESSAGE_SIZE_EXCEEDED:
                     case PROPERTIES_SIZE_EXCEEDED:
                         beginTimeInLock = 0;
+                        beginNanoInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
                     case UNKNOWN_ERROR:
                         beginTimeInLock = 0;
+                        beginNanoInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
                     default:
                         beginTimeInLock = 0;
+                        beginNanoInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
                 }
 
-                elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+                elapsedTimeInLock = SystemClock.elapsedMillis(beginLockNano);
                 beginTimeInLock = 0;
+                beginNanoInLock = 0;
             } finally {
                 putMessageLock.unlock();
             }
@@ -995,7 +1009,9 @@ public class CommitLog implements Swappable {
             putMessageLock.lock();
             try {
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+                long beginLockNano = this.defaultMessageStore.getSystemClock().nano();
                 this.beginTimeInLock = beginLockTimestamp;
+                this.beginNanoInLock = beginLockNano;
 
                 // Here settings are stored timestamp, in order to ensure an orderly
                 // global
@@ -1007,6 +1023,7 @@ public class CommitLog implements Swappable {
                 if (null == mappedFile) {
                     log.error("Create mapped file1 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                     beginTimeInLock = 0;
+                    beginLockNano = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
@@ -1022,6 +1039,7 @@ public class CommitLog implements Swappable {
                             // XXX: warn and notify me
                             log.error("Create mapped file2 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                             beginTimeInLock = 0;
+                            beginNanoInLock = 0;
                             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
                         result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
@@ -1029,15 +1047,18 @@ public class CommitLog implements Swappable {
                     case MESSAGE_SIZE_EXCEEDED:
                     case PROPERTIES_SIZE_EXCEEDED:
                         beginTimeInLock = 0;
+                        beginNanoInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
                     case UNKNOWN_ERROR:
                     default:
                         beginTimeInLock = 0;
+                        beginNanoInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
                 }
 
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
                 beginTimeInLock = 0;
+                beginNanoInLock = 0;
             } finally {
                 putMessageLock.unlock();
             }
@@ -1213,10 +1234,9 @@ public class CommitLog implements Swappable {
 
     public long lockTimeMills() {
         long diff = 0;
-        long begin = this.beginTimeInLock;
-        if (begin > 0) {
-            diff = this.defaultMessageStore.now() - begin;
-        }
+        long begin = this.beginNanoInLock;
+
+        diff = SystemClock.elapsedMillis(begin);
 
         if (diff < 0) {
             diff = 0;

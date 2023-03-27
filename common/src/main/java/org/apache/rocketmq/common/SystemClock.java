@@ -20,4 +20,20 @@ public class SystemClock {
     public long now() {
         return System.currentTimeMillis();
     }
+
+    public long nano() {
+        return System.nanoTime();
+    }
+
+    private static long nanoToMillis(long nano) {
+        return nano / 1000_000L;
+    }
+
+    public static long elapsedMillis(long startNano) {
+        long diff = System.nanoTime() - startNano;
+        if (diff < 0) {
+            diff = 0;
+        }
+        return nanoToMillis(diff);
+    }
 }

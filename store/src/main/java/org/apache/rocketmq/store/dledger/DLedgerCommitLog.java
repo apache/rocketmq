@@ -36,6 +36,8 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -74,6 +76,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     private final MessageSerializer messageSerializer;
     private volatile long beginTimeInDledgerLock = 0;
+    private volatile long beginNanoInDledgerLock = 0L;
 
     //This offset separate the old commitlog from dledger commitlog
     private long dividedCommitlogOffset = -1;
@@ -391,6 +394,11 @@ public class DLedgerCommitLog extends CommitLog {
         return beginTimeInDledgerLock;
     }
 
+    @Override
+    public long getBeginNanoInLock() {
+        return beginNanoInDledgerLock;
+    }
+
     private void setMessageInfo(MessageExtBrokerInner msg, int tranType) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -446,6 +454,7 @@ public class DLedgerCommitLog extends CommitLog {
             long queueOffset;
             try {
                 beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
+                beginNanoInDledgerLock = this.defaultMessageStore.getSystemClock().nano();
                 queueOffset = getQueueOffsetByKey(msg, tranType);
                 encodeResult.setQueueOffsetKey(queueOffset, false);
                 AppendEntryRequest request = new AppendEntryRequest();
@@ -462,13 +471,14 @@ public class DLedgerCommitLog extends CommitLog {
                 ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
-                elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+                elapsedTimeInLock = SystemClock.elapsedMillis(beginNanoInDledgerLock);
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             } catch (Exception e) {
                 log.error("Put message error", e);
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             } finally {
                 beginTimeInDledgerLock = 0;
+                beginNanoInDledgerLock = 0L;
                 putMessageLock.unlock();
             }
 
@@ -565,6 +575,7 @@ public class DLedgerCommitLog extends CommitLog {
             int msgNum = 0;
             try {
                 beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
+                beginNanoInDledgerLock = this.defaultMessageStore.getSystemClock().nano();
                 queueOffset = getQueueOffsetByKey(messageExtBatch, tranType);
                 encodeResult.setQueueOffsetKey(queueOffset, true);
                 BatchAppendEntryRequest request = new BatchAppendEntryRequest();
@@ -600,7 +611,7 @@ public class DLedgerCommitLog extends CommitLog {
                     msgNum++;
                 }
 
-                elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+                elapsedTimeInLock = SystemClock.elapsedMillis(beginNanoInDledgerLock);
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
                 appendResult.setMsgNum(msgNum);
@@ -609,6 +620,7 @@ public class DLedgerCommitLog extends CommitLog {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             } finally {
                 beginTimeInDledgerLock = 0;
+                beginNanoInDledgerLock = 0L;
                 putMessageLock.unlock();
             }
 
@@ -690,10 +702,9 @@ public class DLedgerCommitLog extends CommitLog {
     @Override
     public long lockTimeMills() {
         long diff = 0;
-        long begin = this.beginTimeInDledgerLock;
-        if (begin > 0) {
-            diff = this.defaultMessageStore.now() - begin;
-        }
+        long begin = this.beginNanoInDledgerLock;
+
+        diff = SystemClock.elapsedMillis(begin);
 
         if (diff < 0) {
             diff = 0;
