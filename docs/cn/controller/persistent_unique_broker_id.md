@@ -101,7 +101,7 @@ Controller侧在更新完`BrokerAddress`之后可携带着当前该Broker所在�
 当正确上线之后，之后Broker的请求和状态记录都以`BrokerId`作为唯一标识。心跳等数据的记录都以`BrokerId`为标识。
 同时Controller侧也会记录当前该`BrokerId`的`BrokerAddress`，在主从切换等时候用于通知Broker状态变化。
 
-> 默认持久化ID的文件在~/store/brokerIdentity，也可以设置storePathBrokerIdentity参数来决定存储路径。在自动主备切换模式下，不要随意删除该文件，否则该 Broker 会被当作新 Broker 上线。> 默认持久化ID的文件在~/store/brokerIdentity，也可以设置storePathBrokerIdentity参数来决定存储路径。在自动主备切换模式下，不要随意删除该文件，否则该 Broker 会被当作新 Broker 上线。
+> 默认持久化ID的文件在~/store/brokerIdentity，也可以设置storePathBrokerIdentity参数来决定存储路径。在自动主备切换模式下，不要随意删除该文件，否则该 Broker 会被当作新 Broker 上线。
 
 ## 升级方案
 
