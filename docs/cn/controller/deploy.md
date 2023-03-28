@@ -139,9 +139,9 @@ Broker若设置enableControllerMode=false，则仍然以之前方式运行。若
 
 ### 持久化BrokerID版本的升级注意事项
 
-目前版本支持采用了新的持久化BrokerID版本的高可用架构，从该版本前的5.x升级到当前版本需要注意如下事项。
+目前版本支持采用了新的持久化BrokerID版本，详情可以参考[该文档](persistent_unique_broker_id.md)，从该版本前的5.x升级到当前版本需要注意如下事项。
 
-4.x版本升级遵守上述流程即可。
+4.x版本升级遵守上述正常流程即可。
 5.x非持久化BrokerID版本升级到持久化BrokerID版本按照如下流程:
 
 **升级Controller**
