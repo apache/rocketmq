@@ -71,7 +71,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     public void shutdownPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
-            popReviveService.stop();
+            popReviveService.shutdown();
         }
     }
 
