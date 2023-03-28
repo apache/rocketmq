@@ -67,9 +67,8 @@ public abstract class ServiceThread implements Runnable {
         this.stopped = true;
         log.info("shutdown thread[{}] interrupt={} ", getServiceName(), interrupt);
 
-        if (hasNotified.compareAndSet(false, true)) {
-            waitPoint.countDown(); // notify
-        }
+        //if thead is waiting, wakeup it
+        wakeup();
 
         try {
             if (interrupt) {
@@ -89,28 +88,6 @@ public abstract class ServiceThread implements Runnable {
 
     public long getJoinTime() {
         return JOIN_TIME;
-    }
-
-    @Deprecated
-    public void stop() {
-        this.stop(false);
-    }
-
-    @Deprecated
-    public void stop(final boolean interrupt) {
-        if (!started.get()) {
-            return;
-        }
-        this.stopped = true;
-        log.info("stop thread[{}],interrupt={} ", this.getServiceName(), interrupt);
-
-        if (hasNotified.compareAndSet(false, true)) {
-            waitPoint.countDown(); // notify
-        }
-
-        if (interrupt) {
-            this.thread.interrupt();
-        }
     }
 
     public void makeStop() {
