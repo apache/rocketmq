@@ -33,6 +33,13 @@ public class ThreadLocalIndex {
         return Math.abs(index & POSITIVE_MASK);
     }
 
+    public void reset() {
+        int index = Math.abs(random.nextInt());
+        if (index < 0)
+            index = 0;
+        this.threadLocalIndex.set(index);
+    }
+
     @Override
     public String toString() {
         return "ThreadLocalIndex{" +
