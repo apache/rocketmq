@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONObject;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -25,6 +23,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -254,7 +253,7 @@ public class AclUtils {
         }
     }
 
-    public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
+    public static boolean writeDataObject(String path, Object dataMap) {
         Yaml yaml = new Yaml();
         try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
             String dumpAsMap = yaml.dumpAsMap(dataMap);
