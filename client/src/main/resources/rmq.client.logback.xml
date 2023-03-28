@@ -14,7 +14,7 @@
   limitations under the License.
   -->
 
-<configuration debug="true">
+<configuration>
     <conversionRule conversionWord="pid" converterClass="io.github.aliyunmq.logback.extensions.ProcessIdConverter"/>
     <appender name="CustomConsoleAppender" class="io.github.aliyunmq.logback.extensions.CustomConsoleAppender">
         <encoder>

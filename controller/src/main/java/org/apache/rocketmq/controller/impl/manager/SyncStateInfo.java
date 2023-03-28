@@ -16,9 +16,10 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Manages the syncStateSet of broker replicas.
@@ -26,35 +27,37 @@ import org.apache.commons.lang3.StringUtils;
 public class SyncStateInfo {
     private final String clusterName;
     private final String brokerName;
+    private final AtomicInteger masterEpoch;
+    private final AtomicInteger syncStateSetEpoch;
 
-    private Set<String/*Address*/> syncStateSet;
-    private int syncStateSetEpoch;
+    private Set<Long/*brokerId*/> syncStateSet;
 
-    private String masterAddress;
-    private int masterEpoch;
+    private Long masterBrokerId;
 
-    public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
+    public SyncStateInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
-        this.masterEpoch = 1;
-        this.syncStateSet = new HashSet<>();
-        this.syncStateSet.add(masterAddress);
-        this.syncStateSetEpoch = 1;
+        this.masterEpoch = new AtomicInteger(0);
+        this.syncStateSetEpoch = new AtomicInteger(0);
+        this.syncStateSet = Collections.emptySet();
     }
 
-    public void updateMasterInfo(String masterAddress) {
-        this.masterAddress = masterAddress;
-        this.masterEpoch++;
+    public void updateMasterInfo(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
+        this.masterEpoch.incrementAndGet();
     }
 
-    public void updateSyncStateSetInfo(Set<String> newSyncStateSet) {
+    public void updateSyncStateSetInfo(Set<Long> newSyncStateSet) {
         this.syncStateSet = new HashSet<>(newSyncStateSet);
-        this.syncStateSetEpoch++;
+        this.syncStateSetEpoch.incrementAndGet();
+    }
+
+    public boolean isFirstTimeForElect() {
+        return this.masterEpoch.get() == 0;
     }
 
     public boolean isMasterExist() {
-        return !StringUtils.isBlank(masterAddress);
+        return masterBrokerId != null;
     }
 
     public String getClusterName() {
@@ -65,23 +68,23 @@ public class SyncStateInfo {
         return brokerName;
     }
 
-    public Set<String> getSyncStateSet() {
+    public Set<Long> getSyncStateSet() {
         return new HashSet<>(syncStateSet);
     }
 
     public int getSyncStateSetEpoch() {
-        return syncStateSetEpoch;
+        return syncStateSetEpoch.get();
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
     public int getMasterEpoch() {
-        return masterEpoch;
+        return masterEpoch.get();
     }
 
-    public void removeSyncState(final String address) {
-        syncStateSet.remove(address);
+    public void removeFromSyncState(final Long brokerId) {
+        syncStateSet.remove(brokerId);
     }
 }

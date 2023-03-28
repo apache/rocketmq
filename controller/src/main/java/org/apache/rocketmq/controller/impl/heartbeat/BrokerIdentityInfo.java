@@ -14,29 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.controller.impl.heartbeat;
 
-public class BrokerAddrInfo {
+import java.util.Objects;
+
+public class BrokerIdentityInfo {
     private final String clusterName;
-    private final String brokerAddr;
 
-    private int hash;
+    private final String brokerName;
 
-    public BrokerAddrInfo(String clusterName, String brokerAddr) {
+    private final Long brokerId;
+
+    public BrokerIdentityInfo(String clusterName, String brokerName, Long brokerId) {
         this.clusterName = clusterName;
-        this.brokerAddr = brokerAddr;
+        this.brokerName = brokerName;
+        this.brokerId = brokerId;
     }
 
     public String getClusterName() {
         return clusterName;
     }
 
-    public String getBrokerAddr() {
-        return brokerAddr;
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
     }
 
     public boolean isEmpty() {
-        return clusterName.isEmpty() && brokerAddr.isEmpty();
+        return clusterName.isEmpty() && brokerName.isEmpty() && brokerId == null;
     }
 
     @Override
@@ -48,31 +56,24 @@ public class BrokerAddrInfo {
             return false;
         }
 
-        if (obj instanceof BrokerAddrInfo) {
-            BrokerAddrInfo addr = (BrokerAddrInfo) obj;
-            return clusterName.equals(addr.clusterName) && brokerAddr.equals(addr.brokerAddr);
+        if (obj instanceof BrokerIdentityInfo) {
+            BrokerIdentityInfo addr = (BrokerIdentityInfo) obj;
+            return clusterName.equals(addr.clusterName) && brokerName.equals(addr.brokerName) && brokerId.equals(addr.brokerId);
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        int h = hash;
-        if (h == 0 && clusterName.length() + brokerAddr.length() > 0) {
-            for (int i = 0; i < clusterName.length(); i++) {
-                h = 31 * h + clusterName.charAt(i);
-            }
-            h = 31 * h + '_';
-            for (int i = 0; i < brokerAddr.length(); i++) {
-                h = 31 * h + brokerAddr.charAt(i);
-            }
-            hash = h;
-        }
-        return h;
+        return Objects.hash(this.clusterName, this.brokerName, this.brokerId);
     }
 
     @Override
     public String toString() {
-        return "BrokerAddrInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
+        return "BrokerIdentityInfo{" +
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerId=" + brokerId +
+                '}';
     }
 }

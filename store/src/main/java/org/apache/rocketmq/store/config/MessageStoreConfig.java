@@ -41,6 +41,9 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathEpochFile = null;
 
+    @ImportantField
+    private String storePathBrokerIdentity = null;
+
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -315,7 +318,7 @@ public class MessageStoreConfig {
     private int minInSyncReplicas = 1;
 
     /**
-     * Each message must be written successfully to all replicas in InSyncStateSet.
+     * Each message must be written successfully to all replicas in SyncStateSet.
      */
     @ImportantField
     private boolean allAckInSyncStateSet = false;
@@ -635,6 +638,17 @@ public class MessageStoreConfig {
 
     public void setStorePathEpochFile(String storePathEpochFile) {
         this.storePathEpochFile = storePathEpochFile;
+    }
+
+    public String getStorePathBrokerIdentity() {
+        if (storePathBrokerIdentity == null) {
+            return storePathRootDir + File.separator + "brokerIdentity";
+        }
+        return storePathBrokerIdentity;
+    }
+
+    public void setStorePathBrokerIdentity(String storePathBrokerIdentity) {
+        this.storePathBrokerIdentity = storePathBrokerIdentity;
     }
 
     public String getDeleteWhen() {
