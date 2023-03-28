@@ -65,11 +65,6 @@ public class MQFaultStrategy {
         }
     };
 
-    private QueueFilter mainQueueFilter = new QueueFilter() {
-        @Override public boolean filter(MessageQueue mq) {
-            return mq.isMainQueue();
-        }
-    };
 
     public MQFaultStrategy(ClientConfig cc, Resolver fetcher, ServiceDetector serviceDetector) {
         this.setStartDetectorEnable(cc.isStartDetectorEnable());
@@ -176,12 +171,6 @@ public class MQFaultStrategy {
         BrokerFilter brokerFilter = threadBrokerFilter.get();
         brokerFilter.setLastBrokerName(lastBrokerName);
         if (this.isLatencyFaultEnable(remoteFaultTolerance)) {
-            if (tpInfo.isMainQueuePreferred()) {
-                MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, mainQueueFilter, availableFilter, brokerFilter);
-                if (mq != null) {
-                    return mq;
-                }
-            }
             MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, availableFilter, brokerFilter);
             if (mq != null) {
                 return mq;
@@ -195,12 +184,6 @@ public class MQFaultStrategy {
             return tpInfo.selectOneMessageQueue(queueGroupId);
         }
 
-        if (tpInfo.isMainQueuePreferred()) {
-            MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, mainQueueFilter, brokerFilter);
-            if (mq != null) {
-                return mq;
-            }
-        }
         MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, brokerFilter);
         if (mq != null) {
             return mq;
