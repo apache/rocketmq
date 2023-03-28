@@ -2,14 +2,14 @@
 
 ## 现阶段问题
 
-现在采用`BrokerAddress`作为Broker在Controller模式下的唯一标识。导致如下情景出现问题：
+在 RocketMQ 5.0.0 和 5.1.0 版本中，采用`BrokerAddress`作为Broker在Controller模式下的唯一标识。导致如下情景出现问题：
 
-- 容器环境下，每次Broker的重启或升级都可能会导致IP发生变化，导致之前的`BrokerAddress`留下的记录没办法和重启后的Broker联系起来，比如说`ReplicaInfo`, `SyncStateSet`等数据。
+- 在容器或者K8s环境下，每次Broker的重启或升级都可能会导致IP发生变化，导致之前的`BrokerAddress`留下的记录没办法和重启后的Broker联系起来，比如说`ReplicaInfo`, `SyncStateSet`等数据。
 
 ## 改进方案
 
 在Controller侧采用`BrokerName:BrokerId`作为唯一标识，不再以`BrokerAddress`作为唯一标识。并且需要对`BrokerId`进行持久化存储，由于`ClusterName`和`BrokerName`都是启动的时候在配置文件中配置好的，所以只需要处理`BrokerId`的分配和持久化问题。
-Broker第一次上线的时候，只有配置文件中配置的`ClusterName`和`BrokerName`，以及自身的`BrokerAddress`。那么我们需要和`Controller`协商出一个在整个集群生命周期中都唯一确定的标识：`BrokerId`，该`BrokerId`从1开始分配。当Broker被选为Master的时候，它会在Name Server中重新注册，此时为了兼容之前的无HA的Master-Slave架构，那么需要在这一步暂时更改为`BrokerId`为0(之前的逻辑里面id为0代表着Broker是Master身份)。
+Broker第一次上线的时候，只有配置文件中配置的`ClusterName`和`BrokerName`，以及自身的`BrokerAddress`。那么我们需要和`Controller`协商出一个在整个集群生命周期中都唯一确定的标识：`BrokerId`，该`BrokerId`从1开始分配。当某一个Broker被选为Master的时候，在向Name Server中重新注册时，将更改为`BrokerId`为0 (兼容之前逻辑 brokerId为0代表着Broker是Master身份)。
 
 ### 上线流程
 
@@ -100,6 +100,8 @@ Controller侧在更新完`BrokerAddress`之后可携带着当前该Broker所在�
 
 当正确上线之后，之后Broker的请求和状态记录都以`BrokerId`作为唯一标识。心跳等数据的记录都以`BrokerId`为标识。
 同时Controller侧也会记录当前该`BrokerId`的`BrokerAddress`，在主从切换等时候用于通知Broker状态变化。
+
+> 默认持久化ID的文件在~/store/brokerIdentity，也可以设置storePathBrokerIdentity参数来决定存储路径。在自动主备切换模式下，不要随意删除该文件，否则该 Broker 会被当作新 Broker 上线。
 
 ## 升级方案
 
