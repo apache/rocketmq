@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.kv;
 
+import java.util.Random;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -72,11 +73,8 @@ public class CompactionStore {
         this.compactionLogPath = Paths.get(compactionPath, COMPACTION_LOG_DIR).toString();
         this.compactionCqPath = Paths.get(compactionPath, COMPACTION_CQ_DIR).toString();
         this.positionMgr = new CompactionPositionMgr(compactionPath);
-        if (config.getCompactionThreadNum() <= 0) {
-            this.compactionThreadNum = Runtime.getRuntime().availableProcessors();
-        } else {
-            this.compactionThreadNum = config.getCompactionThreadNum();
-        }
+        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), config.getCompactionThreadNum());
+
         this.compactionSchedule = Executors.newScheduledThreadPool(this.compactionThreadNum,
             new ThreadFactoryImpl("compactionSchedule_"));
         this.offsetMapSize = config.getMaxOffsetMapSize() / compactionThreadNum;
@@ -151,7 +149,8 @@ public class CompactionStore {
                 try {
                     v = new CompactionLog(defaultMessageStore, this, topic, queueId);
                     v.load(true);
-                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
+                    int randomDelay = 1000 + new Random(System.currentTimeMillis()).nextInt(compactionInterval);
+                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval + randomDelay, compactionInterval + randomDelay, TimeUnit.MILLISECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);
                     return null;
