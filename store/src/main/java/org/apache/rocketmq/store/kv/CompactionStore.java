@@ -181,6 +181,14 @@ public class CompactionStore {
 
     }
 
+    public void flush(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flush(flushLeastPages));
+    }
+
+    public void flushLog(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flushLog(flushLeastPages));
+    }
+
     public void flushCQ(int flushLeastPages) {
         compactionLogTable.values().forEach(log -> log.flushCQ(flushLeastPages));
     }
@@ -190,6 +198,7 @@ public class CompactionStore {
     }
 
     public void shutdown() {
+        this.flush(0);
         positionMgr.persist();
         compactionSchedule.shutdown();
         try {
