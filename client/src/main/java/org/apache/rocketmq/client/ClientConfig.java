@@ -38,6 +38,8 @@ public class ClientConfig {
     public static final String SOCKS_PROXY_CONFIG = "com.rocketmq.socks.proxy.config";
     public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
+    public static final String SEND_LATENCY_ENABLE = "com.rocketmq.sendLatencyEnable";
+    public static final String START_DETECTOR_ENABLE = "com.rocketmq.startDetectorEnable";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = NetworkUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
@@ -70,6 +72,8 @@ public class ClientConfig {
     private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;
+    private int detectTimeout = 200;
+    private int detectInterval = 2000;
 
     private LanguageCode language = LanguageCode.JAVA;
 
@@ -78,6 +82,9 @@ public class ClientConfig {
      * And it will also generate a different client id to prevent unexpected reuses of MQClientInstance.
      */
     protected boolean enableStreamRequestType = false;
+
+    private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
+    private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -375,6 +382,30 @@ public class ClientConfig {
 
     public void setEnableStreamRequestType(boolean enableStreamRequestType) {
         this.enableStreamRequestType = enableStreamRequestType;
+    }
+
+    public boolean isSendLatencyEnable() {
+        return sendLatencyEnable;
+    }
+
+    public void setSendLatencyEnable(boolean sendLatencyEnable) {
+        this.sendLatencyEnable = sendLatencyEnable;
+    }
+
+    public boolean isStartDetectorEnable() {
+        return startDetectorEnable;
+    }
+
+    public void setStartDetectorEnable(boolean startDetectorEnable) {
+        this.startDetectorEnable = startDetectorEnable;
+    }
+
+    public int getDetectTimeout() {
+        return this.detectTimeout;
+    }
+
+    public int getDetectInterval() {
+        return this.detectInterval;
     }
 
     @Override

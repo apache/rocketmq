@@ -20,12 +20,12 @@ package org.apache.rocketmq.client.latency;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo.QueueFilter;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MQFaultStrategy {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger log = LoggerFactory.getLogger(MQFaultStrategy.class);
     private LatencyFaultTolerance<String> latencyFaultTolerance;
     private boolean sendLatencyFaultEnable;
     private boolean startDetectorEnable;
@@ -164,32 +164,6 @@ public class MQFaultStrategy {
             return mq;
         }
         return tpInfo.selectOneMessageQueue();
-    }
-
-    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, int queueGroupId, final String lastBrokerName,
-                                              final boolean remoteFaultTolerance) {
-        BrokerFilter brokerFilter = threadBrokerFilter.get();
-        brokerFilter.setLastBrokerName(lastBrokerName);
-        if (this.isLatencyFaultEnable(remoteFaultTolerance)) {
-            MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, availableFilter, brokerFilter);
-            if (mq != null) {
-                return mq;
-            }
-
-            mq = tpInfo.selectOneMessageQueue(queueGroupId, reachableFilter, brokerFilter);
-            if (mq != null) {
-                return mq;
-            }
-
-            return tpInfo.selectOneMessageQueue(queueGroupId);
-        }
-
-        MessageQueue mq = tpInfo.selectOneMessageQueue(queueGroupId, brokerFilter);
-        if (mq != null) {
-            return mq;
-        }
-
-        return tpInfo.selectOneMessageQueue(queueGroupId);
     }
 
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation,
