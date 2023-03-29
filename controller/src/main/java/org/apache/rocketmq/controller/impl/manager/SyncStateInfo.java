@@ -47,6 +47,10 @@ public class SyncStateInfo {
         this.masterEpoch.incrementAndGet();
     }
 
+    public void cleanMasterInfo() {
+        this.masterBrokerId = null;
+    }
+
     public void updateSyncStateSetInfo(Set<Long> newSyncStateSet) {
         this.syncStateSet = new HashSet<>(newSyncStateSet);
         this.syncStateSetEpoch.incrementAndGet();
