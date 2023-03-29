@@ -229,7 +229,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
             Resource.newBuilder().setName(TOPIC).build()).get(0);
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
-        assertEquals(String.valueOf(2), messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL));
+        assertEquals(deliveryTime, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS)));
     }
 
     @Test

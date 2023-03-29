@@ -703,6 +703,7 @@ public class CompactionLog {
 
         src.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move file {} to parent directory exception: ", mappedFile.getFileName());
@@ -742,6 +743,7 @@ public class CompactionLog {
         fileListToDelete.forEach(MappedFile::renameToDelete);
         compactMq.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move consume queue file {} to parent directory exception: ", mappedFile.getFileName(), e);
@@ -774,6 +776,15 @@ public class CompactionLog {
 //    public SparseConsumeQueue getCompactionScq() {
 //        return compactionScq;
 //    }
+
+    public void flush(int flushLeastPages) {
+        this.flushLog(flushLeastPages);
+        this.flushCQ(flushLeastPages);
+    }
+
+    public void flushLog(int flushLeastPages) {
+        getLog().flush(flushLeastPages);
+    }
 
     public void flushCQ(int flushLeastPages) {
         getCQ().flush(flushLeastPages);

@@ -723,7 +723,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     private boolean checkMultiDispatchQueue(DispatchRequest dispatchRequest) {
-        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch() || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
@@ -791,7 +791,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         long queueOffset = queueOffsetAssigner.assignQueueOffset(topicQueueKey, messageNum);
         msg.setQueueOffset(queueOffset);
         // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);

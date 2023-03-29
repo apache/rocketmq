@@ -52,7 +52,7 @@ public class PosixFileSegment extends TieredFileSegment {
     private static final String OPERATION_POSIX_WRITE = "write";
 
     private final String basePath;
-    private final String filePath;
+    private final String filepath;
 
     private volatile File file;
     private volatile FileChannel readFileChannel;
@@ -68,7 +68,7 @@ public class PosixFileSegment extends TieredFileSegment {
         } else {
             this.basePath = basePath + File.separator;
         }
-        this.filePath = this.basePath
+        this.filepath = this.basePath
             + TieredStoreUtil.getHash(storeConfig.getBrokerClusterName()) + "_" + storeConfig.getBrokerClusterName() + File.separator
             + messageQueue.getBrokerName() + File.separator
             + messageQueue.getTopic() + File.separator
@@ -86,7 +86,7 @@ public class PosixFileSegment extends TieredFileSegment {
 
     @Override
     public String getPath() {
-        return filePath;
+        return filepath;
     }
 
     @Override
@@ -107,7 +107,7 @@ public class PosixFileSegment extends TieredFileSegment {
         if (file == null) {
             synchronized (this) {
                 if (file == null) {
-                    File file = new File(filePath);
+                    File file = new File(filepath);
                     try {
                         File dir = file.getParentFile();
                         if (!dir.exists()) {
@@ -120,7 +120,7 @@ public class PosixFileSegment extends TieredFileSegment {
                         this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
                         this.file = file;
                     } catch (Exception e) {
-                        logger.error("PosixFileSegment#createFile: create file {} failed: ", filePath, e);
+                        logger.error("PosixFileSegment#createFile: create file {} failed: ", filepath, e);
                     }
                 }
             }
@@ -137,7 +137,7 @@ public class PosixFileSegment extends TieredFileSegment {
                 writeFileChannel.close();
             }
         } catch (IOException e) {
-            logger.error("PosixFileSegment#destroyFile: destroy file {} failed: ", filePath, e);
+            logger.error("PosixFileSegment#destroyFile: destroy file {} failed: ", filepath, e);
         }
 
         if (file.exists()) {
@@ -174,7 +174,7 @@ public class PosixFileSegment extends TieredFileSegment {
             attributesBuilder.put(LABEL_SUCCESS, false);
             TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
             logger.error("PosixFileSegment#read0: read file {} failed: position: {}, length: {}",
-                    filePath, position, length, e);
+                filepath, position, length, e);
             future.completeExceptionally(e);
         }
         return future;
@@ -194,7 +194,7 @@ public class PosixFileSegment extends TieredFileSegment {
                     byte[] byteArray = ByteStreams.toByteArray(inputStream);
                     if (byteArray.length != length) {
                         logger.error("PosixFileSegment#commit0: append file {} failed: real data size: {}, is not equal to length: {}",
-                                filePath, byteArray.length, length);
+                            filepath, byteArray.length, length);
                         future.complete(false);
                         return;
                     }
@@ -220,7 +220,7 @@ public class PosixFileSegment extends TieredFileSegment {
                     TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
 
                     logger.error("PosixFileSegment#commit0: append file {} failed: position: {}, length: {}",
-                            filePath, position, length, e);
+                        filepath, position, length, e);
                     future.completeExceptionally(e);
                 }
             });
