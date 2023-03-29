@@ -66,28 +66,54 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+//    public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
+//        if (lastBrokerName == null) {
+//            return selectOneMessageQueue();
+//        } else {
+//            for (int i = 0; i < this.messageQueueList.size(); i++) {
+//                int index = this.sendWhichQueue.incrementAndGet();
+//                int pos = index % this.messageQueueList.size();
+//                MessageQueue mq = this.messageQueueList.get(pos);
+//                if (!mq.getBrokerName().equals(lastBrokerName)) {
+//                    return mq;
+//                }
+//            }
+//            return selectOneMessageQueue();
+//        }
+//    }
+//
+//    public MessageQueue selectOneMessageQueue() {
+//        int index = this.sendWhichQueue.incrementAndGet();
+//        int pos = index % this.messageQueueList.size();
+//
+//        return this.messageQueueList.get(pos);
+//    }
+
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {
-            for (int i = 0; i < this.messageQueueList.size(); i++) {
-                int index = this.sendWhichQueue.incrementAndGet();
-                int pos = index % this.messageQueueList.size();
-                MessageQueue mq = this.messageQueueList.get(pos);
-                if (!mq.getBrokerName().equals(lastBrokerName)) {
-                    return mq;
-                }
-            }
-            return selectOneMessageQueue();
+            return selectOneMessageQueueHelper(lastBrokerName);
         }
     }
 
     public MessageQueue selectOneMessageQueue() {
-        int index = this.sendWhichQueue.incrementAndGet();
-        int pos = index % this.messageQueueList.size();
-
-        return this.messageQueueList.get(pos);
+        return selectOneMessageQueueHelper(null);
     }
+
+    private MessageQueue selectOneMessageQueueHelper(final String lastBrokerName) {
+        for (int i = 0; i < this.messageQueueList.size(); i++) {
+            int index = this.sendWhichQueue.incrementAndGet();
+            int pos = index % this.messageQueueList.size();
+            MessageQueue mq = this.messageQueueList.get(pos);
+            if (lastBrokerName == null || !mq.getBrokerName().equals(lastBrokerName)) {
+                return mq;
+            }
+        }
+        // If we haven't found a suitable message queue yet, just return the first one
+        return this.messageQueueList.get(0);
+    }
+
 
     public int getWriteQueueIdByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
