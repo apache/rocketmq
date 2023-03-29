@@ -63,6 +63,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -171,6 +172,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             .setLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
             .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
             .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
+            .setProtocol(ChannelProtocolType.GRPC_V2.getName())
             .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
             .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
             .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.RPC_NAME));
