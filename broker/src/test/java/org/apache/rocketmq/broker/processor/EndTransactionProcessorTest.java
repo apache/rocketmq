@@ -46,6 +46,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -119,6 +121,22 @@ public class EndTransactionProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
+    @Test
+    public void testProcessRequest_RejectCommitMessage() throws RemotingCommandException {
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class))).thenReturn(createRejectResponse());
+        RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_OPERATION);
+    }
+
+    @Test
+    public void testProcessRequest_RejectRollBackMessage() throws RemotingCommandException {
+        when(transactionMsgService.rollbackMessage(any(EndTransactionRequestHeader.class))).thenReturn(createRejectResponse());
+        RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE, false);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_OPERATION);
+    }
+
     private MessageExt createDefaultMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
@@ -148,5 +166,28 @@ public class EndTransactionProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
         request.makeCustomHeaderToNet();
         return request;
+    }
+
+    private OperationResult createRejectResponse() {
+        OperationResult response = new OperationResult();
+        response.setPrepareMessage(createRejectMessageExt());
+        response.setResponseCode(ResponseCode.SUCCESS);
+        response.setResponseRemark(null);
+        return response;
+    }
+    private MessageExt createRejectMessageExt() {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setMsgId("12345678");
+        messageExt.setQueueId(0);
+        messageExt.setCommitLogOffset(123456789L);
+        messageExt.setQueueOffset(1234);
+        messageExt.setBody("body".getBytes(StandardCharsets.UTF_8));
+        messageExt.setBornTimestamp(System.currentTimeMillis() - 65 * 1000);
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_PRODUCER_GROUP, "testTransactionGroup");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, "TEST");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS, "60");
+        return messageExt;
     }
 }

@@ -20,6 +20,8 @@ import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
@@ -55,6 +57,9 @@ public class MQClientAPIFactory implements StartAndShutdown {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false");
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         if (StringUtils.isEmpty(proxyConfig.getNamesrvDomain())) {
+            if (Strings.isNullOrEmpty(proxyConfig.getNamesrvAddr())) {
+                throw new RuntimeException("The configuration item NamesrvAddr is not configured");
+            }
             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, proxyConfig.getNamesrvAddr());
         } else {
             System.setProperty("rocketmq.namesrv.domain", proxyConfig.getNamesrvDomain());

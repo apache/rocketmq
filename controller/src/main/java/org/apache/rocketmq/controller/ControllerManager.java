@@ -117,7 +117,8 @@ public class ControllerManager {
         this.heartbeatManager.initialize();
 
         // Register broker inactive listener
-        this.heartbeatManager.addBrokerLifecycleListener(this::onBrokerInactive);
+        this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
+        this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
         return true;
     }
@@ -128,34 +129,49 @@ public class ControllerManager {
      *
      * @param clusterName The cluster name of this inactive broker
      * @param brokerName The inactive broker name
-     * @param brokerId The inactive broker id
+     * @param brokerId The inactive broker id, null means that the election forced to be triggered
      */
     private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
         if (controller.isLeaderState()) {
-            try {
-                final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
-                final RemotingCommand replicaInfoResponse = replicaInfoFuture.get(5, TimeUnit.SECONDS);
+            if (brokerId == null) {
+                // Means that force triggering election for this broker-set
+                triggerElectMaster(brokerName);
+                return;
+            }
+            final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
+            replicaInfoFuture.whenCompleteAsync((replicaInfoResponse, err) -> {
+                if (err != null || replicaInfoResponse == null) {
+                    log.error("Failed to get replica-info for broker-set: {} when OnBrokerInactive", brokerName, err);
+                    return;
+                }
                 final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
                 // Not master broker offline
                 if (!brokerId.equals(replicaInfoResponseHeader.getMasterBrokerId())) {
-                    log.warn("The broker with brokerId: {} in broker-set: {} shutdown", brokerId, brokerName);
+                    log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
                     return;
                 }
-
-                final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
-                final RemotingCommand electMasterResponse = electMasterFuture.get(5, TimeUnit.SECONDS);
-                if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
-                    log.info("The broker with brokerId: {} in broker-set: {} shutdown, elect a new master done, result: {}", brokerId, brokerName, electMasterResponse);
-                    if (controllerConfig.isNotifyBrokerRoleChanged()) {
-                        notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
-                    }
-                }
-            } catch (Exception e) {
-                log.error("", e);
-            }
+                // Trigger election
+                triggerElectMaster(brokerName);
+            });
         } else {
-            log.warn("The broker with brokerId: {} in broker-set: {} shutdown", brokerId, brokerName);
+            log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
         }
+    }
+
+    private void triggerElectMaster(String brokerName) {
+        final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
+        electMasterFuture.whenCompleteAsync((electMasterResponse, err) -> {
+            if (err != null || electMasterResponse == null) {
+                log.error("Failed to trigger elect-master in broker-set: {}", brokerName, err);
+                return;
+            }
+            if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
+                log.info("Elect a new master in broker-set: {} done, result: {}", brokerName, electMasterResponse);
+                if (controllerConfig.isNotifyBrokerRoleChanged()) {
+                    notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
+                }
+            }
+        });
     }
 
     /**

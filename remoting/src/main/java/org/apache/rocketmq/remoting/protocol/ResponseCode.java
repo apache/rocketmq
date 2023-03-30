@@ -92,6 +92,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int NOT_LEADER_FOR_QUEUE = 501;
 
+    public static final int ILLEGAL_OPERATION = 604;
+
     public static final int RPC_UNKNOWN = -1000;
     public static final int RPC_ADDR_IS_NULL = -1002;
     public static final int RPC_SEND_TO_CHANNEL_FAILED = -1004;

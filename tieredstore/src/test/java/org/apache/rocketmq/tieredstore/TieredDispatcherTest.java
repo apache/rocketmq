@@ -28,6 +28,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
@@ -58,6 +59,7 @@ public class TieredDispatcherTest {
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredMessageQueueContainerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
@@ -65,6 +67,7 @@ public class TieredDispatcherTest {
         TieredStoreTestUtil.destroyContainerManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     @Test

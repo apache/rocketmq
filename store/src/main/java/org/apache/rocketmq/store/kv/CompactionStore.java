@@ -16,8 +16,17 @@
  */
 package org.apache.rocketmq.store.kv;
 
+import java.util.Random;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -29,7 +38,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,6 +56,7 @@ public class CompactionStore {
     private final CompactionPositionMgr positionMgr;
     private final ConcurrentHashMap<String, CompactionLog> compactionLogTable;
     private final ScheduledExecutorService compactionSchedule;
+    private final int scanInterval = 30000;
     private final int compactionInterval;
     private final int compactionThreadNum;
     private final int offsetMapSize;
@@ -64,11 +73,8 @@ public class CompactionStore {
         this.compactionLogPath = Paths.get(compactionPath, COMPACTION_LOG_DIR).toString();
         this.compactionCqPath = Paths.get(compactionPath, COMPACTION_CQ_DIR).toString();
         this.positionMgr = new CompactionPositionMgr(compactionPath);
-        if (config.getCompactionThreadNum() <= 0) {
-            this.compactionThreadNum = Runtime.getRuntime().availableProcessors();
-        } else {
-            this.compactionThreadNum = config.getCompactionThreadNum();
-        }
+        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), config.getCompactionThreadNum());
+
         this.compactionSchedule = Executors.newScheduledThreadPool(this.compactionThreadNum,
             new ThreadFactoryImpl("compactionSchedule_"));
         this.offsetMapSize = config.getMaxOffsetMapSize() / compactionThreadNum;
@@ -96,10 +102,7 @@ public class CompactionStore {
                             int queueId = Integer.parseInt(fileQueueId.getName());
 
                             if (Files.isDirectory(Paths.get(compactionCqPath, topic, String.valueOf(queueId)))) {
-                                CompactionLog log = new CompactionLog(defaultMessageStore, this, topic, queueId);
-                                log.load(exitOk);
-                                compactionLogTable.put(topic + "_" + queueId, log);
-                                compactionSchedule.scheduleWithFixedDelay(log::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
+                                loadAndGetClog(topic, queueId);
                             } else {
                                 log.error("{}:{} compactionLog mismatch with compactionCq", topic, queueId);
                             }
@@ -114,15 +117,40 @@ public class CompactionStore {
             }
         }
         log.info("compactionStore {}:{} load completed.", compactionLogPath, compactionCqPath);
+
+        compactionSchedule.scheduleWithFixedDelay(this::scanAllTopicConfig, scanInterval, scanInterval, TimeUnit.MILLISECONDS);
+        log.info("loop to scan all topicConfig with fixed delay {}ms", scanInterval);
     }
 
-    public void putMessage(String topic, int queueId, SelectMappedBufferResult smr) throws Exception {
+    private void scanAllTopicConfig() {
+        log.info("start to scan all topicConfig");
+        try {
+            Iterator<Map.Entry<String, TopicConfig>> iterator = defaultMessageStore.getTopicConfigs().entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, TopicConfig> it = iterator.next();
+                TopicConfig topicConfig = it.getValue();
+                CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(Optional.ofNullable(topicConfig));
+                //check topic flag
+                if (Objects.equals(policy, CleanupPolicy.COMPACTION)) {
+                    for (int queueId = 0; queueId < topicConfig.getWriteQueueNums(); queueId++) {
+                        loadAndGetClog(it.getKey(), queueId);
+                    }
+                }
+            }
+        } catch (Throwable ignore) {
+            // ignore
+        }
+        log.info("scan all topicConfig over");
+    }
+
+    private CompactionLog loadAndGetClog(String topic, int queueId) {
         CompactionLog clog = compactionLogTable.compute(topic + "_" + queueId, (k, v) -> {
             if (v == null) {
                 try {
-                    v = new CompactionLog(defaultMessageStore,this, topic, queueId);
+                    v = new CompactionLog(defaultMessageStore, this, topic, queueId);
                     v.load(true);
-                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval, compactionInterval, TimeUnit.MILLISECONDS);
+                    int randomDelay = 1000 + new Random(System.currentTimeMillis()).nextInt(compactionInterval);
+                    compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval + randomDelay, compactionInterval + randomDelay, TimeUnit.MILLISECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);
                     return null;
@@ -130,6 +158,11 @@ public class CompactionStore {
             }
             return v;
         });
+        return clog;
+    }
+
+    public void putMessage(String topic, int queueId, SelectMappedBufferResult smr) throws Exception {
+        CompactionLog clog = loadAndGetClog(topic, queueId);
 
         if (clog != null) {
             clog.asyncPutMessage(smr);
@@ -147,6 +180,14 @@ public class CompactionStore {
 
     }
 
+    public void flush(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flush(flushLeastPages));
+    }
+
+    public void flushLog(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flushLog(flushLeastPages));
+    }
+
     public void flushCQ(int flushLeastPages) {
         compactionLogTable.values().forEach(log -> log.flushCQ(flushLeastPages));
     }
@@ -156,6 +197,7 @@ public class CompactionStore {
     }
 
     public void shutdown() {
+        this.flush(0);
         positionMgr.persist();
         compactionSchedule.shutdown();
         try {

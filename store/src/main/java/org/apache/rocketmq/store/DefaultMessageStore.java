@@ -2050,6 +2050,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
+        return this.consumeQueueStore.getTopicConfigs();
+    }
+
+    @Override
     public Optional<TopicConfig> getTopicConfig(String topic) {
         return this.consumeQueueStore.getTopicConfig(topic);
     }
@@ -2575,7 +2580,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (messageStoreConfig.isEnableCompaction()) {
-                compactionStore.flushCQ(flushConsumeQueueLeastPages);
+                compactionStore.flush(flushConsumeQueueLeastPages);
             }
 
             if (0 == flushConsumeQueueLeastPages) {
@@ -2807,7 +2812,7 @@ public class DefaultMessageStore implements MessageStore {
 
         private void notifyMessageArrive4MultiQueue(DispatchRequest dispatchRequest) {
             Map<String, String> prop = dispatchRequest.getPropertiesMap();
-            if (prop == null) {
+            if (prop == null || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 return;
             }
             String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);

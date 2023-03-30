@@ -524,7 +524,7 @@ public class CompactionLog {
                                     nextPhyFileStartOffset = rollNextFile(offsetPy);
                                     continue;
                                 }
-
+                                this.defaultMessageStore.getStoreStatsService().getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
                                 getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                                 status = GetMessageStatus.FOUND;
                                 nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -542,6 +542,14 @@ public class CompactionLog {
                 status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
             }
+
+            if (GetMessageStatus.FOUND == status) {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalFound().add(getResult.getMessageCount());
+            } else {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalMiss().add(getResult.getMessageCount());
+            }
+            long elapsedTime = this.defaultMessageStore.getSystemClock().now() - beginTime;
+            this.defaultMessageStore.getStoreStatsService().setGetMessageEntireTimeMax(elapsedTime);
 
             getResult.setStatus(status);
             getResult.setNextBeginOffset(nextBeginOffset);
@@ -695,6 +703,7 @@ public class CompactionLog {
 
         src.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move file {} to parent directory exception: ", mappedFile.getFileName());
@@ -734,6 +743,7 @@ public class CompactionLog {
         fileListToDelete.forEach(MappedFile::renameToDelete);
         compactMq.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move consume queue file {} to parent directory exception: ", mappedFile.getFileName(), e);
@@ -766,6 +776,15 @@ public class CompactionLog {
 //    public SparseConsumeQueue getCompactionScq() {
 //        return compactionScq;
 //    }
+
+    public void flush(int flushLeastPages) {
+        this.flushLog(flushLeastPages);
+        this.flushCQ(flushLeastPages);
+    }
+
+    public void flushLog(int flushLeastPages) {
+        getLog().flush(flushLeastPages);
+    }
 
     public void flushCQ(int flushLeastPages) {
         getCQ().flush(flushLeastPages);

@@ -18,7 +18,9 @@ package org.apache.rocketmq.controller.impl.manager;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -34,13 +36,13 @@ public class BrokerReplicaInfo {
     // Start from 1
     private final AtomicLong nextAssignBrokerId;
 
-    private final HashMap<Long/*brokerId*/, Pair<String/*ipAddress*/, String/*registerCheckCode*/>> brokerIdInfo;
+    private final Map<Long/*brokerId*/, Pair<String/*ipAddress*/, String/*registerCheckCode*/>> brokerIdInfo;
 
     public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_BROKER_CONTROLLER_ID);
-        this.brokerIdInfo = new HashMap<>();
+        this.brokerIdInfo = new ConcurrentHashMap<>();
     }
 
     public void removeBrokerId(final Long brokerId) {
@@ -72,8 +74,8 @@ public class BrokerReplicaInfo {
         return new HashSet<>(this.brokerIdInfo.keySet());
     }
 
-    public HashMap<Long, String> getBrokerIdTable() {
-        HashMap<Long/*brokerId*/, String/*address*/> map = new HashMap<>(this.brokerIdInfo.size());
+    public Map<Long, String> getBrokerIdTable() {
+        Map<Long/*brokerId*/, String/*address*/> map = new HashMap<>(this.brokerIdInfo.size());
         this.brokerIdInfo.forEach((id, pair) -> {
             map.put(id, pair.getObject1());
         });
@@ -81,20 +83,25 @@ public class BrokerReplicaInfo {
     }
 
     public String getBrokerAddress(final Long brokerId) {
-        if (this.brokerIdInfo.containsKey(brokerId)) {
-            return this.brokerIdInfo.get(brokerId).getObject1();
+        if (brokerId == null) return null;
+        Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
+        if (pair != null) {
+            return pair.getObject1();
         }
         return null;
     }
 
     public String getBrokerRegisterCheckCode(final Long brokerId) {
-        if (this.brokerIdInfo.containsKey(brokerId)) {
-            return this.brokerIdInfo.get(brokerId).getObject2();
+        if (brokerId == null) return null;
+        Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
+        if (pair != null) {
+            return pair.getObject2();
         }
         return null;
     }
 
     public void updateBrokerAddress(final Long brokerId, final String brokerAddress) {
+        if (brokerId == null) return;
         Pair<String, String> oldPair = this.brokerIdInfo.get(brokerId);
         if (oldPair != null) {
             this.brokerIdInfo.put(brokerId, new Pair<>(brokerAddress, oldPair.getObject2()));

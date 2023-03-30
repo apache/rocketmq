@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.controller.impl;
 
-import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,6 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
@@ -62,8 +63,7 @@ public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
 
-    public DLedgerController launchController(final String group, final String peers, final String selfId,
-        String storeType, final boolean isEnableElectUncleanMaster) {
+    public DLedgerController launchController(final String group, final String peers, final String selfId, final boolean isEnableElectUncleanMaster) {
         String tmpdir = System.getProperty("java.io.tmpdir");
         final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
@@ -75,7 +75,7 @@ public class DLedgerControllerTest {
         config.setControllerStorePath(path);
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
-
+        config.setScanInactiveMasterInterval(1000);
         final DLedgerController controller = new DLedgerController(config, (str1, str2, str3) -> true);
 
         controller.startup();
@@ -172,9 +172,9 @@ public class DLedgerControllerTest {
     public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c0 = launchController(group, peers, "n0", enableElectUncleanMaster);
+        DLedgerController c1 = launchController(group, peers, "n1", enableElectUncleanMaster);
+        DLedgerController c2 = launchController(group, peers, "n2", enableElectUncleanMaster);
         controllers.add(c0);
         controllers.add(c1);
         controllers.add(c2);
@@ -234,6 +234,57 @@ public class DLedgerControllerTest {
         assertEquals(2, response.getMasterEpoch().intValue());
         assertNotEquals(1L, response.getMasterBrokerId().longValue());
         assertNotEquals(DEFAULT_IP[0], response.getMasterAddress());
+    }
+
+    @Test
+    public void testBrokerLifecycleListener() throws Exception {
+        final DLedgerController leader = mockMetaData(false);
+        // Mock that master broker has been inactive, and try to elect a new master from sync-state-set
+        // But we shut down two controller, so the ElectMasterEvent will be appended to DLedger failed.
+        // So the statemachine still keep the stale master's information
+        List<DLedgerController> removed = controllers.stream().filter(controller -> controller != leader).collect(Collectors.toList());
+        for (DLedgerController dLedgerController : removed) {
+            dLedgerController.shutdown();
+            controllers.remove(dLedgerController);
+        }
+        final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
+        setBrokerElectPolicy(leader, 1L);
+        Exception exception = null;
+        try {
+            leader.electMaster(request).get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            exception = e;
+        }
+        assertNotNull(exception);
+        // Shut down leader controller
+        leader.shutdown();
+        controllers.remove(leader);
+        // Restart two controller
+        for (DLedgerController controller : removed) {
+            if (controller != leader) {
+                ControllerConfig config = controller.getControllerConfig();
+                DLedgerController newController = launchController(config.getControllerDLegerGroup(), config.getControllerDLegerPeers(), config.getControllerDLegerSelfId(), false);
+                controllers.add(newController);
+                newController.startup();
+            }
+        }
+        DLedgerController newLeader = waitLeader(controllers);
+        setBrokerAlivePredicate(newLeader, 1L);
+        // Check if the statemachine is stale
+        final RemotingCommand resp = newLeader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).
+                get(10, TimeUnit.SECONDS);
+        final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
+        assertEquals(1, replicaInfo.getMasterBrokerId().longValue());
+        assertEquals(1, replicaInfo.getMasterEpoch().intValue());
+
+        // Register broker's lifecycle listener
+        AtomicBoolean atomicBoolean = new AtomicBoolean(false);
+        newLeader.registerBrokerLifecycleListener((clusterName, brokerName, brokerId) -> {
+            assertEquals(DEFAULT_BROKER_NAME, brokerName);
+            atomicBoolean.set(true);
+        });
+        Thread.sleep(2000);
+        assertTrue(atomicBoolean.get());
     }
 
     @Test
