@@ -1675,7 +1675,7 @@ public class DefaultMessageStore implements MessageStore {
             int deleteCount = 0;
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMappedFileIntervalForcibly();
 
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
@@ -1712,7 +1712,7 @@ public class DefaultMessageStore implements MessageStore {
             if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) {
                 this.lastRedeleteTimestamp = currentTimestamp;
                 int destroyMapedFileIntervalForcibly =
-                    DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+                    DefaultMessageStore.this.getMessageStoreConfig().getDestroyMappedFileIntervalForcibly();
                 if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
                 }
             }

@@ -725,7 +725,7 @@ public class CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
 
-        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMappedFileEnable()) {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
@@ -835,7 +835,7 @@ public class CommitLog {
             log.warn("[NOTIFYME]putMessages in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, messageExtBatch.getBody().length, result);
         }
 
-        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMappedFileEnable()) {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
