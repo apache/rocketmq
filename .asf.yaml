@@ -29,8 +29,8 @@ github:
     squash: true
     # Disable merge button
     merge: false
-    # Enable rebase button
-    rebase: true
+    # Disable rebase button
+    rebase: false
   protected_branches:
     master: {}
     develop:
