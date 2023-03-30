@@ -130,7 +130,7 @@ public class RequestCode {
     public static final int DELETE_TOPIC_IN_BROKER = 215;
 
     public static final int DELETE_TOPIC_IN_NAMESRV = 216;
-    public static final int REGISTER_TOPIC_IN_NAMESRV = 217;
+    public static final int REGISTER_TOPIC_IN_NAMESRV = 1217;
     public static final int GET_KVLIST_BY_NAMESPACE = 219;
 
     public static final int RESET_CONSUMER_CLIENT_OFFSET = 220;
