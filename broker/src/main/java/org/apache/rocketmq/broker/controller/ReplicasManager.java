@@ -662,14 +662,16 @@ public class ReplicasManager {
                                 // If this broker is now the slave, and master has been changed
                                 changeToSlave(newMasterAddress, newMasterEpoch, masterBrokerId);
                             }
-                        } else {
-                            // In this case, the master in controller is null, try elect in controller, this will trigger the electMasterEvent in controller.
-                            brokerElect();
                         }
                     } else if (newMasterEpoch == this.masterEpoch) {
-                        // Check if SyncStateSet changed
-                        if (isMasterState()) {
-                            changeSyncStateSet(syncStateSet.getSyncStateSet(), syncStateSet.getSyncStateSetEpoch());
+                        if (StringUtils.isEmpty(newMasterAddress) && masterBrokerId == null) {
+                            // In this case, the master in controller is null, try elect in controller, this will trigger the electMasterEvent in controller.
+                            brokerElect();
+                        } else {
+                            // Check if SyncStateSet changed
+                            if (isMasterState()) {
+                                changeSyncStateSet(syncStateSet.getSyncStateSet(), syncStateSet.getSyncStateSetEpoch());
+                            }
                         }
                     }
                 }
