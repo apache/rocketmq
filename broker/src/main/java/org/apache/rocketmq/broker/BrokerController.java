@@ -1553,8 +1553,14 @@ public class BrokerController {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isEnableControllerMode()) {
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
+        }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            // prohibit writing and writing before confirming the broker role
+            isIsolated = true;
+            this.getBrokerConfig().setBrokerPermission(PermName.PERM_READ & PermName.PERM_WRITE);
         }
 
         if (this.brokerOuterAPI != null) {
