@@ -50,6 +50,8 @@ import org.apache.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
+import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
+import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
@@ -266,6 +268,8 @@ public class BrokerController {
     protected ReplicasManager replicasManager;
     private long lastSyncTimeMs = System.currentTimeMillis();
     private BrokerMetricsManager brokerMetricsManager;
+    private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
+    private ColdDataCgCtrService coldDataCgCtrService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -322,6 +326,8 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
         this.scheduleMessageService = new ScheduleMessageService(this);
+        this.coldDataPullRequestHoldService = new ColdDataPullRequestHoldService(this);
+        this.coldDataCgCtrService = new ColdDataCgCtrService(this);
 
         if (nettyClientConfig != null) {
             this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -1403,6 +1409,14 @@ public class BrokerController {
             this.brokerPreOnlineService.shutdown();
         }
 
+        if (this.coldDataPullRequestHoldService != null) {
+            this.coldDataPullRequestHoldService.shutdown();
+        }
+
+        if (this.coldDataCgCtrService != null) {
+            this.coldDataCgCtrService.shutdown();
+        }
+
         shutdownScheduledExecutorService(this.syncBrokerMemberGroupExecutorService);
         shutdownScheduledExecutorService(this.brokerHeartbeatExecutorService);
 
@@ -1547,6 +1561,16 @@ public class BrokerController {
             this.brokerPreOnlineService.start();
         }
 
+        if (this.coldDataPullRequestHoldService != null) {
+            this.coldDataPullRequestHoldService.start();
+        }
+
+        if (this.coldDataCgCtrService != null) {
+            this.coldDataCgCtrService.start();
+        }
+
+        //Init state version after messageStore initialized.
+        //this.topicConfigManager.initStateVersion();
     }
 
     public void start() throws Exception {
@@ -2302,4 +2326,20 @@ public class BrokerController {
         return adminBrokerThreadPoolQueue;
     }
 
+    public ColdDataPullRequestHoldService getColdDataPullRequestHoldService() {
+        return coldDataPullRequestHoldService;
+    }
+
+    public void setColdDataPullRequestHoldService(
+        ColdDataPullRequestHoldService coldDataPullRequestHoldService) {
+        this.coldDataPullRequestHoldService = coldDataPullRequestHoldService;
+    }
+
+    public ColdDataCgCtrService getColdDataCgCtrService() {
+        return coldDataCgCtrService;
+    }
+
+    public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
+        this.coldDataCgCtrService = coldDataCgCtrService;
+    }
 }

@@ -61,6 +61,7 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.AttributeParser;
+import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -1747,6 +1748,82 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public void updateColdDataFlowCtrGroupConfig(final String addr, final Properties properties, final long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_COLD_DATA_FLOW_CTR_CONFIG, null);
+        String str = MixAll.properties2String(properties);
+        if (str != null && str.length() > 0) {
+            request.setBody(str.getBytes(MixAll.DEFAULT_CHARSET));
+            RemotingCommand response = this.remotingClient.invokeSync(
+                MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    return;
+                }
+                default:
+                    break;
+            }
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+    }
+
+    public void removeColdDataFlowCtrGroupConfig(final String addr, final String consumerGroup, final long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REMOVE_COLD_DATA_FLOW_CTR_CONFIG, null);
+        if (consumerGroup != null && consumerGroup.length() > 0) {
+            request.setBody(consumerGroup.getBytes(MixAll.DEFAULT_CHARSET));
+            RemotingCommand response = this.remotingClient.invokeSync(
+                MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    return;
+                }
+                default:
+                    break;
+            }
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+    }
+
+    public String getColdDataFlowCtrInfo(final String addr, final long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_COLD_DATA_FLOW_CTR_INFO, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (null != response.getBody() && response.getBody().length > 0) {
+                    return new String(response.getBody(), MixAll.DEFAULT_CHARSET);
+                }
+                return null;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public String setCommitLogReadAheadMode(final String addr, final String mode, final long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SET_COMMITLOG_READ_MODE, null);
+        HashMap<String, String> extFields = new HashMap<>();
+        extFields.put(FIleReadaheadMode.READ_AHEAD_MODE, mode);
+        request.setExtFields(extFields);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (null != response.getRemark() && response.getRemark().length() > 0) {
+                    return response.getRemark();
+                }
+                return null;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
     public ClusterInfo getBrokerClusterInfo(

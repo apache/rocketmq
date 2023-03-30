@@ -60,6 +60,7 @@ import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
+import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -188,6 +189,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.util.LibC;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -217,6 +219,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.updateBrokerConfig(ctx, request);
             case RequestCode.GET_BROKER_CONFIG:
                 return this.getBrokerConfig(ctx, request);
+            case RequestCode.UPDATE_COLD_DATA_FLOW_CTR_CONFIG:
+                return this.updateColdDataFlowCtrGroupConfig(ctx, request);
+            case RequestCode.REMOVE_COLD_DATA_FLOW_CTR_CONFIG:
+                return this.removeColdDataFlowCtrGroupConfig(ctx, request);
+            case RequestCode.GET_COLD_DATA_FLOW_CTR_INFO:
+                return this.getColdDataFlowCtrInfo(ctx);
+            case RequestCode.SET_COMMITLOG_READ_MODE:
+                return this.setCommitLogReadaheadMode(ctx, request);
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
                 return this.searchOffsetByTimestamp(ctx, request);
             case RequestCode.GET_MAX_OFFSET:
@@ -760,6 +770,131 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setBody(timerMessageStore.getTimerMetrics().encode().getBytes(StandardCharsets.UTF_8));
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        return response;
+    }
+
+    private synchronized RemotingCommand updateColdDataFlowCtrGroupConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        LOGGER.info("updateColdDataFlowCtrGroupConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            try {
+                String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
+                Properties properties = MixAll.string2Properties(bodyStr);
+                if (properties != null) {
+                    LOGGER.info("updateColdDataFlowCtrGroupConfig new config: {}, client: {}", properties, ctx.channel().remoteAddress());
+                    properties.entrySet().stream().forEach(i -> {
+                        try {
+                            String consumerGroup = String.valueOf(i.getKey());
+                            Long threshold = Long.valueOf(String.valueOf(i.getValue()));
+                            this.brokerController.getColdDataCgCtrService().addOrUpdateGroupConfig(consumerGroup, threshold);
+                        } catch (Exception e) {
+                            LOGGER.error("updateColdDataFlowCtrGroupConfig properties on entry error, key: {}, val: {}", i.getKey(), i.getValue(), e);
+                        }
+                    });
+                } else {
+                    LOGGER.error("updateColdDataFlowCtrGroupConfig string2Properties error");
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("string2Properties error");
+                    return response;
+                }
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.error("updateColdDataFlowCtrGroupConfig UnsupportedEncodingException", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private synchronized RemotingCommand removeColdDataFlowCtrGroupConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        LOGGER.info("removeColdDataFlowCtrGroupConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            try {
+                String consumerGroup = new String(body, MixAll.DEFAULT_CHARSET);
+                if (consumerGroup != null) {
+                    LOGGER.info("removeColdDataFlowCtrGroupConfig, consumerGroup: {} client: {}", consumerGroup, ctx.channel().remoteAddress());
+                    this.brokerController.getColdDataCgCtrService().removeGroupConfig(consumerGroup);
+                } else {
+                    LOGGER.error("removeColdDataFlowCtrGroupConfig string parse error");
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("string parse error");
+                    return response;
+                }
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.error("removeColdDataFlowCtrGroupConfig UnsupportedEncodingException", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getColdDataFlowCtrInfo(ChannelHandlerContext ctx) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        LOGGER.info("getColdDataFlowCtrInfo called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        String content = this.brokerController.getColdDataCgCtrService().getColdDataFlowCtrInfo();
+        if (content != null) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.error("getColdDataFlowCtrInfo UnsupportedEncodingException", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand setCommitLogReadaheadMode(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        LOGGER.info("setCommitLogReadaheadMode called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        try {
+            HashMap<String, String> extFields = request.getExtFields();
+            if (null == extFields) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("set commitlog readahead mode param error");
+                return response;
+            }
+            int mode = Integer.parseInt(extFields.get(FIleReadaheadMode.READ_AHEAD_MODE));
+            if (mode != LibC.MADV_RANDOM && mode != LibC.MADV_NORMAL) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("set commitlog readahead mode param value error");
+                return response;
+            }
+            MessageStore messageStore = this.brokerController.getMessageStore();
+            if (messageStore instanceof DefaultMessageStore) {
+                DefaultMessageStore defaultMessageStore = (DefaultMessageStore)messageStore;
+                if (mode == LibC.MADV_NORMAL) {
+                    defaultMessageStore.getMessageStoreConfig().setDataReadAheadEnable(true);
+                } else {
+                    defaultMessageStore.getMessageStoreConfig().setDataReadAheadEnable(false);
+                }
+                defaultMessageStore.getCommitLog().scanFileAndSetReadMode(mode);
+            }
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark("set commitlog readahead mode success, mode: " + mode);
+        } catch (Exception e) {
+            LOGGER.error("set commitlog readahead mode failed", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("set commitlog readahead mode failed");
+        }
         return response;
     }
 
