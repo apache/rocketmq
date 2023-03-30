@@ -1558,7 +1558,7 @@ public class BrokerController {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            // prohibit writing and writing before confirming the broker role
+            // prohibit writing and reading before confirming the broker role
             isIsolated = true;
             this.getBrokerConfig().setBrokerPermission(PermName.PERM_READ & PermName.PERM_WRITE);
         }
