@@ -261,6 +261,7 @@ public class BrokerController {
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
     protected volatile String minBrokerAddrInGroup = null;
+    protected int originalBrokerPermission = 0;
     private final Lock lock = new ReentrantLock();
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
@@ -1559,8 +1560,7 @@ public class BrokerController {
 
         if (this.brokerConfig.isEnableControllerMode()) {
             // prohibit writing and reading before confirming the broker role
-            isIsolated = true;
-            this.getBrokerConfig().setBrokerPermission(PermName.PERM_READ & PermName.PERM_WRITE);
+            this.setIsolatedAndBrokerPermission(false);
         }
 
         if (this.brokerOuterAPI != null) {
@@ -2306,6 +2306,17 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getAdminBrokerThreadPoolQueue() {
         return adminBrokerThreadPoolQueue;
+    }
+
+    public void setIsolatedAndBrokerPermission(boolean isBrokerRoleConfirmed) {
+        if (isBrokerRoleConfirmed) {
+            this.isIsolated = false;
+            this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
+        } else {
+            this.isIsolated = true;
+            this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
+            this.brokerConfig.setBrokerPermission(0);
+        }
     }
 
 }
