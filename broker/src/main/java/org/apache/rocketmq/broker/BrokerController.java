@@ -1559,7 +1559,6 @@ public class BrokerController {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            // prohibit writing and reading before confirming the broker role
             this.setIsolatedAndBrokerPermission(false);
         }
 
@@ -2313,6 +2312,7 @@ public class BrokerController {
             this.isIsolated = false;
             this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
         } else {
+            // prohibit writing and reading before confirming the broker role
             this.isIsolated = true;
             this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
             this.brokerConfig.setBrokerPermission(0);
