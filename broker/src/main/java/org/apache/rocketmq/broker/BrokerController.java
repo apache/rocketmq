@@ -261,7 +261,6 @@ public class BrokerController {
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
     protected volatile String minBrokerAddrInGroup = null;
-    protected int originalBrokerPermission = 0;
     private final Lock lock = new ReentrantLock();
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
