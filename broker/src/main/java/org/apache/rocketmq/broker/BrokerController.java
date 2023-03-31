@@ -1559,7 +1559,7 @@ public class BrokerController {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            this.setIsolatedAndBrokerPermission(false);
+            this.replicasManager.setIsolatedAndBrokerPermission(false);
         }
 
         if (this.brokerOuterAPI != null) {
@@ -2306,17 +2306,4 @@ public class BrokerController {
     public BlockingQueue<Runnable> getAdminBrokerThreadPoolQueue() {
         return adminBrokerThreadPoolQueue;
     }
-
-    public void setIsolatedAndBrokerPermission(boolean isBrokerRoleConfirmed) {
-        if (isBrokerRoleConfirmed) {
-            this.isIsolated = false;
-            this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
-        } else {
-            // prohibit writing and reading before confirming the broker role
-            this.isIsolated = true;
-            this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
-            this.brokerConfig.setBrokerPermission(0);
-        }
-    }
-
 }

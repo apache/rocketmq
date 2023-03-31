@@ -93,6 +93,8 @@ public class ReplicasManager {
 
     private Long masterBrokerId;
 
+    private int originalBrokerPermission = 0;
+
     private BrokerMetadata brokerMetadata;
 
     private TempBrokerMetadata tempBrokerMetadata;
@@ -205,7 +207,7 @@ public class ReplicasManager {
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterBrokerId, this.masterAddress);
                 this.state = State.RUNNING;
-                this.brokerController.setIsolatedAndBrokerPermission(true);
+                setIsolatedAndBrokerPermission(true);
                 LOGGER.info("All register process has been done, change state to: {}", this.state);
             } else {
                 return false;
@@ -871,5 +873,17 @@ public class ReplicasManager {
 
     public TempBrokerMetadata getTempBrokerMetadata() {
         return tempBrokerMetadata;
+    }
+
+    public void setIsolatedAndBrokerPermission(boolean isBrokerRoleConfirmed) {
+        if (isBrokerRoleConfirmed) {
+            this.brokerController.setIsolated(false);
+            this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
+        } else {
+            // prohibit writing and reading before confirming the broker role
+            this.brokerController.setIsolated(true);
+            this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
+            this.brokerConfig.setBrokerPermission(0);
+        }
     }
 }
