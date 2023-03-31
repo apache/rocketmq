@@ -93,7 +93,7 @@ public class ReplicasManager {
 
     private Long masterBrokerId;
 
-    private int originalBrokerPermission = 0;
+    private volatile int originalBrokerPermission = 0;
 
     private BrokerMetadata brokerMetadata;
 
