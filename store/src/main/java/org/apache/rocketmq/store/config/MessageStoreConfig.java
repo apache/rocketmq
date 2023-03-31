@@ -145,7 +145,7 @@ public class MessageStoreConfig {
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
-    private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    private int destroyMappedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
     @ImportantField
@@ -157,7 +157,7 @@ public class MessageStoreConfig {
     @ImportantField
     private int deleteFileBatchMax = 10;
     // Flow control for ConsumeQueue
-    private int putMsgIndexHightWater = 600000;
+    private int putMsgIndexHighWater = 600000;
     // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
@@ -216,7 +216,7 @@ public class MessageStoreConfig {
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
-    private boolean warmMapedFileEnable = false;
+    private boolean warmMappedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
@@ -418,12 +418,12 @@ public class MessageStoreConfig {
         this.diskFallRecorded = diskFallRecorded;
     }
 
-    public boolean isWarmMapedFileEnable() {
+    public boolean isWarmMappedFileEnable() {
         return warmMapedFileEnable;
     }
 
-    public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
-        this.warmMapedFileEnable = warmMapedFileEnable;
+    public void setWarmMappedFileEnable(boolean warmMappedFileEnable) {
+        this.warmMappedFileEnable = warmMappedFileEnable;
     }
 
     public int getCompactionMappedFileSize() {
@@ -965,12 +965,12 @@ public class MessageStoreConfig {
         this.storePathRootDir = storePathRootDir;
     }
 
-    public int getFlushLeastPagesWhenWarmMapedFile() {
-        return flushLeastPagesWhenWarmMapedFile;
+    public int getFlushLeastPagesWhenWarmMappedFile() {
+        return flushLeastPagesWhenWarmMappedFile;
     }
 
-    public void setFlushLeastPagesWhenWarmMapedFile(int flushLeastPagesWhenWarmMapedFile) {
-        this.flushLeastPagesWhenWarmMapedFile = flushLeastPagesWhenWarmMapedFile;
+    public void setFlushLeastPagesWhenWarmMappedFile(int flushLeastPagesWhenWarmMappedFile) {
+        this.flushLeastPagesWhenWarmMappedFile = flushLeastPagesWhenWarmMappedFile;
     }
 
     public boolean isOffsetCheckInSlave() {
