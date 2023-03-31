@@ -44,7 +44,7 @@ public class ColdDataCgCtrService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_COLDCTR_LOGGER_NAME);
     private final SystemClock systemClock = new SystemClock();
     private final long cgColdAccResideTimeoutMills = 60 * 1000;
-    private static final AtomicLong globalAcc = new AtomicLong(0L);
+    private static final AtomicLong GLOBAL_ACC = new AtomicLong(0L);
     private static final String ADAPTIVE = "||adaptive";
     /**
      * as soon as the consumerGroup read the cold data then it will be put into @code cgColdThresholdMapRuntime,
@@ -84,7 +84,7 @@ public class ColdDataCgCtrService extends ServiceThread {
                 long beginLockTimestamp = this.systemClock.now();
                 clearDataAcc();
                 if (!brokerConfig.isColdCtrStrategyEnable()) {
-                   clearAdaptiveConfig();
+                    clearAdaptiveConfig();
                 }
                 long costTime = this.systemClock.now() - beginLockTimestamp;
                 log.info("[{}] clearTheDataAcc-cost {} ms.", costTime > 3 * 1000 ? "NOTIFYME" : "OK", costTime);
@@ -101,7 +101,7 @@ public class ColdDataCgCtrService extends ServiceThread {
         result.put("configTable", this.cgColdThresholdMapConfig);
         result.put("cgColdReadThreshold", this.brokerConfig.getCgColdReadThreshold());
         result.put("globalColdReadThreshold", this.brokerConfig.getGlobalColdReadThreshold());
-        result.put("globalAcc", globalAcc.get());
+        result.put("globalAcc", GLOBAL_ACC.get());
         return result.toJSONString();
     }
 
@@ -113,7 +113,7 @@ public class ColdDataCgCtrService extends ServiceThread {
     private void clearDataAcc() {
         log.info("clearDataAcc cgColdThresholdMapRuntime key size: {}", cgColdThresholdMapRuntime.size());
         if (brokerConfig.isColdCtrStrategyEnable()) {
-            coldCtrStrategy.collect(globalAcc.get());
+            coldCtrStrategy.collect(GLOBAL_ACC.get());
         }
         Iterator<Entry<String, AccAndTimeStamp>> iterator = cgColdThresholdMapRuntime.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -132,12 +132,12 @@ public class ColdDataCgCtrService extends ServiceThread {
             next.getValue().getColdAcc().set(0L);
         }
         if (isGlobalColdCtr()) {
-            log.info("Coldctr global acc: {}, threshold: {}", globalAcc.get(), this.brokerConfig.getGlobalColdReadThreshold());
+            log.info("Coldctr global acc: {}, threshold: {}", GLOBAL_ACC.get(), this.brokerConfig.getGlobalColdReadThreshold());
         }
         if (brokerConfig.isColdCtrStrategyEnable()) {
             sortAndDecelerate();
         }
-        globalAcc.set(0L);
+        GLOBAL_ACC.set(0L);
     }
 
     private void sortAndDecelerate() {
@@ -163,7 +163,7 @@ public class ColdDataCgCtrService extends ServiceThread {
         if (coldDataToAcc <= 0) {
             return;
         }
-        globalAcc.addAndGet(coldDataToAcc);
+        GLOBAL_ACC.addAndGet(coldDataToAcc);
         AccAndTimeStamp atomicAcc = cgColdThresholdMapRuntime.get(consumerGroup);
         if (null == atomicAcc) {
             atomicAcc = new AccAndTimeStamp(new AtomicLong(coldDataToAcc));
@@ -196,11 +196,11 @@ public class ColdDataCgCtrService extends ServiceThread {
         if (accAndTimeStamp.getColdAcc().get() >= threshold) {
             return true;
         }
-        return globalAcc.get() >= this.brokerConfig.getGlobalColdReadThreshold();
+        return GLOBAL_ACC.get() >= this.brokerConfig.getGlobalColdReadThreshold();
     }
 
     public boolean isGlobalColdCtr() {
-        return globalAcc.get() > this.brokerConfig.getGlobalColdReadThreshold();
+        return GLOBAL_ACC.get() > this.brokerConfig.getGlobalColdReadThreshold();
     }
 
     public BrokerConfig getBrokerConfig() {

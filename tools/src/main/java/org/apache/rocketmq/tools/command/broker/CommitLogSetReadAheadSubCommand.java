@@ -73,7 +73,7 @@ public class CommitLogSetReadAheadSubCommand implements SubCommand {
         try {
             String mode = commandLine.getOptionValue('m').trim();
             if (!mode.equals(String.valueOf(LibC.MADV_RANDOM)) && !mode.equals(String.valueOf(LibC.MADV_NORMAL))) {
-                System.out.println("set the read mode error; 0 is default, 1 random read");
+                System.out.printf("set the read mode error; 0 is default, 1 random read\n");
                 return;
             }
             if (commandLine.hasOption('b')) {
@@ -101,6 +101,6 @@ public class CommitLogSetReadAheadSubCommand implements SubCommand {
     protected void setAndPrint(final MQAdminExt defaultMQAdminExt, final String printPrefix, final String addr, final String mode)
         throws InterruptedException, RemotingConnectException, UnsupportedEncodingException, RemotingTimeoutException, MQBrokerException, RemotingSendRequestException {
         System.out.print(" " + printPrefix);
-        System.out.println("commitLog set readAhead mode rstStr" + defaultMQAdminExt.setCommitLogReadAheadMode(addr, mode));
+        System.out.printf("commitLog set readAhead mode rstStr" + defaultMQAdminExt.setCommitLogReadAheadMode(addr, mode) + "\n");
     }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.broker.coldctr;
 
-public class SimpleColdCtrStrategy implements ColdCtrStrategy{
+public class SimpleColdCtrStrategy implements ColdCtrStrategy {
     private final ColdDataCgCtrService coldDataCgCtrService;
 
     public SimpleColdCtrStrategy(ColdDataCgCtrService coldDataCgCtrService) {

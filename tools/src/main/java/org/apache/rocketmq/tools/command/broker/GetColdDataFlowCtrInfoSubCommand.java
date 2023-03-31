@@ -116,8 +116,8 @@ public class GetColdDataFlowCtrInfoSubCommand implements SubCommand {
             value.remove("createTimeMills");
         });
 
-        String formateStr = JSON.toJSONString(jsonObject, true);
-        System.out.println(formateStr);
+        String formatStr = JSON.toJSONString(jsonObject, true);
+        System.out.printf(formatStr);
         System.out.printf("%n");
     }
 
