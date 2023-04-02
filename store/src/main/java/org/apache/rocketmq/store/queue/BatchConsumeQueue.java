@@ -44,7 +44,20 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    //position 8, size 4, tagscode 8, storetime 8, msgBaseOffset 8, batchSize 2, compactedOffset 4, reserved 4
+    /**
+     * BatchConsumeQueue's store unit. Format:
+     * <pre>
+     * ┌─────────────────────────┬───────────┬────────────┬──────────┬─────────────┬─────────┬───────────────┬─────────┐
+     * │CommitLog Physical Offset│ Body Size │Tag HashCode│Store time│msgBaseOffset│batchSize│compactedOffset│reserved │
+     * │        (8 Bytes)        │ (4 Bytes) │ (8 Bytes)  │(8 Bytes) │(8 Bytes)    │(2 Bytes)│   (4 Bytes)   │(4 Bytes)│
+     * ├─────────────────────────┴───────────┴────────────┴──────────┴─────────────┴─────────┴───────────────┴─────────┤
+     * │                                                  Store Unit                                                   │
+     * │                                                                                                               │
+     * </pre>
+     * BatchConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Store time(8) +
+     * msgBaseOffset(8) + batchSize(2) + compactedOffset(4) + reserved(4)= 46 Bytes
+     */
     public static final int CQ_STORE_UNIT_SIZE = 46;
     public static final int MSG_TAG_OFFSET_INDEX = 12;
     public static final int MSG_STORE_TIME_OFFSET_INDEX = 20;
