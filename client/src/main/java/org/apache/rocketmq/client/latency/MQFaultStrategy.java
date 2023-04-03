@@ -131,13 +131,6 @@ public class MQFaultStrategy {
         }
     }
 
-    public void detectByOneRound() {
-        if (this.sendLatencyFaultEnable && this.startDetectorEnable) {
-            //detect by one round.
-            this.latencyFaultTolerance.detectByOneRound();
-        }
-    }
-
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName,
                                               final boolean remoteFaultTolerance, final boolean resetIndex) {
         BrokerFilter brokerFilter = threadBrokerFilter.get();

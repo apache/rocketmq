@@ -267,6 +267,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     mQClientFactory.start();
                 }
 
+                if (this.mqFaultStrategy.isStartDetectorEnable()) {
+                    this.mqFaultStrategy.startDetector();
+                }
+
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                     this.defaultMQProducer.isSendMessageWithVIPChannel());
                 this.serviceState = ServiceState.RUNNING;
