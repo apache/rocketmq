@@ -25,7 +25,9 @@ import java.util.Random;
 import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.junit.After;
 import org.junit.Assert;
@@ -33,19 +35,25 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class PosixFileSegmentTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setTieredStoreFilepath(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setTieredStoreFilepath(storePath);
         mq = new MessageQueue("OSSFileSegmentTest", "broker", 0);
+        TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     @Test

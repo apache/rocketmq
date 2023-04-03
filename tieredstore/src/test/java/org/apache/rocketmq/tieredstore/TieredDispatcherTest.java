@@ -28,6 +28,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
@@ -44,27 +45,29 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TieredDispatcherTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
-    TieredMetadataStore metadataStore;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+    private TieredMetadataStore metadataStore;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
-        MemoryFileSegment.checkSize = false;
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setStorePathRootDir(storePath);
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredMessageQueueContainerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
-        MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
-        TieredContainerManager.getInstance(storeConfig).cleanup();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     @Test

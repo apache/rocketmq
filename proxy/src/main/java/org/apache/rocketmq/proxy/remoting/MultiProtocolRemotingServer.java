@@ -44,9 +44,19 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final NettyServerConfig nettyServerConfig;
 
+    private final RemotingProtocolHandler remotingProtocolHandler;
+    private final Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+
     public MultiProtocolRemotingServer(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig, channelEventListener);
         this.nettyServerConfig = nettyServerConfig;
+
+        this.remotingProtocolHandler = new RemotingProtocolHandler(
+            this::getEncoder,
+            this::getDistributionHandler,
+            this::getConnectionManageHandler,
+            this::getServerHandler);
+        this.http2ProtocolProxyHandler = new Http2ProtocolProxyHandler();
     }
 
     @Override
@@ -70,13 +80,8 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
             .addLast(this.getDefaultEventExecutorGroup(), HANDSHAKE_HANDLER_NAME, this.getHandshakeHandler())
             .addLast(this.getDefaultEventExecutorGroup(),
                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                new ProtocolNegotiationHandler(
-                    new RemotingProtocolHandler(
-                        this.getEncoder(),
-                        this.getDistributionHandler(),
-                        this.getConnectionManageHandler(),
-                        this.getServerHandler()))
-                    .addProtocolHandler(new Http2ProtocolProxyHandler())
+                new ProtocolNegotiationHandler(this.remotingProtocolHandler)
+                    .addProtocolHandler(this.http2ProtocolProxyHandler)
             );
     }
 }

@@ -35,11 +35,10 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
-import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -51,30 +50,31 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TieredMessageFetcherTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
-    TieredMetadataStore metadataStore;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
-        MemoryFileSegment.checkSize = false;
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setReadAheadCacheExpireDuration(Long.MAX_VALUE);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
-        metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         mq = new MessageQueue("TieredMessageFetcherTest", storeConfig.getBrokerName(), 0);
+        TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
-        MemoryFileSegment.checkSize = true;
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
-        TieredContainerManager.getInstance(storeConfig).cleanup();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     public Triple<TieredMessageFetcher, ByteBuffer, ByteBuffer> buildFetcher() {

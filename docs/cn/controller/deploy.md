@@ -136,3 +136,29 @@ Broker若设置enableControllerMode=false，则仍然以之前方式运行。若
 （2）原DLedger模式升级到Controller切换架构
 
 由于原DLedger模式消息数据格式与Master-Slave下数据格式存在区别，不提供带数据原地升级的路径。在部署多组Broker的情况下，可以禁写某一组Broker一段时间（只要确认存量消息被全部消费即可，比如根据消息的保存时间来决定），然后清空store目录下除config/topics.json、subscriptionGroup.json下（保留topic和订阅关系的元数据）的其他文件后，进行空盘升级。
+
+### 持久化BrokerID版本的升级注意事项
+
+目前版本支持采用了新的持久化BrokerID版本，详情可以参考[该文档](persistent_unique_broker_id.md)，从该版本前的5.x升级到当前版本需要注意如下事项。
+
+4.x版本升级遵守上述正常流程即可。
+5.x非持久化BrokerID版本升级到持久化BrokerID版本按照如下流程:
+
+**升级Controller**
+
+1. 将旧版本Controller组停机。
+2. 清除Controller数据，即默认在`~/DLedgerController`下的数据文件。
+3. 上线新版Controller组。
+
+> 在上述升级Controller流程中，Broker仍可正常运行，但无法切换。
+
+**升级Broker**
+
+1. 将Broker从节点停机。
+2. 将Broker主节点停机。
+3. 将所有的Broker的Epoch文件删除，即默认为`~/store/epochFileCheckpoint`和`~/store/epochFileCheckpoint.bak`。
+4. 将原先的主Broker先上线，等待该Broker当选为master。(可使用`admin`命令的`getSyncStateSet`来观察)
+5. 将原来的从Broker全部上线。
+
+> 建议停机时先停从再停主，上线时先上原先的主再上原先的从，这样可以保证原来的主备关系。
+> 若需要改变升级前后主备关系，则需要停机时保证主、备的CommitLog对齐，否则可能导致数据被截断而丢失。

@@ -129,10 +129,6 @@ public class PosixFileSegment extends TieredFileSegment {
 
     @Override
     public void destroyFile() {
-        if (file.exists()) {
-            file.delete();
-        }
-
         try {
             if (readFileChannel != null && readFileChannel.isOpen()) {
                 readFileChannel.close();
@@ -142,6 +138,10 @@ public class PosixFileSegment extends TieredFileSegment {
             }
         } catch (IOException e) {
             logger.error("PosixFileSegment#destroyFile: destroy file {} failed: ", filepath, e);
+        }
+
+        if (file.exists()) {
+            file.delete();
         }
     }
 
@@ -189,7 +189,7 @@ public class PosixFileSegment extends TieredFileSegment {
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            TieredStoreExecutor.COMMIT_EXECUTOR.execute(() -> {
+            TieredStoreExecutor.commitExecutor.execute(() -> {
                 try {
                     byte[] byteArray = ByteStreams.toByteArray(inputStream);
                     if (byteArray.length != length) {

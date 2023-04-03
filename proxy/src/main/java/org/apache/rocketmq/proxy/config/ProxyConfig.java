@@ -107,10 +107,16 @@ public class ProxyConfig implements ConfigFile {
      */
     private int maxUserPropertySize = 16 * 1024;
     private int userPropertyMaxNum = 128;
+
     /**
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 64;
+
+    /**
+     * When a message pops, the message is invisible by default
+     */
+    private long defaultInvisibleTimeMills = Duration.ofSeconds(60).toMillis();
     private long minInvisibleTimeMillsForRecv = Duration.ofSeconds(10).toMillis();
     private long maxInvisibleTimeMills = Duration.ofHours(12).toMillis();
     private long maxDelayTimeMills = Duration.ofDays(1).toMillis();
@@ -148,6 +154,7 @@ public class ProxyConfig implements ConfigFile {
     private int consumerProcessorThreadPoolNums = PROCESSOR_NUMBER;
     private int consumerProcessorThreadPoolQueueCapacity = 10000;
 
+    private boolean useEndpointPortFromRequest = false;
     private int topicRouteServiceCacheExpiredInSeconds = 20;
     private int topicRouteServiceCacheMaxNum = 20000;
     private int topicRouteServiceThreadPoolNums = PROCESSOR_NUMBER;
@@ -179,7 +186,6 @@ public class ProxyConfig implements ConfigFile {
     private int renewThreadPoolQueueCapacity = 300;
     private long lockTimeoutMsInHandleGroup = TimeUnit.SECONDS.toMillis(3);
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
-    private long renewSliceTimeMillis = TimeUnit.SECONDS.toMillis(60);
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
@@ -187,7 +193,7 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean enableAclRpcHookForClusterMode = false;
 
-    private boolean useDelayLevel = true;
+    private boolean useDelayLevel = false;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
 
@@ -205,6 +211,7 @@ public class ProxyConfig implements ConfigFile {
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
@@ -425,6 +432,14 @@ public class ProxyConfig implements ConfigFile {
         this.grpcServerPort = grpcServerPort;
     }
 
+    public boolean isUseEndpointPortFromRequest() {
+        return useEndpointPortFromRequest;
+    }
+
+    public void setUseEndpointPortFromRequest(boolean useEndpointPortFromRequest) {
+        this.useEndpointPortFromRequest = useEndpointPortFromRequest;
+    }
+
     public boolean isTlsTestModeEnable() {
         return tlsTestModeEnable;
     }
@@ -543,6 +558,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMinInvisibleTimeMillsForRecv(long minInvisibleTimeMillsForRecv) {
         this.minInvisibleTimeMillsForRecv = minInvisibleTimeMillsForRecv;
+    }
+
+    public long getDefaultInvisibleTimeMills() {
+        return defaultInvisibleTimeMills;
+    }
+
+    public void setDefaultInvisibleTimeMills(long defaultInvisibleTimeMills) {
+        this.defaultInvisibleTimeMills = defaultInvisibleTimeMills;
     }
 
     public long getMaxInvisibleTimeMills() {
@@ -1009,14 +1032,6 @@ public class ProxyConfig implements ConfigFile {
         this.renewAheadTimeMillis = renewAheadTimeMillis;
     }
 
-    public long getRenewSliceTimeMillis() {
-        return renewSliceTimeMillis;
-    }
-
-    public void setRenewSliceTimeMillis(long renewSliceTimeMillis) {
-        this.renewSliceTimeMillis = renewSliceTimeMillis;
-    }
-
     public long getRenewMaxTimeMillis() {
         return renewMaxTimeMillis;
     }
@@ -1147,6 +1162,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMetricGrpcExporterIntervalInMills(long metricGrpcExporterIntervalInMills) {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
+    }
+
+    public long getMetricLoggingExporterIntervalInMills() {
+        return metricLoggingExporterIntervalInMills;
+    }
+
+    public void setMetricLoggingExporterIntervalInMills(long metricLoggingExporterIntervalInMills) {
+        this.metricLoggingExporterIntervalInMills = metricLoggingExporterIntervalInMills;
     }
 
     public int getMetricsPromExporterPort() {

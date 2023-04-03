@@ -44,12 +44,17 @@ public class TieredContainerManager {
     private final TieredMessageStoreConfig storeConfig;
 
     public static TieredContainerManager getInstance(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return instance;
+        }
+
         if (instance == null) {
             synchronized (TieredContainerManager.class) {
                 if (instance == null) {
                     try {
                         instance = new TieredContainerManager(storeConfig);
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        logger.error("TieredContainerManager#getInstance: create container manager failed", e);
                     }
                 }
             }
@@ -58,6 +63,10 @@ public class TieredContainerManager {
     }
 
     public static TieredIndexFile getIndexFile(TieredMessageStoreConfig storeConfig) {
+        if (storeConfig == null) {
+            return indexFile;
+        }
+
         if (indexFile == null) {
             synchronized (TieredContainerManager.class) {
                 if (indexFile == null) {
@@ -77,12 +86,12 @@ public class TieredContainerManager {
         this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         this.messageQueueContainerMap = new ConcurrentHashMap<>();
 
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 Random random = new Random();
                 for (TieredMessageQueueContainer container : getAllMQContainer()) {
                     int delay = random.nextInt(storeConfig.getMaxCommitJitter());
-                    TieredStoreExecutor.COMMIT_EXECUTOR.schedule(() -> {
+                    TieredStoreExecutor.commitExecutor.schedule(() -> {
                         try {
                             container.commitCommitLog();
                         } catch (Throwable e) {
@@ -90,7 +99,7 @@ public class TieredContainerManager {
                             logger.error("commit commitLog periodically failed: topic: {}, queue: {}", mq.getTopic(), mq.getQueueId(), e);
                         }
                     }, delay, TimeUnit.MILLISECONDS);
-                    TieredStoreExecutor.COMMIT_EXECUTOR.schedule(() -> {
+                    TieredStoreExecutor.commitExecutor.schedule(() -> {
                         try {
                             container.commitConsumeQueue();
                         } catch (Throwable e) {
@@ -99,7 +108,7 @@ public class TieredContainerManager {
                         }
                     }, delay, TimeUnit.MILLISECONDS);
                 }
-                TieredStoreExecutor.COMMIT_EXECUTOR.schedule(() -> {
+                TieredStoreExecutor.commitExecutor.schedule(() -> {
                     try {
                         if (indexFile != null) {
                             indexFile.commit(true);
@@ -113,13 +122,13 @@ public class TieredContainerManager {
             }
         }, 60, 60, TimeUnit.SECONDS);
 
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 long expiredTimeStamp = System.currentTimeMillis() - (long) storeConfig.getTieredStoreFileReservedTime() * 60 * 60 * 1000;
                 Random random = new Random();
                 for (TieredMessageQueueContainer container : getAllMQContainer()) {
                     int delay = random.nextInt(storeConfig.getMaxCommitJitter());
-                    TieredStoreExecutor.CLEAN_EXPIRED_FILE_EXECUTOR.schedule(() -> {
+                    TieredStoreExecutor.cleanExpiredFileExecutor.schedule(() -> {
                         container.getQueueLock().lock();
                         try {
                             container.cleanExpiredFile(expiredTimeStamp);
@@ -149,7 +158,7 @@ public class TieredContainerManager {
             messageQueueContainerMap.clear();
             metadataStore.iterateTopic(topicMetadata -> {
                 maxTopicId.set(Math.max(maxTopicId.get(), topicMetadata.getTopicId()));
-                Future<?> future = TieredStoreExecutor.DISPATCH_EXECUTOR.submit(() -> {
+                Future<?> future = TieredStoreExecutor.dispatchExecutor.submit(() -> {
                     if (topicMetadata.getStatus() != 0) {
                         return;
                     }

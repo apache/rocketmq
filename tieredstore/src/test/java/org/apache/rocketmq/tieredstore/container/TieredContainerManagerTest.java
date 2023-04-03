@@ -22,7 +22,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
@@ -32,25 +34,29 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TieredContainerManagerTest {
-    TieredMessageStoreConfig storeConfig;
-    MessageQueue mq;
-    TieredMetadataStore metadataStore;
+    private TieredMessageStoreConfig storeConfig;
+    private MessageQueue mq;
+    private TieredMetadataStore metadataStore;
+
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredContainerManagerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(storeConfig).destroy();
-        TieredContainerManager.getInstance(storeConfig).cleanup();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
 
@@ -64,7 +70,9 @@ public class TieredContainerManagerTest {
         boolean load = containerManager.load();
         Assert.assertTrue(load);
 
-        Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> containerManager.getAllMQContainer().size() == 2);
+        Awaitility.await()
+            .atMost(3, TimeUnit.SECONDS)
+            .until(() -> containerManager.getAllMQContainer().size() == 2);
 
         TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
         Assert.assertNotNull(container);
