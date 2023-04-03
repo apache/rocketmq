@@ -89,8 +89,8 @@ public class ClientConfig {
      */
     protected boolean enableStreamRequestType = false;
 
-    private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
-    private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
+    private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "true"));
+    private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "true"));
     private boolean fetchRemoteClientConfigEnable = Boolean.parseBoolean(System.getProperty(FETCH_REMOTE_CLIENT_CONFIG, "false"));
 
     public String buildMQClientId() {
