@@ -2883,7 +2883,7 @@ public class DefaultMessageStore implements MessageStore {
                     BatchDispatchRequest task = batchDispatchRequestQueue.peek();
                     batchDispatchRequestExecutor.execute(() -> {
                         try {
-                            ByteBuffer tmpByteBuffer = task.byteBuffer.duplicate();
+                            ByteBuffer tmpByteBuffer = task.byteBuffer;
                             tmpByteBuffer.position(task.position);
                             tmpByteBuffer.limit(task.position + task.size);
                             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
@@ -3016,7 +3016,7 @@ public class DefaultMessageStore implements MessageStore {
                 return;
             }
             mappedPageHoldCount.getAndIncrement();
-            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer, position, size, batchId++);
+            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer.duplicate(), position, size, batchId++);
             batchDispatchRequestQueue.offer(task);
         }
 
