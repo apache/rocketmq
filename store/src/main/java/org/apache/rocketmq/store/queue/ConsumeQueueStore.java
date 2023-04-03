@@ -26,6 +26,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -64,9 +65,8 @@ public class ConsumeQueueStore {
     protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
 
-    // Should be careful, do not change the topic config
-    // TopicConfigManager is more suitable here.
-    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+    // get config from topicConfigTable and prevent modification
+    private Function<String, TopicConfig> getConfigFunc;
 
     public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
@@ -74,8 +74,8 @@ public class ConsumeQueueStore {
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
     }
 
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.topicConfigTable = topicConfigTable;
+    public void setTopicConfigFunction(Function<String, TopicConfig> getConfigFunc) {
+        this.getConfigFunc = getConfigFunc;;
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
@@ -173,7 +173,7 @@ public class ConsumeQueueStore {
     }
 
     private void queueTypeShouldBe(String topic, CQType cqTypeExpected) {
-        TopicConfig topicConfig = this.topicConfigTable == null ? null : this.topicConfigTable.get(topic);
+        TopicConfig topicConfig = this.getConfigFunc.apply(topic);
 
         CQType cqTypeActual = QueueTypeUtils.getCQType(Optional.ofNullable(topicConfig));
 
@@ -538,11 +538,12 @@ public class ConsumeQueueStore {
     }
 
     public Optional<TopicConfig> getTopicConfig(String topic) {
-        if (this.topicConfigTable == null) {
+        TopicConfig config = this.getConfigFunc.apply(topic);
+        if (config == null) {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(this.topicConfigTable.get(topic));
+        return Optional.of(config);
     }
 
     public long getTotalSize() {

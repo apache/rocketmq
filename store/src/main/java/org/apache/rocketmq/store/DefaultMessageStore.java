@@ -2031,7 +2031,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
+        this.consumeQueueStore.setTopicConfigFunction(topic -> topicConfigTable != null ? topicConfigTable.get(topic) : null);
     }
 
     public BrokerIdentity getBrokerIdentity() {
