@@ -93,6 +93,8 @@ public class ReplicasManager {
 
     private Long masterBrokerId;
 
+    private volatile int originalBrokerPermission = 0;
+
     private BrokerMetadata brokerMetadata;
 
     private TempBrokerMetadata tempBrokerMetadata;
@@ -205,7 +207,7 @@ public class ReplicasManager {
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterBrokerId, this.masterAddress);
                 this.state = State.RUNNING;
-                this.brokerController.setIsolated(false);
+                setIsolatedAndBrokerPermission(true);
                 LOGGER.info("All register process has been done, change state to: {}", this.state);
             } else {
                 return false;
@@ -261,10 +263,6 @@ public class ReplicasManager {
                 final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
-                // Change record
-                this.masterAddress = this.brokerAddress;
-                this.masterBrokerId = this.brokerControllerId;
-
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
@@ -274,6 +272,10 @@ public class ReplicasManager {
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
                 this.brokerController.changeSpecialServiceStatus(true);
+
+                // Change record
+                this.masterAddress = this.brokerAddress;
+                this.masterBrokerId = this.brokerControllerId;
 
                 schedulingCheckSyncStateSet();
 
@@ -299,10 +301,6 @@ public class ReplicasManager {
                     return;
                 }
 
-                // Change record
-                this.masterAddress = newMasterAddress;
-                this.masterBrokerId = newMasterBrokerId;
-
                 // Stop checking syncStateSet because only master is able to check
                 stopCheckSyncStateSet();
 
@@ -311,6 +309,10 @@ public class ReplicasManager {
                 this.brokerController.changeSpecialServiceStatus(false);
                 // The brokerId in brokerConfig just means its role(master[0] or slave[>=1])
                 this.brokerConfig.setBrokerId(brokerControllerId);
+
+                // Change record
+                this.masterAddress = newMasterAddress;
+                this.masterBrokerId = newMasterBrokerId;
 
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
@@ -871,5 +873,17 @@ public class ReplicasManager {
 
     public TempBrokerMetadata getTempBrokerMetadata() {
         return tempBrokerMetadata;
+    }
+
+    public void setIsolatedAndBrokerPermission(boolean isBrokerRoleConfirmed) {
+        if (isBrokerRoleConfirmed) {
+            this.brokerController.setIsolated(false);
+            this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
+        } else {
+            // prohibit writing and reading before confirming the broker role
+            this.brokerController.setIsolated(true);
+            this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
+            this.brokerConfig.setBrokerPermission(0);
+        }
     }
 }
