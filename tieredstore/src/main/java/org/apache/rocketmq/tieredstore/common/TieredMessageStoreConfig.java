@@ -123,6 +123,14 @@ public class TieredMessageStoreConfig {
     private String ossAccessKey = "";
     private String ossSecretKey = "";
 
+    private String s3Region = "";
+
+    private String s3Bucket = "";
+
+    private String s3AccessKey = "";
+
+    private String s3SecretKey = "";
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -386,5 +394,37 @@ public class TieredMessageStoreConfig {
 
     public void setOssSecretKey(String ossSecretKey) {
         this.ossSecretKey = ossSecretKey;
+    }
+
+    public String getS3Region() {
+        return s3Region;
+    }
+
+    public void setS3Region(String s3Region) {
+        this.s3Region = s3Region;
+    }
+
+    public String getS3Bucket() {
+        return s3Bucket;
+    }
+
+    public void setS3Bucket(String s3Bucket) {
+        this.s3Bucket = s3Bucket;
+    }
+
+    public String getS3AccessKey() {
+        return s3AccessKey;
+    }
+
+    public void setS3AccessKey(String s3AccessKey) {
+        this.s3AccessKey = s3AccessKey;
+    }
+
+    public String getS3SecretKey() {
+        return s3SecretKey;
+    }
+
+    public void setS3SecretKey(String s3SecretKey) {
+        this.s3SecretKey = s3SecretKey;
     }
 }

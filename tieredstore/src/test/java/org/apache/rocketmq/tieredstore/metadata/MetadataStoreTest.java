@@ -29,7 +29,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
+import org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.junit.After;
 import org.junit.Assert;

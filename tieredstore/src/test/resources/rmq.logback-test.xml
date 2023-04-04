@@ -23,7 +23,7 @@
         </encoder>
     </appender>
 
-    <root level="debug">
-        <appender-ref ref="STDOUT" />
+    <root level="error">
+        <appender-ref ref="CONSOLE" />
     </root>
 </configuration>

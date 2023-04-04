@@ -49,19 +49,25 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TieredMessageFetcherTest {
-    private TieredMessageStoreConfig storeConfig;
+public abstract class TieredMessageFetcherBaseTest {
+    protected TieredMessageStoreConfig storeConfig;
     private MessageQueue mq;
 
     private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
+    public abstract void setTieredBackendProvider();
+
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
+        setTieredBackendProvider();
         storeConfig.setStorePathRootDir(storePath);
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setReadAheadCacheExpireDuration(Long.MAX_VALUE);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
+        storeConfig.setS3Region("ap-northeast-1");
+        storeConfig.setS3Bucket("rocketmq-lcy");
+        storeConfig.setBrokerName(storeConfig.getBrokerName());
+        storeConfig.setBrokerClusterName("test-cluster");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredMessageFetcherTest", storeConfig.getBrokerName(), 0);

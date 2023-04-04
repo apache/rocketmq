@@ -18,23 +18,24 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
-public class TieredFileSegmentTest {
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+
+public abstract class TieredFileSegmentBaseTest {
     public int baseOffset = 1000;
 
-    public TieredFileSegment createFileSegment(TieredFileSegment.FileSegmentType fileType) {
-        return new MemoryFileSegment(fileType, new MessageQueue("TieredFileSegmentTest", new TieredMessageStoreConfig().getBrokerName(), 0),
-            baseOffset, new TieredMessageStoreConfig());
-    }
+    public abstract TieredFileSegment createFileSegment(TieredFileSegment.FileSegmentType fileType);
 
     @Test
     public void testCommitLog() {
@@ -115,29 +116,38 @@ public class TieredFileSegmentTest {
     @Test
     public void testCommitFailed() {
         long startTime = System.currentTimeMillis();
-        MemoryFileSegment segment = (MemoryFileSegment) createFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG);
+        TieredFileSegment segment = Mockito.spy(createFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG));
         long lastSize = segment.getSize();
         segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
         segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
 
-        segment.blocker = new CompletableFuture<>();
+        CompletableFuture<Void> blocker = new CompletableFuture<>();
+        Mockito.doAnswer(invocation -> {
+            blocker.join();
+            CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
+            completableFuture.completeExceptionally(new RuntimeException("commit failed"));
+            return completableFuture;
+        }).when(segment).commit0(any(InputStream.class), anyLong(), anyInt(), anyBoolean());
+
         new Thread(() -> {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Assert.fail(e.getMessage());
             }
+            // append msg3
             ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
             buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, startTime);
             segment.append(buffer, 0);
-            segment.blocker.complete(false);
+            // blocker complete, commit failed
+            blocker.complete(null);
         }).start();
 
+        // first time try to commit these 2 messages but stuck for while until msg3 is appended, and then this commit failed
         segment.commit();
-        segment.blocker.join();
 
-        segment.blocker = new CompletableFuture<>();
-        segment.blocker.complete(true);
+        // second time commit, expect success
+        Mockito.doCallRealMethod().when(segment).commit0(any(InputStream.class), anyLong(), anyInt(), anyBoolean());
         segment.commit();
 
         Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());

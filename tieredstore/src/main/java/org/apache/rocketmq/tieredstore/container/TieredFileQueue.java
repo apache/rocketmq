@@ -144,6 +144,7 @@ public class TieredFileQueue {
             segment.setEndTimestamp(metadata.getEndTimestamp());
             if (metadata.getStatus() == FileSegmentMetadata.STATUS_SEALED) {
                 segment.setFull(false);
+                segment.sealFile();
             }
             // TODO check coda/size
             fileSegmentList.add(segment);
@@ -256,6 +257,7 @@ public class TieredFileQueue {
                 }
                 if (segment.commit()) {
                     try {
+                        segment.sealFile();
                         metadataStore.updateFileSegment(segment);
                     } catch (Exception e) {
                         return segment;
