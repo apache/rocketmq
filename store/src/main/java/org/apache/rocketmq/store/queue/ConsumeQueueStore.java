@@ -79,7 +79,7 @@ public class ConsumeQueueStore {
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
-        return (FileQueueLifeCycle) findOrCreateConsumeQueue(topic, queueId);
+        return findOrCreateConsumeQueue(topic, queueId);
     }
 
     public long rollNextFile(ConsumeQueueInterface consumeQueue, final long offset) {
