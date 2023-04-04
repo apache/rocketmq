@@ -18,57 +18,65 @@ package org.apache.rocketmq.remoting.protocol.header.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+
 
 public class ElectMasterResponseHeader implements CommandCustomHeader {
-    private String newMasterAddress;
-    private int masterEpoch;
-    private int syncStateSetEpoch;
-    private BrokerMemberGroup brokerMemberGroup;
+
+    private Long masterBrokerId;
+    private String masterAddress;
+    private Integer masterEpoch;
+    private Integer syncStateSetEpoch;
 
     public ElectMasterResponseHeader() {
     }
 
-    public String getNewMasterAddress() {
-        return newMasterAddress;
-    }
-
-    public void setNewMasterAddress(String newMasterAddress) {
-        this.newMasterAddress = newMasterAddress;
-    }
-
-    public int getMasterEpoch() {
-        return masterEpoch;
-    }
-
-    public void setMasterEpoch(int masterEpoch) {
+    public ElectMasterResponseHeader(Long masterBrokerId, String masterAddress, Integer masterEpoch, Integer syncStateSetEpoch) {
+        this.masterBrokerId = masterBrokerId;
+        this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
-    }
-
-    public int getSyncStateSetEpoch() {
-        return syncStateSetEpoch;
-    }
-
-    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public BrokerMemberGroup getBrokerMemberGroup() {
-        return brokerMemberGroup;
+    public String getMasterAddress() {
+        return masterAddress;
     }
 
-    public void setBrokerMemberGroup(BrokerMemberGroup brokerMemberGroup) {
-        this.brokerMemberGroup = brokerMemberGroup;
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
+    }
+
+    public Integer getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public void setMasterEpoch(Integer masterEpoch) {
+        this.masterEpoch = masterEpoch;
+    }
+
+    public Integer getSyncStateSetEpoch() {
+        return syncStateSetEpoch;
+    }
+
+    public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
     @Override
     public String toString() {
         return "ElectMasterResponseHeader{" +
-            "newMasterAddress='" + newMasterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMemberGroup=" + brokerMemberGroup +
-            '}';
+                "masterBrokerId=" + masterBrokerId +
+                ", masterAddress='" + masterAddress + '\'' +
+                ", masterEpoch=" + masterEpoch +
+                ", syncStateSetEpoch=" + syncStateSetEpoch +
+                '}';
     }
 
     @Override

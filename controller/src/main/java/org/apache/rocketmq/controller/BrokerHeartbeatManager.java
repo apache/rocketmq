@@ -17,9 +17,16 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
+import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 
 public interface BrokerHeartbeatManager {
 
+    /**
+     * initialize the resources
+     * @return
+     */
+    void initialize();
     /**
      * Broker new heartbeat.
      */
@@ -40,7 +47,7 @@ public interface BrokerHeartbeatManager {
     /**
      * Add BrokerLifecycleListener.
      */
-    void addBrokerLifecycleListener(final BrokerLifecycleListener listener);
+    void registerBrokerLifecycleListener(final BrokerLifecycleListener listener);
 
     /**
      * Broker channel close
@@ -50,18 +57,10 @@ public interface BrokerHeartbeatManager {
     /**
      * Get broker live information by clusterName and brokerAddr
      */
-    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerAddr);
+    BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId);
 
     /**
      * Check whether broker active
      */
-    boolean isBrokerActive(final String clusterName, final String brokerAddr);
-
-    interface BrokerLifecycleListener {
-        /**
-         * Trigger when broker inactive.
-         */
-        void onBrokerInactive(final String clusterName, final String brokerName, final String brokerAddress,
-            final long brokerId);
-    }
+    boolean isBrokerActive(final String clusterName, final String brokerName, final Long brokerId);
 }

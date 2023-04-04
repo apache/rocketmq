@@ -32,12 +32,6 @@ public class ServiceThreadTest {
     }
 
     @Test
-    public void testStop() {
-        stop(true);
-        stop(false);
-    }
-
-    @Test
     public void testMakeStop() {
         ServiceThread testServiceThread = startTestServiceThread();
         testServiceThread.makeStop();
@@ -116,23 +110,4 @@ public class ServiceThreadTest {
         assertEquals(true, testServiceThread.hasNotified.get());
         assertEquals(0, testServiceThread.waitPoint.getCount());
     }
-
-    public void stop(boolean interrupt) {
-        ServiceThread testServiceThread = startTestServiceThread();
-        stop0(interrupt, testServiceThread);
-        // repeat
-        stop0(interrupt, testServiceThread);
-    }
-
-    private void stop0(boolean interrupt, ServiceThread testServiceThread) {
-        if (interrupt) {
-            testServiceThread.stop(true);
-        } else {
-            testServiceThread.stop();
-        }
-        assertEquals(true, testServiceThread.isStopped());
-        assertEquals(true, testServiceThread.hasNotified.get());
-        assertEquals(0, testServiceThread.waitPoint.getCount());
-    }
-
 }

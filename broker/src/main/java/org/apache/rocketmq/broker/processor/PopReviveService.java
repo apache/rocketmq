@@ -21,7 +21,6 @@ import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +114,7 @@ public class PopReviveService extends ServiceThread {
             MessageAccessor.setProperties(msgInner, new HashMap<>());
         }
         msgInner.setBornTimestamp(messageExt.getBornTimestamp());
+        msgInner.setFlag(messageExt.getFlag());
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
@@ -601,6 +601,11 @@ public class PopReviveService extends ServiceThread {
                     continue;
                 }
 
+                if (!brokerController.getMessageStore().getMessageStoreConfig().isTimerWheelEnable()) {
+                    POP_LOGGER.warn("skip revive topic because timerWheelEnable is false");
+                    continue;
+                }
+
                 POP_LOGGER.info("start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 ConsumeReviveObj consumeReviveObj = new ConsumeReviveObj();
                 consumeReviveMessage(consumeReviveObj);
@@ -651,12 +656,7 @@ public class PopReviveService extends ServiceThread {
                 return sortList;
             }
             sortList = new ArrayList<>(map.values());
-            Collections.sort(sortList, new Comparator<PopCheckPoint>() {
-                @Override
-                public int compare(PopCheckPoint o1, PopCheckPoint o2) {
-                    return (int) (o1.getReviveOffset() - o2.getReviveOffset());
-                }
-            });
+            sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
             return sortList;
         }
     }

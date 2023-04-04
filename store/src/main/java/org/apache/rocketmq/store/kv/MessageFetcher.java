@@ -19,8 +19,10 @@ package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import java.io.IOException;
 import java.util.function.BiFunction;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
@@ -51,6 +53,7 @@ public class MessageFetcher implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final RemotingClient client;
+
     public MessageFetcher() {
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyClientConfig.setUseTLS(false);
@@ -85,12 +88,13 @@ public class MessageFetcher implements AutoCloseable {
     private String getConsumerGroup(String topic, int queueId) {
         return String.join("-", topic, String.valueOf(queueId), "pull", "group");
     }
+
     private String getClientId() {
         return String.join("@", NetworkUtil.getLocalAddress(), "compactionIns", "compactionUnit");
     }
 
     private boolean prepare(String masterAddr, String topic, String groupName, long subVersion)
-        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         HeartbeatData heartbeatData = new HeartbeatData();
 
         heartbeatData.setClientID(getClientId());
@@ -121,7 +125,7 @@ public class MessageFetcher implements AutoCloseable {
     }
 
     private boolean pullDone(String masterAddr, String groupName)
-        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
         requestHeader.setClientID(getClientId());
         requestHeader.setProducerGroup("");
@@ -140,14 +144,16 @@ public class MessageFetcher implements AutoCloseable {
     }
 
     public void pullMessageFromMaster(String topic, int queueId, long endOffset, String masterAddr,
-        BiFunction<Long, RemotingCommand, Boolean> responseHandler) throws Exception {
+                                      BiFunction<Long, RemotingCommand, Boolean> responseHandler) throws Exception {
         long currentPullOffset = 0;
 
         try {
             long subVersion = System.currentTimeMillis();
             String groupName = getConsumerGroup(topic, queueId);
-            prepare(masterAddr, topic, groupName, subVersion);
-
+            if (!prepare(masterAddr, topic, groupName, subVersion)) {
+                log.error("{}:{} prepare to {} pull message failed", topic, queueId, masterAddr);
+                throw new RemotingCommandException(topic + ":" + queueId + " prepare to " + masterAddr + " pull message failed");
+            }
 
             boolean noNewMsg = false;
             boolean keepPull = true;
@@ -157,11 +163,11 @@ public class MessageFetcher implements AutoCloseable {
                 PullMessageRequestHeader requestHeader = createPullMessageRequest(topic, queueId, currentPullOffset, subVersion);
 
                 RemotingCommand
-                    request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
+                        request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
                 RemotingCommand response = client.invokeSync(masterAddr, request, 1000 * 30L);
 
                 PullMessageResponseHeader responseHeader =
-                    (PullMessageResponseHeader)response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+                        (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
                 if (responseHeader == null) {
                     log.error("{}:{} pull message responseHeader is null", topic, queueId);
                     throw new RemotingCommandException(topic + ":" + queueId + " pull message responseHeader is null");
@@ -175,20 +181,20 @@ public class MessageFetcher implements AutoCloseable {
                         break;
                     case ResponseCode.PULL_NOT_FOUND:       // NO_NEW_MSG, need break loop
                         log.info("PULL_NOT_FOUND, topic:{}, queueId:{}, pullOffset:{},",
-                            topic, queueId, currentPullOffset);
+                                topic, queueId, currentPullOffset);
                         noNewMsg = true;
                         break;
                     case ResponseCode.PULL_RETRY_IMMEDIATELY:
                         log.info("PULL_RETRY_IMMEDIATE, topic:{}, queueId:{}, pullOffset:{},",
-                            topic, queueId, currentPullOffset);
+                                topic, queueId, currentPullOffset);
                         break;
                     case ResponseCode.PULL_OFFSET_MOVED:
                         log.info("PULL_OFFSET_MOVED, topic:{}, queueId:{}, pullOffset:{},",
-                            topic, queueId, currentPullOffset);
+                                topic, queueId, currentPullOffset);
                         break;
                     default:
                         log.warn("Pull Message error, response code: {}, remark: {}",
-                            response.getCode(), response.getRemark());
+                                response.getCode(), response.getRemark());
                 }
 
                 if (noNewMsg || !keepPull) {

@@ -16,25 +16,24 @@
  */
 package org.apache.rocketmq.controller.elect.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
-import org.apache.rocketmq.controller.BrokerLiveInfo;
+import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
+import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
+import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 public class DefaultElectPolicy implements ElectPolicy {
 
-    // <clusterName, brokerAddr>, Used to judge whether a broker
+    // <clusterName, brokerName, brokerAddr>, Used to judge whether a broker
     // has preliminary qualification to be selected as master
-    private BiPredicate<String, String> validPredicate;
+    private BrokerValidPredicate validPredicate;
 
-    // <clusterName, brokerAddr, BrokerLiveInfo>, Used to obtain the BrokerLiveInfo information of a broker
-    private BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter;
+    // <clusterName, brokerName, brokerAddr, BrokerLiveInfo>, Used to obtain the BrokerLiveInfo information of a broker
+    private BrokerLiveInfoGetter brokerLiveInfoGetter;
 
     // Sort in descending order according to<epoch, offset>, and sort in ascending order according to priority
     private final Comparator<BrokerLiveInfo> comparator = (o1, o2) -> {
@@ -46,9 +45,9 @@ public class DefaultElectPolicy implements ElectPolicy {
         }
     };
 
-    public DefaultElectPolicy(BiPredicate<String, String> validPredicate, BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
+    public DefaultElectPolicy(BrokerValidPredicate validPredicate, BrokerLiveInfoGetter brokerLiveInfoGetter) {
         this.validPredicate = validPredicate;
-        this.additionalInfoGetter = additionalInfoGetter;
+        this.brokerLiveInfoGetter = brokerLiveInfoGetter;
     }
 
     public DefaultElectPolicy() {
@@ -66,50 +65,50 @@ public class DefaultElectPolicy implements ElectPolicy {
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
-     * @param oldMaster         old master
-     * @param preferBrokerAddr  the broker prefer to be elected
+     * @param oldMaster         old master's broker id
+     * @param preferBrokerId    the broker id prefer to be elected
      * @return master elected by our own policy
      */
     @Override
-    public String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr) {
-        String newMaster = null;
+    public Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers, Long oldMaster, Long preferBrokerId) {
+        Long newMaster = null;
         // try to elect in syncStateBrokers
         if (syncStateBrokers != null) {
-            newMaster = tryElect(clusterName, syncStateBrokers, oldMaster, preferBrokerAddr);
+            newMaster = tryElect(clusterName, brokerName, syncStateBrokers, oldMaster, preferBrokerId);
         }
-        if (StringUtils.isNotEmpty(newMaster)) {
+        if (newMaster != null) {
             return newMaster;
         }
 
         // try to elect in all allReplicaBrokers
         if (allReplicaBrokers != null) {
-            newMaster = tryElect(clusterName, allReplicaBrokers, oldMaster, preferBrokerAddr);
+            newMaster = tryElect(clusterName, brokerName, allReplicaBrokers, oldMaster, preferBrokerId);
         }
         return newMaster;
     }
 
 
-    private String tryElect(String clusterName, Set<String> brokers, String oldMaster, String preferBrokerAddr) {
+    private Long tryElect(String clusterName, String brokerName, Set<Long> brokers, Long oldMaster, Long preferBrokerId) {
         if (this.validPredicate != null) {
-            brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.test(clusterName, brokerAddr)).collect(Collectors.toSet());
+            brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.check(clusterName, brokerName, brokerAddr)).collect(Collectors.toSet());
         }
         if (!brokers.isEmpty()) {
             // if old master is still valid, and preferBrokerAddr is blank or is equals to oldMaster
-            if (brokers.contains(oldMaster) && (StringUtils.isBlank(preferBrokerAddr) || preferBrokerAddr.equals(oldMaster))) {
+            if (brokers.contains(oldMaster) && (preferBrokerId == null || preferBrokerId.equals(oldMaster))) {
                 return oldMaster;
             }
 
             // if preferBrokerAddr is valid, we choose it, otherwise we choose nothing
-            if (StringUtils.isNotBlank(preferBrokerAddr)) {
-                return brokers.contains(preferBrokerAddr) ? preferBrokerAddr : null;
+            if (preferBrokerId != null) {
+                return brokers.contains(preferBrokerId) ? preferBrokerId : null;
             }
 
-            if (this.additionalInfoGetter != null) {
+            if (this.brokerLiveInfoGetter != null) {
                 // sort brokerLiveInfos by (epoch,maxOffset)
                 TreeSet<BrokerLiveInfo> brokerLiveInfos = new TreeSet<>(this.comparator);
-                brokers.forEach(brokerAddr -> brokerLiveInfos.add(this.additionalInfoGetter.apply(clusterName, brokerAddr)));
+                brokers.forEach(brokerAddr -> brokerLiveInfos.add(this.brokerLiveInfoGetter.get(clusterName, brokerName, brokerAddr)));
                 if (brokerLiveInfos.size() >= 1) {
-                    return brokerLiveInfos.first().getBrokerAddr();
+                    return brokerLiveInfos.first().getBrokerId();
                 }
             }
             // elect random
@@ -119,19 +118,16 @@ public class DefaultElectPolicy implements ElectPolicy {
     }
 
 
-    public BiFunction<String, String, BrokerLiveInfo> getAdditionalInfoGetter() {
-        return additionalInfoGetter;
+
+    public void setBrokerLiveInfoGetter(BrokerLiveInfoGetter brokerLiveInfoGetter) {
+        this.brokerLiveInfoGetter = brokerLiveInfoGetter;
     }
 
-    public void setAdditionalInfoGetter(BiFunction<String, String, BrokerLiveInfo> additionalInfoGetter) {
-        this.additionalInfoGetter = additionalInfoGetter;
-    }
-
-    public BiPredicate<String, String> getValidPredicate() {
-        return validPredicate;
-    }
-
-    public void setValidPredicate(BiPredicate<String, String> validPredicate) {
+    public void setValidPredicate(BrokerValidPredicate validPredicate) {
         this.validPredicate = validPredicate;
+    }
+
+    public BrokerLiveInfoGetter getBrokerLiveInfoGetter() {
+        return brokerLiveInfoGetter;
     }
 }

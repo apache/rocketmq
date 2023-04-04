@@ -41,7 +41,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
@@ -1548,16 +1547,18 @@ public class BrokerController {
             this.brokerPreOnlineService.start();
         }
 
-        //Init state version after messageStore initialized.
-        this.topicConfigManager.initStateVersion();
     }
 
     public void start() throws Exception {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isEnableControllerMode()) {
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
+        }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.replicasManager.setIsolatedAndBrokerPermission(false);
         }
 
         if (this.brokerOuterAPI != null) {
@@ -1735,24 +1736,7 @@ public class BrokerController {
 
     protected void sendHeartbeat() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            final List<String> controllerAddresses = this.replicasManager.getAvailableControllerAddresses();
-            for (String controllerAddress : controllerAddresses) {
-                if (StringUtils.isNotEmpty(controllerAddress)) {
-                    this.brokerOuterAPI.sendHeartbeatToController(
-                        controllerAddress,
-                        this.brokerConfig.getBrokerClusterName(),
-                        this.getBrokerAddr(),
-                        this.brokerConfig.getBrokerName(),
-                        this.brokerConfig.getBrokerId(),
-                        this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                        this.brokerConfig.isInBrokerContainer(), this.replicasManager.getLastEpoch(),
-                        this.messageStore.getMaxPhyOffset(),
-                        this.replicasManager.getConfirmOffset(),
-                        this.brokerConfig.getControllerHeartBeatTimeoutMills(),
-                        this.brokerConfig.getBrokerElectionPriority()
-                    );
-                }
-            }
+            this.replicasManager.sendHeartbeatToController();
         }
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
@@ -2321,5 +2305,4 @@ public class BrokerController {
     public BlockingQueue<Runnable> getAdminBrokerThreadPoolQueue() {
         return adminBrokerThreadPoolQueue;
     }
-
 }

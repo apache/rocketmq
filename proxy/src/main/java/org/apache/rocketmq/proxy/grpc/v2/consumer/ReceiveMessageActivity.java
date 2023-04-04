@@ -103,7 +103,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                actualInvisibleTime = proxyConfig.getRenewSliceTimeMillis();
+                actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
             } else {
                 validateInvisibleTime(actualInvisibleTime,
                     ConfigurationManager.getProxyConfig().getMinInvisibleTimeMillsForRecv());

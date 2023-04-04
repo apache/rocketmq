@@ -100,7 +100,7 @@ public class ProxyStartup {
                 }
             }));
         } catch (Exception e) {
-            System.err.println("find an unexpect err." + e);
+            e.printStackTrace();
             log.error("find an unexpect err.", e);
             System.exit(1);
         }
@@ -116,6 +116,8 @@ public class ProxyStartup {
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
+        log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
+
     }
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {

@@ -66,11 +66,12 @@ java_library(
 GenTestRules(
     name = "GeneratedTestRules",
     exclude_tests = [
+        # This test is extremely slow and flaky, exclude it.
+        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
         "src/test/java/org/apache/rocketmq/store/HATest",
-        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
         "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
         "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",

@@ -32,6 +32,7 @@ public class MessageReceiptHandle {
     private final int reconsumeTimes;
 
     private final AtomicInteger renewRetryTimes = new AtomicInteger(0);
+    private final AtomicInteger renewTimes = new AtomicInteger(0);
     private final long consumeTimestamp;
     private volatile String receiptHandleStr;
 
@@ -131,6 +132,14 @@ public class MessageReceiptHandle {
         return this.renewRetryTimes.incrementAndGet();
     }
 
+    public int incrementRenewTimes() {
+        return this.renewTimes.incrementAndGet();
+    }
+
+    public int getRenewTimes() {
+        return this.renewTimes.get();
+    }
+
     public void resetRenewRetryTimes() {
         this.renewRetryTimes.set(0);
     }
@@ -138,4 +147,5 @@ public class MessageReceiptHandle {
     public int getRenewRetryTimes() {
         return this.renewRetryTimes.get();
     }
+
 }
