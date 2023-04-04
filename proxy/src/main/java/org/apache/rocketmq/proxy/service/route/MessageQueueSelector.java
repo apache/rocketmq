@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -150,6 +151,10 @@ public class MessageQueueSelector {
     }
 
     public AddressableMessageQueue selectOne(boolean onlyBroker) {
+        // if enable the faultTolerance, then we need to select queues by filter first.
+        // TODO: add a filter pipeline to select queues.
+
+        // no queue is selected, then select by index.
         int nextIndex = onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement();
         return selectOneByIndex(nextIndex, onlyBroker);
     }
@@ -166,6 +171,11 @@ public class MessageQueueSelector {
             }
         }
         return newOne;
+    }
+
+    public AddressableMessageQueue selectOneByFilter(TopicPublishInfo.QueueFilter...filter) {
+
+        return null;
     }
 
     public AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {

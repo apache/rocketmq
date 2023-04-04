@@ -82,13 +82,6 @@ public class TopicPublishInfo {
         return selectOneMessageQueue(this.messageQueueList, this.sendWhichQueue, filter);
     }
 
-    public MessageQueue selectOneMessageQueue(int queueGroupId, QueueFilter ...filter) {
-        if (!this.sendQueueMap.containsKey(queueGroupId)) {
-            this.sendQueueMap.putIfAbsent(queueGroupId, new ThreadLocalIndex());
-        }
-        return selectOneMessageQueue(this.queueListMap.get(queueGroupId), this.sendQueueMap.get(queueGroupId), filter);
-    }
-
     private MessageQueue selectOneMessageQueue(List<MessageQueue> messageQueueList, ThreadLocalIndex sendQueue, QueueFilter ...filter) {
         if (messageQueueList == null || messageQueueList.isEmpty()) {
             return null;
