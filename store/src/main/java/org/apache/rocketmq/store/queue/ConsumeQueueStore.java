@@ -68,14 +68,21 @@ public class ConsumeQueueStore {
     // get config from topicConfigTable and prevent modification
     private Function<String, TopicConfig> getConfigFunc;
 
-    public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
+    // lambda function returns TopicConfigTable
+    private Function<? , Map<String, TopicConfig>> getTopicConfigTable;
+
+    public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig,
+        final Function<String, TopicConfig> getConfigFunc,
+        final Function<?, Map<String, TopicConfig>> getTopicConfigTable) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStoreConfig;
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
+        this.getConfigFunc = getConfigFunc;
+        this.getTopicConfigTable = getTopicConfigTable;
     }
 
     public void setTopicConfigFunction(Function<String, TopicConfig> getConfigFunc) {
-        this.getConfigFunc = getConfigFunc;;
+        this.getConfigFunc = getConfigFunc;
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
@@ -538,7 +545,7 @@ public class ConsumeQueueStore {
     }
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return this.topicConfigTable;
+        return (ConcurrentMap<String, TopicConfig>) this.getTopicConfigTable.apply(null);
     }
 
     public Optional<TopicConfig> getTopicConfig(String topic) {
