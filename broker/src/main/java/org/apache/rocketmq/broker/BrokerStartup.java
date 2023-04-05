@@ -167,7 +167,6 @@ public class BrokerStartup {
             System.exit(-4);
         }
 
-        messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
         brokerConfig.setInBrokerContainer(false);
 
         System.setProperty("brokerLogDir", "");
