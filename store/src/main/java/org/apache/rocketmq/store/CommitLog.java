@@ -394,6 +394,10 @@ public class CommitLog implements Swappable {
                     return new DispatchRequest(-1, false /* success */);
             }
 
+            if (byteBuffer.remaining() < totalSize - 8) {
+                return new DispatchRequest(-1, false /* success */);
+            }
+
             MessageVersion messageVersion = MessageVersion.valueOfMagicCode(magicCode);
 
             byte[] bytesContent = new byte[totalSize];
