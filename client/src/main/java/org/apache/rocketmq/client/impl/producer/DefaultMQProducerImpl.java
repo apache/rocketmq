@@ -315,6 +315,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
+                if (this.mqFaultStrategy.isStartDetectorEnable()) {
+                    this.mqFaultStrategy.shutdown();
+                }
                 RequestFutureHolder.getInstance().shutdown(this);
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;

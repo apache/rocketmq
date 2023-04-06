@@ -411,8 +411,16 @@ public class ClientConfig {
         return this.detectTimeout;
     }
 
+    public void setDetectTimeout(int detectTimeout) {
+        this.detectTimeout = detectTimeout;
+    }
+
     public int getDetectInterval() {
         return this.detectInterval;
+    }
+
+    public void setDetectInterval(int detectInterval) {
+        this.detectInterval = detectInterval;
     }
 
     public int getClientConfigInterval() {

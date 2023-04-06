@@ -19,6 +19,8 @@ package org.apache.rocketmq.proxy.processor;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -66,6 +68,9 @@ public class ProducerProcessor extends AbstractProcessor {
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
         String producerGroup, int sysFlag, List<Message> messageList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
+        long beginTimestampFirst = System.currentTimeMillis();
+        AtomicLong endTimestamp = new AtomicLong(beginTimestampFirst);
+        AddressableMessageQueue messageQueue = null;
         try {
             Message message = messageList.get(0);
             String topic = message.getTopic();
@@ -79,7 +84,7 @@ public class ProducerProcessor extends AbstractProcessor {
                     }
                 }
             }
-            AddressableMessageQueue messageQueue = queueSelector.select(ctx,
+            messageQueue = queueSelector.select(ctx,
                 this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
@@ -90,6 +95,7 @@ public class ProducerProcessor extends AbstractProcessor {
             }
             SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageList, producerGroup, sysFlag, messageQueue.getQueueId());
 
+            AddressableMessageQueue finalMessageQueue = messageQueue;
             future = this.serviceManager.getMessageService().sendMessage(
                 ctx,
                 messageQueue,
@@ -102,12 +108,16 @@ public class ProducerProcessor extends AbstractProcessor {
                         if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
                             tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
                             StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(producerGroup, messageQueue, sendResult, messageList);
+                            fillTransactionData(producerGroup, finalMessageQueue, sendResult, messageList);
                         }
                     }
+                    endTimestamp.set(System.currentTimeMillis());
+                    this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, false, true);
                     return sendResultList;
                 }, this.executor);
         } catch (Throwable t) {
+            endTimestamp.set(System.currentTimeMillis());
+            this.serviceManager.getTopicRouteService().updateFaultItem(messageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, true, false);
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);

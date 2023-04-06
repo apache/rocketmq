@@ -229,6 +229,12 @@ public class ProxyConfig implements ConfigFile {
     private String remotingAccessAddr = "";
     private int remotingListenPort = 8080;
 
+    // related to proxy's send strategy in cluster mode.
+    private boolean sendLatencyEnable = false;
+    private boolean startDetectorEnable = false;
+    private int detectTimeout = 200;
+    private int detectInterval = 2 * 1000;
+
     private int remotingHeartbeatThreadPoolNums = 2 * PROCESSOR_NUMBER;
     private int remotingTopicRouteThreadPoolNums = 2 * PROCESSOR_NUMBER;
     private int remotingSendMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
@@ -1378,5 +1384,45 @@ public class ProxyConfig implements ConfigFile {
 
     public void setRemotingWaitTimeMillsInDefaultQueue(long remotingWaitTimeMillsInDefaultQueue) {
         this.remotingWaitTimeMillsInDefaultQueue = remotingWaitTimeMillsInDefaultQueue;
+    }
+
+    public boolean isSendLatencyEnable() {
+        return sendLatencyEnable;
+    }
+
+    public boolean isStartDetectorEnable() {
+        return startDetectorEnable;
+    }
+
+    public void setStartDetectorEnable(boolean startDetectorEnable) {
+        this.startDetectorEnable = startDetectorEnable;
+    }
+
+    public void setSendLatencyEnable(boolean sendLatencyEnable) {
+        this.sendLatencyEnable = sendLatencyEnable;
+    }
+
+    public boolean getStartDetectorEnable() {
+        return this.startDetectorEnable;
+    }
+
+    public boolean getSendLatencyEnable() {
+        return this.sendLatencyEnable;
+    }
+
+    public int getDetectTimeout() {
+        return detectTimeout;
+    }
+
+    public void setDetectTimeout(int detectTimeout) {
+        this.detectTimeout = detectTimeout;
+    }
+
+    public int getDetectInterval() {
+        return detectInterval;
+    }
+
+    public void setDetectInterval(int detectInterval) {
+        this.detectInterval = detectInterval;
     }
 }
