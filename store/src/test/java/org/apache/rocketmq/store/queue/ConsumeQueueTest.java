@@ -74,7 +74,7 @@ public class ConsumeQueueTest extends QueueTestBase {
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig, new BrokerStatsManager(brokerConfig),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
-            }, brokerConfig);
+            }, brokerConfig, null, null);
 
         assertThat(master.load()).isTrue();
 

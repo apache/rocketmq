@@ -99,7 +99,7 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
 
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig(), null, null);
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();

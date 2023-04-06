@@ -107,7 +107,7 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
         storeConfig.setdLegerSelfId(selfId);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("DLedgerCommitLogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        }, new BrokerConfig(), null, null);
         Assert.assertTrue(defaultMessageStore.load());
         defaultMessageStore.start();
         return defaultMessageStore;

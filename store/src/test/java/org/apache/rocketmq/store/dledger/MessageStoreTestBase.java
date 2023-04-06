@@ -60,7 +60,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setRecheckReputOffsetFromCq(true);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        }, new BrokerConfig(), null, null);
         DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
         if (leaderId != null) {
             dLegerServer.getdLedgerConfig().setEnableLeaderElector(false);
@@ -109,7 +109,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("CommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        }, new BrokerConfig(), null, null);
 
         if (createAbort) {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());

@@ -299,7 +299,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
             new BrokerStatsManager("simpleTest", true),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
             },
-            new BrokerConfig());
+            new BrokerConfig(), null, null);
     }
 
 }

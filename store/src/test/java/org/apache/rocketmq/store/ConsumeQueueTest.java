@@ -151,7 +151,7 @@ public class ConsumeQueueTest {
                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, null, null);
 
         assertThat(master.load()).isTrue();
 
@@ -179,7 +179,7 @@ public class ConsumeQueueTest {
                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, null, null);
 
         assertThat(master.load()).isTrue();
 

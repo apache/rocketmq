@@ -74,7 +74,7 @@ public class DefaultMessageStoreShutDownTest {
         String storeRootPath = System.getProperty("java.io.tmpdir") + File.separator + "store";
         messageStoreConfig.setStorePathRootDir(storeRootPath);
         messageStoreConfig.setHaListenPort(0);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig(), null, null);
     }
 
 }

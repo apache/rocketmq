@@ -738,7 +738,7 @@ public class BrokerController {
         if (result) {
             try {
                 ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigManager.getTopicConfigTable();
-                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topic -> topicConfigTable != null ? topicConfigTable.get(topic) : null, (topic) -> topicConfigTable);
+                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topic -> topicConfigTable != null ? topicConfigTable.get(topic) : null, topic -> topicConfigTable);
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
