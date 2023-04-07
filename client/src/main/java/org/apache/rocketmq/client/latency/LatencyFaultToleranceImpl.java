@@ -269,6 +269,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
                     "name='" + name + '\'' +
                     ", currentLatency=" + currentLatency +
                     ", startTimestamp=" + startTimestamp +
+                    ", reachableFlag=" + reachableFlag +
                     '}';
         }
 

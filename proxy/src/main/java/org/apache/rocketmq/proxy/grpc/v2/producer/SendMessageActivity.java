@@ -56,6 +56,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 
 public class SendMessageActivity extends AbstractMessingActivity {
 
@@ -389,6 +390,12 @@ public class SendMessageActivity extends AbstractMessingActivity {
                 return null;
             }
         }
+
+        AddressableMessageQueue selectFilterPipeline(ProxyContext ctx, TopicRouteService topicRouteService) {
+            AddressableMessageQueue targetMessageQueue = null;
+
+            return targetMessageQueue;
+        };
     }
 
 }
