@@ -23,5 +23,5 @@ import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 
 public interface QueueSelector {
 
-    AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView);
+    AddressableMessageQueue select(ProxyContext ctx, TopicRouteService topicRouteService, String topic);
 }

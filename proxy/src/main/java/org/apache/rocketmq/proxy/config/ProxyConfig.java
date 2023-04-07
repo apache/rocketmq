@@ -86,7 +86,7 @@ public class ProxyConfig implements ConfigFile {
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
-    private Integer grpcServerPort = 8085;
+    private Integer grpcServerPort = 8081;
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
     private boolean enableGrpcEpoll = false;

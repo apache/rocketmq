@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
@@ -177,8 +178,9 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         }
 
         @Override
-        public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
+        public AddressableMessageQueue select(ProxyContext ctx, TopicRouteService topicRouteService, String topic) {
             try {
+                MessageQueueView messageQueueView = topicRouteService.getAllMessageQueueView(topic);
                 AddressableMessageQueue addressableMessageQueue = null;
                 MessageQueueSelector messageQueueSelector = messageQueueView.getReadSelector();
 

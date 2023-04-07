@@ -369,8 +369,9 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
 
         @Override
-        public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
+        public AddressableMessageQueue select(ProxyContext ctx, TopicRouteService topicRouteService, String topic) {
             try {
+                MessageQueueView messageQueueView = topicRouteService.getAllMessageQueueView(topic);
                 apache.rocketmq.v2.Message message = request.getMessages(0);
                 String shardingKey = null;
                 if (request.getMessagesCount() == 1) {
@@ -383,19 +384,13 @@ public class SendMessageActivity extends AbstractMessingActivity {
                     int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
                     targetMessageQueue = writeQueues.get(bucket);
                 } else {
-                    targetMessageQueue = messageQueueView.getWriteSelector().selectOne(false);
+                    targetMessageQueue = messageQueueView.getWriteSelector().selectOneByPipeline(topicRouteService, false);
                 }
                 return targetMessageQueue;
             } catch (Exception e) {
                 return null;
             }
         }
-
-        AddressableMessageQueue selectFilterPipeline(ProxyContext ctx, TopicRouteService topicRouteService) {
-            AddressableMessageQueue targetMessageQueue = null;
-
-            return targetMessageQueue;
-        };
     }
 
 }

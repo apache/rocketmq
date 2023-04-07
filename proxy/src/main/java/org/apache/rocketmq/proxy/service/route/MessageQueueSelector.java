@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -151,12 +153,80 @@ public class MessageQueueSelector {
     }
 
     public AddressableMessageQueue selectOne(boolean onlyBroker) {
-        // if enable the faultTolerance, then we need to select queues by filter first.
-        // TODO: add a filter pipeline to select queues.
-
-        // no queue is selected, then select by index.
         int nextIndex = onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement();
         return selectOneByIndex(nextIndex, onlyBroker);
+    }
+
+    public AddressableMessageQueue selectOneByPipeline(TopicRouteService topicRouteService, boolean onlyBroker){
+        if (topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
+            MessageQueue messageQueue = null;
+            List<MessageQueue> messageQueueList = transferAddressableQueues(queues);
+            AddressableMessageQueue addressableMessageQueue = null;
+            MQFaultStrategy mqFaultStrategy = topicRouteService.getMqFaultStrategy();
+
+            // using both available filter.
+            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
+                    mqFaultStrategy.getAvailableFilter(), mqFaultStrategy.getReachableFilter());
+            addressableMessageQueue = transferQueue2Addressable(messageQueue);
+            if (addressableMessageQueue != null) {
+                return addressableMessageQueue;
+            }
+
+            // using available filter.
+            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
+                    mqFaultStrategy.getAvailableFilter());
+            addressableMessageQueue = transferQueue2Addressable(messageQueue);
+            if (addressableMessageQueue != null) {
+                return addressableMessageQueue;
+            }
+
+            // no available filter, then using reachable filter.
+            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
+                    mqFaultStrategy.getReachableFilter());
+            addressableMessageQueue = transferQueue2Addressable(messageQueue);
+            if (addressableMessageQueue != null) {
+                return addressableMessageQueue;
+            }
+        }
+
+        // SendLatency is not enabled, or no queue is selected, then select by index.
+        return selectOne(onlyBroker);
+    }
+
+    private MessageQueue selectOneMessageQueue(List<MessageQueue> messageQueueList, AtomicInteger sendQueue, TopicPublishInfo.QueueFilter...filter) {
+        if (messageQueueList == null || messageQueueList.isEmpty()) {
+            return null;
+        }
+        if (filter != null && filter.length != 0) {
+            for (int i = 0; i < messageQueueList.size(); i++) {
+                int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
+                MessageQueue mq = messageQueueList.get(index);
+                boolean filterResult = true;
+                for (TopicPublishInfo.QueueFilter f: filter) {
+                    Preconditions.checkNotNull(f);
+                    filterResult &= f.filter(mq);
+                }
+                if (filterResult) {
+                    return mq;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<MessageQueue> transferAddressableQueues(List<AddressableMessageQueue> addressableMessageQueueList) {
+        return addressableMessageQueueList.stream()
+                .map(AddressableMessageQueue::getMessageQueue)
+                .collect(Collectors.toList());
+    }
+
+    private AddressableMessageQueue transferQueue2Addressable(MessageQueue messageQueue) {
+        for (AddressableMessageQueue amq: queues) {
+            if (amq.getMessageQueue().equals(messageQueue)) {
+                return amq;
+            }
+        }
+        return null;
     }
 
     public AddressableMessageQueue selectNextOne(AddressableMessageQueue last) {
@@ -171,11 +241,6 @@ public class MessageQueueSelector {
             }
         }
         return newOne;
-    }
-
-    public AddressableMessageQueue selectOneByFilter(TopicPublishInfo.QueueFilter...filter) {
-
-        return null;
     }
 
     public AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
