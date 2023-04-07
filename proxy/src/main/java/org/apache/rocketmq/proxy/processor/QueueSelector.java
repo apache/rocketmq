@@ -18,7 +18,6 @@ package org.apache.rocketmq.proxy.processor;
 
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
-import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 
 public interface QueueSelector {

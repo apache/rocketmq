@@ -49,6 +49,7 @@ import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -62,6 +63,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SendMessageActivityTest extends BaseActivityTest {
@@ -262,7 +264,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testSendOrderMessageQueueSelector() {
+    public void testSendOrderMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         QueueData queueData = new QueueData();
         BrokerData brokerData = new BrokerData();
@@ -288,6 +290,9 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build()
         );
 
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
+
         SendMessageActivity.SendMessageQueueSelector selector2 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
                 .addMessages(Message.newBuilder()
@@ -308,12 +313,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build()
         );
 
-        assertEquals(selector1.select(ProxyContext.create(), messageQueueView), selector2.select(ProxyContext.create(), messageQueueView));
-        assertNotEquals(selector1.select(ProxyContext.create(), messageQueueView), selector3.select(ProxyContext.create(), messageQueueView));
+        assertEquals(selector1.select(ProxyContext.create(), topicRouteService, TOPIC), selector2.select(ProxyContext.create(), topicRouteService, TOPIC));
+        assertNotEquals(selector1.select(ProxyContext.create(), topicRouteService, TOPIC), selector3.select(ProxyContext.create(), topicRouteService, TOPIC));
     }
 
     @Test
-    public void testSendNormalMessageQueueSelector() {
+    public void testSendNormalMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         QueueData queueData = new QueueData();
         BrokerData brokerData = new BrokerData();
@@ -334,10 +339,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .addMessages(Message.newBuilder().build())
                 .build()
         );
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
 
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);

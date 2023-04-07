@@ -157,7 +157,7 @@ public class MessageQueueSelector {
         return selectOneByIndex(nextIndex, onlyBroker);
     }
 
-    public AddressableMessageQueue selectOneByPipeline(TopicRouteService topicRouteService, boolean onlyBroker){
+    public AddressableMessageQueue selectOneByPipeline(TopicRouteService topicRouteService, boolean onlyBroker) {
         if (topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
             MessageQueue messageQueue = null;
             List<MessageQueue> messageQueueList = transferAddressableQueues(queues);

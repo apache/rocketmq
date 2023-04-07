@@ -43,6 +43,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -91,7 +92,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
             pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
-
 
         ProxyContext context = createContext();
         context.setRemainingMs(1L);
@@ -273,7 +273,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testReceiveMessageQueueSelector() {
+    public void testReceiveMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<QueueData> queueDatas = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -298,11 +298,13 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         topicRouteData.setBrokerDatas(brokerDatas);
 
         MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);
@@ -310,7 +312,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         for (int i = 0; i < 2; i++) {
             ReceiveMessageActivity.ReceiveMessageQueueSelector selectorBrokerName =
                 new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
-            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
+            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), topicRouteService, TOPIC).getBrokerName());
         }
     }
 }
