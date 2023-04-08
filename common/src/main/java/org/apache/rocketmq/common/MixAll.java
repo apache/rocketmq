@@ -391,6 +391,7 @@ public class MixAll {
     }
 
     public static boolean isPropertyValid(Properties props, String key, Predicate<String> validator) {
+        if(!props.containsKey(key)) return false;
         return validator.test(props.getProperty(key));
     }
 
