@@ -17,11 +17,14 @@
 
 package org.apache.rocketmq.proxy.service.metadata;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
+
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -66,14 +69,14 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
             "MetadataCacheRefresh",
             config.getMetadataThreadPoolQueueCapacity()
         );
-        this.topicConfigCache = CacheBuilder.newBuilder()
-            .maximumSize(config.getTopicConfigCacheMaxNum())
-            .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
-            .build(new ClusterTopicConfigCacheLoader());
-        this.subscriptionGroupConfigCache = CacheBuilder.newBuilder()
-            .maximumSize(config.getSubscriptionGroupConfigCacheMaxNum())
-            .refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
-            .build(new ClusterSubscriptionGroupConfigCacheLoader());
+        
+        this.topicConfigCache = Caffeine.newBuilder().maximumSize(config.getTopicConfigCacheMaxNum()).
+            refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS).
+            executor(cacheRefreshExecutor).build((@Nonnull String key) -> new ClusterTopicConfigCacheLoader().load(key));
+
+        this.subscriptionGroupConfigCache = Caffeine.newBuilder().maximumSize(config.getSubscriptionGroupConfigCacheMaxNum()).
+            refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS).
+            executor(cacheRefreshExecutor).build((@Nonnull String key) -> new ClusterSubscriptionGroupConfigCacheLoader().load(key));
 
         this.init();
     }
