@@ -33,6 +33,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -1444,8 +1445,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
-                requestResponseFuture.executeRequestCallback();
+                handleRequestSuccess(correlationId);
             }
 
             @Override
@@ -1502,7 +1502,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
+                handleRequestSuccess(correlationId);
             }
 
             @Override
@@ -1572,7 +1572,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
+                handleRequestSuccess(correlationId);
             }
 
             @Override
@@ -1581,6 +1581,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestFail(correlationId);
             }
         }, null, timeout - cost);
+    }
+
+    private void handleRequestSuccess(final String correlationId) {
+        RequestResponseFuture responseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
+        if (null == responseFuture) {
+            return;
+        }
+        responseFuture.setSendRequestOk(true);
+        try {
+            responseFuture.executeRequestCallback();
+        } catch (Exception e) {
+            log.warn("execute RequestCallback in handleRequestSuccess fail", e);
+        }
     }
 
     private void requestFail(final String correlationId) {
