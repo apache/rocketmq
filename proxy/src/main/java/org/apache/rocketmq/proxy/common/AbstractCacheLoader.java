@@ -16,31 +16,25 @@
  */
 package org.apache.rocketmq.proxy.common;
 
-import com.google.common.cache.CacheLoader;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
-import java.util.concurrent.ThreadPoolExecutor;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import javax.annotation.Nonnull;
 
-public abstract class AbstractCacheLoader<K, V> extends CacheLoader<K, V> {
-    private final ThreadPoolExecutor cacheRefreshExecutor;
+public abstract class AbstractCacheLoader<K, V> implements CacheLoader<K, V> {
 
-    public AbstractCacheLoader(ThreadPoolExecutor cacheRefreshExecutor) {
-        this.cacheRefreshExecutor = cacheRefreshExecutor;
-    }
-
-    @Override
-    public ListenableFuture<V> reload(@Nonnull K key, @Nonnull V oldValue) throws Exception {
-        ListenableFutureTask<V> task = ListenableFutureTask.create(() -> {
+    @Override @Nonnull
+    public CompletableFuture<V> asyncReload(@Nonnull K key, @Nonnull V oldValue, @Nonnull Executor executor) {
+        CompletableFuture<V> future = new CompletableFuture<>();
+        executor.execute(() -> {
             try {
-                return getDirectly(key);
+                future.complete(getDirectly(key));
             } catch (Exception e) {
                 onErr(key, e);
-                return oldValue;
+                future.complete(oldValue);
             }
         });
-        cacheRefreshExecutor.execute(task);
-        return task;
+        return future;
     }
 
     @Override
