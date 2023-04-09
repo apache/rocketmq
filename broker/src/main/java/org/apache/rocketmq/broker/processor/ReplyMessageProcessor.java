@@ -20,8 +20,10 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
+
 import java.net.InetSocketAddress;
 import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
@@ -81,21 +83,16 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
 
     @Override
     protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
-        SendMessageRequestHeaderV2 requestHeaderV2 = null;
+
         SendMessageRequestHeader requestHeader = null;
         switch (request.getCode()) {
-            case RequestCode.SEND_REPLY_MESSAGE_V2:
-                requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_REPLY_MESSAGE:
-                if (null == requestHeaderV2) {
-                    requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                } else {
-                    requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
-                }
+                requestHeader = (SendMessageRequestHeader) request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                break;
+            case RequestCode.SEND_REPLY_MESSAGE_V2:
+                SendMessageRequestHeaderV2 requestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+                requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
+                break;
             default:
                 break;
         }
@@ -164,9 +161,9 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         final SendMessageRequestHeader requestHeader,
         final Message msg) {
         ReplyMessageRequestHeader replyMessageRequestHeader = new ReplyMessageRequestHeader();
-        InetSocketAddress bornAddress = (InetSocketAddress)(ctx.channel().remoteAddress());
+        InetSocketAddress bornAddress = (InetSocketAddress) (ctx.channel().remoteAddress());
         replyMessageRequestHeader.setBornHost(bornAddress.getAddress().getHostAddress() + ":" + bornAddress.getPort());
-        InetSocketAddress storeAddress = (InetSocketAddress)(this.getStoreHost());
+        InetSocketAddress storeAddress = (InetSocketAddress) (this.getStoreHost());
         replyMessageRequestHeader.setStoreHost(storeAddress.getAddress().getHostAddress() + ":" + storeAddress.getPort());
         replyMessageRequestHeader.setStoreTimestamp(System.currentTimeMillis());
         replyMessageRequestHeader.setProducerGroup(requestHeader.getProducerGroup());

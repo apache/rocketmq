@@ -31,70 +31,70 @@ import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
  */
 public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
-    private String a; // producerGroup;
+    private String producerGroup; // producerGroup;
     @CFNotNull
-    private String b; // topic;
+    private String topic; // topic;
     @CFNotNull
-    private String c; // defaultTopic;
+    private String defaultTopic; // defaultTopic;
     @CFNotNull
-    private Integer d; // defaultTopicQueueNums;
+    private Integer defaultTopicQueueNums; // defaultTopicQueueNums;
     @CFNotNull
-    private Integer e; // queueId;
+    private Integer queueId; // queueId;
     @CFNotNull
-    private Integer f; // sysFlag;
+    private Integer sysFlag; // sysFlag;
     @CFNotNull
-    private Long g; // bornTimestamp;
+    private Long bornTimestamp; // bornTimestamp;
     @CFNotNull
-    private Integer h; // flag;
+    private Integer flag; // flag;
     @CFNullable
-    private String i; // properties;
+    private String properties; // properties;
     @CFNullable
-    private Integer j; // reconsumeTimes;
+    private Integer reconsumeTimes; // reconsumeTimes;
     @CFNullable
-    private boolean k; // unitMode = false;
+    private boolean unitMode; // unitMode = false;
 
-    private Integer l; // consumeRetryTimes
+    private Integer consumeRetryTimes; // consumeRetryTimes
 
     @CFNullable
-    private boolean m; //batch
+    private boolean batch; //batch
     @CFNullable
-    private String n; // brokerName
+    private String brokerName; // brokerName
 
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
-        v1.setProducerGroup(v2.a);
-        v1.setTopic(v2.b);
-        v1.setDefaultTopic(v2.c);
-        v1.setDefaultTopicQueueNums(v2.d);
-        v1.setQueueId(v2.e);
-        v1.setSysFlag(v2.f);
-        v1.setBornTimestamp(v2.g);
-        v1.setFlag(v2.h);
-        v1.setProperties(v2.i);
-        v1.setReconsumeTimes(v2.j);
-        v1.setUnitMode(v2.k);
-        v1.setMaxReconsumeTimes(v2.l);
-        v1.setBatch(v2.m);
-        v1.setBname(v2.n);
+        v1.setProducerGroup(v2.producerGroup);
+        v1.setTopic(v2.topic);
+        v1.setDefaultTopic(v2.defaultTopic);
+        v1.setDefaultTopicQueueNums(v2.defaultTopicQueueNums);
+        v1.setQueueId(v2.queueId);
+        v1.setSysFlag(v2.sysFlag);
+        v1.setBornTimestamp(v2.bornTimestamp);
+        v1.setFlag(v2.flag);
+        v1.setProperties(v2.properties);
+        v1.setReconsumeTimes(v2.reconsumeTimes);
+        v1.setUnitMode(v2.unitMode);
+        v1.setMaxReconsumeTimes(v2.consumeRetryTimes);
+        v1.setBatch(v2.batch);
+        v1.setBname(v2.brokerName);
         return v1;
     }
 
     public static SendMessageRequestHeaderV2 createSendMessageRequestHeaderV2(final SendMessageRequestHeader v1) {
         SendMessageRequestHeaderV2 v2 = new SendMessageRequestHeaderV2();
-        v2.a = v1.getProducerGroup();
-        v2.b = v1.getTopic();
-        v2.c = v1.getDefaultTopic();
-        v2.d = v1.getDefaultTopicQueueNums();
-        v2.e = v1.getQueueId();
-        v2.f = v1.getSysFlag();
-        v2.g = v1.getBornTimestamp();
-        v2.h = v1.getFlag();
-        v2.i = v1.getProperties();
-        v2.j = v1.getReconsumeTimes();
-        v2.k = v1.isUnitMode();
-        v2.l = v1.getMaxReconsumeTimes();
-        v2.m = v1.isBatch();
-        v2.n = v1.getBname();
+        v2.producerGroup = v1.getProducerGroup();
+        v2.topic = v1.getTopic();
+        v2.defaultTopic = v1.getDefaultTopic();
+        v2.defaultTopicQueueNums = v1.getDefaultTopicQueueNums();
+        v2.queueId = v1.getQueueId();
+        v2.sysFlag = v1.getSysFlag();
+        v2.bornTimestamp = v1.getBornTimestamp();
+        v2.flag = v1.getFlag();
+        v2.properties = v1.getProperties();
+        v2.reconsumeTimes = v1.getReconsumeTimes();
+        v2.unitMode = v1.isUnitMode();
+        v2.consumeRetryTimes = v1.getMaxReconsumeTimes();
+        v2.batch = v1.isBatch();
+        v2.brokerName = v1.getBname();
         return v2;
     }
 
@@ -104,217 +104,217 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
 
     @Override
     public void encode(ByteBuf out) {
-        writeIfNotNull(out, "a", a);
-        writeIfNotNull(out, "b", b);
-        writeIfNotNull(out, "c", c);
-        writeIfNotNull(out, "d", d);
-        writeIfNotNull(out, "e", e);
-        writeIfNotNull(out, "f", f);
-        writeIfNotNull(out, "g", g);
-        writeIfNotNull(out, "h", h);
-        writeIfNotNull(out, "i", i);
-        writeIfNotNull(out, "j", j);
-        writeIfNotNull(out, "k", k);
-        writeIfNotNull(out, "l", l);
-        writeIfNotNull(out, "m", m);
-        writeIfNotNull(out, "n", n);
+        writeIfNotNull(out, "producerGroup", producerGroup);
+        writeIfNotNull(out, "topic", topic);
+        writeIfNotNull(out, "defaultTopic", defaultTopic);
+        writeIfNotNull(out, "defaultTopicQueueNums", defaultTopicQueueNums);
+        writeIfNotNull(out, "queueId", queueId);
+        writeIfNotNull(out, "sysFlag", sysFlag);
+        writeIfNotNull(out, "bornTimestamp", bornTimestamp);
+        writeIfNotNull(out, "flag", flag);
+        writeIfNotNull(out, "properties", properties);
+        writeIfNotNull(out, "reconsumeTimes", reconsumeTimes);
+        writeIfNotNull(out, "unitMode", unitMode);
+        writeIfNotNull(out, "consumeRetryTimes", consumeRetryTimes);
+        writeIfNotNull(out, "batch", batch);
+        writeIfNotNull(out, "brokerName", brokerName);
     }
 
     @Override
     public void decode(HashMap<String, String> fields) throws RemotingCommandException {
 
-        String str = getAndCheckNotNull(fields, "a");
+        String str = getAndCheckNotNull(fields, "producerGroup");
         if (str != null) {
-            a = str;
+            producerGroup = str;
         }
 
-        str = getAndCheckNotNull(fields, "b");
+        str = getAndCheckNotNull(fields, "topic");
         if (str != null) {
-            b = str;
+            topic = str;
         }
 
-        str = getAndCheckNotNull(fields, "c");
+        str = getAndCheckNotNull(fields, "defaultTopic");
         if (str != null) {
-            c = str;
+            defaultTopic = str;
         }
 
-        str = getAndCheckNotNull(fields, "d");
+        str = getAndCheckNotNull(fields, "defaultTopicQueueNums");
         if (str != null) {
-            d = Integer.parseInt(str);
+            defaultTopicQueueNums = Integer.parseInt(str);
         }
 
-        str = getAndCheckNotNull(fields, "e");
+        str = getAndCheckNotNull(fields, "queueId");
         if (str != null) {
-            e = Integer.parseInt(str);
+            queueId = Integer.parseInt(str);
         }
 
-        str = getAndCheckNotNull(fields, "f");
+        str = getAndCheckNotNull(fields, "sysFlag");
         if (str != null) {
-            f = Integer.parseInt(str);
+            sysFlag = Integer.parseInt(str);
         }
 
-        str = getAndCheckNotNull(fields, "g");
+        str = getAndCheckNotNull(fields, "bornTimestamp");
         if (str != null) {
-            g = Long.parseLong(str);
+            bornTimestamp = Long.parseLong(str);
         }
 
-        str = getAndCheckNotNull(fields, "h");
+        str = getAndCheckNotNull(fields, "flag");
         if (str != null) {
-            h = Integer.parseInt(str);
+            flag = Integer.parseInt(str);
         }
 
-        str = fields.get("i");
+        str = fields.get("properties");
         if (str != null) {
-            i = str;
+            properties = str;
         }
 
-        str = fields.get("j");
+        str = fields.get("reconsumeTimes");
         if (str != null) {
-            j = Integer.parseInt(str);
+            reconsumeTimes = Integer.parseInt(str);
         }
 
-        str = fields.get("k");
+        str = fields.get("unitMode");
         if (str != null) {
-            k = Boolean.parseBoolean(str);
+            unitMode = Boolean.parseBoolean(str);
         }
 
-        str = fields.get("l");
+        str = fields.get("consumeRetryTimes");
         if (str != null) {
-            l = Integer.parseInt(str);
+            consumeRetryTimes = Integer.parseInt(str);
         }
 
-        str = fields.get("m");
+        str = fields.get("batch");
         if (str != null) {
-            m = Boolean.parseBoolean(str);
+            batch = Boolean.parseBoolean(str);
         }
 
-        str = fields.get("n");
+        str = fields.get("brokerName");
         if (str != null) {
-            n = str;
+            brokerName = str;
         }
     }
 
-    public String getA() {
-        return a;
+    public String getProducerGroup() {
+        return producerGroup;
     }
 
-    public void setA(String a) {
-        this.a = a;
+    public void setProducerGroup(String producerGroup) {
+        this.producerGroup = producerGroup;
     }
 
-    public String getB() {
-        return b;
+    public String getTopic() {
+        return topic;
     }
 
-    public void setB(String b) {
-        this.b = b;
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
-    public String getC() {
-        return c;
+    public String getDefaultTopic() {
+        return defaultTopic;
     }
 
-    public void setC(String c) {
-        this.c = c;
+    public void setDefaultTopic(String defaultTopic) {
+        this.defaultTopic = defaultTopic;
     }
 
-    public Integer getD() {
-        return d;
+    public Integer getDefaultTopicQueueNums() {
+        return defaultTopicQueueNums;
     }
 
-    public void setD(Integer d) {
-        this.d = d;
+    public void setDefaultTopicQueueNums(Integer defaultTopicQueueNums) {
+        this.defaultTopicQueueNums = defaultTopicQueueNums;
     }
 
-    public Integer getE() {
-        return e;
+    public Integer getQueueId() {
+        return queueId;
     }
 
-    public void setE(Integer e) {
-        this.e = e;
+    public void setQueueId(Integer queueId) {
+        this.queueId = queueId;
     }
 
-    public Integer getF() {
-        return f;
+    public Integer getSysFlag() {
+        return sysFlag;
     }
 
-    public void setF(Integer f) {
-        this.f = f;
+    public void setSysFlag(Integer sysFlag) {
+        this.sysFlag = sysFlag;
     }
 
-    public Long getG() {
-        return g;
+    public Long getBornTimestamp() {
+        return bornTimestamp;
     }
 
-    public void setG(Long g) {
-        this.g = g;
+    public void setBornTimestamp(Long bornTimestamp) {
+        this.bornTimestamp = bornTimestamp;
     }
 
-    public Integer getH() {
-        return h;
+    public Integer getFlag() {
+        return flag;
     }
 
-    public void setH(Integer h) {
-        this.h = h;
+    public void setFlag(Integer flag) {
+        this.flag = flag;
     }
 
-    public String getI() {
-        return i;
+    public String getProperties() {
+        return properties;
     }
 
-    public void setI(String i) {
-        this.i = i;
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 
-    public Integer getJ() {
-        return j;
+    public Integer getReconsumeTimes() {
+        return reconsumeTimes;
     }
 
-    public void setJ(Integer j) {
-        this.j = j;
+    public void setReconsumeTimes(Integer reconsumeTimes) {
+        this.reconsumeTimes = reconsumeTimes;
     }
 
-    public boolean isK() {
-        return k;
+    public boolean isUnitMode() {
+        return unitMode;
     }
 
-    public void setK(boolean k) {
-        this.k = k;
+    public void setUnitMode(boolean unitMode) {
+        this.unitMode = unitMode;
     }
 
-    public Integer getL() {
-        return l;
+    public Integer getConsumeRetryTimes() {
+        return consumeRetryTimes;
     }
 
-    public void setL(final Integer l) {
-        this.l = l;
+    public void setConsumeRetryTimes(final Integer consumeRetryTimes) {
+        this.consumeRetryTimes = consumeRetryTimes;
     }
 
-    public boolean isM() {
-        return m;
+    public boolean isBatch() {
+        return batch;
     }
 
-    public void setM(boolean m) {
-        this.m = m;
+    public void setBatch(boolean batch) {
+        this.batch = batch;
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("a", a)
-            .add("b", b)
-            .add("c", c)
-            .add("d", d)
-            .add("e", e)
-            .add("f", f)
-            .add("g", g)
-            .add("h", h)
-            .add("i", i)
-            .add("j", j)
-            .add("k", k)
-            .add("l", l)
-            .add("m", m)
-            .add("n", n)
+            .add("producerGroup", producerGroup)
+            .add("topic", topic)
+            .add("defaultTopic", defaultTopic)
+            .add("defaultTopicQueueNums", defaultTopicQueueNums)
+            .add("queueId", queueId)
+            .add("sysFlag", sysFlag)
+            .add("bornTimestamp", bornTimestamp)
+            .add("flag", flag)
+            .add("properties", properties)
+            .add("reconsumeTimes", reconsumeTimes)
+            .add("unitMode", unitMode)
+            .add("consumeRetryTimes", consumeRetryTimes)
+            .add("batch", batch)
+            .add("brokerName", brokerName)
             .toString();
     }
 }
