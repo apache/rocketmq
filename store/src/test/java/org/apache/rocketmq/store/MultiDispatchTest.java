@@ -57,7 +57,7 @@ public class MultiDispatchTest {
         messageStoreConfig.setEnableMultiDispatch(true);
         BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
-        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig, null, null);
+        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig, topic -> null, topic -> null);
         consumeQueue = new ConsumeQueue("xxx", 0,
             getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
     }
