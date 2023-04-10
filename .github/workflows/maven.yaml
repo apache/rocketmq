@@ -7,11 +7,12 @@ on:
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2022, macos-11]
+        # see https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+        os: [ubuntu-latest, windows-latest, macos-latest]
         jdk: [8]
     steps:
       - name: Checkout
