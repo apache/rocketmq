@@ -42,6 +42,9 @@ github:
         contexts:
           - misspell-check
           - check-license
+          - maven-compile (ubuntu-latest, JDK-8)
+          - maven-compile (windows-latest, JDK-8)
+          - maven-compile (macos-latest, JDK-8)
 notifications:
   commits:      commits@rocketmq.apache.org
   issues:       commits@rocketmq.apache.org
