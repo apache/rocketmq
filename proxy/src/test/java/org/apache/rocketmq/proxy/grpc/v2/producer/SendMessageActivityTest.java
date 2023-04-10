@@ -35,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
@@ -291,7 +292,10 @@ public class SendMessageActivityTest extends BaseActivityTest {
         );
 
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
+        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
 
         SendMessageActivity.SendMessageQueueSelector selector2 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
@@ -340,7 +344,10 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build()
         );
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
+        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
