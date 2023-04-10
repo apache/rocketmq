@@ -497,7 +497,7 @@ public class AutoSwitchHATest {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
         brokerConfig.setEnableControllerMode(true);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, null, null);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, topic -> null, topic -> null);
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig, int mappedFileSize) {

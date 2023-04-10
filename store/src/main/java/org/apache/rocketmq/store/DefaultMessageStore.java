@@ -2052,12 +2052,10 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    @Override
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
         return this.consumeQueueStore.getTopicConfigs();
     }
 
-    @Override
     public Optional<TopicConfig> getTopicConfig(String topic) {
         return this.consumeQueueStore.getTopicConfig(topic);
     }

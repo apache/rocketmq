@@ -99,7 +99,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
         messageStoreConfig.setHaListenPort(0);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig(), null, null);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig(), topic -> null, topic -> null);
 
         boolean load = master.load();
         assertTrue(load);
@@ -144,7 +144,7 @@ public class DefaultMessageStoreTest {
         return new DefaultMessageStore(messageStoreConfig,
             new BrokerStatsManager("simpleTest", true),
             new MyMessageArrivingListener(),
-            new BrokerConfig(), null, null);
+            new BrokerConfig(), topic -> null, topic -> null);
     }
 
     @Test

@@ -159,7 +159,7 @@ public class MessageStoreWithFilterTest {
                                      long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig, null, null);
+            , brokerConfig, topic -> null, topic -> null);
 
         master.getDispatcherList().addFirst(new CommitLogDispatcher() {
             @Override

@@ -250,7 +250,7 @@ public class HATest {
     private MessageStore buildMessageStore(MessageStoreConfig messageStoreConfig, long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, null, null);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, topic -> null, topic -> null);
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig) {

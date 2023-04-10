@@ -483,7 +483,7 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private void initMessageStore(MessageStoreConfig messageStoreConfig, double diskSpaceCleanForciblyRatio) throws Exception {
         messageStore = new DefaultMessageStore(messageStoreConfig,
-                new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig(), null, null);
+                new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig(), topic -> null, topic -> null);
 
         cleanCommitLogService = getCleanCommitLogService();
         cleanConsumeQueueService = getCleanConsumeQueueService();

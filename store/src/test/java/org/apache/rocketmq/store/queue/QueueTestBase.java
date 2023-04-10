@@ -86,7 +86,7 @@ public class QueueTestBase extends StoreTestBase {
             new BrokerStatsManager("simpleTest", true),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
             },
-            new BrokerConfig(), null, null);
+            new BrokerConfig(), topic -> null, topic -> null);
     }
 
     public MessageExtBrokerInner buildMessage(String topic, int batchNum) {

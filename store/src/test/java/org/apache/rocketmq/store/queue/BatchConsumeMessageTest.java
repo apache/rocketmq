@@ -37,10 +37,10 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -55,11 +55,11 @@ import static org.awaitility.Awaitility.await;
 public class BatchConsumeMessageTest extends QueueTestBase {
     private static final int BATCH_NUM = 10;
     private static final int TOTAL_MSGS = 200;
-    private MessageStore messageStore;
+    private DefaultMessageStore messageStore;
 
     @Before
     public void init() throws Exception {
-        messageStore = createMessageStore(null, true);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true);
         messageStore.load();
         messageStore.start();
     }

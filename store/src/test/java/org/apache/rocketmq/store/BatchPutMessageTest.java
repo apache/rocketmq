@@ -78,7 +78,7 @@ public class BatchPutMessageTest {
         messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator
             + "putmessagesteststore" + File.separator + "commitlog");
         messageStoreConfig.setHaListenPort(0);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig(), null, null);
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig(), topic -> null, topic -> null);
     }
 
     @Test

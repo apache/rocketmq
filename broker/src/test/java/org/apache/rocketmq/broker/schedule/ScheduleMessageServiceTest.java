@@ -119,7 +119,7 @@ public class ScheduleMessageServiceTest {
 
         brokerConfig = new BrokerConfig();
         BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
-        messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig(), null, null);
+        messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig(), topic -> null, topic -> null);
 
         assertThat(messageStore.load()).isTrue();
 
