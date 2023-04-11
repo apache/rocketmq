@@ -69,7 +69,8 @@ public class QueueOffsetOperator {
     }
 
     public long currentQueueOffset(String topicQueueKey) {
-        return this.topicQueueTable.get(topicQueueKey);
+        Long currentQueueOffset = this.topicQueueTable.get(topicQueueKey);
+        return currentQueueOffset == null ? 0L : currentQueueOffset;
     }
 
     public long currentBatchQueueOffset(String topicQueueKey) {
