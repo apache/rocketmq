@@ -42,7 +42,7 @@ public class QueueOffsetOperator {
     }
 
     public void increaseQueueOffset(String topicQueueKey, short messageNum) {
-        Long queueOffset = ConcurrentHashMapUtils.computeIfAbsent(this.batchTopicQueueTable, topicQueueKey, k -> 0L);
+        Long queueOffset = ConcurrentHashMapUtils.computeIfAbsent(this.topicQueueTable, topicQueueKey, k -> 0L);
         topicQueueTable.put(topicQueueKey, queueOffset + messageNum);
     }
 
