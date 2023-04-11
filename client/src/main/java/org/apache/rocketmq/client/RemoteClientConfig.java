@@ -30,8 +30,6 @@ public class RemoteClientConfig {
      */
     private volatile boolean remoteFaultTolerance = true;
 
-    private boolean offline = false;
-
     /**
      * Related methods.
      */
@@ -46,11 +44,4 @@ public class RemoteClientConfig {
         return this.remoteFaultTolerance;
     }
 
-    public boolean isOffline() {
-        return offline;
-    }
-
-    public void setOffline(boolean offline) {
-        this.offline = offline;
-    }
 }
