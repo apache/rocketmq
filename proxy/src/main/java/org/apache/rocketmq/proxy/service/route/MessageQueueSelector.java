@@ -214,7 +214,11 @@ public class MessageQueueSelector {
         return null;
     }
 
-    private List<MessageQueue> transferAddressableQueues(List<AddressableMessageQueue> addressableMessageQueueList) {
+    public List<MessageQueue> transferAddressableQueues(List<AddressableMessageQueue> addressableMessageQueueList) {
+        if(addressableMessageQueueList == null) {
+            return null;
+        }
+
         return addressableMessageQueueList.stream()
                 .map(AddressableMessageQueue::getMessageQueue)
                 .collect(Collectors.toList());

@@ -75,7 +75,7 @@ public class MQFaultStrategy {
     }
 
     // For unit test.
-    MQFaultStrategy(ClientConfig cc, LatencyFaultTolerance<String> tolerance) {
+    public MQFaultStrategy(ClientConfig cc, LatencyFaultTolerance<String> tolerance) {
         this.setStartDetectorEnable(cc.isStartDetectorEnable());
         this.setSendLatencyFaultEnable(cc.isSendLatencyEnable());
         this.latencyFaultTolerance = tolerance;
