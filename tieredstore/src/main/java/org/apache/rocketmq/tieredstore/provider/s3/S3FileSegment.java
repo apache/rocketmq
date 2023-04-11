@@ -108,7 +108,7 @@ public class S3FileSegment extends TieredFileSegment {
             ChunkMetadata segment = segments.get(0);
             this.metadata.setSegment(segment);
             // delete chunks
-            this.client.deleteObjets(chunks.stream().map(chunk -> chunk.getChunkName()).collect(Collectors.toList())).join();
+            this.client.deleteObjets(chunks.stream().map(ChunkMetadata::getChunkName).collect(Collectors.toList())).join();
         } else {
             // now segment not exist
             // add all chunks into metadata
@@ -190,7 +190,7 @@ public class S3FileSegment extends TieredFileSegment {
             }
             if (success) {
                 // old chunks still exist, keep deleting them
-                List<String> chunkKeys = this.metadata.getChunks().stream().map(metadata -> metadata.getChunkName()).collect(Collectors.toList());
+                List<String> chunkKeys = this.metadata.getChunks().stream().map(ChunkMetadata::getChunkName).collect(Collectors.toList());
                 List<String> undeleteList = this.client.deleteObjets(chunkKeys).join();
                 if (undeleteList.isEmpty()) {
                     this.metadata.removeAllChunks();
@@ -223,7 +223,7 @@ public class S3FileSegment extends TieredFileSegment {
     @Override
     public CompletableFuture<ByteBuffer> read0(long position, int length) {
         CompletableFuture<ByteBuffer> completableFuture = new CompletableFuture<>();
-        List<ChunkMetadata> chunks = null;
+        List<ChunkMetadata> chunks;
         try {
             chunks = this.metadata.seek(position, length);
         } catch (IndexOutOfBoundsException e) {
