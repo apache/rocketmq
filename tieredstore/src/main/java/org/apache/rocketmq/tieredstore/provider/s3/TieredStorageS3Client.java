@@ -36,11 +36,13 @@ import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeletedObject;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
 
 import java.io.InputStream;
@@ -123,9 +125,7 @@ public class TieredStorageS3Client {
                 LOGGER.error("List objects from S3 failed, prefix: {}, region: {}, bucket: {}", prefix, this.region, this.bucket, throwable);
                 completableFuture.complete(Collections.emptyList());
             } else {
-                listObjectsV2Response.contents().forEach(s3Object -> {
-                    LOGGER.info("List objects from S3, key: {}, region: {}, bucket: {}", s3Object.key(), this.region, this.bucket);
-                });
+                listObjectsV2Response.contents().forEach(s3Object -> LOGGER.info("List objects from S3, key: {}, region: {}, bucket: {}", s3Object.key(), this.region, this.bucket));
                 completableFuture.complete(listObjectsV2Response.contents().stream().map(obj -> {
                     ChunkMetadata chunkMetadata = new ChunkMetadata();
                     String key = obj.key();
@@ -136,12 +136,7 @@ public class TieredStorageS3Client {
                     Integer startPosition = Integer.valueOf(chunkSubName.split("-")[1]);
                     chunkMetadata.setStartPosition(startPosition);
                     return chunkMetadata;
-                }).sorted(new Comparator<ChunkMetadata>() {
-                    @Override
-                    public int compare(ChunkMetadata o1, ChunkMetadata o2) {
-                        return (int) (o1.getStartPosition() - o2.getStartPosition());
-                    }
-                }).collect(Collectors.toList()));
+                }).sorted((o1, o2) -> (int) (o1.getStartPosition() - o2.getStartPosition())).collect(Collectors.toList()));
             }
         });
         return completableFuture;
@@ -149,9 +144,7 @@ public class TieredStorageS3Client {
 
     public CompletableFuture<Boolean> exist(String prefix) {
         CompletableFuture<ListObjectsV2Response> listFuture = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix));
-        return listFuture.thenApply(resp -> {
-            return resp.contents().size() > 0;
-        });
+        return listFuture.thenApply(resp -> resp.contents().size() > 0);
     }
 
     public CompletableFuture<Boolean> deleteObject(String key) {
@@ -176,9 +169,9 @@ public class TieredStorageS3Client {
         Delete delete = Delete.builder().objects(objects).build();
         DeleteObjectsRequest deleteObjectsRequest = DeleteObjectsRequest.builder().bucket(this.bucket).delete(delete).build();
         return this.client.deleteObjects(deleteObjectsRequest).thenApply(resp -> {
-            List<String> undeletedKeys = null;
+            List<String> undeletedKeys;
             if (resp.deleted().size() != keys.size()) {
-                List<String> deleted = resp.deleted().stream().map(deletedObject -> deletedObject.key()).collect(Collectors.toList());
+                List<String> deleted = resp.deleted().stream().map(DeletedObject::key).collect(Collectors.toList());
                 undeletedKeys = keys.stream().filter(key -> !deleted.contains(key)).collect(Collectors.toList());
             } else {
                 undeletedKeys = Collections.emptyList();
@@ -191,12 +184,9 @@ public class TieredStorageS3Client {
     }
 
     public CompletableFuture<List<String>> deleteObjects(String prefix) {
-        CompletableFuture<List<String>> readObjectsByPrefix = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix)).thenApply(resp -> {
-            return resp.contents().stream().map(s3Object -> s3Object.key()).collect(Collectors.toList());
-        });
-        return readObjectsByPrefix.thenCompose(keys -> {
-            return this.deleteObjets(keys);
-        });
+        CompletableFuture<List<String>> readObjectsByPrefix = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix)).
+                thenApply(resp -> resp.contents().stream().map(S3Object::key).collect(Collectors.toList()));
+        return readObjectsByPrefix.thenCompose(this::deleteObjets);
     }
 
     public CompletableFuture<byte[]> readChunk(String key, long startPosition, long endPosition) {
@@ -237,14 +227,11 @@ public class TieredStorageS3Client {
                 List<CompletableFuture<CompletedPart>> uploadPartFutures = new ArrayList<>(chunks.size());
                 for (int i = 0; i < chunks.size(); i++) {
                     String chunkKey = chunks.get(i).getChunkName();
-                    int length = chunks.get(i).getChunkSize();
                     int partNumber = i + 1;
-                    uploadPartFutures.add(uploadPart(partNumber, chunkKey, length));
+                    uploadPartFutures.add(uploadPart(partNumber, chunkKey));
                 }
                 return CompletableFuture.allOf(uploadPartFutures.toArray(new CompletableFuture[0]));
-            }).thenCompose(v -> {
-                return completeUpload();
-            }).handle((resp, err) -> {
+            }).thenCompose(v -> completeUpload()).handle((resp, err) -> {
                 if (err != null) {
                     LOGGER.error("Merge all chunks into segment failed, chunks: {}, segmentName: {}, region: {}, bucket: {}", chunks, segmentKey, region, bucket, err);
                     abortUpload().join();
@@ -271,11 +258,10 @@ public class TieredStorageS3Client {
                     });
         }
 
-        private CompletableFuture<CompletedPart> uploadPart(int partNumber, String chunkKey, int length) {
+        private CompletableFuture<CompletedPart> uploadPart(int partNumber, String chunkKey) {
             UploadPartCopyRequest request = UploadPartCopyRequest.builder()
                     .sourceBucket(bucket).sourceKey(chunkKey).uploadId(uploadId).partNumber(partNumber)
                     .destinationBucket(bucket).destinationKey(segmentKey)
-                    //.copySourceRange("0-" + (length - 1))
                     .build();
 
             return client.uploadPartCopy(request)
