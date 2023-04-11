@@ -61,7 +61,7 @@ public class ConsumeQueueStore {
 
     protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;
-    protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
+    protected final QueueOffsetOperator queueOffsetAssigner = new QueueOffsetOperator();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
 
     // Should be careful, do not change the topic config
@@ -95,7 +95,7 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
-     * @param request      dispatch request
+     * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
@@ -386,9 +386,14 @@ public class ConsumeQueueStore {
         this.queueOffsetAssigner.setBatchTopicQueueTable(batchTopicQueueTable);
     }
 
-    public void assignQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignQueueOffset(MessageExtBrokerInner msg) {
         ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
-        consumeQueue.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
+        consumeQueue.assignQueueOffset(this.queueOffsetAssigner, msg);
+    }
+
+    public void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
+        consumeQueue.increaseQueueOffset(this.queueOffsetAssigner, msg, messageNum);
     }
 
     public void updateQueueOffset(String topic, int queueId, long offset) {
