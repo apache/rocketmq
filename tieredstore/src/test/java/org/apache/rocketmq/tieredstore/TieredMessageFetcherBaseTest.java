@@ -64,8 +64,8 @@ public abstract class TieredMessageFetcherBaseTest {
         storeConfig.setStorePathRootDir(storePath);
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setReadAheadCacheExpireDuration(Long.MAX_VALUE);
-        storeConfig.setS3Region("ap-northeast-1");
-        storeConfig.setS3Bucket("rocketmq-lcy");
+        storeConfig.setObjectStoreRegion("ap-northeast-1");
+        storeConfig.setObjectStoreBucket("rocketmq-lcy");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setBrokerClusterName("test-cluster");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);

@@ -46,10 +46,10 @@ public class MockS3TestBase {
         properties.put(S3MockApplication.PROP_INITIAL_BUCKETS, "rocketmq_lcy");
 
         TieredMessageStoreConfig config = new TieredMessageStoreConfig();
-        config.setS3Region("ap-northeast-1");
-        config.setS3Bucket("rocketmq-lcy");
-        config.setS3AccessKey("");
-        config.setS3SecretKey("");
+        config.setObjectStoreRegion("ap-northeast-1");
+        config.setObjectStoreBucket("rocketmq-lcy");
+        config.setObjectStoreAccessKey("");
+        config.setObjectStoreSecretKey("");
         s3MockStater = new S3MockStarterTestImpl(properties);
         s3MockStater.start();
         TieredStorageS3Client client = MockS3AsyncClient.getMockTieredStorageS3Client(config, s3MockStater);

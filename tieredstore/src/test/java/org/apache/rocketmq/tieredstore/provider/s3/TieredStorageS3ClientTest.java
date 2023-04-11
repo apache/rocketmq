@@ -42,10 +42,10 @@ public class TieredStorageS3ClientTest extends MockS3TestBase {
     static {
         CONFIG.setBrokerClusterName("test-cluster");
         CONFIG.setBrokerName("test-broker");
-        CONFIG.setS3Region("ap-northeast-1");
-        CONFIG.setS3Bucket("rocketmq-lcy");
-        CONFIG.setS3AccessKey("");
-        CONFIG.setS3SecretKey("");
+        CONFIG.setObjectStoreRegion("ap-northeast-1");
+        CONFIG.setObjectStoreBucket("rocketmq-lcy");
+        CONFIG.setObjectStoreAccessKey("");
+        CONFIG.setObjectStoreSecretKey("");
     }
 
     private TieredStorageS3Client client;

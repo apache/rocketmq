@@ -118,18 +118,26 @@ public class TieredMessageStoreConfig {
     private String tieredStoreFilepath = "";
 
     // only for oss storage provider
-    private String ossEndpoint = "";
-    private String ossBucket = "";
-    private String ossAccessKey = "";
-    private String ossSecretKey = "";
+//    private String ossEndpoint = "";
+//    private String ossBucket = "";
+//    private String ossAccessKey = "";
+//    private String ossSecretKey = "";
+//
+//    private String s3Region = "";
+//
+//    private String s3Bucket = "";
+//
+//    private String s3AccessKey = "";
+//
+//    private String s3SecretKey = "";
 
-    private String s3Region = "";
+    private String objectStoreRegion = "";
 
-    private String s3Bucket = "";
+    private String objectStoreBucket = "";
 
-    private String s3AccessKey = "";
+    private String objectStoreAccessKey = "";
 
-    private String s3SecretKey = "";
+    private String objectStoreSecretKey = "";
 
     public static String localHostName() {
         try {
@@ -364,67 +372,35 @@ public class TieredMessageStoreConfig {
         this.tieredStoreFilepath = tieredStoreFilepath;
     }
 
-    public String getOssEndpoint() {
-        return ossEndpoint;
+    public void setObjectStoreRegion(String objectStoreRegion) {
+        this.objectStoreRegion = objectStoreRegion;
     }
 
-    public void setOssEndpoint(String ossEndpoint) {
-        this.ossEndpoint = ossEndpoint;
+    public String getObjectStoreBucket() {
+        return objectStoreBucket;
     }
 
-    public String getOssBucket() {
-        return ossBucket;
+    public void setObjectStoreBucket(String objectStoreBucket) {
+        this.objectStoreBucket = objectStoreBucket;
     }
 
-    public void setOssBucket(String ossBucket) {
-        this.ossBucket = ossBucket;
+    public String getObjectStoreAccessKey() {
+        return objectStoreAccessKey;
     }
 
-    public String getOssAccessKey() {
-        return ossAccessKey;
+    public void setObjectStoreAccessKey(String objectStoreAccessKey) {
+        this.objectStoreAccessKey = objectStoreAccessKey;
     }
 
-    public void setOssAccessKey(String ossAccessKey) {
-        this.ossAccessKey = ossAccessKey;
+    public String getObjectStoreSecretKey() {
+        return objectStoreSecretKey;
     }
 
-    public String getOssSecretKey() {
-        return ossSecretKey;
+    public void setObjectStoreSecretKey(String objectStoreSecretKey) {
+        this.objectStoreSecretKey = objectStoreSecretKey;
     }
 
-    public void setOssSecretKey(String ossSecretKey) {
-        this.ossSecretKey = ossSecretKey;
-    }
-
-    public String getS3Region() {
-        return s3Region;
-    }
-
-    public void setS3Region(String s3Region) {
-        this.s3Region = s3Region;
-    }
-
-    public String getS3Bucket() {
-        return s3Bucket;
-    }
-
-    public void setS3Bucket(String s3Bucket) {
-        this.s3Bucket = s3Bucket;
-    }
-
-    public String getS3AccessKey() {
-        return s3AccessKey;
-    }
-
-    public void setS3AccessKey(String s3AccessKey) {
-        this.s3AccessKey = s3AccessKey;
-    }
-
-    public String getS3SecretKey() {
-        return s3SecretKey;
-    }
-
-    public void setS3SecretKey(String s3SecretKey) {
-        this.s3SecretKey = s3SecretKey;
+    public String getObjectStoreRegion() {
+        return objectStoreRegion;
     }
 }

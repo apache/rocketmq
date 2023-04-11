@@ -35,8 +35,8 @@ public class TieredDispatcherForS3Test extends TieredDispatcherBaseTest {
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.s3.S3FileSegment");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setBrokerClusterName("test-cluster");
-        storeConfig.setS3Region("ap-northeast-1");
-        storeConfig.setS3Bucket("rocketmq-lcy");
+        storeConfig.setObjectStoreRegion("ap-northeast-1");
+        storeConfig.setObjectStoreBucket("rocketmq-lcy");
         return storeConfig;
     }
 

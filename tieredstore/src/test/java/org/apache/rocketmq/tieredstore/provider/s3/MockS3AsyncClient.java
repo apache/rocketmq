@@ -69,7 +69,7 @@ public class MockS3AsyncClient implements S3AsyncClient {
             Field clientField = tieredStorageS3Client.getClass().getDeclaredField("client");
             clientField.setAccessible(true);
             clientField.set(tieredStorageS3Client, asyncClient);
-            s3Client.createBucket(CreateBucketRequest.builder().bucket(config.getS3Bucket()).build());
+            s3Client.createBucket(CreateBucketRequest.builder().bucket(config.getObjectStoreBucket()).build());
         } catch (Exception ignore) {
 
         }

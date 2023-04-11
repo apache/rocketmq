@@ -33,10 +33,10 @@ public class TieredFileSegmentForS3Test extends TieredFileSegmentBaseTest {
     static {
         CONFIG.setBrokerClusterName("test-cluster");
         CONFIG.setBrokerName("test-broker");
-        CONFIG.setS3Region("ap-northeast-1");
-        CONFIG.setS3Bucket("rocketmq-lcy");
-        CONFIG.setS3AccessKey("");
-        CONFIG.setS3SecretKey("");
+        CONFIG.setObjectStoreRegion("ap-northeast-1");
+        CONFIG.setObjectStoreBucket("rocketmq-lcy");
+        CONFIG.setObjectStoreAccessKey("");
+        CONFIG.setObjectStoreSecretKey("");
     }
 
     public TieredFileSegment createFileSegment(TieredFileSegment.FileSegmentType fileType) {

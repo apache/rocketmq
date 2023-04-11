@@ -45,10 +45,10 @@ public class S3FileSegmentTest extends MockS3TestBase {
     static {
         CONFIG.setBrokerClusterName("test-cluster");
         CONFIG.setBrokerName("test-broker");
-        CONFIG.setS3Region("ap-northeast-1");
-        CONFIG.setS3Bucket("rocketmq-lcy");
-        CONFIG.setS3AccessKey("");
-        CONFIG.setS3SecretKey("");
+        CONFIG.setObjectStoreRegion("ap-northeast-1");
+        CONFIG.setObjectStoreBucket("rocketmq-lcy");
+        CONFIG.setObjectStoreAccessKey("");
+        CONFIG.setObjectStoreSecretKey("");
     }
 
     private static final Map<String, Object> PROPERTIES = new HashMap<String, Object>();
@@ -56,7 +56,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
     static {
         PROPERTIES.put(S3MockApplication.PROP_HTTP_PORT, S3MockApplication.RANDOM_PORT);
         PROPERTIES.put(S3MockApplication.PROP_HTTPS_PORT, S3MockApplication.RANDOM_PORT);
-        PROPERTIES.put(S3MockApplication.PROP_INITIAL_BUCKETS, CONFIG.getS3Bucket());
+        PROPERTIES.put(S3MockApplication.PROP_INITIAL_BUCKETS, CONFIG.getObjectStoreBucket());
     }
 
     private static final MessageQueue MQ = new MessageQueue();

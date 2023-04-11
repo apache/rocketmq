@@ -83,17 +83,17 @@ public class TieredStorageS3Client {
     }
 
     @VisibleForTesting
-    public TieredStorageS3Client(TieredMessageStoreConfig config) {
+    protected TieredStorageS3Client(TieredMessageStoreConfig config) {
         this(config, false);
     }
 
     private TieredStorageS3Client(TieredMessageStoreConfig config, boolean createClient) {
         this.tieredMessageStoreConfig = config;
-        this.region = config.getS3Region();
-        this.bucket = config.getS3Bucket();
+        this.region = config.getObjectStoreRegion();
+        this.bucket = config.getObjectStoreBucket();
         if (createClient) {
-            AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(this.tieredMessageStoreConfig.getS3AccessKey(), this.tieredMessageStoreConfig.getS3SecretKey());
-            this.client = S3AsyncClient.builder().credentialsProvider(() -> basicCredentials).region(Region.of(config.getS3Region())).build();
+            AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(this.tieredMessageStoreConfig.getObjectStoreAccessKey(), this.tieredMessageStoreConfig.getObjectStoreSecretKey());
+            this.client = S3AsyncClient.builder().credentialsProvider(() -> basicCredentials).region(Region.of(config.getObjectStoreRegion())).build();
         }
         this.asyncRequestBodyExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("S3AsyncRequestBodyExecutor_"));
     }
