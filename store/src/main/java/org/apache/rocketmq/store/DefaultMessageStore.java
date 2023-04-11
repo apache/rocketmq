@@ -56,7 +56,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -201,24 +200,20 @@ public class DefaultMessageStore implements MessageStore {
 
     private long stateMachineVersion = 0L;
 
-    // get config from topicConfigTable and prevent modification
-    private Function<String, TopicConfig> getConfigFunc;
-
-    // lambda function returns TopicConfigTable
-    private Function<? , Map<String, TopicConfig>> getTopicConfigTable;
+    // this is a unmodifiableMap
+    private ConcurrentMap<String, TopicConfig> topicConfigTable;
 
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
-        final Function<String, TopicConfig> getConfigFunc,
-        final Function<?, Map<String, TopicConfig>> getTopicConfigTable) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.aliveReplicasNum = messageStoreConfig.getTotalReplicas();
         this.brokerStatsManager = brokerStatsManager;
+        this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
@@ -2057,13 +2052,20 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return (ConcurrentMap<String, TopicConfig>) this.getTopicConfigTable.apply(null);
+        return this.topicConfigTable;
     }
 
     public Optional<TopicConfig> getTopicConfig(String topic) {
-        TopicConfig config = this.getConfigFunc.apply(topic);
-        return Optional.ofNullable(config);
+        if (this.topicConfigTable == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
+
+//    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
+//        this.topicConfigTable = topicConfigTable;
+//    }
 
     public BrokerIdentity getBrokerIdentity() {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {

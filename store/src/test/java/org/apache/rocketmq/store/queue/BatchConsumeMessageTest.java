@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -59,7 +61,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
     @Before
     public void init() throws Exception {
-        messageStore = (DefaultMessageStore) createMessageStore(null, true);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, null);
         messageStore.load();
         messageStore.start();
     }
@@ -74,9 +76,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testSendMessagesToCqTopic() {
+    public void testSendMessagesToCqTopic() throws Exception {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.SimpleCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
 //        int batchNum = 10;
 
@@ -98,9 +101,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testSendMessagesToBcqTopic() {
+    public void testSendMessagesToBcqTopic() throws Exception {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         // case 1 has PROPERTY_INNER_NUM but has no INNER_BATCH_FLAG
 //        MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, 1);
@@ -121,9 +125,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testConsumeBatchMessage() {
+    public void testConsumeBatchMessage() throws Exception {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
         int batchNum = 10;
 
         MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, batchNum);
@@ -151,9 +156,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testNextBeginOffsetConsumeBatchMessage() {
+    public void testNextBeginOffsetConsumeBatchMessage() throws Exception {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
         Random random = new Random();
         int putMessageCount = 1000;
 
@@ -191,7 +197,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testGetOffsetInQueueByTime() throws Exception {
         String topic = "testGetOffsetInQueueByTime";
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
         Assert.assertTrue(QueueTypeUtils.isBatchCq(messageStore.getTopicConfig(topic)));
 
         // The initial min max offset, before and after the creation of consume queue
@@ -231,7 +238,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testDispatchNormalConsumeQueue() throws Exception {
         String topic = "TestDispatchBuildConsumeQueue";
-        createTopic(topic, CQType.SimpleCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         long timeStart = -1;
         long timeMid = -1;
@@ -291,7 +299,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         long timeStart = -1;
         long timeMid = -1;
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         for (int i = 0; i < 100; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(topic, batchNum));
@@ -346,10 +355,11 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testGetBatchMessageWithinNumber() {
+    public void testGetBatchMessageWithinNumber() throws Exception {
         String topic = UUID.randomUUID().toString();
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         int batchNum = 20;
         for (int i = 0; i < 200; i++) {
@@ -407,9 +417,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testGetBatchMessageWithinSize() {
+    public void testGetBatchMessageWithinSize() throws Exception {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         int batchNum = 10;
         for (int i = 0; i < 100; i++) {
@@ -462,8 +473,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
     }
 
-    protected void putMsg(String topic) {
-        createTopic(topic, CQType.BatchCQ, messageStore);
+    protected void putMsg(String topic) throws Exception {
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, topicConfigTable);
 
         for (int i = 0; i < TOTAL_MSGS; i++) {
             MessageExtBrokerInner message = buildMessage(topic, BATCH_NUM * (i % 2 + 1));
@@ -511,7 +523,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testEstimateMessageCount() {
+    public void testEstimateMessageCount() throws Exception {
         String topic = UUID.randomUUID().toString();
         putMsg(topic);
         ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
@@ -539,7 +551,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testEstimateMessageCountSample() {
+    public void testEstimateMessageCountSample() throws Exception {
         String topic = UUID.randomUUID().toString();
         putMsg(topic);
         messageStore.getMessageStoreConfig().setSampleCountThreshold(10);

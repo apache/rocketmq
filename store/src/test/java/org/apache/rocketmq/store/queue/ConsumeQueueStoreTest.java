@@ -16,9 +16,10 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -39,7 +40,7 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
 
     @Before
     public void init() throws Exception {
-        messageStore = createMessageStore(null, true);
+        messageStore = createMessageStore(null, true, null);
         messageStore.load();
         messageStore.start();
     }
@@ -54,9 +55,10 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
     }
 
     @Test
-    public void testLoadConsumeQueuesWithWrongAttribute() {
+    public void testLoadConsumeQueuesWithWrongAttribute() throws Exception {
         String normalTopic = UUID.randomUUID().toString();
-        createTopic(normalTopic, CQType.SimpleCQ, messageStore);
+        ConcurrentMap<String, TopicConfig> topicConfigTable = createTopicConfigTable(normalTopic, CQType.SimpleCQ);
+        messageStore = createMessageStore(null, true, topicConfigTable);
 
         for (int i = 0; i < 10; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(normalTopic, -1));
@@ -65,10 +67,8 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
 
         await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
-        // simulate delete topic but with files left.
-        ((DefaultMessageStore)messageStore).setTopicConfigTable(null);
-
-        createTopic(normalTopic, CQType.BatchCQ, messageStore);
+        topicConfigTable = createTopicConfigTable(normalTopic, CQType.BatchCQ);
+        messageStore = createMessageStore(null, true, topicConfigTable);
         messageStore.shutdown();
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getQueueStore().load());
@@ -76,9 +76,10 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
     }
 
     @Test
-    public void testLoadBatchConsumeQueuesWithWrongAttribute() {
+    public void testLoadBatchConsumeQueuesWithWrongAttribute() throws Exception {
         String batchTopic = UUID.randomUUID().toString();
-        createTopic(batchTopic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(batchTopic, CQType.BatchCQ);
+        messageStore = createMessageStore(null, true, topicConfigTable);
 
         for (int i = 0; i < 10; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(batchTopic, 10));
@@ -87,10 +88,8 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
 
         await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
-        // simulate delete topic but with files left.
-        ((DefaultMessageStore)messageStore).setTopicConfigTable(null);
-
-        createTopic(batchTopic, CQType.SimpleCQ, messageStore);
+        topicConfigTable = createTopicConfigTable(batchTopic, CQType.SimpleCQ);
+        messageStore = createMessageStore(null, true, topicConfigTable);
         messageStore.shutdown();
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getQueueStore().load());
