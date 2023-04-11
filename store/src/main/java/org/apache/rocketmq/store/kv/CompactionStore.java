@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -169,6 +170,14 @@ public class CompactionStore {
         }
     }
 
+    public void doDispatch(DispatchRequest dispatchRequest, SelectMappedBufferResult smr) throws Exception {
+        CompactionLog clog = loadAndGetClog(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+
+        if (clog != null) {
+            clog.asyncPutMessage(smr.getByteBuffer(), dispatchRequest);
+        }
+    }
+
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize) {
         CompactionLog log = compactionLogTable.get(topic + "_" + queueId);
@@ -180,6 +189,14 @@ public class CompactionStore {
 
     }
 
+    public void flush(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flush(flushLeastPages));
+    }
+
+    public void flushLog(int flushLeastPages) {
+        compactionLogTable.values().forEach(log -> log.flushLog(flushLeastPages));
+    }
+
     public void flushCQ(int flushLeastPages) {
         compactionLogTable.values().forEach(log -> log.flushCQ(flushLeastPages));
     }
@@ -189,7 +206,7 @@ public class CompactionStore {
     }
 
     public void shutdown() {
-        positionMgr.persist();
+        // close the thread pool first
         compactionSchedule.shutdown();
         try {
             if (!compactionSchedule.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
@@ -199,6 +216,8 @@ public class CompactionStore {
         } catch (InterruptedException e) {
             log.warn("wait compaction schedule shutdown interrupted. ");
         }
+        this.flush(0);
+        positionMgr.persist();
     }
 
     public ScheduledExecutorService getCompactionSchedule() {
