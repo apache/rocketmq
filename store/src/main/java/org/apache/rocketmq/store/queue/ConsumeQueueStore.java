@@ -65,24 +65,10 @@ public class ConsumeQueueStore {
     protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
 
-    // get config from topicConfigTable and prevent modification
-    private Function<String, TopicConfig> getConfigFunc;
-
-    // lambda function returns TopicConfigTable
-    private Function<? , Map<String, TopicConfig>> getTopicConfigTable;
-
-    public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig,
-        final Function<String, TopicConfig> getConfigFunc,
-        final Function<?, Map<String, TopicConfig>> getTopicConfigTable) {
+    public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStoreConfig;
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
-        this.getConfigFunc = getConfigFunc;
-        this.getTopicConfigTable = getTopicConfigTable;
-    }
-
-    public void setTopicConfigFunction(Function<String, TopicConfig> getConfigFunc) {
-        this.getConfigFunc = getConfigFunc;
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
@@ -180,9 +166,9 @@ public class ConsumeQueueStore {
     }
 
     private void queueTypeShouldBe(String topic, CQType cqTypeExpected) {
-        TopicConfig topicConfig = this.getConfigFunc.apply(topic);
+        Optional<TopicConfig> topicConfig = this.messageStore.getTopicConfig(topic);
 
-        CQType cqTypeActual = QueueTypeUtils.getCQType(Optional.ofNullable(topicConfig));
+        CQType cqTypeActual = QueueTypeUtils.getCQType(topicConfig);
 
         if (!Objects.equals(cqTypeExpected, cqTypeActual)) {
             throw new RuntimeException(format("The queue type of topic: %s should be %s, but is %s", topic, cqTypeExpected, cqTypeActual));
@@ -348,7 +334,7 @@ public class ConsumeQueueStore {
 
         ConsumeQueueInterface newLogic;
 
-        Optional<TopicConfig> topicConfig = this.getTopicConfig(topic);
+        Optional<TopicConfig> topicConfig = this.messageStore.getTopicConfig(topic);
         // TODO maybe the topic has been deleted.
         if (Objects.equals(CQType.BatchCQ, QueueTypeUtils.getCQType(topicConfig))) {
             newLogic = new BatchConsumeQueue(
@@ -542,19 +528,6 @@ public class ConsumeQueueStore {
                 this.truncateDirtyLogicFiles(logic, phyOffset);
             }
         }
-    }
-
-    public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return (ConcurrentMap<String, TopicConfig>) this.getTopicConfigTable.apply(null);
-    }
-
-    public Optional<TopicConfig> getTopicConfig(String topic) {
-        TopicConfig config = this.getConfigFunc.apply(topic);
-        if (config == null) {
-            return Optional.empty();
-        }
-
-        return Optional.of(config);
     }
 
     public long getTotalSize() {

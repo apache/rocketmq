@@ -201,6 +201,12 @@ public class DefaultMessageStore implements MessageStore {
 
     private long stateMachineVersion = 0L;
 
+    // get config from topicConfigTable and prevent modification
+    private Function<String, TopicConfig> getConfigFunc;
+
+    // lambda function returns TopicConfigTable
+    private Function<? , Map<String, TopicConfig>> getTopicConfigTable;
+
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
@@ -220,7 +226,7 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog = new CommitLog(this);
         }
 
-        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig, getConfigFunc, getTopicConfigTable);
+        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
@@ -2051,15 +2057,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return this.consumeQueueStore.getTopicConfigs();
+        return (ConcurrentMap<String, TopicConfig>) this.getTopicConfigTable.apply(null);
     }
 
     public Optional<TopicConfig> getTopicConfig(String topic) {
-        return this.consumeQueueStore.getTopicConfig(topic);
-    }
-
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.consumeQueueStore.setTopicConfigFunction(topic -> topicConfigTable != null ? topicConfigTable.get(topic) : null);
+        TopicConfig config = this.getConfigFunc.apply(topic);
+        return Optional.ofNullable(config);
     }
 
     public BrokerIdentity getBrokerIdentity() {
