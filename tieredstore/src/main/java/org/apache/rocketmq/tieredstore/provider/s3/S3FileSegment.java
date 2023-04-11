@@ -319,6 +319,14 @@ public class S3FileSegment extends TieredFileSegment {
         return metadata;
     }
 
+    public String getStorePath() {
+        return storePath;
+    }
+
+    public TieredStorageS3Client getClient() {
+        return client;
+    }
+
     static class ConcurrentByteBuffer {
         private final ByteBuffer byteBuffer;
         private final int length;
