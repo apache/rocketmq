@@ -1405,25 +1405,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            final RequestResponseFuture responseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, responseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendRequestOk(true);
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId, e);
                 }
             }, timeout - cost);
 
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
+            return waitResponse(msg, timeout, responseFuture, cost);
         } finally {
             RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
@@ -1442,14 +1440,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
-                requestResponseFuture.executeRequestCallback();
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
             }
 
             @Override
             public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                requestFail(correlationId, e);
             }
         }, timeout - cost);
     }
@@ -1462,25 +1458,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            final RequestResponseFuture responseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, responseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendRequestOk(true);
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId, e);
                 }
             }, timeout - cost);
 
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
+            return waitResponse(msg, timeout - cost, responseFuture, cost);
         } finally {
             RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
@@ -1493,20 +1487,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         prepareSendRequest(msg, timeout);
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId,
+                new RequestResponseFuture(correlationId, timeout, requestCallback));
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
             }
 
             @Override
             public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                requestFail(correlationId, e);
             }
         }, timeout - cost);
 
@@ -1519,25 +1512,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            final RequestResponseFuture responseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, responseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendRequestOk(true);
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId, e);
                 }
             }, null, timeout - cost);
 
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
+            return waitResponse(msg, timeout, responseFuture, cost);
         } finally {
             RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
@@ -1563,34 +1554,38 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         prepareSendRequest(msg, timeout);
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId,
+                new RequestResponseFuture(correlationId, timeout, requestCallback));
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
             }
 
             @Override
             public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                requestFail(correlationId, e);
             }
         }, null, timeout - cost);
     }
 
-    private void requestFail(final String correlationId) {
-        RequestResponseFuture responseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
-        if (responseFuture != null) {
-            responseFuture.setSendRequestOk(false);
-            responseFuture.putResponseMessage(null);
-            try {
-                responseFuture.executeRequestCallback();
-            } catch (Exception e) {
-                log.warn("execute requestCallback in requestFail, and callback throw", e);
-            }
+    private void requestFail(final String correlationId, Throwable e) {
+        RequestResponseFuture future = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
+        if (future != null) {
+            future.setSendRequestOk(false);
+            future.setCause(e);
+            future.executeRequestCallback();
+        }
+    }
+
+    private void requestSuccess(final String correlationId, final Message result) {
+        RequestResponseFuture future = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
+        if (future != null) {
+            future.setSendRequestOk(true);
+            future.setResponseMsg(result);
+            future.executeRequestCallback();
         }
     }
 
