@@ -330,7 +330,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             initFirstBeanAddTime();
             this.traceTransferBeanList.add(traceTransferBean);
             this.currentMsgSize += traceTransferBean.getTransData().length();
-            traceTransferBean.getTransKey().forEach(x -> this.currentMsgKeySize += x.length());
+
+            this.currentMsgKeySize = traceTransferBean.getTransKey().stream()
+                .reduce(currentMsgKeySize, (acc, x) -> acc + x.length(), Integer::sum);
             if (currentMsgSize >= traceProducer.getMaxMessageSize() - 10 * 1000 || currentMsgKeySize >= MAX_MSG_KEY_SIZE) {
                 List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
                 AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
