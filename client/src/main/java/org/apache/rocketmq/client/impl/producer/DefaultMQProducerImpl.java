@@ -160,19 +160,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         ServiceDetector serviceDetector = new ServiceDetector() {
             @Override
-            public boolean detect(String endpoint, long timeoutMillis) {
-                Optional<String> candidateTopic = pickTopic();
-                if (!candidateTopic.isPresent()) {
-                    return false;
-                }
-                try {
-                    MessageQueue mq = new MessageQueue(candidateTopic.get(), null, 0);
-                    mQClientFactory.getMQClientAPIImpl()
-                            .getMaxOffset(endpoint, mq, timeoutMillis);
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
+            public boolean detect(String endpoint) {
+                return getMqClientFactory().isAddressReachable(endpoint);
             }
         };
 
@@ -617,8 +606,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName, final boolean resetIndex) {
-        boolean remoteFaultTolerance = this.mQClientFactory.getRemoteClientConfig().getRemoteFaultTolerance();
-        return this.mqFaultStrategy.selectOneMessageQueue(tpInfo, lastBrokerName, remoteFaultTolerance, resetIndex);
+        return this.mqFaultStrategy.selectOneMessageQueue(tpInfo, lastBrokerName, resetIndex);
     }
 
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation,

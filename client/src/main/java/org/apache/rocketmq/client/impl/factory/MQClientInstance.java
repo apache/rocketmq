@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +36,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.RemoteClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -92,7 +90,6 @@ public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final static Logger log = LoggerFactory.getLogger(MQClientInstance.class);
     private final ClientConfig clientConfig;
-    private final RemoteClientConfig remoteClientConfig = new RemoteClientConfig();
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
 
@@ -330,20 +327,6 @@ public class MQClientInstance {
                 log.error("ScheduledTask adjustThreadPool exception", e);
             }
         }, 1, 1, TimeUnit.MINUTES);
-
-        if (this.clientConfig.isFetchRemoteClientConfigEnable()) {
-            this.fetchRemoteConfigExecutorService.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Properties property = MQClientInstance.this.mQClientAPIImpl.queryRemoteClientConfig(LOCK_TIMEOUT_MILLIS);
-                        MixAll.properties2Object(property, remoteClientConfig);
-                    } catch (Exception e) {
-                        log.warn("ScheduledTask getRemoteClientConfig failed, " + e.getMessage());
-                    }
-                }
-            }, 10, this.clientConfig.getClientConfigInterval(), TimeUnit.MILLISECONDS);
-        }
     }
 
     public String getClientId() {
@@ -1272,7 +1255,7 @@ public class MQClientInstance {
         return data;
     }
 
-    public RemoteClientConfig getRemoteClientConfig() {
-        return this.remoteClientConfig;
+    public boolean isAddressReachable(String address) {
+        return this.mQClientAPIImpl.isAddressReachable(address);
     }
 }

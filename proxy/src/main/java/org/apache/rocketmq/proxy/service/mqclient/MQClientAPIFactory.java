@@ -75,6 +75,10 @@ public class MQClientAPIFactory implements StartAndShutdown {
         return this.clients[index];
     }
 
+    public boolean isAddressReachable(String address) {
+        return clients[0].isAddressReachable(address);
+    }
+
     @Override
     public void start() throws Exception {
         this.clients = new MQClientAPIExt[this.clientNum];

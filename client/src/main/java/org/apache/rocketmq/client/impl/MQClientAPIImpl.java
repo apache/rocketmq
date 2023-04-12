@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.RemoteClientConfig;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.consumer.AckCallback;
@@ -111,7 +109,6 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
-import org.apache.rocketmq.remoting.protocol.body.GetRemoteClientConfigBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
@@ -2849,37 +2846,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             throw new MQClientException(response.getCode(), response.getRemark());
         }
     }
-    public Properties queryRemoteClientConfig(long timeoutMillis)
-            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
-            MQClientException, UnsupportedEncodingException {
-        GetRemoteClientConfigBody body = new GetRemoteClientConfigBody();
-        RemoteClientConfig allClientConfigs = new RemoteClientConfig();
-        Properties properties = MixAll.object2Properties(allClientConfigs);
-
-        Enumeration keys = properties.keys();
-        List<String> clientConfigKeys = new ArrayList<String>();
-        while (keys.hasMoreElements()) {
-            String nowKey = (String) keys.nextElement();
-            if (!"log".equals(nowKey)) {
-                clientConfigKeys.add(nowKey);
-            }
-        }
-
-        body.setKeys(clientConfigKeys);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CLIENT_CONFIG, null);
-        request.setBody(body.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-
-        assert response != null;
-        Properties returnProperty;
-
-        if (ResponseCode.SUCCESS == response.getCode()) {
-            returnProperty = MixAll.string2Properties(new String(response.getBody(), MixAll.DEFAULT_CHARSET));
-        } else {
-            throw new MQClientException(response.getCode(), response.getRemark());
-        }
-        return returnProperty;
-    }
 
     public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
@@ -3154,5 +3120,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 break;
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public boolean isAddressReachable(String address) {
+        return this.remotingClient.isAddressReachable(address);
     }
 }

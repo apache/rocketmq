@@ -143,11 +143,10 @@ public class MQFaultStrategy {
         }
     }
 
-    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName,
-                                              final boolean remoteFaultTolerance, final boolean resetIndex) {
+    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName, final boolean resetIndex) {
         BrokerFilter brokerFilter = threadBrokerFilter.get();
         brokerFilter.setLastBrokerName(lastBrokerName);
-        if (this.isLatencyFaultEnable(remoteFaultTolerance)) {
+        if (this.sendLatencyFaultEnable) {
             if (resetIndex) {
                 tpInfo.resetIndex();
             }
@@ -187,10 +186,5 @@ public class MQFaultStrategy {
         }
 
         return 0;
-    }
-
-    private boolean isLatencyFaultEnable(boolean remoteFaultTolerance) {
-        return this.sendLatencyFaultEnable
-                && remoteFaultTolerance;
     }
 }

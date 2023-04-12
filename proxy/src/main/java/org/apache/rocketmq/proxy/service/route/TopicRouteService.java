@@ -110,20 +110,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             });
         ServiceDetector serviceDetector = new ServiceDetector() {
             @Override
-            public boolean detect(String endpoint, long timeoutMillis) {
-                Optional<String> candidateTopic = pickTopic();
-                if (!candidateTopic.isPresent()) {
-                    return false;
-                }
-                try {
-                    GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
-                    requestHeader.setTopic(candidateTopic.get());
-                    requestHeader.setQueueId(0);
-                    Long maxOffset = mqClientAPIFactory.getClient().getMaxOffset(endpoint, requestHeader,timeoutMillis).get();
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
+            public boolean detect(String endpoint) {
+                return mqClientAPIFactory.isAddressReachable(endpoint);
             }
         };
         mqFaultStrategy = new MQFaultStrategy(extractClientConfigFromProxyConfig(config), new Resolver() {
