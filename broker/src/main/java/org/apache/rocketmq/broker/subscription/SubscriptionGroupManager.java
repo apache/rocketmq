@@ -23,22 +23,24 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
+    private ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<>(1024);
 
-    private final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
+    private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
         new ConcurrentHashMap<>(4);
 
     private final DataVersion dataVersion = new DataVersion();
@@ -193,7 +195,8 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("set group forbidden, {}@{} old: {} new: {}", group, topic, 0, forbidden);
         }
 
-        this.dataVersion.nextVersion();
+        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+        dataVersion.nextVersion(stateMachineVersion);
 
         this.persist();
     }
@@ -211,6 +214,9 @@ public class SubscriptionGroupManager extends ConfigManager {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
+                if (group.length() > Validators.CHARACTER_MAX_LENGTH || TopicValidator.isTopicOrGroupIllegal(group)) {
+                    return null;
+                }
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
                 SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
@@ -271,6 +277,11 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
         return forbiddenTable;
+    }
+
+    public void setForbiddenTable(
+        ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable) {
+        this.forbiddenTable = forbiddenTable;
     }
 
     public DataVersion getDataVersion() {

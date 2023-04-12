@@ -26,6 +26,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -36,6 +37,7 @@ import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -58,13 +60,14 @@ import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_MESSAGES_IN_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_MESSAGES_OUT_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_THROUGHPUT_IN_TOTAL;
@@ -76,7 +79,6 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_LAG_MESSAGES;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_QUEUEING_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_READY_MESSAGES;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PROCESSOR_WATERMARK;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_MESSAGE_SIZE;
@@ -84,6 +86,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGG
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUME_MODE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_LANGUAGE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
@@ -104,10 +107,10 @@ public class BrokerMetricsManager {
     private final BrokerController brokerController;
     private final ConsumerLagCalculator consumerLagCalculator;
     private final static Map<String, String> LABEL_MAP = new HashMap<>();
-    private final Map<String, Long> dlqOffsetMap = new HashMap<>();
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
+    private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
     // broker stats metrics
@@ -131,7 +134,13 @@ public class BrokerMetricsManager {
     public static ObservableLongGauge consumerInflightMessages = new NopObservableLongGauge();
     public static ObservableLongGauge consumerQueueingLatency = new NopObservableLongGauge();
     public static ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
-    public static ObservableLongGauge sendToDlqMessages = new NopObservableLongGauge();
+    public static LongCounter sendToDlqMessages = new NopLongCounter();
+
+    public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
+        {
+            add(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        }
+    };
 
     public BrokerMetricsManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -151,6 +160,7 @@ public class BrokerMetricsManager {
         AttributesBuilder attributesBuilder = newAttributesBuilder();
         attributesBuilder.put(LABEL_CONSUMER_GROUP, result.group);
         attributesBuilder.put(LABEL_TOPIC, result.topic);
+        attributesBuilder.put(LABEL_IS_RETRY, result.isRetry);
         attributesBuilder.put(LABEL_IS_SYSTEM, isSystem(result.topic, result.group));
         return attributesBuilder.build();
     }
@@ -166,7 +176,13 @@ public class BrokerMetricsManager {
         if (StringUtils.isBlank(group)) {
             return false;
         }
-        return group.toLowerCase().startsWith(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        String groupInLowerCase = group.toLowerCase();
+        for (String prefix : SYSTEM_GROUP_PREFIX_LIST) {
+            if (groupInLowerCase.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isSystem(String topic, String group) {
@@ -207,6 +223,8 @@ public class BrokerMetricsManager {
             case OTLP_GRPC:
                 return StringUtils.isNotBlank(brokerConfig.getMetricsGrpcExporterTarget());
             case PROM:
+                return true;
+            case LOG:
                 return true;
         }
         return false;
@@ -297,6 +315,17 @@ public class BrokerMetricsManager {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+            SLF4JBridgeHandler.removeHandlersForRootLogger();
+            SLF4JBridgeHandler.install();
+            loggingMetricExporter = LoggingMetricExporter.create(brokerConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
+            periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
+                .setInterval(brokerConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .build();
+            providerBuilder.registerMetricReader(periodicMetricReader);
+        }
+
         registerMetricsView(providerBuilder);
 
         brokerMeter = OpenTelemetrySdk.builder()
@@ -334,7 +363,11 @@ public class BrokerMetricsManager {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
 
-        for (Pair<InstrumentSelector, View> selectorViewPair : DefaultStoreMetricsManager.getMetricsView()) {
+        for (Pair<InstrumentSelector, View> selectorViewPair : messageStore.getMetricsView()) {
+            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
+        }
+
+        for (Pair<InstrumentSelector, View> selectorViewPair : PopMetricsManager.getMetricsView()) {
             providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
         }
     }
@@ -436,6 +469,7 @@ public class BrokerMetricsManager {
                         .put(LABEL_VERSION, MQVersion.getVersionDesc(attr.version).toLowerCase())
                         .put(LABEL_CONSUME_MODE, attr.consumeMode.getTypeCN().toLowerCase())
                         .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING)
+                        .put(LABEL_IS_SYSTEM, isSystemGroup(attr.group))
                         .build();
                     measurement.record(count, attributes);
                 });
@@ -487,28 +521,15 @@ public class BrokerMetricsManager {
             .buildWithCallback(measurement ->
                 consumerLagCalculator.calculateAvailable(result -> measurement.record(result.available, buildLagAttributes(result))));
 
-        sendToDlqMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
+        sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
             .setDescription("Consumer send to DLQ messages")
-            .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateSendToDLQ(result -> {
-                long val = result.dlqMessageCount;
-                if (brokerConfig.isMetricsInDelta()) {
-                    String key = result.group + "%%" + result.topic;
-                    Long lastOffset = dlqOffsetMap.computeIfAbsent(key, k -> result.dlqMessageCount);
-                    dlqOffsetMap.put(key, result.dlqMessageCount);
-                    val -= lastOffset;
-                }
-                AttributesBuilder attributesBuilder = newAttributesBuilder();
-                attributesBuilder.put(LABEL_CONSUMER_GROUP, result.group);
-                attributesBuilder.put(LABEL_TOPIC, result.topic);
-                attributesBuilder.put(LABEL_IS_SYSTEM, isSystem(result.topic, result.group));
-                measurement.record(val, attributesBuilder.build());
-            }));
+            .build();
     }
 
     private void initOtherMetrics() {
         RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
-        DefaultStoreMetricsManager.init(brokerMeter, BrokerMetricsManager::newAttributesBuilder, (DefaultMessageStore) messageStore);
+        messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+        PopMetricsManager.initMetrics(brokerMeter, brokerController, BrokerMetricsManager::newAttributesBuilder);
     }
 
     public void shutdown() {
@@ -520,6 +541,11 @@ public class BrokerMetricsManager {
         if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
+        }
+        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
+            periodicMetricReader.forceFlush();
+            periodicMetricReader.shutdown();
+            loggingMetricExporter.shutdown();
         }
     }
 

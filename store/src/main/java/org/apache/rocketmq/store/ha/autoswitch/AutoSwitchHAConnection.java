@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -44,30 +43,30 @@ public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Handshake data protocol in syncing msg from master. Format:
      * <pre>
-     * +----------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   EpochEntrySize * EpochEntryNums  |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (12bytes * EpochEntryNums)    |
-     * +----------------------------------------------------------------------------------------------+
-     * |                       Header                            |             Body                   |
-     * |                                                         |                                    |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬────────────────────────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   EpochEntrySize * EpochEntryNums  │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (12bytes * EpochEntryNums)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┼────────────────────────────────────┤
+     * │                       Header                            │             Body                   │
+     * │                                                         │                                    │
      * </pre>
      * Handshake Header protocol Format:
-     *  current state + body size + offset + epoch
+     * current state + body size + offset + epoch
      */
     public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
 
     /**
      * Transfer data protocol in syncing msg from master. Format:
      * <pre>
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |  current state  |   body size   |   offset  |   epoch   |   epochStartOffset  |   confirmOffset  |    log data      |
-     * |     (4bytes)    |   (4bytes)    |  (8bytes) |  (4bytes) |      (8bytes)       |      (8bytes)    |   (data size)    |
-     * +---------------------------------------------------------------------------------------------------------------------+
-     * |                                               Header                                             |       Body       |
-     * |                                                                                                  |                  |
+     * ┌─────────────────┬───────────────┬───────────┬───────────┬─────────────────────┬──────────────────┬──────────────────┐
+     * │  current state  │   body size   │   offset  │   epoch   │   epochStartOffset  │   confirmOffset  │    log data      │
+     * │     (4bytes)    │   (4bytes)    │  (8bytes) │  (4bytes) │      (8bytes)       │      (8bytes)    │   (data size)    │
+     * ├─────────────────┴───────────────┴───────────┴───────────┴─────────────────────┴──────────────────┼──────────────────┤
+     * │                                               Header                                             │       Body       │
+     * │                                                                                                  │                  │
      * </pre>
      * Transfer Header protocol Format:
-     *  current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
+     * current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset)
      */
     public static final int TRANSFER_HEADER_SIZE = HANDSHAKE_HEADER_SIZE + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
@@ -92,7 +91,6 @@ public class AutoSwitchHAConnection implements HAConnection {
     private volatile boolean isSyncFromLastFile = false;
     private volatile boolean isAsyncLearner = false;
     private volatile long slaveId = -1;
-    private volatile String slaveAddress;
 
     /**
      * Last endOffset when master transfer data to slave
@@ -161,10 +159,6 @@ public class AutoSwitchHAConnection implements HAConnection {
         return slaveId;
     }
 
-    public String getSlaveAddress() {
-        return slaveAddress;
-    }
-
     @Override
     public HAConnectionState getCurrentState() {
         return currentState;
@@ -220,8 +214,8 @@ public class AutoSwitchHAConnection implements HAConnection {
     private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
         if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
             long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxPhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
-            this.haService.updateConnectionLastCaughtUpTime(this.slaveAddress, caughtUpTimeMs);
-            this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
+            this.haService.updateConnectionLastCaughtUpTime(this.slaveId, caughtUpTimeMs);
+            this.haService.maybeExpandInSyncStateSet(this.slaveId, slaveMaxOffset);
         }
     }
 
@@ -294,6 +288,8 @@ public class AutoSwitchHAConnection implements HAConnection {
                 AutoSwitchHAConnection.LOGGER.error("", e);
             }
 
+            flowMonitor.shutdown(true);
+
             AutoSwitchHAConnection.LOGGER.info(this.getServiceName() + " service end");
         }
 
@@ -318,33 +314,25 @@ public class AutoSwitchHAConnection implements HAConnection {
 
                         switch (slaveState) {
                             case HANDSHAKE:
-                                // AddressLength
-                                int addressLength = byteBufferRead.getInt(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 4);
-                                if (diff < AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
-                                    processSuccess = false;
-                                    break;
-                                }
+                                // SlaveBrokerId
+                                Long slaveBrokerId = byteBufferRead.getLong(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 8);
+                                AutoSwitchHAConnection.this.slaveId = slaveBrokerId;
                                 // Flag(isSyncFromLastFile)
-                                short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 8);
+                                short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 12);
                                 if (syncFromLastFileFlag == 1) {
                                     AutoSwitchHAConnection.this.isSyncFromLastFile = true;
                                 }
                                 // Flag(isAsyncLearner role)
-                                short isAsyncLearner = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 6);
+                                short isAsyncLearner = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 10);
                                 if (isAsyncLearner == 1) {
                                     AutoSwitchHAConnection.this.isAsyncLearner = true;
                                 }
-                                // Address
-                                final byte[] addressData = new byte[addressLength];
-                                byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
-                                byteBufferRead.get(addressData);
-                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData, StandardCharsets.UTF_8);
 
                                 isSlaveSendHandshake = true;
                                 byteBufferRead.position(readSocketPos);
-                                ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
-                                LOGGER.info("Receive slave handshake, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
-                                    AutoSwitchHAConnection.this.slaveAddress, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
+                                ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE;
+                                LOGGER.info("Receive slave handshake, slaveBrokerId:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
+                                    AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
                                 break;
                             case TRANSFER:
                                 long slaveMaxOffset = byteBufferRead.getLong(readPosition + 4);
@@ -356,12 +344,12 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 }
                                 byteBufferRead.position(readSocketPos);
                                 maybeExpandInSyncStateSet(slaveMaxOffset);
-                                AutoSwitchHAConnection.this.haService.updateConfirmOffsetWhenSlaveAck(AutoSwitchHAConnection.this.slaveAddress);
+                                AutoSwitchHAConnection.this.haService.updateConfirmOffsetWhenSlaveAck(AutoSwitchHAConnection.this.slaveId);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
                                 break;
                             default:
                                 LOGGER.error("Current state illegal {}", currentState);
-                                break;
+                                return false;
                         }
 
                         if (!slaveState.equals(currentState)) {
@@ -629,7 +617,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 this.lastWriteOver = this.transferData(size);
             } else {
                 // If size == 0, we should update the lastCatchupTimeMs
-                AutoSwitchHAConnection.this.haService.updateConnectionLastCaughtUpTime(AutoSwitchHAConnection.this.slaveAddress, System.currentTimeMillis());
+                AutoSwitchHAConnection.this.haService.updateConnectionLastCaughtUpTime(AutoSwitchHAConnection.this.slaveId, System.currentTimeMillis());
                 haService.getWaitNotifyObject().allWaitForRunning(100);
             }
         }
@@ -739,6 +727,9 @@ public class AutoSwitchHAConnection implements HAConnection {
             } catch (IOException e) {
                 AutoSwitchHAConnection.LOGGER.error("", e);
             }
+
+            flowMonitor.shutdown(true);
+
             AutoSwitchHAConnection.LOGGER.info(this.getServiceName() + " service end");
         }
 

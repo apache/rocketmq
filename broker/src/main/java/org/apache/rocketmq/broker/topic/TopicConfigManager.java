@@ -56,10 +56,8 @@ public class TopicConfigManager extends ConfigManager {
     private static final int SCHEDULE_TOPIC_QUEUE_NUM = 18;
 
     private transient final Lock topicConfigTableLock = new ReentrantLock();
-
-    private final ConcurrentMap<String, TopicConfig> topicConfigTable =
-        new ConcurrentHashMap<>(1024);
-    private final DataVersion dataVersion = new DataVersion();
+    private ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>(1024);
+    private DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
     public TopicConfigManager() {
@@ -296,7 +294,8 @@ public class TopicConfigManager extends ConfigManager {
                     }
                     log.info("Create new topic [{}] config:[{}]", topicConfig.getTopicName(), topicConfig);
                     this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-                    this.dataVersion.nextVersion();
+                    long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+                    dataVersion.nextVersion(stateMachineVersion);
                     createNew = true;
                     this.persist();
                 } finally {
@@ -396,7 +395,8 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(TopicValidator.RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC, topicConfig);
                     createNew = true;
-                    this.dataVersion.nextVersion();
+                    long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+                    dataVersion.nextVersion(stateMachineVersion);
                     this.persist();
                 } finally {
                     this.topicConfigTableLock.unlock();
@@ -542,7 +542,8 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig old = this.topicConfigTable.remove(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
-            this.dataVersion.nextVersion();
+            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+            dataVersion.nextVersion(stateMachineVersion);
             this.persist();
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
@@ -556,12 +557,6 @@ public class TopicConfigManager extends ConfigManager {
         dataVersionCopy.assignNewOne(this.dataVersion);
         topicConfigSerializeWrapper.setDataVersion(dataVersionCopy);
         return topicConfigSerializeWrapper;
-    }
-
-    public void initStateVersion() {
-        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-        dataVersion.nextVersion(stateMachineVersion);
-        this.persist();
     }
 
     @Override
@@ -604,6 +599,11 @@ public class TopicConfigManager extends ConfigManager {
 
     public DataVersion getDataVersion() {
         return dataVersion;
+    }
+
+    public void setTopicConfigTable(
+        ConcurrentMap<String, TopicConfig> topicConfigTable) {
+        this.topicConfigTable = topicConfigTable;
     }
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
@@ -731,4 +731,6 @@ public class TopicConfigManager extends ConfigManager {
     public boolean containsTopic(String topic) {
         return topicConfigTable.containsKey(topic);
     }
+
+
 }

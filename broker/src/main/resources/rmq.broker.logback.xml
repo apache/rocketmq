@@ -18,7 +18,7 @@
 
 <configuration scan="true" scanPeriod="30 seconds">
 
-    <appender name="DefaultSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="DefaultSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -45,8 +45,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="DefaultSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="DefaultSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqBrokerSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqBrokerSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -72,8 +75,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqBrokerSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqBrokerSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqProtectionSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqProtectionSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -102,8 +108,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqProtectionSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqProtectionSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqWaterMarkSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqWaterMarkSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -132,8 +141,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqWaterMarkSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqWaterMarkSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqStoreSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqStoreSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -162,8 +174,44 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqStoreSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStoreSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqTrafficSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqTieredStoreSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>brokerContainerLogDir</key>
+            <defaultValue>${file.separator}</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="RocketmqTieredStoreAppender"
+                      class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>
+                    ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}tiered_store.log
+                </file>
+                <append>true</append>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>
+                        ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}otherdays${file.separator}tiered_store.%i.log.gz
+                    </fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>10</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>128MB</maxFileSize>
+                </triggeringPolicy>
+                <encoder>
+                    <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+                    <charset class="java.nio.charset.Charset">UTF-8</charset>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+    <appender name="RocketmqTieredStoreSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqTieredStoreSiftingAppender_inner"/>
+    </appender>
+
+    <appender name="RocketmqTrafficSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -188,8 +236,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqTrafficSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqTrafficSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqRemotingSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqRemotingSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -218,8 +269,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqRemotingSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqRemotingSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqStoreErrorSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqStoreErrorSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -248,8 +302,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqStoreErrorSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStoreErrorSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqTransactionSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqTransactionSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -278,8 +335,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqTransactionSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqTransactionSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqRebalanceLockSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqRebalanceLockSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -308,8 +368,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqRebalanceLockSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqRebalanceLockSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqFilterSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqFilterSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -338,8 +401,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqRebalanceLockSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqFilterSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqStatsSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqStatsSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -368,8 +434,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqStatsSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStatsSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqCommercialSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqCommercialSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -394,8 +463,11 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqCommercialSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqCommercialSiftingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqPopSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqPopSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
@@ -422,92 +494,116 @@
             </appender>
         </sift>
     </appender>
+    <appender name="RocketmqPopSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqPopSiftingAppender_inner"/>
+    </appender>
+
+    <appender name="RocketmqBrokerMetricsAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>brokerContainerLogDir</key>
+            <defaultValue>${file.separator}</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="RocketmqCommercialAppender"
+                      class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>
+                    ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}broker_metric.log
+                </file>
+                <append>true</append>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>
+                        ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}otherdays${file.separator}broker_metric.%i.log.gz
+                    </fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>10</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>500MB</maxFileSize>
+                </triggeringPolicy>
+                <encoder>
+                    <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+                    <charset class="java.nio.charset.Charset">UTF-8</charset>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <append>true</append>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
 
-    <logger name="RocketmqBroker" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqBroker" additivity="false" level="INFO">
         <appender-ref ref="RocketmqBrokerSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqProtection" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqProtection" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProtectionSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqWaterMark" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqWaterMark" additivity="false" level="INFO">
         <appender-ref ref="RocketmqWaterMarkSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqCommon" additivity="false" level="INFO">
         <appender-ref ref="RocketmqBrokerSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqStore" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStore" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStoreSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqStoreError" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStoreError" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStoreErrorSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqTransaction" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqTieredStore" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqTieredStoreSiftingAppender"/>
+    </logger>
+
+    <logger name="RocketmqTransaction" additivity="false" level="INFO">
         <appender-ref ref="RocketmqTransactionSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqRebalanceLock" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqRebalanceLock" additivity="false" level="INFO">
         <appender-ref ref="RocketmqRebalanceLockSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqRemoting" additivity="false" level="INFO">
         <appender-ref ref="RocketmqRemotingSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqStats" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStats" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStatsSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqCommercial" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqCommercial" additivity="false" level="INFO">
         <appender-ref ref="RocketmqCommercialSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqFilter" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqFilter" additivity="false" level="INFO">
         <appender-ref ref="RocketmqFilterSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqConsole" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqConsole" additivity="false" level="INFO">
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <logger name="RocketmqPop" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqPop" additivity="false" level="INFO">
         <appender-ref ref="RocketmqPopSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqTraffic" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqTraffic" additivity="false" level="INFO">
         <appender-ref ref="RocketmqTrafficSiftingAppender"/>
     </logger>
 
-    <root>
-        <level value="INFO"/>
+    <logger name="io.opentelemetry.exporter.logging.LoggingMetricExporter" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqBrokerMetricsAppender"/>
+    </logger>
+
+    <root level="INFO">
         <appender-ref ref="DefaultSiftingAppender"/>
     </root>
 </configuration>

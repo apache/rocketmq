@@ -71,7 +71,7 @@ public class BaseActivityTest extends InitConfigTest {
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
         when(messagingProcessor.getMetadataService()).thenReturn(metadataService);
-        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
+        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), grpcClientSettingsManager);
     }
 
     protected ProxyContext createContext() {

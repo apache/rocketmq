@@ -16,7 +16,7 @@
   limitations under the License.
   -->
 
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
 
     <appender name="RocketmqProxyAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -299,6 +299,10 @@
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>500MB</maxFileSize>
         </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
     </appender>
 
     <appender name="RocketmqPopAppender_inner"
@@ -321,100 +325,104 @@
         </encoder>
     </appender>
 
+    <appender name="RocketmqProxyMetricsAppender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/proxy_metric.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/proxy_metric.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>500MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="RocketmqPopAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqPopAppender_inner"/>
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <append>true</append>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
 
-    <logger name="RocketmqBroker" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqBroker" additivity="false" level="INFO">
         <appender-ref ref="RocketmqBrokerAppender"/>
     </logger>
 
-    <logger name="RocketmqProtection" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqProtection" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProtectionAppender"/>
     </logger>
 
-    <logger name="RocketmqWaterMark" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqWaterMark" additivity="false" level="INFO">
         <appender-ref ref="RocketmqWaterMarkAppender"/>
     </logger>
 
-    <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqCommon" additivity="false" level="INFO">
         <appender-ref ref="RocketmqBrokerAppender"/>
     </logger>
 
-    <logger name="RocketmqStore" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStore" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStoreAppender"/>
     </logger>
 
-    <logger name="RocketmqStoreError" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStoreError" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStoreErrorAppender"/>
     </logger>
 
-    <logger name="RocketmqTransaction" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqTransaction" additivity="false" level="INFO">
         <appender-ref ref="RocketmqTransactionAppender"/>
     </logger>
 
-    <logger name="RocketmqRebalanceLock" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqRebalanceLock" additivity="false" level="INFO">
         <appender-ref ref="RocketmqRebalanceLockAppender"/>
     </logger>
 
-    <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqRemoting" additivity="false" level="INFO">
         <appender-ref ref="RocketmqRemotingAppender"/>
     </logger>
 
-    <logger name="RocketmqStats" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqStats" additivity="false" level="INFO">
         <appender-ref ref="RocketmqStatsAppender"/>
     </logger>
 
-    <logger name="RocketmqCommercial" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqCommercial" additivity="false" level="INFO">
         <appender-ref ref="RocketmqCommercialAppender"/>
     </logger>
 
-    <logger name="RocketmqFilter" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqFilter" additivity="false" level="INFO">
         <appender-ref ref="RocketmqFilterAppender"/>
     </logger>
 
-    <logger name="RocketmqConsole" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqConsole" additivity="false" level="INFO">
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <logger name="RocketmqPop" additivity="false">
-        <level value="INFO" />
+    <logger name="RocketmqPop" additivity="false" level="INFO">
         <appender-ref ref="RocketmqPopAppender" />
     </logger>
 
-    <logger name="RocketmqProxy" additivity="false">
-        <level value="INFO" />
+    <logger name="RocketmqProxy" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProxyAppender" />
     </logger>
 
-    <logger name="RocketmqProxyWatermark" additivity="false">
-        <level value="INFO" />
+    <logger name="RocketmqProxyWatermark" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProxyWatermarkAppender" />
     </logger>
 
-    <root>
-        <level value="INFO"/>
+    <logger name="io.opentelemetry.exporter.logging.LoggingMetricExporter" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqProxyMetricsAppender" />
+    </logger>
+
+    <root level="INFO">
         <appender-ref ref="DefaultAppender"/>
     </root>
 </configuration>

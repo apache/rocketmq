@@ -110,7 +110,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    public  RemotingCommand rewriteRequestForStaticTopic(final UpdateConsumerOffsetRequestHeader requestHeader, final TopicQueueMappingContext mappingContext) {
+    public RemotingCommand rewriteRequestForStaticTopic(final UpdateConsumerOffsetRequestHeader requestHeader,
+        final TopicQueueMappingContext mappingContext) {
         try {
             if (mappingContext.getMappingDetail() == null) {
                 return null;
@@ -139,7 +140,6 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
     }
-
 
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
@@ -201,8 +201,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
-    public  RemotingCommand rewriteRequestForStaticTopic(QueryConsumerOffsetRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
+    public RemotingCommand rewriteRequestForStaticTopic(QueryConsumerOffsetRequestHeader requestHeader,
+        TopicQueueMappingContext mappingContext) {
         try {
             if (mappingContext.getMappingDetail() == null) {
                 return null;
@@ -213,7 +213,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             }
             List<LogicQueueMappingItem> mappingItemList = mappingContext.getMappingItemList();
             if (mappingItemList.size() == 1
-                    &&  mappingItemList.get(0).getLogicOffset() == 0) {
+                && mappingItemList.get(0).getLogicOffset() == 0) {
                 //as physical, just let it go
                 mappingContext.setCurrentItem(mappingItemList.get(0));
                 requestHeader.setQueueId(mappingContext.getLeaderItem().getQueueId());
@@ -277,8 +277,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
     }
 
-
-    public  RemotingCommand rewriteResponseForStaticTopic(final QueryConsumerOffsetRequestHeader requestHeader, final QueryConsumerOffsetResponseHeader responseHeader,
+    public RemotingCommand rewriteResponseForStaticTopic(final QueryConsumerOffsetRequestHeader requestHeader,
+        final QueryConsumerOffsetResponseHeader responseHeader,
         final TopicQueueMappingContext mappingContext, final int code) {
         try {
             if (mappingContext.getMappingDetail() == null) {
@@ -306,9 +306,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
-
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
-        RemotingCommand rewriteResult  = rewriteRequestForStaticTopic(requestHeader, mappingContext);
+        RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;
         }
@@ -329,8 +328,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, do not set to zero, maybe this group boot first");
             } else if (minOffset <= 0
-                && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
-                requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
+                && this.brokerController.getMessageStore().checkInMemByConsumeOffset(
+                requestHeader.getTopic(), requestHeader.getQueueId(), 0, 1)) {
                 responseHeader.setOffset(0L);
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);

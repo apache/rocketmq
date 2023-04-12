@@ -69,9 +69,9 @@ ACL配置文件的数量aclFilesNum、所有ACL配置文件绝对路径fileList�
 再根据该路径更新aclPlainAccessResourceMap中缓存的数据，最后将该ACL配置文件中的数据写回原文件；如果不包含则会将数据写到"rocketmq.acl.plain.file"配置文件中，
 然后更新accessKeyTable和aclPlainAccessResourceMap，最后最后将该ACL配置文件中的数据写回原文件。
 
-（3）deleteAccessConfig(String accesskey)
+（3）deleteAccessConfig(String accessKey)
 
-将该方法原有的逻辑修改为：判断accessKeyTable中是否存在accesskey，如果不存在则返回false，否则将其删除并将修改后的数据写回原文件。
+将该方法原有的逻辑修改为：判断accessKeyTable中是否存在accessKey，如果不存在则返回false，否则将其删除并将修改后的数据写回原文件。
 
 （4）getAllAclConfig()
 

@@ -95,7 +95,7 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
-     * @param request dispatch request
+     * @param request      dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
@@ -375,6 +375,7 @@ public class ConsumeQueueStore {
 
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.queueOffsetAssigner.setTopicQueueTable(topicQueueTable);
+        this.queueOffsetAssigner.setLmqTopicQueueTable(topicQueueTable);
     }
 
     public ConcurrentMap getTopicQueueTable() {
@@ -534,6 +535,10 @@ public class ConsumeQueueStore {
                 this.truncateDirtyLogicFiles(logic, phyOffset);
             }
         }
+    }
+
+    public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
+        return this.topicConfigTable;
     }
 
     public Optional<TopicConfig> getTopicConfig(String topic) {

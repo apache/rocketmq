@@ -175,6 +175,11 @@ public class SimpleChannel extends AbstractChannel {
         return promise;
     }
 
+    @Override
+    public boolean isWritable() {
+        return true;
+    }
+
     public void updateLastAccessTime() {
         this.lastAccessTime = System.currentTimeMillis();
     }
@@ -189,6 +194,14 @@ public class SimpleChannel extends AbstractChannel {
 
     public void clearExpireContext() {
 
+    }
+
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
+
+    public String getLocalAddress() {
+        return localAddress;
     }
 
     public ChannelHandlerContext getChannelHandlerContext() {

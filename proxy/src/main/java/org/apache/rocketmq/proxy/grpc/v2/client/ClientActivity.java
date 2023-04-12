@@ -32,6 +32,7 @@ import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import io.netty.channel.Channel;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
@@ -209,7 +211,8 @@ public class ClientActivity extends AbstractMessingActivity {
         };
     }
 
-    protected void processTelemetryException(TelemetryCommand request, Throwable t, StreamObserver<TelemetryCommand> responseObserver) {
+    protected void processTelemetryException(TelemetryCommand request, Throwable t,
+        StreamObserver<TelemetryCommand> responseObserver) {
         StatusRuntimeException exception = io.grpc.Status.INTERNAL
             .withDescription("process client telemetryCommand failed. " + t.getMessage())
             .withCause(t)
@@ -291,7 +294,8 @@ public class ClientActivity extends AbstractMessingActivity {
         return channel;
     }
 
-    protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType, List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
+    protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType,
+        List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
         String clientId = ctx.getClientID();
         LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 
@@ -413,14 +417,48 @@ public class ClientActivity extends AbstractMessingActivity {
 
         @Override
         public void handle(ConsumerGroupEvent event, String group, Object... args) {
-            if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
-                if (args == null || args.length < 1) {
+            switch (event) {
+                case CLIENT_UNREGISTER:
+                    processClientUnregister(group, args);
+                    break;
+                case REGISTER:
+                    processClientRegister(group, args);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        protected void processClientUnregister(String group, Object... args) {
+            if (args == null || args.length < 1) {
+                return;
+            }
+            if (args[0] instanceof ClientChannelInfo) {
+                ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
+                if (ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
                     return;
                 }
-                if (args[0] instanceof ClientChannelInfo) {
-                    ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                    grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
-                    grpcClientSettingsManager.removeClientSettings(clientChannelInfo.getClientId());
+                GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
+                log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
+                    group, clientChannelInfo, removedChannel != null);
+            }
+        }
+
+        protected void processClientRegister(String group, Object... args) {
+            if (args == null || args.length < 2) {
+                return;
+            }
+            if (args[1] instanceof ClientChannelInfo) {
+                ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[1];
+                Channel channel = clientChannelInfo.getChannel();
+                if (ChannelHelper.isRemote(channel)) {
+                    // save settings from channel sync from other proxy
+                    Settings settings = GrpcClientChannel.parseChannelExtendAttribute(channel);
+                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settings:{}", group, clientChannelInfo, settings);
+                    if (settings == null) {
+                        return;
+                    }
+                    grpcClientSettingsManager.updateClientSettings(clientChannelInfo.getClientId(), settings);
                 }
             }
         }

@@ -47,6 +47,7 @@ import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -83,6 +84,9 @@ public class ProxyStartup {
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
+            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor);
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
+
             // start servers one by one.
             PROXY_START_AND_SHUTDOWN.start();
 
@@ -96,7 +100,6 @@ public class ProxyStartup {
                 }
             }));
         } catch (Exception e) {
-            System.err.println("find an unexpect err." + e);
             e.printStackTrace();
             log.error("find an unexpect err.", e);
             System.exit(1);
@@ -113,6 +116,8 @@ public class ProxyStartup {
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
+        log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
+
     }
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {

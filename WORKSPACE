@@ -43,9 +43,11 @@ maven_install(
         "com.alibaba:fastjson:1.2.76",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
-        "org.slf4j:slf4j-api:1.7.33",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
+        "org.powermock:powermock-module-junit4:2.0.9",
+        "org.powermock:powermock-api-mockito2:2.0.9",
+        "org.powermock:powermock-core:2.0.9",
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
@@ -68,7 +70,7 @@ maven_install(
         "org.bouncycastle:bcpkix-jdk15on:1.69",
         "com.google.code.gson:gson:2.8.9",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.0.1",
+        "org.apache.rocketmq:rocketmq-proto:2.0.2",
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
@@ -85,9 +87,10 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
-        "org.springframework:spring-core:5.3.23",
+        "org.springframework:spring-core:5.3.26",
         "io.opentelemetry:opentelemetry-exporter-otlp:1.19.0",
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.19.0-alpha",
+        "io.opentelemetry:opentelemetry-exporter-logging:1.19.0",
         "io.opentelemetry:opentelemetry-sdk:1.19.0",
         "com.squareup.okio:okio-jvm:3.0.0",
         "io.opentelemetry:opentelemetry-api:1.19.0",
@@ -95,6 +98,9 @@ maven_install(
         "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
+        "org.slf4j:jul-to-slf4j:2.0.6",
+    	"org.jetbrains:annotations:23.1.0",
+        "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
     ],
     fetch_sources = True,
     repositories = [
@@ -120,7 +126,8 @@ buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
     name = "rbe_default",
-    sha256 = "bd55bd8b2ffa850b5683367e7ab0756d6f51088866b2a81e4c07b6e87d04d8c5",
+    # The sha256 digest of the tarball might change without notice. So it's not
+    # included here.
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 

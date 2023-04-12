@@ -86,12 +86,16 @@ public class DumpCompactionLogCommand implements SubCommand {
                         bb.rewind();
                     }
 
-                    MessageExt messageExt = MessageDecoder.decode(bb, false, false);
-                    if (messageExt == null) {
-                        break;
-                    } else {
-                        current += size;
-                        System.out.printf(messageExt + "\n");
+                    try {
+                        MessageExt messageExt = MessageDecoder.decode(bb, false, false);
+                        if (messageExt == null) {
+                            break;
+                        } else {
+                            current += size;
+                            System.out.printf(messageExt + "\n");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 

@@ -65,6 +65,8 @@ import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
@@ -586,6 +588,34 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             future.complete(null);
         } catch (Exception e) {
             future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public CompletableFuture<Boolean> notification(String brokerAddr, NotificationRequestHeader requestHeader,
+        long timeoutMillis) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
+        try {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    if (response.getCode() == ResponseCode.SUCCESS) {
+                        try {
+                            NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
+                            future.complete(responseHeader.isHasMsg());
+                        } catch (Throwable t) {
+                            future.completeExceptionally(t);
+                        }
+                    } else {
+                        future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                    }
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
         }
         return future;
     }

@@ -44,7 +44,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertFalse;
+
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -58,7 +58,7 @@ public class AutoSwitchRoleBase {
     protected static List<BrokerController> brokerList;
     private static SocketAddress bornHost;
     private static SocketAddress storeHost;
-    private static Integer number = 0;
+    private static int number = 0;
 
     protected static void initialize() {
         brokerList = new ArrayList<>();
@@ -69,28 +69,28 @@ public class AutoSwitchRoleBase {
         }
     }
 
-    public static Integer nextPort() throws IOException {
+    public static int nextPort() throws IOException {
         return nextPort(1001, 9999);
     }
 
-    public static Integer nextPort(Integer minPort, Integer maxPort) throws IOException {
+    public static int nextPort(int minPort, int maxPort) throws IOException {
+
         Random random = new Random();
         int tempPort;
         int port;
-        try {
-            while (true) {
+        while (true) {
+            try {
                 tempPort = random.nextInt(maxPort) % (maxPort - minPort + 1) + minPort;
                 ServerSocket serverSocket = new ServerSocket(tempPort);
                 port = serverSocket.getLocalPort();
                 serverSocket.close();
                 break;
+            } catch (IOException ignored) {
+                if (number > 200) {
+                    throw new IOException("This server's open ports are temporarily full!");
+                }
+                ++number;
             }
-        } catch (Exception ignored) {
-            if (number > 200) {
-                throw new IOException("This server's open ports are temporarily full!");
-            }
-            number++;
-            port = nextPort(minPort, maxPort);
         }
         number = 0;
         return port;
@@ -117,14 +117,8 @@ public class AutoSwitchRoleBase {
         final BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), storeConfig);
         assertTrue(brokerController.initialize());
         brokerController.start();
-        this.brokerList.add(brokerController);
-        Thread.sleep(1000);
-        // The first is master
-        if (expectedRole == BrokerRole.SYNC_MASTER) {
-            assertTrue(brokerController.getReplicasManager().isMasterState());
-        } else {
-            assertFalse(brokerController.getReplicasManager().isMasterState());
-        }
+        brokerList.add(brokerController);
+        await().atMost(20, TimeUnit.SECONDS).until(() -> (expectedRole == BrokerRole.SYNC_MASTER) == brokerController.getReplicasManager().isMasterState());
         return brokerController;
     }
 
@@ -137,6 +131,7 @@ public class AutoSwitchRoleBase {
         storeConfig.setStorePathRootDir(STORE_PATH_ROOT_DIR + File.separator + brokerDir);
         storeConfig.setStorePathCommitLog(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "commitlog");
         storeConfig.setStorePathEpochFile(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "EpochFileCache");
+        storeConfig.setStorePathBrokerIdentity(STORE_PATH_ROOT_DIR + File.separator + brokerDir + File.separator + "brokerIdentity");
         storeConfig.setTotalReplicas(3);
         storeConfig.setInSyncReplicas(2);
 

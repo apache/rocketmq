@@ -39,6 +39,8 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData.SUB_ALL;
+
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultLitePullConsumer.class);
@@ -253,6 +255,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
+    public void subscribe(String topic) throws MQClientException {
+        this.subscribe(topic, SUB_ALL);
+    }
+
+    @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
@@ -317,18 +324,24 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
     }
 
+    @Deprecated
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
     }
 
-    /**
-     * Offset specified by batch commit
-     * @param offsetMap
-     * @param persist
-     */
+    @Deprecated
     @Override
     public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+    }
+
+    @Override
+    public void commit() {
+        this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    @Override public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
     }
 

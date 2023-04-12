@@ -34,6 +34,8 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientExt;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -89,7 +91,29 @@ public class ConsumerProcessor extends AbstractProcessor {
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }
+            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+        }  catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
 
+    public CompletableFuture<PopResult> popMessage(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        String consumerGroup,
+        String topic,
+        int maxMsgNums,
+        long invisibleTime,
+        long pollTime,
+        int initMode,
+        SubscriptionData subscriptionData,
+        boolean fifo,
+        PopMessageResultFilter popMessageResultFilter,
+        long timeoutMillis
+    ) {
+        CompletableFuture<PopResult> future = new CompletableFuture<>();
+        try {
             if (maxMsgNums > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
                 log.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
                     maxMsgNums, ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST, topic, consumerGroup);
@@ -109,10 +133,10 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setOrder(fifo);
 
             future = this.serviceManager.getMessageService().popMessage(
-                ctx,
-                messageQueue,
-                requestHeader,
-                timeoutMillis)
+                    ctx,
+                    messageQueue,
+                    requestHeader,
+                    timeoutMillis)
                 .thenApplyAsync(popResult -> {
                     if (PopStatus.FOUND.equals(popResult.getPopStatus()) &&
                         popResult.getMsgFoundList() != null &&
@@ -122,6 +146,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                         List<MessageExt> messageExtList = new ArrayList<>();
                         for (MessageExt messageExt : popResult.getMsgFoundList()) {
                             try {
+                                fillUniqIDIfNeed(messageExt);
                                 String handleString = createHandle(messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getCommitLogOffset());
                                 if (handleString == null) {
                                     log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msg:{}", requestHeader, messageExt);
@@ -171,6 +196,15 @@ public class ConsumerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
+    private void fillUniqIDIfNeed(MessageExt messageExt) {
+        if (StringUtils.isBlank(MessageClientIDSetter.getUniqID(messageExt))) {
+            if (messageExt instanceof MessageClientExt) {
+                MessageClientExt clientExt = (MessageClientExt) messageExt;
+                MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, clientExt.getOffsetMsgId());
+            }
+        }
+    }
+
     public CompletableFuture<AckResult> ackMessage(
         ProxyContext ctx,
         ReceiptHandle handle,
@@ -218,11 +252,11 @@ public class ConsumerProcessor extends AbstractProcessor {
             long commitLogOffset = handle.getCommitLogOffset();
 
             future = this.serviceManager.getMessageService().changeInvisibleTime(
-                ctx,
-                handle,
-                messageId,
-                changeInvisibleTimeRequestHeader,
-                timeoutMillis)
+                    ctx,
+                    handle,
+                    messageId,
+                    changeInvisibleTimeRequestHeader,
+                    timeoutMillis)
                 .thenApplyAsync(ackResult -> {
                     if (StringUtils.isNotBlank(ackResult.getExtraInfo())) {
                         AckResult result = new AckResult();

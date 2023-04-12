@@ -15,9 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>org.apache</groupId>
@@ -30,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.0.1-SNAPSHOT</version>
+    <version>5.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -103,44 +101,47 @@
 
         <commons-cli.version>1.5.0</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
+        <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.83</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
-        <guava.version>31.0.1-jre</guava.version>
+        <guava.version>31.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <snakeyaml.version>1.32</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
-        <rocketmq-logging.version>1.0.0</rocketmq-logging.version>
+        <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
         <slf4j-api.version>2.0.3</slf4j-api.version>
-        <logback-classic.version>1.3.4</logback-classic.version>
+        <rocketmq-shaded-slf4j-api-bridge.version>1.0.0</rocketmq-shaded-slf4j-api-bridge.version>
         <commons-validator.version>1.7</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
         <jaeger.version>1.6.0</jaeger.version>
-        <dleger.version>0.3.1</dleger.version>
+        <dleger.version>0.3.1.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.1</rocketmq-proto.version>
+        <rocketmq-proto.version>2.0.2</rocketmq-proto.version>
         <grpc.version>1.50.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <spring.version>5.3.23</spring.version>
+        <spring.version>5.3.26</spring.version>
         <okio-jvm.version>3.0.0</okio-jvm.version>
         <opentelemetry.version>1.19.0</opentelemetry.version>
         <opentelemetry-exporter-prometheus.version>1.19.0-alpha</opentelemetry-exporter-prometheus.version>
+        <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
         <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
+        <powermock-version>2.0.9</powermock-version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
 
@@ -160,7 +161,7 @@
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
         <sonar-maven-plugin.version>3.0.2</sonar-maven-plugin.version>
         <spotbugs-plugin.version>4.2.2</spotbugs-plugin.version>
-        <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
+        <maven-assembly-plugin.version>3.4.2</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
         <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
@@ -189,6 +190,7 @@
         <module>container</module>
         <module>controller</module>
         <module>proxy</module>
+        <module>tieredstore</module>
     </modules>
 
     <build>
@@ -590,6 +592,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tiered-store</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -701,9 +708,9 @@
                 <version>${slf4j-api.version}</version>
             </dependency>
             <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback-classic.version}</version>
+                <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
+                <version>${rocketmq-shaded-slf4j-api-bridge.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.aliyunmq</groupId>
@@ -900,6 +907,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-boringssl-static</artifactId>
+                <version>${netty.tcnative.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.springframework</groupId>
@@ -941,8 +953,18 @@
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-logging</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-sdk</artifactId>
                 <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>${jul-to-slf4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -970,6 +992,32 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.objenesis</groupId>
+                    <artifactId>objenesis</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy-agent</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito2</artifactId>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

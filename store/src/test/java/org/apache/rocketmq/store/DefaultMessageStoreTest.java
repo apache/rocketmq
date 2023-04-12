@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
@@ -30,10 +31,13 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -52,6 +56,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.util.Strings;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -240,14 +245,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
             assertThat(cqUnit.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(cqUnit.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
         }
     }
 
@@ -263,14 +264,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
-            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
-            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
         }
     }
 
@@ -865,6 +862,50 @@ public class DefaultMessageStoreTest {
         assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
 
         messageStoreConfig.setMaxMessageSize(originMaxMessageSize);
+    }
+
+    @Test
+    public void testDeleteTopics() {
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
+            ((DefaultMessageStore) messageStore).getConsumeQueueTable();
+        for (int i = 0; i < 10; i++) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
+            String topicName = "topic-" + i;
+            for (int j = 0; j < 4; j++) {
+                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
+                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                cqTable.put(j, consumeQueue);
+            }
+            consumeQueueTable.put(topicName, cqTable);
+        }
+        Assert.assertEquals(consumeQueueTable.size(), 10);
+        HashSet<String> resultSet = Sets.newHashSet("topic-3", "topic-5");
+        messageStore.deleteTopics(Sets.difference(consumeQueueTable.keySet(), resultSet));
+        Assert.assertEquals(consumeQueueTable.size(), 2);
+        Assert.assertEquals(resultSet, consumeQueueTable.keySet());
+    }
+
+    @Test
+    public void testCleanUnusedTopic() {
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
+            ((DefaultMessageStore) messageStore).getConsumeQueueTable();
+        for (int i = 0; i < 10; i++) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
+            String topicName = "topic-" + i;
+            for (int j = 0; j < 4; j++) {
+                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
+                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                cqTable.put(j, consumeQueue);
+            }
+            consumeQueueTable.put(topicName, cqTable);
+        }
+        Assert.assertEquals(consumeQueueTable.size(), 10);
+        HashSet<String> resultSet = Sets.newHashSet("topic-3", "topic-5");
+        messageStore.cleanUnusedTopic(resultSet);
+        Assert.assertEquals(consumeQueueTable.size(), 2);
+        Assert.assertEquals(resultSet, consumeQueueTable.keySet());
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
