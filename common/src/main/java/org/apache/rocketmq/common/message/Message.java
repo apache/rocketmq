@@ -38,14 +38,6 @@ public class Message implements Serializable {
         this(topic, "", "", 0, body, true);
     }
 
-    public Message(String topic, byte[] body, Map<String, String> properties) {
-        this(topic, "", "", 0, body, true);
-        if (properties != null) {
-            this.properties = new HashMap<>();
-            this.properties.putAll(properties);
-        }
-    }
-
     public Message(String topic, String tags, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
         this.topic = topic;
         this.flag = flag;
@@ -68,6 +60,18 @@ public class Message implements Serializable {
 
     public Message(String topic, String tags, String keys, byte[] body) {
         this(topic, tags, keys, 0, body, true);
+    }
+
+    public Message(Message msg) {
+        this.topic = msg.getTopic();
+        this.flag = msg.getFlag();
+        this.body = Arrays.copyOfRange(msg.getBody(), 0, msg.getBody().length);
+        this.transactionId = msg.getTransactionId();
+
+        if (msg.getProperties() != null) {
+            this.properties = new HashMap<>();
+            this.properties.putAll(msg.properties);
+        }
     }
 
     public void setKeys(String keys) {
