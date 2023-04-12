@@ -215,7 +215,7 @@ public class MessageQueueSelector {
     }
 
     public List<MessageQueue> transferAddressableQueues(List<AddressableMessageQueue> addressableMessageQueueList) {
-        if(addressableMessageQueueList == null) {
+        if (addressableMessageQueueList == null) {
             return null;
         }
 

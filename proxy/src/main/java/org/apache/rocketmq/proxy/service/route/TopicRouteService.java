@@ -45,6 +45,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -109,8 +110,20 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             });
         ServiceDetector serviceDetector = new ServiceDetector() {
             @Override
-            public boolean detect(String endpoint) {
-                return mqClientAPIFactory.isAddressReachable(endpoint);
+            public boolean detect(String endpoint, long timeoutMillis) {
+                Optional<String> candidateTopic = pickTopic();
+                if (!candidateTopic.isPresent()) {
+                    return false;
+                }
+                try {
+                    GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+                    requestHeader.setTopic(candidateTopic.get());
+                    requestHeader.setQueueId(0);
+                    Long maxOffset = mqClientAPIFactory.getClient().getMaxOffset(endpoint, requestHeader, timeoutMillis).get();
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
             }
         };
         mqFaultStrategy = new MQFaultStrategy(extractClientConfigFromProxyConfig(config), new Resolver() {
@@ -125,6 +138,14 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
         this.init();
+    }
+
+    // pickup one topic in the topic cache
+    private Optional<String> pickTopic() {
+        if (topicCache.asMap().isEmpty()) {
+            return Optional.absent();
+        }
+        return Optional.of(topicCache.asMap().keySet().iterator().next());
     }
 
     protected void init() {

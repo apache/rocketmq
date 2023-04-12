@@ -26,5 +26,5 @@ public interface ServiceDetector {
      * @param endpoint Service endpoint to check against
      * @return true if the service is back to normal; false otherwise.
      */
-    boolean detect(String endpoint);
+    boolean detect(String endpoint, long timeoutMillis);
 }

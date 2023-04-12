@@ -3121,8 +3121,4 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
-
-    public boolean isAddressReachable(String address) {
-        return this.remotingClient.isAddressReachable(address);
-    }
 }

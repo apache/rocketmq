@@ -160,8 +160,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         ServiceDetector serviceDetector = new ServiceDetector() {
             @Override
-            public boolean detect(String endpoint) {
-                return getMqClientFactory().isAddressReachable(endpoint);
+            public boolean detect(String endpoint, long timeoutMillis) {
+                Optional<String> candidateTopic = pickTopic();
+                if (!candidateTopic.isPresent()) {
+                    return false;
+                }
+                try {
+                    MessageQueue mq = new MessageQueue(candidateTopic.get(), null, 0);
+                    mQClientFactory.getMQClientAPIImpl()
+                            .getMaxOffset(endpoint, mq, timeoutMillis);
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
             }
         };
 
@@ -172,7 +183,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         }, serviceDetector);
     }
-
+    private Optional<String> pickTopic() {
+        if (topicPublishInfoTable.isEmpty()) {
+            return Optional.absent();
+        }
+        return Optional.of(topicPublishInfoTable.keySet().iterator().next());
+    }
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
         this.checkForbiddenHookList.add(checkForbiddenHook);
         log.info("register a new checkForbiddenHook. hookName={}, allHookSize={}", checkForbiddenHook.hookName(),

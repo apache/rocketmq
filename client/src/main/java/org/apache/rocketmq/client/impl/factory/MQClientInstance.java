@@ -1254,8 +1254,4 @@ public class MQClientInstance {
         }
         return data;
     }
-
-    public boolean isAddressReachable(String address) {
-        return this.mQClientAPIImpl.isAddressReachable(address);
-    }
 }
