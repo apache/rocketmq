@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.tools.command.export;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -99,13 +100,13 @@ public class ExportMetadataCommand implements SubCommand {
                     filePath = filePath + "/topic.json";
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
                         brokerAddr, specialTopic, 10000L);
-                    MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
+                    MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, JSONWriter.Feature.PrettyFormat), filePath);
                     System.out.printf("export %s success", filePath);
                 } else if (commandLine.hasOption('g')) {
                     filePath = filePath + "/subscriptionGroup.json";
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         brokerAddr, 10000L);
-                    MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
+                    MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, JSONWriter.Feature.PrettyFormat), filePath);
                     System.out.printf("export %s success", filePath);
                 }
             } else if (commandLine.hasOption('c')) {
@@ -163,7 +164,7 @@ public class ExportMetadataCommand implements SubCommand {
                     exportPath = filePath + "/metadata.json";
                 }
                 result.put("exportTime", System.currentTimeMillis());
-                MixAll.string2FileNotSafe(JSON.toJSONString(result, true), exportPath);
+                MixAll.string2FileNotSafe(JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat), exportPath);
                 System.out.printf("export %s success%n", exportPath);
 
             } else {

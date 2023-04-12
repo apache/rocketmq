@@ -246,8 +246,8 @@ The source code of slf4j can be found at https://github.com/qos-ch/slf4j.
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ------
-This product has a bundle fastjson, which is available under the ASL2 License.
-The source code of fastjson can be found at https://github.com/alibaba/fastjson.
+This product has a bundle fastjson2, which is available under the ASL2 License.
+The source code of fastjson2 can be found at https://github.com/alibaba/fastjson2.
 
  Copyright 1999-2016 Alibaba Group Holding Ltd.
 

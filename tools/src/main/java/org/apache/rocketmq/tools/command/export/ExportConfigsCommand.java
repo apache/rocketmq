@@ -22,7 +22,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -97,7 +98,7 @@ public class ExportConfigsCommand implements SubCommand {
             result.put("clusterScale", clusterScaleMap);
 
             String path = filePath + "/configs.json";
-            MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
+            MixAll.string2FileNotSafe(JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat), path);
             System.out.printf("export %s success", path);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -149,7 +150,7 @@ public class TopicQueueMappingManager extends ConfigManager {
         TopicQueueMappingSerializeWrapper wrapper = new TopicQueueMappingSerializeWrapper();
         wrapper.setTopicQueueMappingInfoMap(topicQueueMappingTable);
         wrapper.setDataVersion(this.dataVersion);
-        return JSON.toJSONString(wrapper, pretty);
+        return pretty ? JSON.toJSONString(wrapper, JSONWriter.Feature.PrettyFormat) : JSON.toJSONString(wrapper);
     }
 
     @Override

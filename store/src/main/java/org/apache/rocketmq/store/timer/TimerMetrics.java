@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.store.timer;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONException;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.io.Files;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -136,7 +137,11 @@ public class TimerMetrics extends ConfigManager {
         TimerMetricsSerializeWrapper wrapper = new TimerMetricsSerializeWrapper();
         wrapper.setTimingCount(timingCount);
         wrapper.setDataVersion(dataVersion);
-        JSON.writeJSONString(writer, wrapper, SerializerFeature.BrowserCompatible);
+        try {
+            writer.write(JSON.toJSONString(wrapper, JSONWriter.Feature.BrowserCompatible));
+        } catch (IOException e) {
+            throw new JSONException(e.getMessage(), e);
+        }
     }
 
     @Override

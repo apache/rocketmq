@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.remoting.activity;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.net.HostAndPort;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
@@ -57,9 +57,7 @@ public class GetTopicRouteActivity extends AbstractRemotingActivity {
         byte[] content;
         Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
         if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || null != standardJsonOnly && standardJsonOnly) {
-            content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
-                SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
-                SerializerFeature.MapSortField);
+            content = topicRouteData.encode(JSONWriter.Feature.BrowserCompatible, JSONWriter.Feature.MapSortField);
         } else {
             content = topicRouteData.encode();
         }

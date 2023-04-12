@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
@@ -59,9 +60,9 @@ public class TieredMetadataManager extends ConfigManager implements TieredMetada
         dataWrapper.setConsumeQueueFileSegmentTable(new HashMap<>(consumeQueueFileSegmentTable));
         dataWrapper.setIndexFileSegmentTable(new HashMap<>(indexFileSegmentTable));
         if (prettyFormat) {
-            JSON.toJSONString(dataWrapper, SerializerFeature.DisableCircularReferenceDetect, SerializerFeature.PrettyFormat);
+            JSON.toJSONString(dataWrapper, JSONWriter.Feature.PrettyFormat);
         }
-        return JSON.toJSONString(dataWrapper, SerializerFeature.DisableCircularReferenceDetect);
+        return JSON.toJSONString(dataWrapper);
     }
 
     @Override

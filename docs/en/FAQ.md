@@ -76,9 +76,9 @@ Solution: Make sure that a JVM corresponding to one Producer /Consumer Group sta
 
 ### 2. Consumer failed to start loading json file in broadcast mode.
 
-Reason: Fastjson version is too low to allow the broadcast consumer to load local offsets.json, causing the consumer boot failure. Damaged fastjson file can also cause the same problem.
+Reason: Fastjson2 version is too low to allow the broadcast consumer to load local offsets.json, causing the consumer boot failure. Damaged fastjson file can also cause the same problem.
 
-Solution: Fastjson version has to be upgraded to rocketmq client dependent version to ensure that the local offsets.json can be loaded. By default offsets.json file is in /home/{user}/.rocketmq_offsets. Or check the integrity of fastjson.
+Solution: Fastjson2 version has to be upgraded to rocketmq client dependent version to ensure that the local offsets.json can be loaded. By default offsets.json file is in /home/{user}/.rocketmq_offsets. Or check the integrity of fastjson2.
 
 ### 3. What is the impact of a broker crash.
 

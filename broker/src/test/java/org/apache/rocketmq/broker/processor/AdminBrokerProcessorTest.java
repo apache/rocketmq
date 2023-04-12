@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -496,7 +496,7 @@ public class AdminBrokerProcessorTest {
         consumerOffsetManager = mock(ConsumerOffsetManager.class);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         ConsumerOffsetManager consumerOffset = new ConsumerOffsetManager();
-        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset, false));
+        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset));
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plain.PlainAccessData;
 import org.apache.rocketmq.common.PlainAccessConfig;
