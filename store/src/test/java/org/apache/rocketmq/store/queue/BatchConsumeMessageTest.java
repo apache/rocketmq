@@ -106,7 +106,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testSendMessagesToBcqTopic() {
         String topic = UUID.randomUUID().toString();
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
         // case 1 has PROPERTY_INNER_NUM but has no INNER_BATCH_FLAG
@@ -130,7 +130,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
         int batchNum = 10;
 
@@ -161,7 +161,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testNextBeginOffsetConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
         Random random = new Random();
         int putMessageCount = 1000;
@@ -200,7 +200,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testGetOffsetInQueueByTime() throws Exception {
         String topic = "testGetOffsetInQueueByTime";
 
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
         Assert.assertTrue(QueueTypeUtils.isBatchCq(messageStore.getTopicConfig(topic)));
 
@@ -302,7 +302,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         long timeStart = -1;
         long timeMid = -1;
 
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
         for (int i = 0; i < 100; i++) {
@@ -361,7 +361,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testGetBatchMessageWithinNumber() {
         String topic = UUID.randomUUID().toString();
 
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
         int batchNum = 20;
@@ -422,7 +422,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testGetBatchMessageWithinSize() {
         String topic = UUID.randomUUID().toString();
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
         int batchNum = 10;
@@ -477,7 +477,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     protected void putMsg(String topic) {
-        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
         for (int i = 0; i < TOTAL_MSGS; i++) {
