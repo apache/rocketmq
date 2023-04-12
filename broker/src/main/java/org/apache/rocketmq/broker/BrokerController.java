@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker;
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
