@@ -45,7 +45,6 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -131,13 +130,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected void init() {
         this.appendShutdown(this.scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.mqClientAPIFactory);
-    }
-    // pickup one topic in the topic cache
-    private Optional<String> pickTopic() {
-        if (topicCache.asMap().isEmpty()) {
-            return Optional.absent();
-        }
-        return Optional.of(topicCache.asMap().keySet().iterator().next());
     }
 
     @Override

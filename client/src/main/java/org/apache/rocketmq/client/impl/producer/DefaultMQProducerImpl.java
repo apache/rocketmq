@@ -173,13 +173,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }, serviceDetector);
     }
 
-    private Optional<String> pickTopic() {
-        if (topicPublishInfoTable.isEmpty()) {
-            return Optional.absent();
-        }
-        return Optional.of(topicPublishInfoTable.keySet().iterator().next());
-    }
-
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
         this.checkForbiddenHookList.add(checkForbiddenHook);
         log.info("register a new checkForbiddenHook. hookName={}, allHookSize={}", checkForbiddenHook.hookName(),
