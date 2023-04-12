@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -737,7 +738,7 @@ public class BrokerController {
 
         if (result) {
             try {
-                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, (ConcurrentMap<String, TopicConfig>) Collections.unmodifiableMap(topicConfigManager.getTopicConfigTable()));
+                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
