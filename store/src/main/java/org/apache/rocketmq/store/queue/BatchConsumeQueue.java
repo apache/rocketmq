@@ -818,8 +818,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     /**
-     * Find the offset of which the value is equal or larger than the given targetValue. If there are many values equal
-     * to the target, then find the earliest one.
+     * Find the offset of which the value is equal or larger than the given targetValue.
+     * If there are multiple values equal to the target, return the earliest one.
      */
     public static int binarySearchRight(ByteBuffer byteBuffer, int left, int right, final int unitSize,
         final int unitShift,
