@@ -38,6 +38,14 @@ public class Message implements Serializable {
         this(topic, "", "", 0, body, true);
     }
 
+    public Message(String topic, byte[] body, Map<String, String> properties) {
+        this(topic, "", "", 0, body, true);
+        if (properties != null) {
+            this.properties = new HashMap<>();
+            this.properties.putAll(properties);
+        }
+    }
+
     public Message(String topic, String tags, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
         this.topic = topic;
         this.flag = flag;

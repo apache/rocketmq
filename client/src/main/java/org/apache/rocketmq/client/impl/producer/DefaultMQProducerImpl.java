@@ -1412,7 +1412,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
                 }
 
                 @Override
@@ -1440,7 +1440,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
             }
 
             @Override
@@ -1465,7 +1465,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
                 }
 
                 @Override
@@ -1494,7 +1494,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
             }
 
             @Override
@@ -1519,7 +1519,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                    requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
                 }
 
                 @Override
@@ -1561,7 +1561,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody()));
+                requestSuccess(correlationId, new Message(msg.getTopic(), msg.getBody(), msg.getProperties()));
             }
 
             @Override
