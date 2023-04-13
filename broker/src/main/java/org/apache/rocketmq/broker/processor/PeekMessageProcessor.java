@@ -201,8 +201,8 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                             .addListener((ChannelFutureListener) future -> {
                                 tmpGetMessageResult.release();
                                 Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
-                                    .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
-                                    .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(finalResponse.getCode()))
+                                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                                    .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
                                     .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
                                 RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
