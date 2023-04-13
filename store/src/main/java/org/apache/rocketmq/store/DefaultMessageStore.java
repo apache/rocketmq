@@ -385,9 +385,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
-        if (messageStoreConfig.isEnableCompaction() && this.compactionService != null) {
-            this.compactionService.start();
-        }
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -474,12 +471,13 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             this.storeStatsService.shutdown();
+            this.commitLog.shutdown();
+            this.reputMessageService.shutdown();
+            // dispatch-related services must be shut down after reputMessageService
             this.indexService.shutdown();
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
 
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
