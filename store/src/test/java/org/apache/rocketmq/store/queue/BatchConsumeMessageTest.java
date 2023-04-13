@@ -554,7 +554,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testEstimateMessageCountSample(){
+    public void testEstimateMessageCountSample() {
         String topic = UUID.randomUUID().toString();
         putMsg(topic);
         messageStore.getMessageStoreConfig().setSampleCountThreshold(10);
