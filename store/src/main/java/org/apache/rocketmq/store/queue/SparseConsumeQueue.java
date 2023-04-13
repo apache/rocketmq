@@ -330,7 +330,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             short batchSize = byteBuffer.getShort();
             if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
                 byteBuffer.position(i);     //reset position
-                return function.apply(byteBuffer);
+                return function.apply(byteBuffer.slice());
             }
         }
 
