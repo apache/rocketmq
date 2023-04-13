@@ -220,7 +220,7 @@ public class ConsumeQueueStore {
                     FutureTask<Boolean> futureTask = new FutureTask<>(() -> {
                         boolean ret = true;
                         try {
-                            ((FileQueueLifeCycle) logic).recover();
+                            logic.recover();
                         } catch (Throwable e) {
                             ret = false;
                             log.error("Exception occurs while recover consume queue concurrently, " +
