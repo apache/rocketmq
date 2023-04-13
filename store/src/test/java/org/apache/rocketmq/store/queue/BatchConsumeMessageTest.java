@@ -526,7 +526,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testEstimateMessageCount() throws Exception {
+    public void testEstimateMessageCount() {
         String topic = UUID.randomUUID().toString();
         putMsg(topic);
         ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
@@ -554,7 +554,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testEstimateMessageCountSample() throws Exception {
+    public void testEstimateMessageCountSample(){
         String topic = UUID.randomUUID().toString();
         putMsg(topic);
         messageStore.getMessageStoreConfig().setSampleCountThreshold(10);

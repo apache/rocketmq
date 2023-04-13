@@ -2063,10 +2063,6 @@ public class DefaultMessageStore implements MessageStore {
         return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
 
-//    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-//        this.topicConfigTable = topicConfigTable;
-//    }
-
     public BrokerIdentity getBrokerIdentity() {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             return new BrokerIdentity(
