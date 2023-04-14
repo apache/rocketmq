@@ -278,6 +278,4 @@ public class RequestCode {
     public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
 
     public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
-
-
 }

@@ -122,4 +122,13 @@ public class ProxyContext {
         return this.getVal(ContextVariable.ACTION);
     }
 
+    public ProxyContext setProtocolType(String protocol) {
+        this.withVal(ContextVariable.PROTOCOL_TYPE, protocol);
+        return this;
+    }
+
+    public String getProtocolType() {
+        return this.getVal(ContextVariable.PROTOCOL_TYPE);
+    }
+
 }
