@@ -20,6 +20,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -74,7 +75,7 @@ public class ConsumeQueueTest extends QueueTestBase {
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig, new BrokerStatsManager(brokerConfig),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
-            }, brokerConfig);
+            }, brokerConfig, new ConcurrentHashMap<>());
 
         assertThat(master.load()).isTrue();
 
@@ -112,7 +113,7 @@ public class ConsumeQueueTest extends QueueTestBase {
     public void testIterator() throws Exception {
         final int msgNum = 100;
         final int msgSize = 1000;
-        MessageStore messageStore =  createMessageStore(null, true);
+        MessageStore messageStore =  createMessageStore(null, true, null);
         messageStore.load();
         String topic = UUID.randomUUID().toString();
         //The initial min max offset, before and after the creation of consume queue
