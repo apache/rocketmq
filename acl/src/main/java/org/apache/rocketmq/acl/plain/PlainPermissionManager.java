@@ -243,6 +243,8 @@ public class PlainPermissionManager {
                 if (oldPath == null || aclFilePath.equals(oldPath)) {
                     plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
                     this.accessKeyTable.put(plainAccessResource.getAccessKey(), aclFilePath);
+                } else {
+                    log.warn("The accessKey {} is repeated in multiple ACL files", plainAccessResource.getAccessKey());
                 }
             }
         }
@@ -613,10 +615,11 @@ public class PlainPermissionManager {
 
         // Check the white addr for accessKey
         String aclFileName = accessKeyTable.get(plainAccessResource.getAccessKey());
-        PlainAccessResource ownedAccess = aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey());
-        if (null == ownedAccess) {
+        if (aclPlainAccessResourceMap.get(aclFileName) == null ||
+                aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey()) == null) {
             throw new AclException(String.format("No PlainAccessResource for accessKey=%s", plainAccessResource.getAccessKey()));
         }
+        PlainAccessResource ownedAccess = aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey());
         if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
             return;
         }
