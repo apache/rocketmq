@@ -20,6 +20,7 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.net.InetSocketAddress;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;

@@ -2042,7 +2042,6 @@ public class DefaultMessageStore implements MessageStore {
         return BrokerRole.SYNC_MASTER == this.getMessageStoreConfig().getBrokerRole();
     }
 
-    @Override
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
         return this.topicConfigTable;
     }
@@ -2066,6 +2065,8 @@ public class DefaultMessageStore implements MessageStore {
                 brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
         }
     }
+
+
 
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 

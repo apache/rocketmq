@@ -49,8 +49,9 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
      * │                                                  Store Unit                                                   │
      * │                                                                                                               │
      * </pre>
-     * BatchConsumeQueue's store unit. Size: CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Store
-     * time(8) + msgBaseOffset(8) + batchSize(2) + compactedOffset(4) + reserved(4)= 46 Bytes
+     * BatchConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Store time(8) +
+     * msgBaseOffset(8) + batchSize(2) + compactedOffset(4) + reserved(4)= 46 Bytes
      */
     public static final int CQ_STORE_UNIT_SIZE = 46;
     public static final int MSG_TAG_OFFSET_INDEX = 12;
@@ -89,7 +90,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;
-        this.commitLogSize = messageStore.getCommitLog().getCommitLogSize();
+        this.commitLogSize = messageStore.getMessageStoreConfig().getMaxMessageSize();
 
         this.topic = topic;
         this.queueId = queueId;
@@ -592,9 +593,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     /**
-     * Gets SelectMappedBufferResult by batch-message offset Node: the caller is responsible for the release of
-     * SelectMappedBufferResult
-     *
+     * Gets SelectMappedBufferResult by batch-message offset
+     * Node: the caller is responsible for the release of SelectMappedBufferResult
      * @param msgOffset
      * @return SelectMappedBufferResult
      */
@@ -829,8 +829,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     /**
-     * Here is vulnerable, the min value of the bytebuffer must be smaller or equal then the given value. Otherwise it
-     * may get -1
+     * Here is vulnerable, the min value of the bytebuffer must be smaller or equal then the given value.
+     * Otherwise it may get -1
      */
     protected int binarySearch(ByteBuffer byteBuffer, int left, int right, final int unitSize, final int unitShift,
         long targetValue) {

@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageExtEncoder;
@@ -75,19 +74,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class CompactionLogTest {
-    CompactionLog clog;
     MessageStoreConfig storeConfig;
     MessageStore defaultMessageStore;
     CompactionPositionMgr positionMgr;
     String topic = "ctopic";
     int queueId = 0;
-    int offsetMemorySize = 1024;
     int compactionFileSize = 10240;
     int compactionCqFileSize = 1024;
 
     private static MessageExtEncoder encoder = new MessageExtEncoder(new MessageStoreConfig());
     private static SocketAddress storeHost;
     private static SocketAddress bornHost;
+    private static final int QUEUE_OFFSET_POS = 4 + 4 + 4 + 4 + 4;
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -140,8 +138,7 @@ public class CompactionLogTest {
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         encoder.encode(msg);
         ByteBuffer preEncodeBuffer = encoder.getEncoderBuffer();
-        int pos = 4 + 4 + 4 + 4 + 4;
-        preEncodeBuffer.putLong(pos, queueOffset);
+        preEncodeBuffer.putLong(QUEUE_OFFSET_POS, queueOffset);
         queueOffset++;
         return encoder.getEncoderBuffer();
     }
@@ -198,19 +195,10 @@ public class CompactionLogTest {
         List<MappedFile> mappedFileList = Lists.newArrayList(mf);
         doReturn(iterator).when(mf).iterator(0);
 
-//        MessageStore messageStore = mock(DefaultMessageStore.class);
-//        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-//        when(messageStoreConfig.getMappedFileSizeCommitLog()).thenReturn(1024 * 1024);
-//        when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-//        CompactionLog clog = mock(CompactionLog.class);
-//        FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
-//        doCallRealMethod().when(clog).getOffsetMap(any());
-//        FieldUtils.writeField(clog, "positionMgr", positionMgr, true);
-
         MessageStore messageStore = mock(DefaultMessageStore.class);
-        CommitLog commitLog = mock(CommitLog.class);
-        when(messageStore.getCommitLog()).thenReturn(commitLog);
-        when(commitLog.getCommitLogSize()).thenReturn(1024 * 1024);
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getMappedFileSizeCommitLog()).thenReturn(1024 * 1024);
+        when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         CompactionLog clog = mock(CompactionLog.class);
         FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
         doCallRealMethod().when(clog).getOffsetMap(any());

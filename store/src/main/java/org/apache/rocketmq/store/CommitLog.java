@@ -86,8 +86,6 @@ public class CommitLog implements Swappable {
 
     protected final MultiDispatch multiDispatch;
 
-    protected int commitLogSize;
-
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
@@ -116,12 +114,6 @@ public class CommitLog implements Swappable {
         this.flushDiskWatcher = new FlushDiskWatcher();
 
         this.multiDispatch = new MultiDispatch(defaultMessageStore);
-
-        this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
-    }
-
-    public int getCommitLogSize() {
-        return commitLogSize;
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
