@@ -615,11 +615,10 @@ public class PlainPermissionManager {
 
         // Check the white addr for accessKey
         String aclFileName = accessKeyTable.get(plainAccessResource.getAccessKey());
-        if (aclPlainAccessResourceMap.get(aclFileName) == null ||
-                aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey()) == null) {
+        PlainAccessResource ownedAccess = aclPlainAccessResourceMap.getOrDefault(aclFileName, new HashMap<>()).get(plainAccessResource.getAccessKey());
+        if (ownedAccess == null) {
             throw new AclException(String.format("No PlainAccessResource for accessKey=%s", plainAccessResource.getAccessKey()));
         }
-        PlainAccessResource ownedAccess = aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey());
         if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
             return;
         }
