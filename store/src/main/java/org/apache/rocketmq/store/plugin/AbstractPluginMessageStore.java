@@ -591,16 +591,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg) {
-        next.assignOffset(msg);
-    }
-
-    @Override
-    public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
-        next.increaseOffset(msg, messageNum);
-    }
-
-    @Override
     public Map<String, TopicConfig> getTopicConfigs() {
         return next.getTopicConfigs();
     }

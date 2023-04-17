@@ -19,8 +19,8 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -31,14 +31,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MultiDispatchTest {
 
-    private ConsumeQueue consumeQueue;
+    private MultiDispatch multiDispatch;
 
     private DefaultMessageStore messageStore;
 
@@ -58,8 +57,7 @@ public class MultiDispatchTest {
         BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
         messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig);
-        consumeQueue = new ConsumeQueue("xxx", 0,
-            getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        multiDispatch = new MultiDispatch(messageStore);
     }
 
     @After
@@ -71,14 +69,14 @@ public class MultiDispatchTest {
     public void queueKey() {
         MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
         when(messageExtBrokerInner.getQueueId()).thenReturn(2);
-        String ret = consumeQueue.queueKey("%LMQ%lmq123", messageExtBrokerInner);
+        String ret = multiDispatch.queueKey("%LMQ%lmq123", messageExtBrokerInner);
         assertEquals(ret, "%LMQ%lmq123-0");
     }
 
     @Test
     public void wrapMultiDispatch() {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
-        messageStore.assignOffset(messageExtBrokerInner);
+        multiDispatch.wrapMultiDispatch(messageExtBrokerInner);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");
     }
 
@@ -87,7 +85,7 @@ public class MultiDispatchTest {
         msg.setTopic("test");
         msg.setTags("TAG1");
         msg.setKeys("Hello");
-        msg.setBody("aaa".getBytes(Charset.forName("UTF-8")));
+        msg.setBody("aaa".getBytes(StandardCharsets.UTF_8));
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(0);
         msg.setSysFlag(0);

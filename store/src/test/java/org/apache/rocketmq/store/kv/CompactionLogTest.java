@@ -85,8 +85,7 @@ public class CompactionLogTest {
     int compactionFileSize = 10240;
     int compactionCqFileSize = 1024;
 
-
-    private static MessageExtEncoder encoder = new MessageExtEncoder(1024);
+    private static MessageExtEncoder encoder = new MessageExtEncoder(new MessageStoreConfig());
     private static SocketAddress storeHost;
     private static SocketAddress bornHost;
 
@@ -123,6 +122,7 @@ public class CompactionLogTest {
 
     static int queueOffset = 0;
     static int keyCount = 10;
+
     public static ByteBuffer buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("ctopic");
@@ -134,16 +134,17 @@ public class CompactionLogTest {
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
         msg.setBornHost(bornHost);
-        msg.setQueueOffset(queueOffset);
-        queueOffset++;
         for (int i = 1; i < 3; i++) {
             msg.putUserProperty(String.valueOf(i), "xxx" + i);
         }
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         encoder.encode(msg);
+        ByteBuffer preEncodeBuffer = encoder.getEncoderBuffer();
+        int pos = 4 + 4 + 4 + 4 + 4;
+        preEncodeBuffer.putLong(pos, queueOffset);
+        queueOffset++;
         return encoder.getEncoderBuffer();
     }
-
 
     @Test
     public void testCheck() throws IllegalAccessException {
@@ -189,14 +190,22 @@ public class CompactionLogTest {
     @Test
     public void testCompaction() throws DigestException, NoSuchAlgorithmException, IllegalAccessException {
         Iterator<SelectMappedBufferResult> iterator = mock(Iterator.class);
-        SelectMappedBufferResult smb = mock(SelectMappedBufferResult.class);
-        when(iterator.hasNext()).thenAnswer((Answer<Boolean>)invocationOnMock -> queueOffset < 1024);
-        when(iterator.next()).thenAnswer((Answer<SelectMappedBufferResult>)invocation ->
+        when(iterator.hasNext()).thenAnswer((Answer<Boolean>) invocationOnMock -> queueOffset < 1024);
+        when(iterator.next()).thenAnswer((Answer<SelectMappedBufferResult>) invocation ->
             new SelectMappedBufferResult(0, buildMessage(), 0, null));
 
         MappedFile mf = mock(MappedFile.class);
         List<MappedFile> mappedFileList = Lists.newArrayList(mf);
         doReturn(iterator).when(mf).iterator(0);
+
+//        MessageStore messageStore = mock(DefaultMessageStore.class);
+//        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+//        when(messageStoreConfig.getMappedFileSizeCommitLog()).thenReturn(1024 * 1024);
+//        when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+//        CompactionLog clog = mock(CompactionLog.class);
+//        FieldUtils.writeField(clog, "defaultMessageStore", messageStore, true);
+//        doCallRealMethod().when(clog).getOffsetMap(any());
+//        FieldUtils.writeField(clog, "positionMgr", positionMgr, true);
 
         MessageStore messageStore = mock(DefaultMessageStore.class);
         CommitLog commitLog = mock(CommitLog.class);
@@ -219,7 +228,7 @@ public class CompactionLogTest {
         List<MessageExt> compactResult = Lists.newArrayList();
         when(clog.asyncPutMessage(any(ByteBuffer.class), any(MessageExt.class),
             any(CompactionLog.TopicPartitionLog.class)))
-            .thenAnswer((Answer<CompletableFuture<PutMessageResult>>)invocation -> {
+            .thenAnswer((Answer<CompletableFuture<PutMessageResult>>) invocation -> {
                 compactResult.add(invocation.getArgument(1));
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK,
                     new AppendMessageResult(AppendMessageStatus.PUT_OK)));

@@ -58,10 +58,10 @@ public class SparseConsumeQueueTest {
         defaultMessageStore = mock(DefaultMessageStore.class);
         CommitLog commitLog = mock(CommitLog.class);
         when(defaultMessageStore.getCommitLog()).thenReturn(commitLog);
-        when(commitLog.getCommitLogSize()).thenReturn(10 * 1024 * 1024);
         MessageStoreConfig config = mock(MessageStoreConfig.class);
         doReturn(config).when(defaultMessageStore).getMessageStoreConfig();
         doReturn(true).when(config).isSearchBcqByCacheEnable();
+        doReturn(10 * 1024 * 1024).when(config).getMappedFileSizeCommitLog();
     }
 
     private void fillByteBuf(ByteBuffer bb, long phyOffset, long queueOffset) {

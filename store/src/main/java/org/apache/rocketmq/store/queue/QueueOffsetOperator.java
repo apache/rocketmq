@@ -73,14 +73,6 @@ public class QueueOffsetOperator {
         return currentQueueOffset == null ? 0L : currentQueueOffset;
     }
 
-    public long currentBatchQueueOffset(String topicQueueKey) {
-        return this.batchTopicQueueTable.get(topicQueueKey);
-    }
-
-    public long currentLmqOffset(String topicQueueKey) {
-        return this.lmqTopicQueueTable.get(topicQueueKey);
-    }
-
     public synchronized void remove(String topic, Integer queueId) {
         String topicQueueKey = topic + "-" + queueId;
         // Beware of thread-safety

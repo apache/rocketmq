@@ -728,22 +728,6 @@ public interface MessageStore {
     boolean isSyncMaster();
 
     /**
-     * Assign a message to queue offset. If there is a race condition, you need to lock/unlock this method
-     * yourself.
-     *
-     * @param msg        message
-     */
-    void assignOffset(MessageExtBrokerInner msg);
-
-    /**
-     * Increase queue offset in memory table. If there is a race condition, you need to lock/unlock this method
-     *
-     * @param msg        message
-     * @param messageNum message num
-     */
-    void increaseOffset(MessageExtBrokerInner msg, short messageNum);
-
-    /**
      * get all topic config
      *
      * @return all topic config info

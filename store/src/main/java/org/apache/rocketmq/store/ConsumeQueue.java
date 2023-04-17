@@ -26,10 +26,7 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -731,10 +728,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        if (StringUtils.isBlank(multiDispatchQueue) || StringUtils.isBlank(multiQueueOffset)) {
-            return false;
-        }
-        return true;
+        return !StringUtils.isBlank(multiDispatchQueue) && !StringUtils.isBlank(multiQueueOffset);
     }
 
     private void multiDispatchLmqQueue(DispatchRequest request, int maxRetries) {
@@ -757,7 +751,6 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             doDispatchLmqQueue(request, maxRetries, queueName, queueOffset, queueId);
 
         }
-        return;
     }
 
     private void doDispatchLmqQueue(DispatchRequest request, int maxRetries, String queueName, long queueOffset,
@@ -780,80 +773,6 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     log.warn("", e);
                 }
             }
-        }
-    }
-
-    @Override
-    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
-        long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
-        msg.setQueueOffset(queueOffset);
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            return;
-        }
-        String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-        if (StringUtils.isBlank(multiDispatchQueue)) {
-            return;
-        }
-        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        Long[] queueOffsets = new Long[queues.length];
-        for (int i = 0; i < queues.length; i++) {
-            String key = queueKey(queues[i], msg);
-            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                queueOffsets[i] = queueOffsetOperator.getLmqOffset(key);
-            }
-        }
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
-            StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
-        removeWaitStorePropertyString(msg);
-    }
-
-    @Override
-    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
-        short messageNum) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
-        queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
-
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            return;
-        }
-        String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-        if (StringUtils.isBlank(multiDispatchQueue)) {
-            return;
-        }
-        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        for (int i = 0; i < queues.length; i++) {
-            String key = queueKey(queues[i], msg);
-            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                queueOffsetOperator.increaseLmqOffset(key, (short) 1);
-            }
-        }
-    }
-
-    public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
-        StringBuilder keyBuilder = new StringBuilder();
-        keyBuilder.append(queueName);
-        keyBuilder.append('-');
-        int queueId = msgInner.getQueueId();
-        if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
-            queueId = 0;
-        }
-        keyBuilder.append(queueId);
-        return keyBuilder.toString();
-    }
-
-    private void removeWaitStorePropertyString(MessageExtBrokerInner msgInner) {
-        if (msgInner.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
-            // There is no need to store "WAIT=true", remove it from propertiesString to save 9 bytes for each message.
-            // It works for most case. In some cases msgInner.setPropertiesString invoked later and replace it.
-            String waitStoreMsgOKValue = msgInner.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-            // Reput to properties, since msgInner.isWaitStoreMsgOK() will be invoked later
-            msgInner.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
-        } else {
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         }
     }
 
@@ -1125,6 +1044,16 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public long getMaxOffsetInQueue() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
+    }
+
+    @Override
+    public long getQueueOffset(QueueOffsetOperator queueOffsetOperator) {
+        return queueOffsetOperator.getQueueOffset(topic + "-" + queueId);
+    }
+
+    @Override
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, short messageNum) {
+        queueOffsetOperator.increaseQueueOffset(topic + "-" + queueId, messageNum);
     }
 
     @Override
