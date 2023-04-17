@@ -26,15 +26,12 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -588,16 +585,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public boolean isSyncMaster() {
         return next.isSyncMaster();
-    }
-
-    @Override
-    public Map<String, TopicConfig> getTopicConfigs() {
-        return next.getTopicConfigs();
-    }
-
-    @Override
-    public Optional<TopicConfig> getTopicConfig(String topic) {
-        return next.getTopicConfig(topic);
     }
 
     @Override
