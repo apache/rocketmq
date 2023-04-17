@@ -1631,7 +1631,7 @@ public class CommitLog implements Swappable {
                 return null;
             }
 
-            if (msgInner.isEncodeCompleted()){
+            if (msgInner.isEncodeCompleted()) {
                 return null;
             }
 
