@@ -381,7 +381,7 @@ public class MessageExtEncoder {
         putMessageContext.setBatchSize(batchSize);
         putMessageContext.setPhyPos(new long[batchSize]);
 
-        return this.byteBuf.nioBuffer();
+        return this.byteBuf.nioBuffer(0, this.byteBuf.capacity());
     }
 
     public ByteBuffer getEncoderBuffer() {

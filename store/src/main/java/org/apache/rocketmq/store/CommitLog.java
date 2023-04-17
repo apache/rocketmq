@@ -842,8 +842,8 @@ public class CommitLog implements Swappable {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
             }
-
             result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+
             switch (result.getStatus()) {
                 case PUT_OK:
                     onCommitLogAppend(msg, result, mappedFile);
@@ -1627,6 +1627,11 @@ public class CommitLog implements Swappable {
             final MessageExtBrokerInner msgInner, boolean isInnerBatchMsg, boolean isMultiDispatchMsg) {
 
             if (!isInnerBatchMsg && !isMultiDispatchMsg) {
+                msgInner.setEncodeCompleted(true);
+                return null;
+            }
+
+            if (msgInner.isEncodeCompleted()){
                 return null;
             }
 
@@ -1662,7 +1667,6 @@ public class CommitLog implements Swappable {
 
             // Back filling total message length
             preEncodeBuffer.putInt(0, msgLen);
-
             // Modify position to msgLenWithoutProperties
             preEncodeBuffer.position(msgLenWithoutProperties);
 
@@ -1671,6 +1675,8 @@ public class CommitLog implements Swappable {
             if (propertiesLength > 0) {
                 preEncodeBuffer.put(propertiesData);
             }
+
+            msgInner.setEncodeCompleted(true);
 
             return null;
         }
@@ -1722,6 +1728,7 @@ public class CommitLog implements Swappable {
                 // Here the length of the specially set maxBlank
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
+
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
                     maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
                     msgIdSupplier, msgInner.getStoreTimestamp(),
