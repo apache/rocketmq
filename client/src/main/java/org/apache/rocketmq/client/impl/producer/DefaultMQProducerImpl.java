@@ -89,6 +89,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -534,6 +535,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         boolean isSemaphoreAsyncNumAquired = false;
         boolean isSemaphoreAsyncSizeAquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
+        if (msgLen > this.getDefaultMQProducer().getBackPressureForAsyncSendSize()) {
+            sendCallback.onException(
+                    new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
+                            "the message body size over the maximum message size of on-going sending async messages" +
+                                    ", backPressureForAsyncSendSize:" + this.getDefaultMQProducer().getBackPressureForAsyncSendSize()));
+            return;
+        }
 
         try {
             if (isEnableBackpressureForAsyncMode) {
