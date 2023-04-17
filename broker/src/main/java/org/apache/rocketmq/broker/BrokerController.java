@@ -922,13 +922,9 @@ public class BrokerController {
     }
 
     private void initialAcl() {
-        if (!this.brokerConfig.isAclEnable()) {
-            LOG.info("The broker dose not enable acl");
-            return;
-        }
-
         List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        if (accessValidators.isEmpty()) {
+
+        if (accessValidators.isEmpty() && this.brokerConfig.isAclEnable()) {
             LOG.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
             accessValidators.add(new PlainAccessValidator());
         }
