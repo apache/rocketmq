@@ -21,6 +21,7 @@ import java.io.File;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -107,7 +108,7 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
         storeConfig.setdLegerSelfId(selfId);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("DLedgerCommitLogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        }, new BrokerConfig(), new ConcurrentHashMap<>());
         Assert.assertTrue(defaultMessageStore.load());
         defaultMessageStore.start();
         return defaultMessageStore;

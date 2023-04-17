@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -497,7 +498,7 @@ public class AutoSwitchHATest {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
         brokerConfig.setEnableControllerMode(true);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, new ConcurrentHashMap<>());
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig, int mappedFileSize) {

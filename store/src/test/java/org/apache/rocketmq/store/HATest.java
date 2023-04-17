@@ -27,6 +27,7 @@ import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -250,7 +251,7 @@ public class HATest {
     private MessageStore buildMessageStore(MessageStoreConfig messageStoreConfig, long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, new ConcurrentHashMap<>());
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig) {

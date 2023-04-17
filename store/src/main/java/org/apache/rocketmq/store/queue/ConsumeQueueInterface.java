@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageFilter;
 
-public interface ConsumeQueueInterface {
+public interface ConsumeQueueInterface extends FileQueueLifeCycle {
     /**
      * Get the topic name
      * @return the topic this cq belongs to.
