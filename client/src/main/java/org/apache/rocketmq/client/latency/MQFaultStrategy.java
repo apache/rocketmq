@@ -32,7 +32,7 @@ public class MQFaultStrategy {
     private long[] latencyMax = {50L, 100L, 550L, 1800L, 3000L, 5000L, 15000L};
     private long[] notAvailableDuration = {0L, 0L, 2000L, 5000L, 6000L, 10000L, 30000L};
 
-    public class BrokerFilter implements QueueFilter {
+    public static class BrokerFilter implements QueueFilter {
         private String lastBrokerName;
 
         public void setLastBrokerName(String lastBrokerName) {
