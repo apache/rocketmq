@@ -40,7 +40,6 @@ public class ClientConfig {
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
     public static final String SEND_LATENCY_ENABLE = "com.rocketmq.sendLatencyEnable";
     public static final String START_DETECTOR_ENABLE = "com.rocketmq.startDetectorEnable";
-    public static final String FETCH_REMOTE_CLIENT_CONFIG = "com.rocketmq.client.config.fetchRemote";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = NetworkUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
@@ -76,11 +75,6 @@ public class ClientConfig {
     private int detectTimeout = 200;
     private int detectInterval = 2 * 1000;
 
-    /**
-     * Update clients' config from namesrv's interval
-     */
-    private int clientConfigInterval = 1000 * 60;
-
     private LanguageCode language = LanguageCode.JAVA;
 
     /**
@@ -89,9 +83,14 @@ public class ClientConfig {
      */
     protected boolean enableStreamRequestType = false;
 
+    /**
+     * Enable the fault tolerance mechanism of the client sending process.
+     * DO NOT OPEN when ORDER messages are required.
+     * Turning on will interfere with the queue selection functionality,
+     * possibly conflicting with the order message.
+     */
     private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
     private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
-    private boolean fetchRemoteClientConfigEnable = Boolean.parseBoolean(System.getProperty(FETCH_REMOTE_CLIENT_CONFIG, "false"));
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -421,18 +420,6 @@ public class ClientConfig {
 
     public void setDetectInterval(int detectInterval) {
         this.detectInterval = detectInterval;
-    }
-
-    public int getClientConfigInterval() {
-        return clientConfigInterval;
-    }
-
-    public boolean isFetchRemoteClientConfigEnable() {
-        return fetchRemoteClientConfigEnable;
-    }
-
-    public void setFetchRemoteClientConfigEnable(boolean fetchRemoteClientConfigEnable) {
-        this.fetchRemoteClientConfigEnable = fetchRemoteClientConfigEnable;
     }
 
     @Override
