@@ -39,4 +39,3 @@ public class AuthenticationPipeline implements RequestPipeline {
         }
     }
 }
-redundant
