@@ -74,7 +74,7 @@ public class CompactionStore {
         this.compactionLogPath = Paths.get(compactionPath, COMPACTION_LOG_DIR).toString();
         this.compactionCqPath = Paths.get(compactionPath, COMPACTION_CQ_DIR).toString();
         this.positionMgr = new CompactionPositionMgr(compactionPath);
-        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), config.getCompactionThreadNum());
+        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), Math.max(1, config.getCompactionThreadNum()));
 
         this.compactionSchedule = Executors.newScheduledThreadPool(this.compactionThreadNum,
             new ThreadFactoryImpl("compactionSchedule_"));
