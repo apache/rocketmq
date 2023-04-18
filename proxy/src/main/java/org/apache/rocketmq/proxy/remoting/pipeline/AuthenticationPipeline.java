@@ -21,10 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthenticationPipeline implements RequestPipeline {
@@ -36,13 +33,10 @@ public class AuthenticationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ChannelHandlerContext ctx, RemotingCommand request, ProxyContext context) throws Exception {
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
-        if (config.isEnableACL()) {
-            accessValidatorList.add(new PlainAccessValidator());
-            for (AccessValidator accessValidator : accessValidatorList) {
-                AccessResource accessResource = accessValidator.parse(request, context.getRemoteAddress());
-                accessValidator.validate(accessResource);
-            }
+        for (AccessValidator accessValidator : accessValidatorList) {
+            AccessResource accessResource = accessValidator.parse(request, context.getRemoteAddress());
+            accessValidator.validate(accessResource);
         }
     }
 }
+redundant

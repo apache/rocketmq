@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -258,7 +259,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         };
 
         List<AccessValidator> accessValidatorList = new ArrayList<>();
-        // add pipeline
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        if (config.isEnableACL()) {
+            accessValidatorList.add(new PlainAccessValidator());
+        }
+            // add pipeline
         // the last pipe add will execute at the first
         return pipeline.pipe(new AuthenticationPipeline(accessValidatorList));
     }
