@@ -41,7 +41,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
-public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
+public class BatchConsumeQueue implements ConsumeQueueInterface {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     /**

@@ -71,7 +71,7 @@ public class ConsumeQueueStore {
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
-        return (FileQueueLifeCycle) findOrCreateConsumeQueue(topic, queueId);
+        return findOrCreateConsumeQueue(topic, queueId);
     }
 
     public long rollNextFile(ConsumeQueueInterface consumeQueue, final long offset) {
@@ -212,7 +212,7 @@ public class ConsumeQueueStore {
                     FutureTask<Boolean> futureTask = new FutureTask<>(() -> {
                         boolean ret = true;
                         try {
-                            ((FileQueueLifeCycle) logic).recover();
+                            logic.recover();
                         } catch (Throwable e) {
                             ret = false;
                             log.error("Exception occurs while recover consume queue concurrently, " +
