@@ -259,10 +259,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         };
 
         List<AccessValidator> accessValidatorList = new ArrayList<>();
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
-        if (config.isEnableACL()) {
-            accessValidatorList.add(new PlainAccessValidator());
-        }
+        accessValidatorList.add(new PlainAccessValidator());
         // add pipeline
         // the last pipe add will execute at the first
         return pipeline.pipe(new AuthenticationPipeline(accessValidatorList));
