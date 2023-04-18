@@ -120,5 +120,5 @@ then
 		numactl --cpunodebind=$RMQ_NUMA_NODE --membind=$RMQ_NUMA_NODE $JAVA ${JAVA_OPT} $@
 	fi
 else
-	$JAVA ${JAVA_OPT} $@
+	"$JAVA" ${JAVA_OPT} $@
 fi
