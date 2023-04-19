@@ -54,7 +54,7 @@ public class StoreCheckpoint {
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
             this.masterFlushedOffset = this.mappedByteBuffer.getLong(24);
-            this.confirmPhyOffset = this.mappedByteBuffer.hasRemaining() ? this.mappedByteBuffer.getLong(32) : -1;
+            this.confirmPhyOffset = this.mappedByteBuffer.getLong(32);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
@@ -63,6 +63,7 @@ public class StoreCheckpoint {
             log.info("store checkpoint file indexMsgTimestamp " + this.indexMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.indexMsgTimestamp));
             log.info("store checkpoint file masterFlushedOffset " + this.masterFlushedOffset);
+            log.info("store checkpoint file confirmPhyOffset " + this.confirmPhyOffset);
         } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }
