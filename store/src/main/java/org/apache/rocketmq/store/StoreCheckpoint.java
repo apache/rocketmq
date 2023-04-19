@@ -37,6 +37,7 @@ public class StoreCheckpoint {
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;
     private volatile long masterFlushedOffset = 0;
+    private volatile long confirmPhyOffset = 0;
 
     public StoreCheckpoint(final String scpPath) throws IOException {
         File file = new File(scpPath);
@@ -53,6 +54,7 @@ public class StoreCheckpoint {
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
             this.masterFlushedOffset = this.mappedByteBuffer.getLong(24);
+            this.confirmPhyOffset = this.mappedByteBuffer.hasRemaining() ? this.mappedByteBuffer.getLong(32) : -1;
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
@@ -84,6 +86,7 @@ public class StoreCheckpoint {
         this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
         this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
         this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
+        this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
         this.mappedByteBuffer.force();
     }
 
@@ -101,6 +104,14 @@ public class StoreCheckpoint {
 
     public void setLogicsMsgTimestamp(long logicsMsgTimestamp) {
         this.logicsMsgTimestamp = logicsMsgTimestamp;
+    }
+
+    public long getConfirmPhyOffset() {
+        return confirmPhyOffset;
+    }
+
+    public void setConfirmPhyOffset(long confirmPhyOffset) {
+        this.confirmPhyOffset = confirmPhyOffset;
     }
 
     public long getMinTimestampIndex() {

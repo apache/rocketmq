@@ -67,7 +67,7 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     //  Indicate whether the syncStateSet is currently in the process of being synchronized to controller.
     private volatile boolean isSynchronizingSyncStateSet = false;
-    private volatile long confirmOffset = -1;
+//    private volatile long confirmOffset = -1;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
@@ -124,7 +124,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
 
-        updateConfirmOffset(computeConfirmOffset());
+        this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
 
         if (truncateOffset >= 0) {
             this.epochCache.truncateSuffixByOffset(truncateOffset);
@@ -151,7 +151,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             defaultMessageStore.getTransientStorePool().setRealCommit(true);
         }
 
-        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
+        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
         this.defaultMessageStore.recoverTopicQueueTable();
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
@@ -305,7 +305,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         if (currentSyncStateSet.contains(slaveBrokerId)) {
             return;
         }
-        final long confirmOffset = getConfirmOffset();
+        final long confirmOffset = this.defaultMessageStore.getConfirmOffset();
         if (slaveMaxOffset >= confirmOffset) {
             final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
@@ -342,27 +342,11 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.connectionCaughtUpTimeTable.put(slaveBrokerId, Math.max(prevTime, lastCaughtUpTimeMs));
     }
 
-    /**
-     * Get confirm offset (min slaveAckOffset of all syncStateSet members) for master
-     */
-    public long getConfirmOffset() {
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
-            if (getLocalSyncStateSet().size() == 1) {
-                return this.defaultMessageStore.getMaxPhyOffset();
-            }
-            // First time compute confirmOffset.
-            if (this.confirmOffset <= 0) {
-                this.confirmOffset = computeConfirmOffset();
-            }
-        }
-        return confirmOffset;
-    }
-
     public void updateConfirmOffsetWhenSlaveAck(final Long slaveBrokerId) {
         this.readLock.lock();
         try {
             if (this.syncStateSet.contains(slaveBrokerId)) {
-                this.confirmOffset = computeConfirmOffset();
+                this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
             }
         } finally {
             this.readLock.unlock();
@@ -421,11 +405,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         return info;
     }
 
-    public void updateConfirmOffset(long confirmOffset) {
-        this.confirmOffset = confirmOffset;
-    }
-
-    private long computeConfirmOffset() {
+    public long computeConfirmOffset() {
         final Set<Long> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
@@ -443,7 +423,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             markSynchronizingSyncStateSetDone();
             this.syncStateSet.clear();
             this.syncStateSet.addAll(syncStateSet);
-            this.confirmOffset = computeConfirmOffset();
+            this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
         } finally {
             this.writeLock.unlock();
         }

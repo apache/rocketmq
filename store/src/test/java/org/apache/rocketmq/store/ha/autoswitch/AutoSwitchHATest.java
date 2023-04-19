@@ -214,7 +214,7 @@ public class AutoSwitchHATest {
         assertTrue(masterAndPutMessage);
         checkMessage(this.messageStore2, 10, 0);
 
-        final long confirmOffset = ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset();
+        final long confirmOffset = this.messageStore1.getConfirmOffset();
 
         // Step2, shutdown store2
         this.messageStore2.shutdown();
@@ -224,16 +224,18 @@ public class AutoSwitchHATest {
         assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 
         // The confirmOffset still don't change, because syncStateSet contains broker2, but broker2 shutdown
-        assertEquals(confirmOffset, ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset());
+        assertEquals(confirmOffset, this.messageStore1.getConfirmOffset());
 
         // Step3, shutdown store1, start store2, change store2 to master, epoch = 2
         this.messageStore1.shutdown();
 
         storeConfig2.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
+        messageStore2.getRunningFlags().makeIsolated(true);
         assertTrue(messageStore2.load());
         messageStore2.start();
         messageStore2.getHaService().changeToMaster(2);
+        messageStore2.getRunningFlags().makeIsolated(false);
         ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
 
         // Put message on master
@@ -461,7 +463,7 @@ public class AutoSwitchHATest {
 
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
-        Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
+        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1570);
         Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
         Assert.assertTrue(syncStateSet.contains(1L));
