@@ -283,7 +283,7 @@ public class S3FileSegment extends TieredFileSegment {
         }
         // check if the position is valid
         if (length < 0 || position != this.metadata.getEndPosition() + 1) {
-            LOGGER.error("The position is invalid, the position: {}, the length: {}.", position, length);
+            LOGGER.error("The position is invalid, the position: {}, the length: {}, now segment end position: {}.", position, length, this.metadata.getEndPosition());
             TieredStoreException exception = new TieredStoreException(TieredStoreErrorCode.ILLEGAL_OFFSET, "the position is invalid");
             exception.setPosition(this.metadata.getEndPosition());
             completableFuture.completeExceptionally(exception);
@@ -351,7 +351,7 @@ public class S3FileSegment extends TieredFileSegment {
                 this.byteBuffer.position(writePosition);
                 this.byteBuffer.put(bytes, bytesIndex, writeLength);
             } catch (Exception e) {
-                LOGGER.error("Put bytes into byte buffer error. bytesIndex: {}, writeLength: {}, writePosition: {}", bytesIndex, writeLength, writePosition, e);
+                LOGGER.error("Put bytes into byte buffer error. bytesIndex: {}, writeLength: {}, writePosition: {}, limit: {}", bytesIndex, writeLength, writePosition, this.byteBuffer.limit(), e);
                 throw e;
             } finally {
                 this.reentrantLock.unlock();
