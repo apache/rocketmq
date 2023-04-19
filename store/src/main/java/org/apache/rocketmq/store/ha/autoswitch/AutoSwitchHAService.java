@@ -67,7 +67,6 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     //  Indicate whether the syncStateSet is currently in the process of being synchronized to controller.
     private volatile boolean isSynchronizingSyncStateSet = false;
-//    private volatile long confirmOffset = -1;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;

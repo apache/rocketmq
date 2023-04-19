@@ -350,7 +350,7 @@ public class CommitLog implements Swappable {
             } else {
                 this.setConfirmOffset(lastValidMsgPhyOffset);
             }
-            
+
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
