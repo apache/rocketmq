@@ -136,6 +136,7 @@ public class MessageBufferUtilTest {
         Assert.assertEquals("uservalue0", properties.get("userkey"));
     }
 
+
     @Test
     public void testGetTotalSize() {
         ByteBuffer buffer = buildMockedMessageBuffer();
