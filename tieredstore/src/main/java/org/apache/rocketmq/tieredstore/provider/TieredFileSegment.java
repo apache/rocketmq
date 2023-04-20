@@ -17,6 +17,8 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.base.Stopwatch;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -451,6 +453,8 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         private ByteBuffer curBuffer;
         private final int contentLength;
 
+        private MarkPosition markPosition;
+
         public TieredFileSegmentInputStream(FileSegmentType fileType, long startOffset,
             List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
             this.fileType = fileType;
@@ -476,6 +480,31 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
 
         @Override
+        public boolean markSupported() {
+            return true;
+        }
+
+        @Override
+        public synchronized void mark(int ignore) {
+            markPosition = new MarkPosition(curReadBufferIndex, readPosInCurBuffer, commitLogOffset, readPos);
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            if (markPosition == null) {
+                throw new IOException("mark is not set");
+            }
+            curReadBufferIndex = markPosition.curReadBufferIndex;
+            readPosInCurBuffer = markPosition.readPosInCurBuffer;
+            commitLogOffset = markPosition.commitLogOffset;
+            readPos = markPosition.readPos;
+            if (curReadBufferIndex < uploadBufferList.size()) {
+                curBuffer = uploadBufferList.get(curReadBufferIndex);
+            }
+            commitLogOffsetBuffer.putLong(0, commitLogOffset);
+        }
+
+        @Override
         public int available() {
             return contentLength - readPos;
         }
@@ -492,12 +521,13 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                     if (readPosInCurBuffer >= curBuffer.remaining()) {
                         curReadBufferIndex++;
                         if (curReadBufferIndex >= uploadBufferList.size()) {
+                            readPosInCurBuffer = 0;
                             return readCoda();
                         }
                         curBuffer = uploadBufferList.get(curReadBufferIndex);
                         commitLogOffset += readPosInCurBuffer;
-                        commitLogOffsetBuffer.putLong(0, commitLogOffset);
                         readPosInCurBuffer = 0;
+                        commitLogOffsetBuffer.putLong(0, commitLogOffset);
                     }
                     if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
                         res = commitLogOffsetBuffer.get(readPosInCurBuffer - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
@@ -534,11 +564,29 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             if (fileType != FileSegmentType.COMMIT_LOG || codaBuffer == null) {
                 return -1;
             }
-            if (!codaBuffer.hasRemaining()) {
+            if (readPosInCurBuffer >= codaBuffer.remaining()) {
                 return -1;
             }
             readPos++;
-            return codaBuffer.get() & 0xff;
+            return codaBuffer.get(readPosInCurBuffer++) & 0xff;
+        }
+    }
+
+    private static class MarkPosition {
+
+        private int curReadBufferIndex = 0;
+
+        private int readPosInCurBuffer = 0;
+
+        private long commitLogOffset;
+
+        private int readPos = 0;
+
+        public MarkPosition(int curReadBufferIndex, int readPosInCurBuffer, long commitLogOffset, int readPos) {
+            this.curReadBufferIndex = curReadBufferIndex;
+            this.readPosInCurBuffer = readPosInCurBuffer;
+            this.commitLogOffset = commitLogOffset;
+            this.readPos = readPos;
         }
     }
 }

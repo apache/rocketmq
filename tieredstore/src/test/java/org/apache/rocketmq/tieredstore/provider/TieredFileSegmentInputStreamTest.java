@@ -19,50 +19,66 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.function.Supplier;
 
 public class TieredFileSegmentInputStreamTest {
+
+    private final static int COMMIT_LOG_START_OFFSET = 100;
+
+    private final static int MSG_LEN = MessageBufferUtilTest.MSG_LEN;
+
+    private final static int MSG_NUM = 10;
+
+    private final static int RESET_TIMES = 10;
+
+    private final static Random RANDOM = new Random();
 
     @Test
     public void testCommitLogTypeInputStream() {
         List<ByteBuffer> uploadBufferList = new ArrayList<>();
         int bufferSize = 0;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < MSG_NUM; i++) {
             ByteBuffer byteBuffer = MessageBufferUtilTest.buildMockedMessageBuffer();
             uploadBufferList.add(byteBuffer);
             bufferSize += byteBuffer.remaining();
         }
-        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
-                TieredFileSegment.FileSegmentType.COMMIT_LOG, 100, uploadBufferList, null, bufferSize);
-        ByteBuffer msgBuffer = ByteBuffer.allocate(MessageBufferUtilTest.MSG_LEN);
-        int index = 0;
-        while (true) {
-            int b = inputStream.read();
-            if (b == -1) break;
-            msgBuffer.put((byte) b);
-            if (!msgBuffer.hasRemaining()) {
-                msgBuffer.flip();
-                // check message
-                int realPhysicalOffset = 100 + index++ * MessageBufferUtilTest.MSG_LEN;
-                MessageBufferUtilTest.verifyMockedMessageBuffer(msgBuffer, realPhysicalOffset);
-                msgBuffer.rewind();
-            }
+
+        // build expected byte buffer for verifying the TieredFileSegmentInputStream
+        ByteBuffer expectedByteBuffer = ByteBuffer.allocate(bufferSize);
+        for (ByteBuffer byteBuffer : uploadBufferList) {
+            expectedByteBuffer.put(byteBuffer);
+            byteBuffer.rewind();
         }
-        Assert.assertEquals(10, index);
+        // set real physical offset
+        for (int i = 0; i < MSG_NUM; i++) {
+            int physicalOffset = COMMIT_LOG_START_OFFSET + i * MSG_LEN;
+            int position = i * MSG_LEN + MessageBufferUtil.PHYSICAL_OFFSET_POSITION;
+            expectedByteBuffer.putLong(position, physicalOffset);
+        }
+
+        int finalBufferSize = bufferSize;
+        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize);
+
     }
 
     @Test
     public void testCommitLogTypeInputStreamWithCoda() {
         List<ByteBuffer> uploadBufferList = new ArrayList<>();
         int bufferSize = 0;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < MSG_NUM; i++) {
             ByteBuffer byteBuffer = MessageBufferUtilTest.buildMockedMessageBuffer();
             uploadBufferList.add(byteBuffer);
             bufferSize += byteBuffer.remaining();
@@ -77,66 +93,55 @@ public class TieredFileSegmentInputStreamTest {
         int codaBufferSize = codaBuffer.remaining();
         bufferSize += codaBufferSize;
 
-        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
-                TieredFileSegment.FileSegmentType.COMMIT_LOG, 100, uploadBufferList, codaBuffer, bufferSize);
-        ByteBuffer msgBuffer = ByteBuffer.allocate(MessageBufferUtilTest.MSG_LEN);
-        int index = 0;
-        boolean checkCoda = false;
-        ByteBuffer checkedCodaBuffer = ByteBuffer.allocate(codaBuffer.limit());
-        while (true) {
-            int b = inputStream.read();
-            if (b == -1) break;
-            if (checkCoda) {
-                checkedCodaBuffer.put((byte) b);
-                continue;
-            }
-            msgBuffer.put((byte) b);
-            if (!msgBuffer.hasRemaining()) {
-                msgBuffer.flip();
-                // check message
-                int realPhysicalOffset = 100 + index++ * MessageBufferUtilTest.MSG_LEN;
-                MessageBufferUtilTest.verifyMockedMessageBuffer(msgBuffer, realPhysicalOffset);
-                msgBuffer.rewind();
-                if (index == 10) {
-                    // switch check coda buffer
-                    checkCoda = true;
-                }
-            }
+        // build expected byte buffer for verifying the TieredFileSegmentInputStream
+        ByteBuffer expectedByteBuffer = ByteBuffer.allocate(bufferSize);
+        for (ByteBuffer byteBuffer : uploadBufferList) {
+            expectedByteBuffer.put(byteBuffer);
+            byteBuffer.rewind();
         }
-        Assert.assertEquals(10, index);
-        checkedCodaBuffer.flip();
-        Assert.assertEquals(codaBufferSize, checkedCodaBuffer.remaining());
-        Assert.assertEquals(TieredCommitLog.CODA_SIZE, checkedCodaBuffer.getInt());
-        Assert.assertEquals(TieredCommitLog.BLANK_MAGIC_CODE, checkedCodaBuffer.getInt());
-        Assert.assertEquals(timeMillis, checkedCodaBuffer.getLong());
+        expectedByteBuffer.put(codaBuffer);
+        codaBuffer.rewind();
+        // set real physical offset
+        for (int i = 0; i < MSG_NUM; i++) {
+            long physicalOffset = COMMIT_LOG_START_OFFSET + i * MSG_LEN;
+            int position = i * MSG_LEN + MessageBufferUtil.PHYSICAL_OFFSET_POSITION;
+            expectedByteBuffer.putLong(position, physicalOffset);
+        }
+
+        int finalBufferSize = bufferSize;
+        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize);
+
+
+//        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
+//                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, bufferSize);
+//
+//        // verify
+//        verifyInputStream(inputStream, expectedByteBuffer);
+
     }
 
     @Test
     public void testConsumeQueueTypeInputStream() {
         List<ByteBuffer> uploadBufferList = new ArrayList<>();
         int bufferSize = 0;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < MSG_NUM; i++) {
             ByteBuffer byteBuffer = buildMockedConsumeQueueBuffer();
             uploadBufferList.add(byteBuffer);
             bufferSize += byteBuffer.remaining();
         }
-        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
-                TieredFileSegment.FileSegmentType.CONSUME_QUEUE, 100, uploadBufferList, null, bufferSize);
-        ByteBuffer msgBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-        int index = 0;
-        while (true) {
-            int b = inputStream.read();
-            if (b == -1) break;
-            msgBuffer.put((byte) b);
-            if (!msgBuffer.hasRemaining()) {
-                msgBuffer.flip();
-                // check message
-                verifyMockedConsumeQueueBuffer(msgBuffer);
-                msgBuffer.rewind();
-                index++;
-            }
+
+        // build expected byte buffer for verifying the TieredFileSegmentInputStream
+        ByteBuffer expectedByteBuffer = ByteBuffer.allocate(bufferSize);
+        for (ByteBuffer byteBuffer : uploadBufferList) {
+            expectedByteBuffer.put(byteBuffer);
+            byteBuffer.rewind();
         }
-        Assert.assertEquals(10, index);
+
+        int finalBufferSize = bufferSize;
+        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+                TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize);
+
     }
 
     @Test
@@ -147,19 +152,73 @@ public class TieredFileSegmentInputStreamTest {
         byteBuffer.putLong(3);
         byteBuffer.flip();
         List<ByteBuffer> uploadBufferList = Arrays.asList(byteBuffer);
-        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
-                TieredFileSegment.FileSegmentType.INDEX, 100, uploadBufferList, null, byteBuffer.limit());
-        ByteBuffer msgBuffer = ByteBuffer.allocate(24);
-        while (true) {
-            int b = inputStream.read();
-            if (b == -1) break;
-            msgBuffer.put((byte) b);
+
+        // build expected byte buffer for verifying the TieredFileSegmentInputStream
+        ByteBuffer expectedByteBuffer = byteBuffer.slice();
+
+        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+                TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit());
+    }
+
+    private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegment.TieredFileSegmentInputStream> constructor, int bufferSize) {
+        TieredFileSegment.TieredFileSegmentInputStream inputStream = constructor.get();
+
+        // verify
+        verifyInputStream(inputStream, expectedByteBuffer);
+
+        // verify reset with method InputStream#mark() hasn't been called
+        try {
+            inputStream.reset();
+            Assert.fail("Should throw IOException");
+        } catch (IOException e) {
+            Assert.assertTrue(e instanceof IOException);
         }
-        msgBuffer.flip();
-        Assert.assertEquals(24, msgBuffer.remaining());
-        Assert.assertEquals(1, msgBuffer.getLong());
-        Assert.assertEquals(2, msgBuffer.getLong());
-        Assert.assertEquals(3, msgBuffer.getLong());
+
+        // verify reset with method InputStream#mark() has been called
+        int resetPosition = RANDOM.nextInt(bufferSize);
+        int expectedResetPosition = 0;
+        inputStream = constructor.get();
+        for (int i = 0; i < RESET_TIMES; i++) {
+            // verify and mark with resetPosition
+            verifyInputStream(inputStream, expectedByteBuffer, expectedResetPosition, resetPosition);
+
+            try {
+                inputStream.reset();
+            } catch (IOException e) {
+                Assert.fail("Should not throw IOException");
+            }
+
+            expectedResetPosition = resetPosition;
+            resetPosition = RANDOM.nextInt(bufferSize - resetPosition) + resetPosition;
+        }
+    }
+
+    private void verifyInputStream(InputStream inputStream, ByteBuffer expectedBuffer) {
+        verifyInputStream(inputStream, expectedBuffer, 0, -1);
+    }
+
+    /**
+     * verify the input stream
+     * @param inputStream the input stream to be verified
+     * @param expectedBuffer the expected byte buffer
+     * @param expectedBufferReadPos the expected start position of the expected byte buffer
+     * @param expectedMarkCalledPos the expected position when the method InputStream#mark() is called. <i>(-1 means ignored)</i>
+     */
+    private void verifyInputStream(InputStream inputStream, ByteBuffer expectedBuffer, int expectedBufferReadPos, int expectedMarkCalledPos) {
+        try {
+            expectedBuffer.position(expectedBufferReadPos);
+            while (true) {
+                if (expectedMarkCalledPos == expectedBuffer.position()) {
+                    inputStream.mark(0);
+                }
+                int b = inputStream.read();
+                if (b == -1) break;
+                Assert.assertEquals(expectedBuffer.get(), (byte) b);
+            }
+            Assert.assertFalse(expectedBuffer.hasRemaining());
+        } catch (IOException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     private ByteBuffer buildMockedConsumeQueueBuffer() {
@@ -171,9 +230,4 @@ public class TieredFileSegmentInputStreamTest {
         return byteBuffer;
     }
 
-    private void verifyMockedConsumeQueueBuffer(ByteBuffer byteBuffer) {
-        Assert.assertEquals(1, byteBuffer.getLong());
-        Assert.assertEquals(2, byteBuffer.getInt());
-        Assert.assertEquals(3, byteBuffer.getLong());
-    }
 }
