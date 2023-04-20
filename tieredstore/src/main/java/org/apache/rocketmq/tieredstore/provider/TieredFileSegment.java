@@ -429,15 +429,27 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
 
         private final FileSegmentType fileType;
         private final List<ByteBuffer> uploadBufferList;
-        private int bufferReadIndex = 0;
-        private int readOffset = 0;
-        // only used in commitLog
+        /**
+         * curReadBufferIndex is the index of the buffer in uploadBufferList which is being read
+         */
+        private int curReadBufferIndex = 0;
+        /**
+         * readPosInCurBuffer is the position in the buffer which is being read
+         */
+        private int readPosInCurBuffer = 0;
+        /**
+         * commitLogOffset is the real physical offset of the commitLog buffer which is being read<br>
+         * <i>(only used for commitLog)</i>
+         */
         private long commitLogOffset;
+        /**
+         * readPos is the now position in the stream
+         */
+        private int readPos = 0;
         private final ByteBuffer commitLogOffsetBuffer = ByteBuffer.allocate(8);
         private final ByteBuffer codaBuffer;
         private ByteBuffer curBuffer;
         private final int contentLength;
-        private int readBytes = 0;
 
         public TieredFileSegmentInputStream(FileSegmentType fileType, long startOffset,
             List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
@@ -465,55 +477,56 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
 
         @Override
         public int available() {
-            return contentLength - readBytes;
+            return contentLength - readPos;
         }
 
         @Override
         public int read() {
-            if (bufferReadIndex >= uploadBufferList.size()) {
+            if (curReadBufferIndex >= uploadBufferList.size()) {
                 return readCoda();
             }
 
             int res;
             switch (fileType) {
                 case COMMIT_LOG:
-                    if (readOffset >= curBuffer.remaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
+                    if (readPosInCurBuffer >= curBuffer.remaining()) {
+                        curReadBufferIndex++;
+                        if (curReadBufferIndex >= uploadBufferList.size()) {
                             return readCoda();
                         }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
-                        commitLogOffset += readOffset;
+                        curBuffer = uploadBufferList.get(curReadBufferIndex);
+                        commitLogOffset += readPosInCurBuffer;
                         commitLogOffsetBuffer.putLong(0, commitLogOffset);
-                        readOffset = 0;
+                        readPosInCurBuffer = 0;
                     }
-                    if (readOffset >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readOffset < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-                        res = commitLogOffsetBuffer.get(readOffset - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
-                        readOffset++;
+                    if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
+                        res = commitLogOffsetBuffer.get(readPosInCurBuffer - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
+                        readPosInCurBuffer++;
                     } else {
-                        res = curBuffer.get(readOffset++) & 0xff;
+                        res = curBuffer.get(readPosInCurBuffer++) & 0xff;
                     }
                     break;
                 case CONSUME_QUEUE:
-                    if (!curBuffer.hasRemaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
+                    if (readPosInCurBuffer >= curBuffer.remaining()) {
+                        curReadBufferIndex++;
+                        if (curReadBufferIndex >= uploadBufferList.size()) {
                             return -1;
                         }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
+                        curBuffer = uploadBufferList.get(curReadBufferIndex);
+                        readPosInCurBuffer = 0;
                     }
-                    res = curBuffer.get() & 0xff;
+                    res = curBuffer.get(readPosInCurBuffer++) & 0xff;
                     break;
                 case INDEX:
-                    if (!curBuffer.hasRemaining()) {
+                    if (readPosInCurBuffer >= curBuffer.remaining()) {
                         return -1;
                     }
-                    res = curBuffer.get() & 0xff;
+                    res = curBuffer.get(readPosInCurBuffer++) & 0xff;
                     break;
                 default:
                     throw new IllegalStateException("unknown file type");
             }
-            readBytes++;
+            readPos++;
             return res;
         }
 
@@ -524,7 +537,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             if (!codaBuffer.hasRemaining()) {
                 return -1;
             }
-            readBytes++;
+            readPos++;
             return codaBuffer.get() & 0xff;
         }
     }
