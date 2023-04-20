@@ -30,6 +30,7 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -59,6 +60,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 public class AutoSwitchHATest {
     private final String storeMessage = "Once, there was a chance for me!";
@@ -470,11 +473,34 @@ public class AutoSwitchHATest {
 
         // Step3: set new syncStateSet
         HashSet<Long> newSyncStateSet = new HashSet<Long>() {{
-                add(1L);
-                add(2L);
-                }};
+            add(1L);
+            add(2L);
+        }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
+    }
+
+    @Test
+    public void testBuildConsumeQueueNotExceedConfirmOffset() throws Exception {
+        init(defaultMappedFileSize);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+
+        long tmpConfirmOffset = this.messageStore2.getConfirmOffset() ;
+        long setConfirmOffset = this.messageStore2.getConfirmOffset() - this.messageStore2.getConfirmOffset() / 2;
+        messageStore2.shutdown();
+        StoreCheckpoint storeCheckpoint = new StoreCheckpoint(storeConfig2.getStorePathRootDir() + File.separator + "checkpoint");
+        assertEquals(tmpConfirmOffset,storeCheckpoint.getConfirmPhyOffset());
+        storeCheckpoint.setConfirmPhyOffset(setConfirmOffset);
+        storeCheckpoint.shutdown();
+        messageStore2 = buildMessageStore(storeConfig2, 2L);
+        messageStore2.getRunningFlags().makeIsolated(true);
+        assertTrue(messageStore2.load());
+        messageStore2.start();
+        messageStore2.getRunningFlags().makeIsolated(false);
+        assertEquals(setConfirmOffset, messageStore2.getConfirmOffset());
+        checkMessage(this.messageStore2, 5, 0);
     }
 
     @After
