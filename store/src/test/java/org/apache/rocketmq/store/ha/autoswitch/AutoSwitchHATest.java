@@ -60,8 +60,6 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public class AutoSwitchHATest {
     private final String storeMessage = "Once, there was a chance for me!";
@@ -487,11 +485,11 @@ public class AutoSwitchHATest {
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
-        long tmpConfirmOffset = this.messageStore2.getConfirmOffset() ;
+        long tmpConfirmOffset = this.messageStore2.getConfirmOffset();
         long setConfirmOffset = this.messageStore2.getConfirmOffset() - this.messageStore2.getConfirmOffset() / 2;
         messageStore2.shutdown();
         StoreCheckpoint storeCheckpoint = new StoreCheckpoint(storeConfig2.getStorePathRootDir() + File.separator + "checkpoint");
-        assertEquals(tmpConfirmOffset,storeCheckpoint.getConfirmPhyOffset());
+        assertEquals(tmpConfirmOffset, storeCheckpoint.getConfirmPhyOffset());
         storeCheckpoint.setConfirmPhyOffset(setConfirmOffset);
         storeCheckpoint.shutdown();
         messageStore2 = buildMessageStore(storeConfig2, 2L);
