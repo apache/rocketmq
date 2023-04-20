@@ -99,29 +99,18 @@ public class MessageBufferUtilTest {
         return buffer;
     }
 
-    public static void verifyMockedMessageBuffer(ByteBuffer buffer, int phyOffset) {
-        Assert.assertEquals(MSG_LEN, buffer.remaining());
-        Assert.assertEquals(MSG_LEN, buffer.getInt());
-        Assert.assertEquals(MessageDecoder.MESSAGE_MAGIC_CODE_V2, buffer.getInt());
-        Assert.assertEquals(3, buffer.getInt());
-        Assert.assertEquals(4, buffer.getInt());
-        Assert.assertEquals(5, buffer.getInt());
-        Assert.assertEquals(6, buffer.getLong());
-        Assert.assertEquals(phyOffset, buffer.getLong());
-        Assert.assertEquals(8, buffer.getInt());
-        Assert.assertEquals(9, buffer.getLong());
-        Assert.assertEquals(10, buffer.getLong());
-        Assert.assertEquals(11, buffer.getLong());
-        Assert.assertEquals(10, buffer.getLong());
-        Assert.assertEquals(13, buffer.getInt());
-        Assert.assertEquals(14, buffer.getLong());
-        Assert.assertEquals(0, buffer.getInt());
-        Assert.assertEquals(0, buffer.getShort());
-        buffer.rewind();
-        Map<String, String> properties = MessageBufferUtil.getProperties(buffer);
-        Assert.assertEquals("uk", properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
-        Assert.assertEquals("uservalue0", properties.get("userkey"));
+    public static ByteBuffer buildMockedConsumeQueueBuffer() {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+        // 1 COMMIT_LOG_OFFSET
+        byteBuffer.putLong(1);
+        // 2 MESSAGE_SIZE
+        byteBuffer.putInt(2);
+        // 3 TAG_HASH_CODE
+        byteBuffer.putLong(3);
+        byteBuffer.flip();
+        return byteBuffer;
     }
+
 
     @Test
     public void testGetTotalSize() {

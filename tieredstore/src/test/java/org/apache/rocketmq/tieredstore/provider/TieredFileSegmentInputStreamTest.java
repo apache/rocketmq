@@ -18,7 +18,6 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.junit.Assert;
@@ -119,7 +118,7 @@ public class TieredFileSegmentInputStreamTest {
         List<ByteBuffer> uploadBufferList = new ArrayList<>();
         int bufferSize = 0;
         for (int i = 0; i < MSG_NUM; i++) {
-            ByteBuffer byteBuffer = buildMockedConsumeQueueBuffer();
+            ByteBuffer byteBuffer = MessageBufferUtilTest.buildMockedConsumeQueueBuffer();
             uploadBufferList.add(byteBuffer);
             bufferSize += byteBuffer.remaining();
         }
@@ -212,15 +211,6 @@ public class TieredFileSegmentInputStreamTest {
         } catch (IOException e) {
             Assert.fail(e.getMessage());
         }
-    }
-
-    private ByteBuffer buildMockedConsumeQueueBuffer() {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-        byteBuffer.putLong(1);
-        byteBuffer.putInt(2);
-        byteBuffer.putLong(3);
-        byteBuffer.flip();
-        return byteBuffer;
     }
 
 }
