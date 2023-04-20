@@ -112,13 +112,6 @@ public class TieredFileSegmentInputStreamTest {
         verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
                 TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize);
 
-
-//        TieredFileSegment.TieredFileSegmentInputStream inputStream = new TieredFileSegment.TieredFileSegmentInputStream(
-//                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, bufferSize);
-//
-//        // verify
-//        verifyInputStream(inputStream, expectedByteBuffer);
-
     }
 
     @Test
