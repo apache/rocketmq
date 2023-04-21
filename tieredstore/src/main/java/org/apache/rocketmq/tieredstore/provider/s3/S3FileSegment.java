@@ -234,21 +234,20 @@ public class S3FileSegment extends TieredFileSegment {
         long endPosition = position + length - 1;
         ConcurrentByteBuffer concurrentByteBuffer = new ConcurrentByteBuffer(length);
         List<CompletableFuture<byte[]>> subFutures = new ArrayList<>(chunks.size());
-        long startPosition = chunks.get(0).getStartPosition();
         chunks.forEach(chunk -> {
-            long chunkStartPosition = position >= chunk.getStartPosition() ? position - chunk.getStartPosition() : 0;
-            long chunkEndPosition = endPosition <= chunk.getEndPosition() ? endPosition - chunk.getStartPosition() : chunk.getChunkSize() - 1;
-            CompletableFuture<byte[]> future = this.client.readChunk(chunk.getChunkName(), chunkStartPosition, chunkEndPosition);
+            long startPositionInChunk = position >= chunk.getStartPosition() ? position - chunk.getStartPosition() : 0;
+            long endPositionInChunk = endPosition <= chunk.getEndPosition() ? endPosition - chunk.getStartPosition() : chunk.getChunkSize() - 1;
+            CompletableFuture<byte[]> future = this.client.readChunk(chunk.getChunkName(), startPositionInChunk, endPositionInChunk);
             CompletableFuture<byte[]> subFuture = future.whenComplete((bytes, throwable) -> {
                 if (throwable != null) {
-                    LOGGER.error("Failed to read data from s3, chunk: {}, start position: {}, end position: {}", chunk, chunkStartPosition, chunkEndPosition, throwable);
+                    LOGGER.error("Failed to read data from s3, chunk: {}, start position: {}, end position: {}", chunk, startPositionInChunk, endPositionInChunk, throwable);
                     TieredStoreException exception = new TieredStoreException(TieredStoreErrorCode.IO_ERROR, "read data from s3 error");
                     completableFuture.completeExceptionally(exception);
                 } else {
                     try {
-                        concurrentByteBuffer.put(bytes, 0, bytes.length, (int) (chunk.getStartPosition() - startPosition));
+                        concurrentByteBuffer.put(bytes, 0, bytes.length, (int) (chunk.getStartPosition() + startPositionInChunk - position));
                     } catch (Exception e) {
-                        LOGGER.error("Failed to put data from s3 into buffer, chunk: {}, start position: {}, end position: {}", chunk, chunkStartPosition, chunkEndPosition, e);
+                        LOGGER.error("Failed to put data from s3 into buffer, chunk: {}, start position: {}, end position: {}", chunk, startPositionInChunk, endPositionInChunk, e);
                         TieredStoreException exception = new TieredStoreException(TieredStoreErrorCode.UNKNOWN, "put data from s3 into buffer error");
                         completableFuture.completeExceptionally(exception);
                     }
