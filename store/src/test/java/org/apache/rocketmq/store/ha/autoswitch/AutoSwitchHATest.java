@@ -471,9 +471,9 @@ public class AutoSwitchHATest {
 
         // Step3: set new syncStateSet
         HashSet<Long> newSyncStateSet = new HashSet<Long>() {{
-            add(1L);
-            add(2L);
-        }};
+                add(1L);
+                add(2L);
+                }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
     }
