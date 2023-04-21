@@ -276,7 +276,7 @@ public class S3FileSegment extends TieredFileSegment {
         if (this.metadata.isSealed()) {
             LOGGER.error("The segment is sealed, the position: {}, the length: {}.", position, length);
             TieredStoreException exception = new TieredStoreException(TieredStoreErrorCode.SEGMENT_SEALED, "the segment is sealed");
-            exception.setPosition(this.metadata.getEndPosition());
+            exception.setPosition(this.metadata.getEndPosition() + 1);
             completableFuture.completeExceptionally(exception);
             return completableFuture;
         }
@@ -284,7 +284,7 @@ public class S3FileSegment extends TieredFileSegment {
         if (length < 0 || position != this.metadata.getEndPosition() + 1) {
             LOGGER.error("The position is invalid, the position: {}, the length: {}, now segment end position: {}.", position, length, this.metadata.getEndPosition());
             TieredStoreException exception = new TieredStoreException(TieredStoreErrorCode.ILLEGAL_OFFSET, "the position is invalid");
-            exception.setPosition(this.metadata.getEndPosition());
+            exception.setPosition(this.metadata.getEndPosition() + 1);
             completableFuture.completeExceptionally(exception);
             return completableFuture;
         }
