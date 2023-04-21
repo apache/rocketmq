@@ -18,8 +18,6 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.base.Stopwatch;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -339,7 +337,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (bufferSize == 0) {
             return CompletableFuture.completedFuture(true);
         }
-        TieredFileSegmentInputStream inputStream = new TieredFileSegmentInputStream(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStream.buildTieredFileSegmentInputStream(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
         int finalBufferSize = bufferSize;
         try {
             inflightCommitRequest = commit0(inputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)
@@ -427,166 +425,4 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
-    public static class TieredFileSegmentInputStream extends InputStream {
-
-        private final FileSegmentType fileType;
-        private final List<ByteBuffer> uploadBufferList;
-        /**
-         * curReadBufferIndex is the index of the buffer in uploadBufferList which is being read
-         */
-        private int curReadBufferIndex = 0;
-        /**
-         * readPosInCurBuffer is the position in the buffer which is being read
-         */
-        private int readPosInCurBuffer = 0;
-        /**
-         * commitLogOffset is the real physical offset of the commitLog buffer which is being read<br>
-         * <i>(only used for commitLog)</i>
-         */
-        private long commitLogOffset;
-        /**
-         * readPos is the now position in the stream
-         */
-        private int readPos = 0;
-        private final ByteBuffer commitLogOffsetBuffer = ByteBuffer.allocate(8);
-        private final ByteBuffer codaBuffer;
-        private ByteBuffer curBuffer;
-        private final int contentLength;
-
-        private MarkPosition markPosition;
-
-        public TieredFileSegmentInputStream(FileSegmentType fileType, long startOffset,
-            List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
-            this.fileType = fileType;
-            this.commitLogOffset = startOffset;
-            this.commitLogOffsetBuffer.putLong(0, startOffset);
-            this.uploadBufferList = uploadBufferList;
-            this.codaBuffer = codaBuffer;
-            this.contentLength = contentLength;
-            if (uploadBufferList.size() > 0) {
-                this.curBuffer = uploadBufferList.get(0);
-            }
-            if (fileType == FileSegmentType.INDEX && uploadBufferList.size() != 1) {
-                logger.error("[Bug]TieredFileSegmentInputStream: index file must have only one buffer");
-            }
-        }
-
-        public List<ByteBuffer> getUploadBufferList() {
-            return uploadBufferList;
-        }
-
-        public ByteBuffer getCodaBuffer() {
-            return codaBuffer;
-        }
-
-        @Override
-        public boolean markSupported() {
-            return true;
-        }
-
-        @Override
-        public synchronized void mark(int ignore) {
-            markPosition = new MarkPosition(curReadBufferIndex, readPosInCurBuffer, commitLogOffset, readPos);
-        }
-
-        @Override
-        public synchronized void reset() throws IOException {
-            if (markPosition == null) {
-                throw new IOException("mark is not set");
-            }
-            curReadBufferIndex = markPosition.curReadBufferIndex;
-            readPosInCurBuffer = markPosition.readPosInCurBuffer;
-            commitLogOffset = markPosition.commitLogOffset;
-            readPos = markPosition.readPos;
-            if (curReadBufferIndex < uploadBufferList.size()) {
-                curBuffer = uploadBufferList.get(curReadBufferIndex);
-            }
-            commitLogOffsetBuffer.putLong(0, commitLogOffset);
-        }
-
-        @Override
-        public int available() {
-            return contentLength - readPos;
-        }
-
-        @Override
-        public int read() {
-            if (curReadBufferIndex >= uploadBufferList.size()) {
-                return readCoda();
-            }
-
-            int res;
-            switch (fileType) {
-                case COMMIT_LOG:
-                    if (readPosInCurBuffer >= curBuffer.remaining()) {
-                        curReadBufferIndex++;
-                        if (curReadBufferIndex >= uploadBufferList.size()) {
-                            readPosInCurBuffer = 0;
-                            return readCoda();
-                        }
-                        curBuffer = uploadBufferList.get(curReadBufferIndex);
-                        commitLogOffset += readPosInCurBuffer;
-                        readPosInCurBuffer = 0;
-                        commitLogOffsetBuffer.putLong(0, commitLogOffset);
-                    }
-                    if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-                        res = commitLogOffsetBuffer.get(readPosInCurBuffer - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
-                        readPosInCurBuffer++;
-                    } else {
-                        res = curBuffer.get(readPosInCurBuffer++) & 0xff;
-                    }
-                    break;
-                case CONSUME_QUEUE:
-                    if (readPosInCurBuffer >= curBuffer.remaining()) {
-                        curReadBufferIndex++;
-                        if (curReadBufferIndex >= uploadBufferList.size()) {
-                            return -1;
-                        }
-                        curBuffer = uploadBufferList.get(curReadBufferIndex);
-                        readPosInCurBuffer = 0;
-                    }
-                    res = curBuffer.get(readPosInCurBuffer++) & 0xff;
-                    break;
-                case INDEX:
-                    if (readPosInCurBuffer >= curBuffer.remaining()) {
-                        return -1;
-                    }
-                    res = curBuffer.get(readPosInCurBuffer++) & 0xff;
-                    break;
-                default:
-                    throw new IllegalStateException("unknown file type");
-            }
-            readPos++;
-            return res;
-        }
-
-        private int readCoda() {
-            if (fileType != FileSegmentType.COMMIT_LOG || codaBuffer == null) {
-                return -1;
-            }
-            if (readPosInCurBuffer >= codaBuffer.remaining()) {
-                return -1;
-            }
-            readPos++;
-            return codaBuffer.get(readPosInCurBuffer++) & 0xff;
-        }
-    }
-
-    private static class MarkPosition {
-
-        private int curReadBufferIndex = 0;
-
-        private int readPosInCurBuffer = 0;
-
-        private long commitLogOffset;
-
-        private int readPos = 0;
-
-        public MarkPosition(int curReadBufferIndex, int readPosInCurBuffer, long commitLogOffset, int readPos) {
-            this.curReadBufferIndex = curReadBufferIndex;
-            this.readPosInCurBuffer = readPosInCurBuffer;
-            this.commitLogOffset = commitLogOffset;
-            this.readPos = readPos;
-        }
-    }
 }

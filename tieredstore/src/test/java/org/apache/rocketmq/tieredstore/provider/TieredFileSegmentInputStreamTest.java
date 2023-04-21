@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.tieredstore.provider;
 
+import com.google.common.base.Supplier;
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
@@ -30,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Supplier;
 
 public class TieredFileSegmentInputStreamTest {
 
@@ -68,7 +68,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.buildTieredFileSegmentInputStream(
                 TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize);
 
     }
@@ -108,7 +108,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.buildTieredFileSegmentInputStream(
                 TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize);
 
     }
@@ -131,7 +131,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.buildTieredFileSegmentInputStream(
                 TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize);
 
     }
@@ -148,12 +148,12 @@ public class TieredFileSegmentInputStreamTest {
         // build expected byte buffer for verifying the TieredFileSegmentInputStream
         ByteBuffer expectedByteBuffer = byteBuffer.slice();
 
-        verifyReadAndReset(expectedByteBuffer, () -> new TieredFileSegment.TieredFileSegmentInputStream(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.buildTieredFileSegmentInputStream(
                 TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit());
     }
 
-    private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegment.TieredFileSegmentInputStream> constructor, int bufferSize) {
-        TieredFileSegment.TieredFileSegmentInputStream inputStream = constructor.get();
+    private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegmentInputStream> constructor, int bufferSize) {
+        TieredFileSegmentInputStream inputStream = constructor.get();
 
         // verify
         verifyInputStream(inputStream, expectedByteBuffer);
