@@ -25,10 +25,10 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.provider.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 import java.io.File;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -269,7 +269,7 @@ public class S3FileSegment extends TieredFileSegment {
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(InputStream inputStream, long position, int length, boolean append) {
+    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
         // TODO: Deal with the case that the param: append is false
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
         // check if now the segment is sealed

@@ -127,7 +127,7 @@ public abstract class TieredFileSegmentBaseTest {
             CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
             completableFuture.completeExceptionally(new RuntimeException("commit failed"));
             return completableFuture;
-        }).when(segment).commit0(any(InputStream.class), anyLong(), anyInt(), anyBoolean());
+        }).when(segment).commit0(any(TieredFileSegmentInputStream.class), anyLong(), anyInt(), anyBoolean());
 
         new Thread(() -> {
             try {
@@ -147,7 +147,7 @@ public abstract class TieredFileSegmentBaseTest {
         segment.commit();
 
         // second time commit, expect success
-        Mockito.doCallRealMethod().when(segment).commit0(any(InputStream.class), anyLong(), anyInt(), anyBoolean());
+        Mockito.doCallRealMethod().when(segment).commit0(any(TieredFileSegmentInputStream.class), anyLong(), anyInt(), anyBoolean());
         segment.commit();
 
         Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());

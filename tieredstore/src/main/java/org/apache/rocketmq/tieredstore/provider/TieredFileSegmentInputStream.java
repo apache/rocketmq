@@ -55,7 +55,7 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
         }
     }
 
-    private TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, int contentLength) {
+    protected TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
     }
