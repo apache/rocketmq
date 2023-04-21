@@ -184,7 +184,7 @@ public class ConsumerLagCalculator {
                             continue;
                         }
                     }
-                    consumer.accept(new ProcessGroupInfo(group, topic, true, null);
+                    consumer.accept(new ProcessGroupInfo(group, topic, true, null));
                 } else {
                     consumer.accept(new ProcessGroupInfo(group, topic, false, null));
                 }
