@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
+import org.apache.rocketmq.client.impl.admin.MqClientAdminImpl;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -83,6 +84,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     private final ClientConfig clientConfig;
 
+    private MqClientAdminImpl mqClientAdmin;
+
     public MQClientAPIExt(
         ClientConfig clientConfig,
         NettyClientConfig nettyClientConfig,
@@ -91,6 +94,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     ) {
         super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
         this.clientConfig = clientConfig;
+        this.mqClientAdmin = new MqClientAdminImpl(getRemotingClient());
     }
 
     public boolean updateNameServerAddressList() {
@@ -621,20 +625,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     }
 
     public CompletableFuture<RemotingCommand> invoke(String brokerAddr, RemotingCommand request, long timeoutMillis) {
-        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    future.complete(response);
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
-                }
-            });
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+        return getRemotingClient().invoke(brokerAddr, request, timeoutMillis);
     }
 
     public CompletableFuture<Void> invokeOneway(String brokerAddr, RemotingCommand request, long timeoutMillis) {
@@ -646,5 +637,9 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+    public MqClientAdminImpl getMqClientAdmin() {
+        return mqClientAdmin;
     }
 }
