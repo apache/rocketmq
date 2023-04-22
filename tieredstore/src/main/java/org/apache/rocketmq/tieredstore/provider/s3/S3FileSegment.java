@@ -123,7 +123,7 @@ public class S3FileSegment extends TieredFileSegment {
         for (ChunkMetadata chunk : chunks) {
             if (!this.metadata.addChunk(chunk)) {
                 // the chunk is not valid
-                LOGGER.error("The chunk: {} is not valid, now chunks last end position: {}, please check it.", chunk, this.metadata.getEndPosition());
+                LOGGER.error("Check and load chunks failed, the chunk: {} is not valid, now chunks last end position: {}, please check it.", chunk, this.metadata.getEndPosition());
                 throw new RuntimeException("The chunk: " + chunk + " is not valid, now chunks last end position: " + this.metadata.getEndPosition() + ", please check it.");
             }
         }
@@ -301,7 +301,7 @@ public class S3FileSegment extends TieredFileSegment {
                     ChunkMetadata chunk = new ChunkMetadata(chunkPath, position, length);
                     if (!this.metadata.addChunk(chunk)) {
                         // the chunk is not valid
-                        LOGGER.error("The chunk: {} is not valid, now chunks last end position: {}, please check it.", chunk, this.metadata.getEndPosition());
+                        LOGGER.error("Add chunk after uploading chunk to S3 failed, the chunk: {} is not valid, now chunks last end position: {}, please check it.", chunk, this.metadata.getEndPosition());
                         throw new RuntimeException("The chunk: " + chunk + " is not valid, now chunks last end position: " + this.metadata.getEndPosition() + ", please check it.");
                     }
                     completableFuture.complete(true);

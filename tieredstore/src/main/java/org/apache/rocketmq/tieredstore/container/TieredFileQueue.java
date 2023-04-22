@@ -255,9 +255,8 @@ public class TieredFileQueue {
                 if (!segment.isFull()) {
                     return segment;
                 }
-                if (segment.commit()) {
+                if (segment.commitAndSealFile()) {
                     try {
-                        segment.sealFile();
                         metadataStore.updateFileSegment(segment);
                     } catch (Exception e) {
                         return segment;
