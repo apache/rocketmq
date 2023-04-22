@@ -174,7 +174,6 @@ public class S3FileSegmentTest extends MockS3TestBase {
         read = segment.read0(0, 19).join();
         Assert.assertEquals("hello,world and lcy", new String(read.array()));
         // write a chunk from position 2, size = 2, data: "he", position: [2, 3]
-        // this chunk should truncate the first chunk and delete all chunks after the first chunk
         inputStream = new ByteArrayInputStream("he".getBytes());
         TieredStoreException exception = null;
         try {
@@ -184,7 +183,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
             Assert.assertTrue(cause instanceof TieredStoreException);
             exception = (TieredStoreException) cause;
             Assert.assertEquals(TieredStoreErrorCode.ILLEGAL_OFFSET, exception.getErrorCode());
-            Assert.assertEquals(18, exception.getPosition());
+            Assert.assertEquals(19, exception.getPosition());
         }
         Assert.assertNotNull(exception);
     }
