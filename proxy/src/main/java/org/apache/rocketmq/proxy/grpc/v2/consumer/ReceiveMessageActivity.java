@@ -44,7 +44,6 @@ import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
