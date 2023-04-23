@@ -341,7 +341,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+
         SendMessageActivity.SendMessageQueueSelector selector = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
                 .addMessages(Message.newBuilder().build())
@@ -351,6 +351,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService);
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
