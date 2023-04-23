@@ -178,9 +178,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         }
 
         @Override
-        public AddressableMessageQueue select(ProxyContext ctx, TopicRouteService topicRouteService, String topic) {
+        public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
             try {
-                MessageQueueView messageQueueView = topicRouteService.getAllMessageQueueView(topic);
                 AddressableMessageQueue addressableMessageQueue = null;
                 MessageQueueSelector messageQueueSelector = messageQueueView.getReadSelector();
 

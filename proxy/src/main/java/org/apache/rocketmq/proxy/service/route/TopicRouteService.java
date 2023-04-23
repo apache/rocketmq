@@ -85,7 +85,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                     try {
                         TopicRouteData topicRouteData = topicRouteCacheLoader.loadTopicRouteData(topic);
                         if (isTopicRouteValid(topicRouteData)) {
-                            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
+                            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, TopicRouteService.this);
                             log.info("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
                             return tmp;
                         }

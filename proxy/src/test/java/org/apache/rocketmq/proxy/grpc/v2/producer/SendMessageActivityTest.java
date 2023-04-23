@@ -321,12 +321,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build()
         );
 
-        assertEquals(selector1.select(ProxyContext.create(), topicRouteService, TOPIC), selector2.select(ProxyContext.create(), topicRouteService, TOPIC));
-        assertNotEquals(selector1.select(ProxyContext.create(), topicRouteService, TOPIC), selector3.select(ProxyContext.create(), topicRouteService, TOPIC));
+        assertEquals(selector1.select(ProxyContext.create(), messageQueueView), selector2.select(ProxyContext.create(), messageQueueView));
+        assertNotEquals(selector1.select(ProxyContext.create(), messageQueueView), selector3.select(ProxyContext.create(), messageQueueView));
     }
 
     @Test
-    public void testSendNormalMessageQueueSelector() throws Exception {
+    public void testSendNormalMessageQueueSelector() {
         TopicRouteData topicRouteData = new TopicRouteData();
         QueueData queueData = new QueueData();
         BrokerData brokerData = new BrokerData();
@@ -349,13 +349,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
         );
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
-        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
 
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
-        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);
@@ -375,8 +374,6 @@ public class SendMessageActivityTest extends BaseActivityTest {
         BrokerData brokerData2 = createBrokerData(CLUSTER_NAME, BROKER_NAME2, BROKER_ADDR2);
         topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData, brokerData2));
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
-
         SendMessageActivity.SendMessageQueueSelector selector = new SendMessageActivity.SendMessageQueueSelector(
                 SendMessageRequest.newBuilder()
                         .addMessages(Message.newBuilder().build())
@@ -390,15 +387,15 @@ public class SendMessageActivityTest extends BaseActivityTest {
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
 
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        when(topicRouteService.getAllMessageQueueView(anyString())).thenReturn(messageQueueView);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
 
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         assertEquals(firstSelect.getBrokerName(), BROKER_NAME2);
 
         mqFaultStrategy.updateFaultItem(BROKER_NAME2, 1000, true, false);
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, true);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
         assertEquals(secondSelect.getBrokerName(), BROKER_NAME);
     }
     @Test

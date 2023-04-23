@@ -25,12 +25,21 @@ public class MessageQueueView {
     private final MessageQueueSelector readSelector;
     private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
+    private  TopicRouteService topicRouteService;
 
     public MessageQueueView(String topic, TopicRouteData topicRouteData) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
 
         this.readSelector = new MessageQueueSelector(topicRouteWrapper, true);
         this.writeSelector = new MessageQueueSelector(topicRouteWrapper, false);
+    }
+
+    public MessageQueueView(String topic, TopicRouteData topicRouteData, TopicRouteService topicRouteService) {
+        this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
+
+        this.readSelector = new MessageQueueSelector(topicRouteWrapper, topicRouteService, true);
+        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, topicRouteService, false);
+        this.topicRouteService = topicRouteService;
     }
 
     public TopicRouteData getTopicRouteData() {
@@ -60,5 +69,13 @@ public class MessageQueueView {
             .add("writeSelector", writeSelector)
             .add("topicRouteWrapper", topicRouteWrapper)
             .toString();
+    }
+
+    public TopicRouteService getTopicRouteService() {
+        return topicRouteService;
+    }
+
+    public void setTopicRouteService(TopicRouteService topicRouteService) {
+        this.topicRouteService = topicRouteService;
     }
 }

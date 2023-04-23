@@ -87,7 +87,7 @@ public class ConsumerProcessor extends AbstractProcessor {
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
         try {
-            AddressableMessageQueue messageQueue = queueSelector.select(ctx, this.serviceManager.getTopicRouteService(), topic);
+            AddressableMessageQueue messageQueue = queueSelector.select(ctx, this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }

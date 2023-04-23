@@ -298,13 +298,11 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         topicRouteData.setBrokerDatas(brokerDatas);
 
         MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
-        TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
-        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), topicRouteService, TOPIC);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);
@@ -312,7 +310,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         for (int i = 0; i < 2; i++) {
             ReceiveMessageActivity.ReceiveMessageQueueSelector selectorBrokerName =
                 new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
-            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), topicRouteService, TOPIC).getBrokerName());
+            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
         }
     }
 }

@@ -104,7 +104,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(
             createContext(),
-            (ctx, topicRouteService, TOPIC) -> messageQueue,
+            (ctx, messageQueueView) -> messageQueue,
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_PREPARED_TYPE,
             messageList,
@@ -158,7 +158,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(
             createContext(),
-            (ctx, topicRouteService, TOPIC) -> messageQueue,
+            (ctx, messageQueueView) -> messageQueue,
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_PREPARED_TYPE,
             messageExtList,

@@ -47,6 +47,7 @@ public class MessageQueueSelector {
     private final Map<String, AddressableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;
     private final AtomicInteger brokerIndex;
+    private TopicRouteService topicRouteService;
 
     public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read) {
         if (read) {
@@ -58,6 +59,19 @@ public class MessageQueueSelector {
         Random random = new Random();
         this.queueIndex = new AtomicInteger(random.nextInt());
         this.brokerIndex = new AtomicInteger(random.nextInt());
+    }
+
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, TopicRouteService topicRouteService, boolean read) {
+        if (read) {
+            this.queues.addAll(buildRead(topicRouteWrapper));
+        } else {
+            this.queues.addAll(buildWrite(topicRouteWrapper));
+        }
+        buildBrokerActingQueues(topicRouteWrapper.getTopicName(), this.queues);
+        Random random = new Random();
+        this.queueIndex = new AtomicInteger(random.nextInt());
+        this.brokerIndex = new AtomicInteger(random.nextInt());
+        this.topicRouteService = topicRouteService;
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -157,8 +171,8 @@ public class MessageQueueSelector {
         return selectOneByIndex(nextIndex, onlyBroker);
     }
 
-    public AddressableMessageQueue selectOneByPipeline(TopicRouteService topicRouteService, boolean onlyBroker) {
-        if (topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
+    public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
+        if (topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable() && topicRouteService != null) {
             MessageQueue messageQueue = null;
             List<MessageQueue> messageQueueList = transferAddressableQueues(queues);
             AddressableMessageQueue addressableMessageQueue = null;
@@ -267,6 +281,14 @@ public class MessageQueueSelector {
 
     public List<AddressableMessageQueue> getBrokerActingQueues() {
         return brokerActingQueues;
+    }
+
+    public TopicRouteService getTopicRouteService() {
+        return topicRouteService;
+    }
+
+    public void setTopicRouteService(TopicRouteService topicRouteService) {
+        this.topicRouteService = topicRouteService;
     }
 
     @Override

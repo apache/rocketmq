@@ -105,7 +105,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
         PopResult popResult = this.consumerProcessor.popMessage(
             createContext(),
-            (ctx, topicRouteService, Topic) -> messageQueue,
+            (ctx, messageQueueView) -> messageQueue,
             CONSUMER_GROUP,
             TOPIC,
             60,

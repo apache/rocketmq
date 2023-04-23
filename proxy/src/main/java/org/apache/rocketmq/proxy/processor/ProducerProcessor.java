@@ -85,7 +85,7 @@ public class ProducerProcessor extends AbstractProcessor {
                 }
             }
             messageQueue = queueSelector.select(ctx,
-                this.serviceManager.getTopicRouteService(), topic);
+                    this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
             }
