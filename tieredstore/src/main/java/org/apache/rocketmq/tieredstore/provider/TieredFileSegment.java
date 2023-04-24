@@ -35,6 +35,8 @@ import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.container.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
@@ -337,7 +339,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (bufferSize == 0) {
             return CompletableFuture.completedFuture(true);
         }
-        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStream.Factory.build(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStreamFactory.build(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
         int finalBufferSize = bufferSize;
         try {
             inflightCommitRequest = commit0(inputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)

@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.provider;
 
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
@@ -70,5 +72,5 @@ public interface TieredStoreProvider {
      * @return put result, <code>true</code> if data successfully write; <code>false</code> otherwise
      */
     CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream,
-        long position, int length, boolean append);
+                                       long position, int length, boolean append);
 }
