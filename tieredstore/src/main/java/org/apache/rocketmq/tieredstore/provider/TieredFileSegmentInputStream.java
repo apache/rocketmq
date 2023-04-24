@@ -22,11 +22,11 @@ import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 public abstract class TieredFileSegmentInputStream extends InputStream {
 
     private final TieredFileSegment.FileSegmentType fileType;
+    protected final List<ByteBuffer> uploadBufferList;
     private final int contentLength;
 
     /**
@@ -36,11 +36,12 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
 
     private int markReadPosition = -1;
 
-    public static TieredFileSegmentInputStream buildTieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType,
-                                                                                long startOffset,
-                                                                                List<ByteBuffer> uploadBufferList,
-                                                                                ByteBuffer codaBuffer,
-                                                                                int contentLength) {
+
+    public static TieredFileSegmentInputStream build(TieredFileSegment.FileSegmentType fileType,
+                                                     long startOffset,
+                                                     List<ByteBuffer> uploadBufferList,
+                                                     ByteBuffer codaBuffer,
+                                                     int contentLength) {
         if (fileType == TieredFileSegment.FileSegmentType.COMMIT_LOG) {
             return new CommitLogInputStream(fileType, startOffset, uploadBufferList, codaBuffer, contentLength);
         } else if (fileType == TieredFileSegment.FileSegmentType.CONSUME_QUEUE) {
@@ -49,15 +50,16 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
             if (uploadBufferList.size() != 1) {
                 throw new IllegalArgumentException("uploadBufferList size in INDEX type input stream must be 1");
             }
-            return new IndexInputStream(fileType, uploadBufferList.get(0), contentLength);
+            return new IndexInputStream(fileType, uploadBufferList, contentLength);
         } else {
             throw new IllegalArgumentException("fileType is not supported");
         }
     }
 
-    private TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, int contentLength) {
+    private TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList, int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
+        this.uploadBufferList = uploadBufferList;
     }
 
     @Override
@@ -91,9 +93,13 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
 
     public abstract void realReset();
 
-    public abstract List<ByteBuffer> getUploadBufferList();
+    public List<ByteBuffer> getUploadBufferList() {
+        return uploadBufferList;
+    }
 
-    public abstract ByteBuffer getCodaBuffer();
+    public ByteBuffer getCodaBuffer() {
+        return null;
+    }
 
     @Override
     public int read() {
@@ -117,8 +123,6 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
          */
         private long commitLogOffset;
 
-        private final List<ByteBuffer> uploadBufferList;
-
         private final ByteBuffer codaBuffer;
 
         private ByteBuffer curBuffer;
@@ -133,10 +137,9 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
 
         public CommitLogInputStream(TieredFileSegment.FileSegmentType fileType, long startOffset,
                                     List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
-            super(fileType, contentLength);
+            super(fileType, uploadBufferList, contentLength);
             this.commitLogOffset = startOffset;
             this.commitLogOffsetBuffer.putLong(0, startOffset);
-            this.uploadBufferList = uploadBufferList;
             this.codaBuffer = codaBuffer;
             if (uploadBufferList.size() > 0) {
                 this.curBuffer = uploadBufferList.get(0);
@@ -161,10 +164,6 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
             commitLogOffsetBuffer.putLong(0, commitLogOffset);
         }
 
-        @Override
-        public List<ByteBuffer> getUploadBufferList() {
-            return this.uploadBufferList;
-        }
 
         @Override
         public ByteBuffer getCodaBuffer() {
@@ -218,15 +217,12 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
 
         private ByteBuffer curBuffer;
 
-        private final List<ByteBuffer> uploadBufferList;
-
         private int markCurReadBufferIndex = -1;
         private int markReadPosInCurBuffer = -1;
 
 
         public ConsumeQueueInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList, int contentLength) {
-            super(fileType, contentLength);
-            this.uploadBufferList = uploadBufferList;
+            super(fileType, uploadBufferList, contentLength);
             if (uploadBufferList.size() > 0) {
                 this.curBuffer = uploadBufferList.get(0);
             }
@@ -263,60 +259,63 @@ public abstract class TieredFileSegmentInputStream extends InputStream {
             }
         }
 
-        @Override
-        public List<ByteBuffer> getUploadBufferList() {
-            return this.uploadBufferList;
-        }
-
-        @Override
-        public ByteBuffer getCodaBuffer() {
-            return null;
-        }
     }
 
     private static class IndexInputStream extends TieredFileSegmentInputStream {
 
-        private final ByteBuffer curBuffer;
-
+        /**
+         * curReadBufferIndex is the index of the buffer in uploadBufferList which is being read
+         */
+        private int curReadBufferIndex = 0;
+        /**
+         * readPosInCurBuffer is the position in the buffer which is being read
+         */
         private int readPosInCurBuffer = 0;
 
+        private ByteBuffer curBuffer;
+
+        private int markCurReadBufferIndex = -1;
         private int markReadPosInCurBuffer = -1;
 
-        public IndexInputStream(TieredFileSegment.FileSegmentType fileType, ByteBuffer curBuffer, int contentLength) {
-            super(fileType, contentLength);
-            if (curBuffer == null) {
-                throw new IllegalArgumentException("curBuffer is null");
+
+        public IndexInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList, int contentLength) {
+            super(fileType, uploadBufferList, contentLength);
+            if (uploadBufferList.size() > 0) {
+                this.curBuffer = uploadBufferList.get(0);
             }
-            this.curBuffer = curBuffer;
         }
 
         @Override
         public int realRead() {
-            if (readPosInCurBuffer >= curBuffer.remaining()) {
+            if (curReadBufferIndex >= uploadBufferList.size()) {
                 return -1;
+            }
+            if (readPosInCurBuffer >= curBuffer.remaining()) {
+                curReadBufferIndex++;
+                if (curReadBufferIndex >= uploadBufferList.size()) {
+                    return -1;
+                }
+                curBuffer = uploadBufferList.get(curReadBufferIndex);
+                readPosInCurBuffer = 0;
             }
             return curBuffer.get(readPosInCurBuffer++) & 0xff;
         }
 
         @Override
         public void realMark() {
+            this.markCurReadBufferIndex = curReadBufferIndex;
             this.markReadPosInCurBuffer = readPosInCurBuffer;
         }
 
         @Override
         public void realReset() {
+            this.curReadBufferIndex = markCurReadBufferIndex;
             this.readPosInCurBuffer = markReadPosInCurBuffer;
+            if (curReadBufferIndex < uploadBufferList.size()) {
+                this.curBuffer = uploadBufferList.get(curReadBufferIndex);
+            }
         }
 
-        @Override
-        public List<ByteBuffer> getUploadBufferList() {
-            return Arrays.asList(curBuffer);
-        }
-
-        @Override
-        public ByteBuffer getCodaBuffer() {
-            return null;
-        }
     }
 
 }
