@@ -277,7 +277,7 @@ public class MessageStoreConfig {
     private int commitLogSwapMapReserveFileNum = 100;
     private long logicQueueForceSwapMapInterval = 12L * 60 * 60 * 1000;
     private long logicQueueSwapMapInterval = 1L * 60 * 60 * 1000;
-    private long cleanSwappedMapInterval = 5L * 60 * 1000;
+    private long cleanSwapedMapInterval = 5L * 60 * 1000;
     private int logicQueueSwapMapReserveFileNum = 20;
 
     private boolean searchBcqByCacheEnable = true;
@@ -1228,12 +1228,12 @@ public class MessageStoreConfig {
         this.logicQueueSwapMapReserveFileNum = logicQueueSwapMapReserveFileNum;
     }
 
-    public long getCleanSwappedMapInterval() {
-        return cleanSwappedMapInterval;
+    public long getCleanSwapedMapInterval() {
+        return cleanSwapedMapInterval;
     }
 
-    public void setCleanSwappedMapInterval(long cleanSwappedMapInterval) {
-        this.cleanSwappedMapInterval = cleanSwappedMapInterval;
+    public void setCleanSwapedMapInterval(long cleanSwapedMapInterval) {
+        this.cleanSwapedMapInterval = cleanSwapedMapInterval;
     }
 
     public long getCommitLogSwapMapInterval() {
