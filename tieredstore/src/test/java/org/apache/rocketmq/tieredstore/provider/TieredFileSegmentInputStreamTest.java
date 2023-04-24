@@ -68,7 +68,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.build(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.Factory.build(
                 TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize);
 
     }
@@ -108,7 +108,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.build(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.Factory.build(
                 TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize);
 
     }
@@ -131,7 +131,7 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
-        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.build(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.Factory.build(
                 TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize);
 
     }
@@ -148,7 +148,7 @@ public class TieredFileSegmentInputStreamTest {
         // build expected byte buffer for verifying the TieredFileSegmentInputStream
         ByteBuffer expectedByteBuffer = byteBuffer.slice();
 
-        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.build(
+        verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStream.Factory.build(
                 TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit());
     }
 

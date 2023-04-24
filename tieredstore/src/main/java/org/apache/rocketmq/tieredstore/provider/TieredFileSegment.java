@@ -337,7 +337,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (bufferSize == 0) {
             return CompletableFuture.completedFuture(true);
         }
-        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStream.build(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStream.Factory.build(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
         int finalBufferSize = bufferSize;
         try {
             inflightCommitRequest = commit0(inputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)
