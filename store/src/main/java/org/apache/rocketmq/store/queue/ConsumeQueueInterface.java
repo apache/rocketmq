@@ -148,7 +148,7 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
 
 
     /**
-     * increase queue offset.
+     * Increase queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
      * @param msg message itself
      * @param messageNum message number
