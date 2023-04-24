@@ -24,12 +24,18 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -37,6 +43,8 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.UpdateOffsetRequest;
+import apache.rocketmq.v2.UpdateOffsetResponse;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -49,6 +57,7 @@ import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ChangeInvisibleDurationActivity;
+import org.apache.rocketmq.proxy.grpc.v2.consumer.PullMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ReceiveMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.ForwardMessageToDLQActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
@@ -64,6 +73,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected GrpcChannelManager grpcChannelManager;
     protected ReceiptHandleProcessor receiptHandleProcessor;
     protected ReceiveMessageActivity receiveMessageActivity;
+    protected PullMessageActivity pullMessageActivity;
     protected AckMessageActivity ackMessageActivity;
     protected ChangeInvisibleDurationActivity changeInvisibleDurationActivity;
     protected SendMessageActivity sendMessageActivity;
@@ -82,6 +92,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
         this.receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.pullMessageActivity = new PullMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -147,6 +158,27 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request) {
         return this.changeInvisibleDurationActivity.changeInvisibleDuration(ctx, request);
+    }
+
+    @Override
+    public void pullMessage(ProxyContext ctx, PullMessageRequest request,
+        StreamObserver<PullMessageResponse> responseObserver) {
+        this.pullMessageActivity.pullMessage(ctx, request, responseObserver);
+    }
+
+    @Override
+    public CompletableFuture<UpdateOffsetResponse> updateOffset(ProxyContext ctx, UpdateOffsetRequest request) {
+        return this.pullMessageActivity.updateOffset(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<GetOffsetResponse> getOffset(ProxyContext ctx, GetOffsetRequest request) {
+        return this.pullMessageActivity.getOffset(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<QueryOffsetResponse> queryOffset(ProxyContext ctx, QueryOffsetRequest request) {
+        return this.pullMessageActivity.queryOffset(ctx, request);
     }
 
     @Override

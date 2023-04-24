@@ -57,6 +57,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
@@ -286,6 +287,8 @@ public class ConsumerProcessor extends AbstractProcessor {
         long suspendTimeoutMillis, SubscriptionData subscriptionData, long timeoutMillis) {
         CompletableFuture<PullResult> future = new CompletableFuture<>();
         try {
+            maxMsgNums = Math.min(ProxyUtils.MAX_MSG_NUMS_FOR_PULL_REQUEST, Math.max(1, maxMsgNums));
+
             AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
                 .buildAddressableMessageQueue(messageQueue);
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
@@ -298,6 +301,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(suspendTimeoutMillis);
             requestHeader.setSubscription(subscriptionData.getSubString());
+            requestHeader.setSubVersion(System.currentTimeMillis());
             requestHeader.setExpressionType(subscriptionData.getExpressionType());
             future = serviceManager.getMessageService().pullMessage(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
         } catch (Throwable t) {
@@ -307,7 +311,7 @@ public class ConsumerProcessor extends AbstractProcessor {
     }
 
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
-        String consumerGroup, long commitOffset, long timeoutMillis) {
+        String consumerGroup, long commitOffset, boolean oneWay, long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
@@ -317,7 +321,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setTopic(addressableMessageQueue.getTopic());
             requestHeader.setQueueId(addressableMessageQueue.getQueueId());
             requestHeader.setCommitOffset(commitOffset);
-            future = serviceManager.getMessageService().updateConsumerOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+            future = serviceManager.getMessageService().updateConsumerOffset(ctx, addressableMessageQueue, requestHeader, oneWay, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -414,6 +418,22 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setTopic(addressableMessageQueue.getTopic());
             requestHeader.setQueueId(addressableMessageQueue.getQueueId());
             future = serviceManager.getMessageService().getMinOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, MessageQueue messageQueue, long timestamp, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(messageQueue);
+            SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            requestHeader.setTimestamp(timestamp);
+            future = serviceManager.getMessageService().searchOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

@@ -410,15 +410,19 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<Void> updateConsumerOffsetOneWay(
+    public CompletableFuture<Void> updateConsumerOffset(
         String brokerAddr,
         UpdateConsumerOffsetRequestHeader header,
+        boolean oneWay,
         long timeoutMillis
     ) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, header);
-            this.getRemotingClient().invokeOneway(brokerAddr, request, timeoutMillis);
+            if (oneWay) {
+                this.updateConsumerOffsetOneway(brokerAddr, header, timeoutMillis);
+            } else {
+                this.updateConsumerOffset(brokerAddr, header, timeoutMillis);
+            }
             future.complete(null);
         } catch (Throwable t) {
             future.completeExceptionally(t);

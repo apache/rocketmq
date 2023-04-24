@@ -187,13 +187,32 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    default CompletableFuture<Void> updateConsumerOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        String consumerGroup,
+        long commitOffset,
+        boolean oneWay
+    ) {
+        return updateConsumerOffset(ctx, messageQueue, consumerGroup, commitOffset, oneWay, DEFAULT_TIMEOUT_MILLS);
+    }
+
     CompletableFuture<Void> updateConsumerOffset(
         ProxyContext ctx,
         MessageQueue messageQueue,
         String consumerGroup,
         long commitOffset,
+        boolean oneWay,
         long timeoutMillis
     );
+
+    default CompletableFuture<Long> queryConsumerOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        String consumerGroup
+    ) {
+        return queryConsumerOffset(ctx, messageQueue, consumerGroup, DEFAULT_TIMEOUT_MILLS);
+    }
 
     CompletableFuture<Long> queryConsumerOffset(
         ProxyContext ctx,
@@ -218,15 +237,44 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    default CompletableFuture<Long> getMaxOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue
+    ) {
+        return getMaxOffset(ctx, messageQueue, DEFAULT_TIMEOUT_MILLS);
+    }
+
     CompletableFuture<Long> getMaxOffset(
         ProxyContext ctx,
         MessageQueue messageQueue,
         long timeoutMillis
     );
 
+    default CompletableFuture<Long> getMinOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue
+    ) {
+        return getMinOffset(ctx, messageQueue, DEFAULT_TIMEOUT_MILLS);
+    }
+
     CompletableFuture<Long> getMinOffset(
         ProxyContext ctx,
         MessageQueue messageQueue,
+        long timeoutMillis
+    );
+
+    default CompletableFuture<Long> searchOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        long timestamp
+    ) {
+        return searchOffset(ctx, messageQueue, timestamp, DEFAULT_TIMEOUT_MILLS);
+    }
+
+    CompletableFuture<Long> searchOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        long timestamp,
         long timeoutMillis
     );
 

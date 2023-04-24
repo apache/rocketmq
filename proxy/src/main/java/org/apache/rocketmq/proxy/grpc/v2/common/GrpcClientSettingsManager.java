@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
-import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.CustomizedBackoff;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.ExponentialBackoff;
@@ -233,7 +232,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         for (String clientId : clientIdSet) {
             try {
                 CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, settings) -> {
-                    if (!settings.getClientType().equals(ClientType.PUSH_CONSUMER) && !settings.getClientType().equals(ClientType.SIMPLE_CONSUMER)) {
+                    if (!GrpcValidator.getInstance().isConsumer(settings.getClientType())) {
                         return settings;
                     }
                     String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());

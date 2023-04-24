@@ -219,7 +219,8 @@ public class PlainAccessResource implements AccessResource {
             if (HeartbeatRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 HeartbeatRequest request = (HeartbeatRequest) messageV3;
                 if (ClientType.PUSH_CONSUMER.equals(request.getClientType())
-                    || ClientType.SIMPLE_CONSUMER.equals(request.getClientType())) {
+                    || ClientType.SIMPLE_CONSUMER.equals(request.getClientType())
+                    || ClientType.PULL_CONSUMER.equals(request.getClientType())) {
                     if (!request.hasGroup()) {
                         throw new AclException("Consumer heartbeat doesn't have group");
                     } else {

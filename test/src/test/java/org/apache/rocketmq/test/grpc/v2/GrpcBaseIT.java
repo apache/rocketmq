@@ -31,14 +31,21 @@ import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.Endpoints;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.MessagingServiceGrpc;
 import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetPolicy;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -54,6 +61,8 @@ import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.TransactionResolution;
 import apache.rocketmq.v2.TransactionSource;
+import apache.rocketmq.v2.UpdateOffsetRequest;
+import apache.rocketmq.v2.UpdateOffsetResponse;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
@@ -90,6 +99,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -540,6 +550,109 @@ public class GrpcBaseIT extends BaseConf {
         }
     }
 
+    public void testPullMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.NORMAL);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+
+        QueryRouteResponse queryRouteResponse = blockingStub.queryRoute(buildQueryRouteRequest(topic));
+        assertThat(queryRouteResponse.getStatus().getCode()).isEqualTo(Code.OK);
+        MessageQueue messageQueue = queryRouteResponse.getMessageQueues(0);
+
+        this.sendClientSettings(stub, buildPullConsumerClientSettings(group)).get();
+        assertThat(queryMinOffset(messageQueue)).isEqualTo(0);
+        assertThat(queryMaxOffset(messageQueue)).isEqualTo(0);
+
+        String messageId1 = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId1));
+        assertSendMessage(sendResponse, messageId1);
+        String messageId2 = createUniqID();
+        sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId2));
+        assertSendMessage(sendResponse, messageId2);
+
+        assertThat(queryMinOffset(messageQueue)).isEqualTo(0);
+        assertThat(queryMaxOffset(messageQueue)).isEqualTo(2);
+
+        List<PullMessageResponse> pullMessageResponseList = pullMessage(group, messageQueue, 0);
+        Pair<Long, Long> messageOffsetAndNextOffset = assertPullMessageResponse(pullMessageResponseList, messageId1);
+        updateOffset(group, messageQueue, messageOffsetAndNextOffset.getLeft());
+        assertThat(getOffset(group, messageQueue)).isEqualTo(messageOffsetAndNextOffset.getLeft());
+
+        pullMessageResponseList = pullMessage(group, messageQueue, messageOffsetAndNextOffset.getRight());
+        messageOffsetAndNextOffset = assertPullMessageResponse(pullMessageResponseList, messageId2);
+        updateOffset(group, messageQueue, messageOffsetAndNextOffset.getLeft());
+        assertThat(getOffset(group, messageQueue)).isEqualTo(messageOffsetAndNextOffset.getLeft());
+
+        pullMessageResponseList = pullMessage(group, messageQueue, messageOffsetAndNextOffset.getRight());
+        assertThat(pullMessageResponseList.size()).isEqualTo(2);
+        assertThat(pullMessageResponseList.get(0).getStatus().getCode()).isEqualTo(Code.MESSAGE_NOT_FOUND);
+        assertThat(pullMessageResponseList.get(1).getNextOffset()).isEqualTo(messageOffsetAndNextOffset.getRight());
+    }
+
+    protected long queryMinOffset(MessageQueue messageQueue) {
+        QueryOffsetResponse response = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
+            .queryOffset(QueryOffsetRequest.newBuilder()
+                .setQueryOffsetPolicy(QueryOffsetPolicy.BEGINNING)
+                .setMessageQueue(messageQueue)
+                .build());
+        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        return response.getOffset();
+    }
+
+    protected long queryMaxOffset(MessageQueue messageQueue) {
+        QueryOffsetResponse response = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
+            .queryOffset(QueryOffsetRequest.newBuilder()
+                .setQueryOffsetPolicy(QueryOffsetPolicy.END)
+                .setMessageQueue(messageQueue)
+                .build());
+        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        return response.getOffset();
+    }
+
+    protected void updateOffset(String group, MessageQueue messageQueue, long offset) {
+        UpdateOffsetResponse response = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
+            .updateOffset(UpdateOffsetRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(group).build())
+                .setMessageQueue(messageQueue)
+                .setOffset(offset)
+                .build());
+        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+    }
+
+    protected long getOffset(String group, MessageQueue messageQueue) {
+        GetOffsetResponse response = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
+            .getOffset(GetOffsetRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(group).build())
+                .setMessageQueue(messageQueue)
+                .build());
+        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        return response.getOffset();
+    }
+
+    protected List<PullMessageResponse> pullMessage(String group, MessageQueue messageQueue, long offset) {
+        List<PullMessageResponse> responseList = new ArrayList<>();
+        Iterator<PullMessageResponse> responseIterator = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
+            .pullMessage(PullMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder()
+                    .setName(group)
+                    .build())
+                .setMessageQueue(messageQueue)
+                .setOffset(offset)
+                .setBatchSize(1)
+                .build());
+        while (responseIterator.hasNext()) {
+            responseList.add(responseIterator.next());
+        }
+        return responseList;
+    }
+
+    protected Pair<Long, Long> assertPullMessageResponse(List<PullMessageResponse> pullMessageResponseList, String messageId) {
+        assertThat(pullMessageResponseList.size()).isEqualTo(3);
+        assertThat(pullMessageResponseList.get(0).getStatus().getCode()).isEqualTo(Code.OK);
+        Message message = pullMessageResponseList.get(1).getMessage();
+        assertThat(pullMessageResponseList.get(1).getMessage().getSystemProperties().getMessageId()).isEqualTo(messageId);
+        return Pair.of(message.getSystemProperties().getQueueOffset(), pullMessageResponseList.get(2).getNextOffset());
+    }
+
     public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub,
         String topic, String group) {
         return receiveMessage(stub, topic, group, 15);
@@ -758,6 +871,16 @@ public class GrpcBaseIT extends BaseConf {
             .addAddresses(Address.newBuilder()
                 .setHost("127.0.0.1")
                 .setPort(port)
+                .build())
+            .build();
+    }
+
+    public Settings buildPullConsumerClientSettings(String group) {
+        return Settings.newBuilder()
+            .setClientType(ClientType.PULL_CONSUMER)
+            .setRequestTimeout(Durations.fromSeconds(3))
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
             .build();
     }

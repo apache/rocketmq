@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -72,6 +73,9 @@ public class ResponseBuilder {
         }
         if (TopicRouteHelper.isTopicNotExistError(t)) {
             return buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage());
+        }
+        if (t instanceof OffsetNotFoundException) {
+            return buildStatus(Code.OFFSET_NOT_FOUND, "offset not found");
         }
         if (t instanceof MQBrokerException) {
             MQBrokerException mqBrokerException = (MQBrokerException) t;

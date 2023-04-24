@@ -196,8 +196,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
-        String consumerGroup, long commitOffset, long timeoutMillis) {
-        return this.consumerProcessor.updateConsumerOffset(ctx, messageQueue, consumerGroup, commitOffset, timeoutMillis);
+        String consumerGroup, long commitOffset, boolean oneWay, long timeoutMillis) {
+        return this.consumerProcessor.updateConsumerOffset(ctx, messageQueue, consumerGroup, commitOffset, oneWay, timeoutMillis);
     }
 
     @Override
@@ -227,6 +227,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<Long> getMinOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
         return this.consumerProcessor.getMinOffset(ctx, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, MessageQueue messageQueue, long timestamp,
+        long timeoutMillis) {
+        return this.consumerProcessor.searchOffset(ctx, messageQueue, timestamp, timeoutMillis);
     }
 
     @Override

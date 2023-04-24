@@ -40,6 +40,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 
@@ -109,6 +110,7 @@ public interface MessageService {
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader,
+        boolean oneWay,
         long timeoutMillis
     );
 
@@ -137,6 +139,13 @@ public interface MessageService {
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
         GetMinOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Long> searchOffset(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        SearchOffsetRequestHeader requestHeader,
         long timeoutMillis
     );
 

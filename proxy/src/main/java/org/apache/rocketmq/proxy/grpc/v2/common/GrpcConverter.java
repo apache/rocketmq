@@ -18,10 +18,12 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.DeadLetterQueue;
 import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
+import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
@@ -46,6 +48,8 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class GrpcConverter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -84,6 +88,15 @@ public class GrpcConverter {
                 .build())
             .setBroker(broker)
             .build();
+    }
+
+    public SubscriptionData buildSubscriptionData(String rocketmqTopic, FilterExpression filterExpression) {
+        try {
+            return FilterAPI.build(rocketmqTopic, filterExpression.getExpression(),
+                GrpcConverter.getInstance().buildExpressionType(filterExpression.getType()));
+        } catch (Exception e) {
+            throw new GrpcProxyException(Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
+        }
     }
 
     public String buildExpressionType(FilterType filterType) {

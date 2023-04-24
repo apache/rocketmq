@@ -193,12 +193,12 @@ public class BaseConf {
     }
 
     public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic) {
-        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, CQType.SimpleCQ);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, 1, CQType.SimpleCQ);
         return topicName;
     }
 
     public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic, TopicMessageType topicMessageType) {
-        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, topicMessageType);
+        IntegrationTestBase.initTopic(topicName, NAMESRV_ADDR, sampleTopic, 1, CQType.SimpleCQ, topicMessageType);
         return topicName;
     }
 

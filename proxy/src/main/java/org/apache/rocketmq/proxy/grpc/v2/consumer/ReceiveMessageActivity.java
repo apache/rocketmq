@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
-import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Settings;
@@ -38,18 +36,17 @@ import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class ReceiveMessageActivity extends AbstractMessingActivity {
     protected ReceiptHandleProcessor receiptHandleProcessor;
-    private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
 
     public ReceiveMessageActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -66,7 +63,6 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
             int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
-            ProxyConfig config = ConfigurationManager.getProxyConfig();
 
             Long timeRemaining = ctx.getRemainingMs();
             long pollingTime;
@@ -75,26 +71,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             } else {
                 pollingTime = timeRemaining - Durations.toMillis(settings.getRequestTimeout()) / 2;
             }
-            if (pollingTime < config.getGrpcClientConsumerMinLongPollingTimeoutMillis()) {
-                pollingTime = config.getGrpcClientConsumerMinLongPollingTimeoutMillis();
-            }
-            if (pollingTime > config.getGrpcClientConsumerMaxLongPollingTimeoutMillis()) {
-                pollingTime = config.getGrpcClientConsumerMaxLongPollingTimeoutMillis();
-            }
-
-            if (pollingTime > timeRemaining) {
-                if (timeRemaining >= config.getGrpcClientConsumerMinLongPollingTimeoutMillis()) {
-                    pollingTime = timeRemaining;
-                } else {
-                    final String clientVersion = ctx.getClientVersion();
-                    Code code =
-                        null == clientVersion || ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION.compareTo(clientVersion) > 0 ?
-                        Code.BAD_REQUEST : Code.ILLEGAL_POLLING_TIME;
-                    writer.writeAndComplete(ctx, code, "The deadline time remaining is not enough" +
-                        " for polling, please check network condition");
-                    return;
-                }
-            }
+            pollingTime = GrpcValidator.getInstance().reasonableLongPollingTimeout(pollingTime, timeRemaining, ctx.getClientVersion());
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
             String topic = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic());
@@ -109,16 +86,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     ConfigurationManager.getProxyConfig().getMinInvisibleTimeMillsForRecv());
             }
 
-            FilterExpression filterExpression = request.getFilterExpression();
-            SubscriptionData subscriptionData;
-            try {
-                subscriptionData = FilterAPI.build(topic, filterExpression.getExpression(),
-                    GrpcConverter.getInstance().buildExpressionType(filterExpression.getType()));
-            } catch (Exception e) {
-                writer.writeAndComplete(ctx, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
-                return;
-            }
-
+            SubscriptionData subscriptionData = GrpcConverter.getInstance().buildSubscriptionData(topic, request.getFilterExpression());
             this.messagingProcessor.popMessage(
                     ctx,
                     new ReceiveMessageQueueSelector(

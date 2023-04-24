@@ -46,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 
@@ -159,10 +160,11 @@ public class ClusterMessageService implements MessageService {
 
     @Override
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
-        UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
-        return this.mqClientAPIFactory.getClient().updateConsumerOffsetOneWay(
+        UpdateConsumerOffsetRequestHeader requestHeader, boolean oneWay, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().updateConsumerOffset(
             messageQueue.getBrokerAddr(),
             requestHeader,
+            oneWay,
             timeoutMillis
         );
     }
@@ -201,6 +203,16 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<Long> getMinOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().getMinOffset(
+            messageQueue.getBrokerAddr(),
+            requestHeader,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        SearchOffsetRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().searchOffset(
             messageQueue.getBrokerAddr(),
             requestHeader,
             timeoutMillis

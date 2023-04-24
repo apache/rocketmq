@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Resource;
 import com.google.common.base.CharMatcher;
@@ -29,10 +30,12 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 
 public class GrpcValidator {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    protected static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
     protected static final Object INSTANCE_CREATE_LOCK = new Object();
     protected static volatile GrpcValidator instance;
 
@@ -45,6 +48,36 @@ public class GrpcValidator {
             }
         }
         return instance;
+    }
+
+    public boolean isConsumer(ClientType clientType) {
+        return ClientType.SIMPLE_CONSUMER.equals(clientType) ||
+            ClientType.PUSH_CONSUMER.equals(clientType) ||
+            ClientType.PULL_CONSUMER.equals(clientType);
+    }
+
+    public long reasonableLongPollingTimeout(Long longPollingTimeout, Long timeRemaining, String clientVersion) {
+        long pollingTime = longPollingTimeout;
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        if (pollingTime < config.getGrpcClientConsumerMinLongPollingTimeoutMillis()) {
+            pollingTime = config.getGrpcClientConsumerMinLongPollingTimeoutMillis();
+        }
+        if (pollingTime > config.getGrpcClientConsumerMaxLongPollingTimeoutMillis()) {
+            pollingTime = config.getGrpcClientConsumerMaxLongPollingTimeoutMillis();
+        }
+
+        if (pollingTime > timeRemaining) {
+            if (timeRemaining >= config.getGrpcClientConsumerMinLongPollingTimeoutMillis()) {
+                pollingTime = timeRemaining;
+            } else {
+                Code code =
+                    null == clientVersion || ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION.compareTo(clientVersion) > 0 ?
+                        Code.BAD_REQUEST : Code.ILLEGAL_POLLING_TIME;
+                throw new GrpcProxyException(code, "The deadline time remaining is not enough" +
+                    " for polling, please check network condition");
+            }
+        }
+        return pollingTime;
     }
 
     public void validateTopic(Resource topic) {

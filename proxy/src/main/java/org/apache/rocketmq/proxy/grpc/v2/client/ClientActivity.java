@@ -105,6 +105,7 @@ public class ClientActivity extends AbstractMessingActivity {
                     }
                     break;
                 }
+                case PULL_CONSUMER:
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
@@ -149,6 +150,7 @@ public class ClientActivity extends AbstractMessingActivity {
                         }
                     }
                     break;
+                case PULL_CONSUMER:
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
                     validateConsumerGroup(request.getGroup());
@@ -385,9 +387,11 @@ public class ClientActivity extends AbstractMessingActivity {
     protected ConsumeType buildConsumeType(ClientType clientType) {
         switch (clientType) {
             case SIMPLE_CONSUMER:
-                return ConsumeType.CONSUME_ACTIVELY;
+                return ConsumeType.CONSUME_POP;
             case PUSH_CONSUMER:
                 return ConsumeType.CONSUME_PASSIVELY;
+            case PULL_CONSUMER:
+                return ConsumeType.CONSUME_ACTIVELY;
             default:
                 throw new IllegalArgumentException("Client type is not consumer, type: " + clientType);
         }

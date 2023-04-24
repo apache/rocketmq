@@ -25,12 +25,18 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -38,6 +44,8 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.UpdateOffsetRequest;
+import apache.rocketmq.v2.UpdateOffsetResponse;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -68,6 +76,15 @@ public interface GrpcMessingActivity extends StartAndShutdown {
 
     CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request);
+
+    void pullMessage(ProxyContext ctx, PullMessageRequest request,
+        StreamObserver<PullMessageResponse> responseObserver);
+
+    CompletableFuture<UpdateOffsetResponse> updateOffset(ProxyContext ctx, UpdateOffsetRequest request);
+
+    CompletableFuture<GetOffsetResponse> getOffset(ProxyContext ctx, GetOffsetRequest request);
+
+    CompletableFuture<QueryOffsetResponse> queryOffset(ProxyContext ctx, QueryOffsetRequest request);
 
     StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx, StreamObserver<TelemetryCommand> responseObserver);
 }
