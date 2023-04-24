@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -118,6 +119,8 @@ public class DefaultMessageStoreCleanFilesTest {
         assertEquals(3, paths.length);
         initMessageStore(config, diskSpaceCleanForciblyRatio);
 
+
+
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
         MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
@@ -169,8 +172,6 @@ public class DefaultMessageStoreCleanFilesTest {
         int fileCountConsumeQueue = getFileCountConsumeQueue();
         MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
         assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
-
-
 
         int fileCountIndexFile = getFileCountIndexFile();
         assertEquals(fileCountIndexFile, getIndexFileList().size());
@@ -273,8 +274,8 @@ public class DefaultMessageStoreCleanFilesTest {
 
         // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
         for (int a = 1, fileCount = fileCountCommitLog;
-            a <= (int) Math.ceil((double) fileCountCommitLog / 10) && fileCount >= 10;
-            a++, fileCount -= 10) {
+             a <= (int) Math.ceil((double) fileCountCommitLog / 10) && fileCount >= 10;
+             a++, fileCount -= 10) {
             cleanCommitLogService.run();
             cleanConsumeQueueService.run();
 
@@ -339,28 +340,28 @@ public class DefaultMessageStoreCleanFilesTest {
     }
 
     private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
-        throws Exception {
+            throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
         DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
-            (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
+                (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
 
         return cleanCommitLogService;
     }
 
     private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
-        throws Exception {
+            throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
         serviceField.setAccessible(true);
         DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService =
-            (DefaultMessageStore.CleanConsumeQueueService) serviceField.get(messageStore);
+                (DefaultMessageStore.CleanConsumeQueueService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
         return cleanConsumeQueueService;
     }
 
     private MappedFileQueue getMappedFileQueueConsumeQueue()
-        throws Exception {
+            throws Exception {
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
         Field queueField = consumeQueue.getClass().getDeclaredField("mappedFileQueue");
         queueField.setAccessible(true);
@@ -452,9 +453,8 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio,
-        double diskSpaceCleanForciblyRatio) throws Exception {
-        initMessageStore(genMessageStoreConfig(deleteWhen, diskMaxUsedSpaceRatio), diskSpaceCleanForciblyRatio);
+    private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
+        initMessageStore(genMessageStoreConfig(deleteWhen,diskMaxUsedSpaceRatio), diskSpaceCleanForciblyRatio);
     }
 
     private MessageStoreConfig genMessageStoreConfig(String deleteWhen, int diskMaxUsedSpaceRatio) {
@@ -475,17 +475,16 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setDiskMaxUsedSpaceRatio(diskMaxUsedSpaceRatio);
 
         String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator
-            + "DefaultMessageStoreCleanFilesTest-" + UUID.randomUUID();
+                + "DefaultMessageStoreCleanFilesTest-" + UUID.randomUUID();
         String storePathCommitLog = storePathRootDir + File.separator + "commitlog";
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         messageStoreConfig.setStorePathCommitLog(storePathCommitLog);
         return messageStoreConfig;
     }
 
-    private void initMessageStore(MessageStoreConfig messageStoreConfig,
-        double diskSpaceCleanForciblyRatio) throws Exception {
+    private void initMessageStore(MessageStoreConfig messageStoreConfig, double diskSpaceCleanForciblyRatio) throws Exception {
         messageStore = new DefaultMessageStore(messageStoreConfig,
-            new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig());
+                new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
         cleanCommitLogService = getCleanCommitLogService();
         cleanConsumeQueueService = getCleanConsumeQueueService();
@@ -501,8 +500,7 @@ public class DefaultMessageStoreCleanFilesTest {
         putFiledBackToMessageStore(cleanCommitLogService);
     }
 
-    private void putFiledBackToMessageStore(
-        DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
+    private void putFiledBackToMessageStore(DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
         Field cleanCommitLogServiceField = DefaultMessageStore.class.getDeclaredField("cleanCommitLogService");
         cleanCommitLogServiceField.setAccessible(true);
         cleanCommitLogServiceField.set(messageStore, cleanCommitLogService);
@@ -512,7 +510,7 @@ public class DefaultMessageStoreCleanFilesTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-            byte[] filterBitMap, Map<String, String> properties) {
+                             byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 

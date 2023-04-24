@@ -25,15 +25,12 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -742,21 +739,6 @@ public interface MessageStore {
      * @param messageNum message num
      */
     void increaseOffset(MessageExtBrokerInner msg, short messageNum);
-
-    /**
-     * get all topic config
-     *
-     * @return all topic config info
-     */
-    Map<String, TopicConfig> getTopicConfigs();
-
-    /**
-     * get topic config
-     *
-     * @param topic topic name
-     * @return topic config info
-     */
-    Optional<TopicConfig> getTopicConfig(String topic);
 
     /**
      * Get master broker message store in process in broker container

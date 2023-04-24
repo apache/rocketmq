@@ -25,6 +25,7 @@ import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
@@ -82,6 +83,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
                 this.remotingChannelManager.createProducerChannel(ctx.channel(), data.getGroupName(), clientId),
                 clientId, request.getLanguage(),
                 request.getVersion());
+            setClientPropertiesToChannelAttr(clientChannelInfo);
             messagingProcessor.registerProducer(context, data.getGroupName(), clientChannelInfo);
         }
 
@@ -90,6 +92,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
                 this.remotingChannelManager.createConsumerChannel(ctx.channel(), data.getGroupName(), clientId, data.getSubscriptionDataSet()),
                 clientId, request.getLanguage(),
                 request.getVersion());
+            setClientPropertiesToChannelAttr(clientChannelInfo);
             messagingProcessor.registerConsumer(context, data.getGroupName(), clientChannelInfo, data.getConsumeType(),
                 data.getMessageModel(), data.getConsumeFromWhere(), data.getSubscriptionDataSet(), true);
         }
@@ -98,6 +101,18 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark("");
         return response;
+    }
+
+    private void setClientPropertiesToChannelAttr(final ClientChannelInfo clientChannelInfo) {
+        Channel channel = clientChannelInfo.getChannel();
+        if (channel instanceof RemotingChannel) {
+            RemotingChannel remotingChannel = (RemotingChannel) channel;
+            Channel parent = remotingChannel.parent();
+            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.CLIENT_ID_KEY, clientChannelInfo.getClientId());
+            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.LANGUAGE_CODE_KEY, clientChannelInfo.getLanguage());
+            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.VERSION_KEY, clientChannelInfo.getVersion());
+        }
+
     }
 
     protected RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request,

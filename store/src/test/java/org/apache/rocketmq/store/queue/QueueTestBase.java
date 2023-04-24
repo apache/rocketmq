@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class QueueTestBase extends StoreTestBase {
 
-    protected void createTopic(String topic, CQType cqType, MessageStore messageStore) {
+    protected ConcurrentMap<String, TopicConfig> createTopicConfigTable(String topic, CQType cqType) {
         ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
         TopicConfig topicConfigToBeAdded = new TopicConfig();
 
@@ -51,14 +51,14 @@ public class QueueTestBase extends StoreTestBase {
         topicConfigToBeAdded.setAttributes(attributes);
 
         topicConfigTable.put(topic, topicConfigToBeAdded);
-        ((DefaultMessageStore) messageStore).setTopicConfigTable(topicConfigTable);
+        return topicConfigTable;
     }
 
     protected Callable<Boolean> fullyDispatched(MessageStore messageStore) {
         return () -> messageStore.dispatchBehindBytes() == 0;
     }
 
-    protected MessageStore createMessageStore(String baseDir, boolean extent) throws Exception {
+    protected MessageStore createMessageStore(String baseDir, boolean extent,  ConcurrentMap<String, TopicConfig> topicConfigTable) throws Exception {
         if (baseDir == null) {
             baseDir = createBaseDir();
         }
@@ -86,7 +86,7 @@ public class QueueTestBase extends StoreTestBase {
             new BrokerStatsManager("simpleTest", true),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
             },
-            new BrokerConfig());
+            new BrokerConfig(), topicConfigTable);
     }
 
     public MessageExtBrokerInner buildMessage(String topic, int batchNum) {

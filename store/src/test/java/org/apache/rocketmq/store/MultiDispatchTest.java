@@ -21,6 +21,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -57,7 +58,7 @@ public class MultiDispatchTest {
         messageStoreConfig.setEnableMultiDispatch(true);
         BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
-        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig);
+        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig, new ConcurrentHashMap<>());
         consumeQueue = new ConsumeQueue("xxx", 0,
             getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
     }
