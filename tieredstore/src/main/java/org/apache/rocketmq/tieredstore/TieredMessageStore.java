@@ -110,10 +110,13 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
         TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
         if (container == null) {
+            logger.debug("TieredMessageStore#viaTieredStorage: container not found, topic: {}, queueId: {}", topic, queueId);
             return false;
         }
 
         if (offset >= container.getConsumeQueueCommitOffset()) {
+            logger.debug("TieredMessageStore#viaTieredStorage: offset is greater than consumeQueueCommitOffset, topic: {}, queueId: {}, offset: {}, consumeQueueCommitOffset: {}",
+                topic, queueId, offset, container.getConsumeQueueCommitOffset());
             return false;
         }
 
@@ -158,9 +161,6 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                                 topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
                             TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
                             return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
-                        } else {
-                            logger.warn("TieredMessageStore#getMessageAsync: not found message, and message is not in next store too: topic: {}, queue: {}, queue offset: {}, result: {}, min offset: {}, max offset: {}",
-                                topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
                         }
                     }
                     if (result.getStatus() != GetMessageStatus.FOUND &&
