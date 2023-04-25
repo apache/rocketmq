@@ -36,7 +36,7 @@ import java.util.Random;
 
 public class TieredFileSegmentInputStreamTest {
 
-    private final static int COMMIT_LOG_START_OFFSET = 100;
+    private final static long COMMIT_LOG_START_OFFSET = 13131313;
 
     private final static int MSG_LEN = MessageBufferUtilTest.MSG_LEN;
 
@@ -64,7 +64,7 @@ public class TieredFileSegmentInputStreamTest {
         }
         // set real physical offset
         for (int i = 0; i < MSG_NUM; i++) {
-            int physicalOffset = COMMIT_LOG_START_OFFSET + i * MSG_LEN;
+            long physicalOffset = COMMIT_LOG_START_OFFSET + i * MSG_LEN;
             int position = i * MSG_LEN + MessageBufferUtil.PHYSICAL_OFFSET_POSITION;
             expectedByteBuffer.putLong(position, physicalOffset);
         }

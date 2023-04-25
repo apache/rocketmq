@@ -32,16 +32,13 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
     private long commitLogOffset;
 
     private final ByteBuffer codaBuffer;
-
-    private final ByteBuffer commitLogOffsetBuffer = ByteBuffer.allocate(8);
-
+    
     private long markCommitLogOffset = -1;
 
     public TieredCommitLogInputStream(TieredFileSegment.FileSegmentType fileType, long startOffset,
                                       List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
         super(fileType, uploadBufferList, contentLength);
         this.commitLogOffset = startOffset;
-        this.commitLogOffsetBuffer.putLong(0, startOffset);
         this.codaBuffer = codaBuffer;
     }
 
@@ -55,7 +52,6 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
     public synchronized void reset() throws IOException {
         super.reset();
         this.commitLogOffset = markCommitLogOffset;
-        commitLogOffsetBuffer.putLong(0, commitLogOffset);
     }
 
     @Override
@@ -82,10 +78,9 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             curBuffer = uploadBufferList.get(curReadBufferIndex);
             commitLogOffset += readPosInCurBuffer;
             readPosInCurBuffer = 0;
-            commitLogOffsetBuffer.putLong(0, commitLogOffset);
         }
         if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-            res = commitLogOffsetBuffer.get(readPosInCurBuffer - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
+            res = (int) ((commitLogOffset >> (8 * (MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - readPosInCurBuffer - 1))) & 0xff);
             readPosInCurBuffer++;
         } else {
             res = curBuffer.get(readPosInCurBuffer++) & 0xff;
