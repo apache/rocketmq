@@ -29,6 +29,7 @@ public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStre
         super(null, Integer.MAX_VALUE);
         this.inputStream = inputStream;
     }
+
     @Override
     public int realRead() {
         int res = -1;

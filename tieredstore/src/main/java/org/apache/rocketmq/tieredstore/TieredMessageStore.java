@@ -110,13 +110,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
         TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
         if (container == null) {
-            logger.debug("TieredMessageStore#viaTieredStorage: container not found, topic: {}, queueId: {}", topic, queueId);
             return false;
         }
 
         if (offset >= container.getConsumeQueueCommitOffset()) {
-            logger.debug("TieredMessageStore#viaTieredStorage: offset is greater than consumeQueueCommitOffset, topic: {}, queueId: {}, offset: {}, consumeQueueCommitOffset: {}",
-                topic, queueId, offset, container.getConsumeQueueCommitOffset());
             return false;
         }
 

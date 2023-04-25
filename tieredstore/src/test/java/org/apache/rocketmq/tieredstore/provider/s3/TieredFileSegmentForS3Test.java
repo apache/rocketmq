@@ -41,7 +41,7 @@ public class TieredFileSegmentForS3Test extends TieredFileSegmentBaseTest {
 
     public TieredFileSegment createFileSegment(TieredFileSegment.FileSegmentType fileType) {
         return new S3FileSegment(fileType, new MessageQueue("TieredFileSegmentTest", CONFIG.getBrokerName(), 0),
-                baseOffset, CONFIG);
+            baseOffset, CONFIG);
     }
 
     @Before

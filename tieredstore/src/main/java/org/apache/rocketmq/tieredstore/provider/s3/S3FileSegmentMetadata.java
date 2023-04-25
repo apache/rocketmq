@@ -41,8 +41,9 @@ public class S3FileSegmentMetadata {
 
     /**
      * Seek the chunks that need to be read, which is the intersection of the chunks and the range of [position, position + length)
+     *
      * @param position start position
-     * @param length data length
+     * @param length   data length
      * @return the chunks that need to be read
      * @throws IndexOutOfBoundsException if position or length is negative or position
      */
@@ -54,14 +55,17 @@ public class S3FileSegmentMetadata {
                 throw new IndexOutOfBoundsException("position: " + position + ", length: " + length + ", Metadata: start: " + getStartPosition() + ", end: " + getEndPosition());
             }
             List<ChunkMetadata> needChunks = new LinkedList<>();
-            if (length == 0) return needChunks;
+            if (length == 0)
+                return needChunks;
             if (segment != null) {
                 needChunks.add(segment);
                 return needChunks;
             }
             for (ChunkMetadata chunk : chunks) {
-                if (endPosition < chunk.getStartPosition()) break;
-                if (position > chunk.getEndPosition()) continue;
+                if (endPosition < chunk.getStartPosition())
+                    break;
+                if (position > chunk.getEndPosition())
+                    continue;
                 if (position <= chunk.getEndPosition() || endPosition >= chunk.getStartPosition()) {
                     needChunks.add(chunk);
                 }
@@ -110,8 +114,10 @@ public class S3FileSegmentMetadata {
     public long getStartPosition() {
         this.readLock.lock();
         try {
-            if (segment != null) return segment.getStartPosition();
-            if (chunks.size() == 0) return -1;
+            if (segment != null)
+                return segment.getStartPosition();
+            if (chunks.size() == 0)
+                return -1;
             return chunks.getFirst().getStartPosition();
         } finally {
             this.readLock.unlock();
@@ -121,8 +127,10 @@ public class S3FileSegmentMetadata {
     public long getEndPosition() {
         this.readLock.lock();
         try {
-            if (segment != null) return segment.getEndPosition();
-            if (chunks.size() == 0) return -1;
+            if (segment != null)
+                return segment.getEndPosition();
+            if (chunks.size() == 0)
+                return -1;
             return chunks.getLast().getEndPosition();
         } finally {
             this.readLock.unlock();
@@ -132,7 +140,8 @@ public class S3FileSegmentMetadata {
     public long getSize() {
         long start = getStartPosition();
         long end = getEndPosition();
-        if (start == -1) return 0;
+        if (start == -1)
+            return 0;
         return end - start + 1;
     }
 

@@ -80,12 +80,13 @@ public class S3FileSegment extends TieredFileSegment {
 
     // TODO: Uses the specified asynchronous thread pool
 
-    public S3FileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset, TieredMessageStoreConfig storeConfig) {
+    public S3FileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
+        TieredMessageStoreConfig storeConfig) {
         super(fileType, messageQueue, baseOffset, storeConfig);
         String clusterName = storeConfig.getBrokerClusterName();
         String hash = String.valueOf(clusterName.hashCode());
         this.storePath = hash + File.separator + clusterName + File.separator + messageQueue.getBrokerName() +
-                File.separator + messageQueue.getTopic() + File.separator + messageQueue.getQueueId() + File.separator + fileType + File.separator + "seg-" + baseOffset;
+            File.separator + messageQueue.getTopic() + File.separator + messageQueue.getQueueId() + File.separator + fileType + File.separator + "seg-" + baseOffset;
         this.chunkPath = this.storePath + File.separator + "chunk";
         this.segmentPath = this.storePath + File.separator + "segment";
         this.client = TieredStorageS3Client.getInstance(storeConfig);
@@ -172,7 +173,8 @@ public class S3FileSegment extends TieredFileSegment {
 
     private void trySealFile() {
         while (true) {
-            if (this.metadata.isSealed() && this.metadata.getChunkCount() == 0) return;
+            if (this.metadata.isSealed() && this.metadata.getChunkCount() == 0)
+                return;
 
             boolean success = true;
 
@@ -203,7 +205,8 @@ public class S3FileSegment extends TieredFileSegment {
                     LOGGER.error("Delete chunks failed, chunk path is {}, undelete list is {}.", this.chunkPath, undeleteList);
                 }
             }
-            if (success) return;
+            if (success)
+                return;
             // unsuccessful, retry
             try {
                 Thread.sleep(1000);
@@ -273,7 +276,8 @@ public class S3FileSegment extends TieredFileSegment {
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
+    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
+        boolean append) {
         // TODO: Deal with the case that the param: append is false
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
         // check if now the segment is sealed
@@ -316,7 +320,6 @@ public class S3FileSegment extends TieredFileSegment {
         });
         return completableFuture;
     }
-
 
     public S3FileSegmentMetadata getMetadata() {
         return metadata;

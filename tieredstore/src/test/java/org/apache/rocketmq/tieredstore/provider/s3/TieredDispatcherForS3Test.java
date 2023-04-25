@@ -41,7 +41,8 @@ public class TieredDispatcherForS3Test extends TieredDispatcherBaseTest {
     }
 
     @Override
-    public TieredFileSegment createTieredFileSegment(TieredFileSegment.FileSegmentType type, MessageQueue mq, long baseOffset, TieredMessageStoreConfig storeConfig) {
+    public TieredFileSegment createTieredFileSegment(TieredFileSegment.FileSegmentType type, MessageQueue mq,
+        long baseOffset, TieredMessageStoreConfig storeConfig) {
         return new S3FileSegment(type, mq, baseOffset, storeConfig);
     }
 

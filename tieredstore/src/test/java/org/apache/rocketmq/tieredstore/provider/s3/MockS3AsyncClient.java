@@ -60,7 +60,8 @@ public class MockS3AsyncClient implements S3AsyncClient {
     @ClassRule
     public static final S3MockRule S3_MOCK_RULE = S3MockRule.builder().silent().build();
 
-    public static TieredStorageS3Client getMockTieredStorageS3Client(TieredMessageStoreConfig config, S3MockStarterTestImpl s3MockApplication) {
+    public static TieredStorageS3Client getMockTieredStorageS3Client(TieredMessageStoreConfig config,
+        S3MockStarterTestImpl s3MockApplication) {
         TieredStorageS3Client tieredStorageS3Client = null;
         try {
             tieredStorageS3Client = new TieredStorageS3Client(config);
@@ -98,7 +99,8 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest putObjectRequest, AsyncRequestBody requestBody) {
+    public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest putObjectRequest,
+        AsyncRequestBody requestBody) {
         List<ByteBuffer> list = new LinkedList<>();
         CompletableFuture<Void> future = requestBody.subscribe(bytebuffer -> {
             list.add(bytebuffer);
@@ -117,7 +119,8 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public CompletableFuture<ListObjectsV2Response> listObjectsV2(Consumer<ListObjectsV2Request.Builder> listObjectsV2Request) {
+    public CompletableFuture<ListObjectsV2Response> listObjectsV2(
+        Consumer<ListObjectsV2Request.Builder> listObjectsV2Request) {
         ListObjectsV2Request request = ListObjectsV2Request.builder().applyMutation(listObjectsV2Request).build();
         return this.listObjectsV2(request);
     }
@@ -128,7 +131,8 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public CompletableFuture<DeleteObjectResponse> deleteObject(Consumer<DeleteObjectRequest.Builder> deleteObjectRequest) {
+    public CompletableFuture<DeleteObjectResponse> deleteObject(
+        Consumer<DeleteObjectRequest.Builder> deleteObjectRequest) {
         DeleteObjectRequest request = DeleteObjectRequest.builder().applyMutation(deleteObjectRequest).build();
         return this.deleteObject(request);
     }
@@ -139,7 +143,8 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public CompletableFuture<DeleteObjectsResponse> deleteObjects(Consumer<DeleteObjectsRequest.Builder> deleteObjectsRequest) {
+    public CompletableFuture<DeleteObjectsResponse> deleteObjects(
+        Consumer<DeleteObjectsRequest.Builder> deleteObjectsRequest) {
         DeleteObjectsRequest request = DeleteObjectsRequest.builder().applyMutation(deleteObjectsRequest).build();
         return this.deleteObjects(request);
     }
@@ -150,30 +155,35 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public <T> CompletableFuture<T> getObject(Consumer<GetObjectRequest.Builder> getObjectRequest, AsyncResponseTransformer<GetObjectResponse, T> asyncResponseTransformer) {
+    public <T> CompletableFuture<T> getObject(Consumer<GetObjectRequest.Builder> getObjectRequest,
+        AsyncResponseTransformer<GetObjectResponse, T> asyncResponseTransformer) {
         GetObjectRequest request = GetObjectRequest.builder().applyMutation(getObjectRequest).build();
         return this.getObject(request, asyncResponseTransformer);
     }
 
     @Override
-    public <T> CompletableFuture<T> getObject(GetObjectRequest getObjectRequest, AsyncResponseTransformer<GetObjectResponse, T> asyncResponseTransformer) {
+    public <T> CompletableFuture<T> getObject(GetObjectRequest getObjectRequest,
+        AsyncResponseTransformer<GetObjectResponse, T> asyncResponseTransformer) {
         ResponseBytes<GetObjectResponse> resp = this.s3Client.getObject(getObjectRequest, ResponseTransformer.toBytes());
         return CompletableFuture.completedFuture((T) resp);
     }
 
     @Override
-    public CompletableFuture<CreateMultipartUploadResponse> createMultipartUpload(Consumer<CreateMultipartUploadRequest.Builder> createMultipartUploadRequest) {
+    public CompletableFuture<CreateMultipartUploadResponse> createMultipartUpload(
+        Consumer<CreateMultipartUploadRequest.Builder> createMultipartUploadRequest) {
         CreateMultipartUploadRequest request = CreateMultipartUploadRequest.builder().applyMutation(createMultipartUploadRequest).build();
         return this.createMultipartUpload(request);
     }
 
     @Override
-    public CompletableFuture<CreateMultipartUploadResponse> createMultipartUpload(CreateMultipartUploadRequest createMultipartUploadRequest) {
+    public CompletableFuture<CreateMultipartUploadResponse> createMultipartUpload(
+        CreateMultipartUploadRequest createMultipartUploadRequest) {
         return CompletableFuture.completedFuture(this.s3Client.createMultipartUpload(createMultipartUploadRequest));
     }
 
     @Override
-    public CompletableFuture<UploadPartCopyResponse> uploadPartCopy(Consumer<UploadPartCopyRequest.Builder> uploadPartCopyRequest) {
+    public CompletableFuture<UploadPartCopyResponse> uploadPartCopy(
+        Consumer<UploadPartCopyRequest.Builder> uploadPartCopyRequest) {
         UploadPartCopyRequest request = UploadPartCopyRequest.builder().applyMutation(uploadPartCopyRequest).build();
         return this.uploadPartCopy(request);
     }
@@ -184,24 +194,28 @@ public class MockS3AsyncClient implements S3AsyncClient {
     }
 
     @Override
-    public CompletableFuture<CompleteMultipartUploadResponse> completeMultipartUpload(Consumer<CompleteMultipartUploadRequest.Builder> completeMultipartUploadRequest) {
+    public CompletableFuture<CompleteMultipartUploadResponse> completeMultipartUpload(
+        Consumer<CompleteMultipartUploadRequest.Builder> completeMultipartUploadRequest) {
         CompleteMultipartUploadRequest request = CompleteMultipartUploadRequest.builder().applyMutation(completeMultipartUploadRequest).build();
         return this.completeMultipartUpload(request);
     }
 
     @Override
-    public CompletableFuture<CompleteMultipartUploadResponse> completeMultipartUpload(CompleteMultipartUploadRequest completeMultipartUploadRequest) {
+    public CompletableFuture<CompleteMultipartUploadResponse> completeMultipartUpload(
+        CompleteMultipartUploadRequest completeMultipartUploadRequest) {
         return CompletableFuture.completedFuture(this.s3Client.completeMultipartUpload(completeMultipartUploadRequest));
     }
 
     @Override
-    public CompletableFuture<AbortMultipartUploadResponse> abortMultipartUpload(Consumer<AbortMultipartUploadRequest.Builder> abortMultipartUploadRequest) {
+    public CompletableFuture<AbortMultipartUploadResponse> abortMultipartUpload(
+        Consumer<AbortMultipartUploadRequest.Builder> abortMultipartUploadRequest) {
         AbortMultipartUploadRequest request = AbortMultipartUploadRequest.builder().applyMutation(abortMultipartUploadRequest).build();
         return S3AsyncClient.super.abortMultipartUpload(request);
     }
 
     @Override
-    public CompletableFuture<AbortMultipartUploadResponse> abortMultipartUpload(AbortMultipartUploadRequest abortMultipartUploadRequest) {
+    public CompletableFuture<AbortMultipartUploadResponse> abortMultipartUpload(
+        AbortMultipartUploadRequest abortMultipartUploadRequest) {
         return CompletableFuture.completedFuture(this.s3Client.abortMultipartUpload(abortMultipartUploadRequest));
     }
 }

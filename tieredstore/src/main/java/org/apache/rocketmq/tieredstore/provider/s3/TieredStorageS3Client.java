@@ -100,7 +100,6 @@ public class TieredStorageS3Client {
         this.asyncRequestBodyExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("S3AsyncRequestBodyExecutor_"));
     }
 
-
     public CompletableFuture<Boolean> writeChunk(String key, InputStream inputStream, long length) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder().bucket(this.bucket).key(key).build();
         AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(inputStream, length, this.asyncRequestBodyExecutor);
@@ -185,7 +184,7 @@ public class TieredStorageS3Client {
 
     public CompletableFuture<List<String>> deleteObjects(String prefix) {
         CompletableFuture<List<String>> readObjectsByPrefix = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix)).
-                thenApply(resp -> resp.contents().stream().map(S3Object::key).collect(Collectors.toList()));
+            thenApply(resp -> resp.contents().stream().map(S3Object::key).collect(Collectors.toList()));
         return readObjectsByPrefix.thenCompose(this::deleteObjets);
     }
 
@@ -243,68 +242,68 @@ public class TieredStorageS3Client {
 
         private CompletableFuture<String> initiateUpload() {
             CreateMultipartUploadRequest request = CreateMultipartUploadRequest.builder()
-                    .bucket(bucket)
-                    .key(segmentKey)
-                    .build();
+                .bucket(bucket)
+                .key(segmentKey)
+                .build();
 
             return client.createMultipartUpload(request)
-                    .thenApply(CreateMultipartUploadResponse::uploadId)
-                    .whenComplete((result, error) -> {
-                        if (error != null) {
-                            LOGGER.error("Error initiating multi part upload: " + error);
-                        } else {
-                            uploadId = result;
-                        }
-                    });
+                .thenApply(CreateMultipartUploadResponse::uploadId)
+                .whenComplete((result, error) -> {
+                    if (error != null) {
+                        LOGGER.error("Error initiating multi part upload: " + error);
+                    } else {
+                        uploadId = result;
+                    }
+                });
         }
 
         private CompletableFuture<CompletedPart> uploadPart(int partNumber, String chunkKey) {
             UploadPartCopyRequest request = UploadPartCopyRequest.builder()
-                    .sourceBucket(bucket).sourceKey(chunkKey).uploadId(uploadId).partNumber(partNumber)
-                    .destinationBucket(bucket).destinationKey(segmentKey)
-                    .build();
+                .sourceBucket(bucket).sourceKey(chunkKey).uploadId(uploadId).partNumber(partNumber)
+                .destinationBucket(bucket).destinationKey(segmentKey)
+                .build();
 
             return client.uploadPartCopy(request)
-                    .thenApply(resp -> resp.copyPartResult().eTag())
-                    .thenApply(eTag -> CompletedPart.builder().partNumber(partNumber).eTag(eTag).build())
-                    .whenComplete((result, error) -> {
-                        if (error != null) {
-                            LOGGER.error("Error uploading part, chunkKey: {}, partNumber: {}, uploadId: {}, error: {}", chunkKey, partNumber, uploadId, error);
-                        } else {
-                            completedParts.add(result);
-                        }
-                    });
+                .thenApply(resp -> resp.copyPartResult().eTag())
+                .thenApply(eTag -> CompletedPart.builder().partNumber(partNumber).eTag(eTag).build())
+                .whenComplete((result, error) -> {
+                    if (error != null) {
+                        LOGGER.error("Error uploading part, chunkKey: {}, partNumber: {}, uploadId: {}, error: {}", chunkKey, partNumber, uploadId, error);
+                    } else {
+                        completedParts.add(result);
+                    }
+                });
         }
 
         private CompletableFuture<Boolean> completeUpload() {
             Collections.sort(completedParts, Comparator.comparingInt(CompletedPart::partNumber));
 
             CompletedMultipartUpload multipartUpload = CompletedMultipartUpload.builder()
-                    .parts(completedParts)
-                    .build();
+                .parts(completedParts)
+                .build();
 
             CompleteMultipartUploadRequest request = CompleteMultipartUploadRequest.builder()
-                    .bucket(bucket)
-                    .key(segmentKey)
-                    .uploadId(uploadId)
-                    .multipartUpload(multipartUpload)
-                    .build();
+                .bucket(bucket)
+                .key(segmentKey)
+                .uploadId(uploadId)
+                .multipartUpload(multipartUpload)
+                .build();
 
             return client.completeMultipartUpload(request)
-                    .thenApply(resp -> true)
-                    .whenComplete((result, error) -> {
-                        if (error != null) {
-                            LOGGER.error("Error completing multi part upload, uploadId: {}, error: {}", uploadId, error);
-                        }
-                    });
+                .thenApply(resp -> true)
+                .whenComplete((result, error) -> {
+                    if (error != null) {
+                        LOGGER.error("Error completing multi part upload, uploadId: {}, error: {}", uploadId, error);
+                    }
+                });
         }
 
         private CompletableFuture<Boolean> abortUpload() {
             AbortMultipartUploadRequest request = AbortMultipartUploadRequest.builder()
-                    .bucket(bucket)
-                    .key(segmentKey)
-                    .uploadId(uploadId)
-                    .build();
+                .bucket(bucket)
+                .key(segmentKey)
+                .uploadId(uploadId)
+                .build();
             return client.abortMultipartUpload(request).thenApply(v -> true).exceptionally(e -> false);
         }
     }

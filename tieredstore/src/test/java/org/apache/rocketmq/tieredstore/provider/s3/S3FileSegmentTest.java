@@ -187,6 +187,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
         }
         Assert.assertNotNull(exception);
     }
+
     @Test
     public void testSeal() throws Exception {
         int unit = (int) (5 * MB);
@@ -210,7 +211,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
         Assert.assertEquals(2 * unit, metadata.getSize());
         TieredStoreException exception = null;
         try {
-            segment.commit0(new MockTieredFileSegmentInputStream(new ByteArrayInputStream(new byte[]{0, 1, 2})), 2 * unit, 3, false).join();
+            segment.commit0(new MockTieredFileSegmentInputStream(new ByteArrayInputStream(new byte[] {0, 1, 2})), 2 * unit, 3, false).join();
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof TieredStoreException);

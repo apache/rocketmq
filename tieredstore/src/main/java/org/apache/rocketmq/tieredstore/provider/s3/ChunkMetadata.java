@@ -100,9 +100,9 @@ public class ChunkMetadata {
     @Override
     public String toString() {
         return "ChunkMetadata{" +
-                "chunkName='" + chunkName + '\'' +
-                ", startPosition=" + startPosition +
-                ", endPosition=" + getEndPosition() +
-                '}';
+            "chunkName='" + chunkName + '\'' +
+            ", startPosition=" + startPosition +
+            ", endPosition=" + getEndPosition() +
+            '}';
     }
 }
