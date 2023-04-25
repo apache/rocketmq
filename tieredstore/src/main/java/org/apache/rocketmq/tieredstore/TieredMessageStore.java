@@ -158,6 +158,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                                 topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
                             TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
                             return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
+                        } else {
+                            logger.warn("TieredMessageStore#getMessageAsync: not found message, and message is not in next store too: topic: {}, queue: {}, queue offset: {}, result: {}, min offset: {}, max offset: {}",
+                                topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
                         }
                     }
                     if (result.getStatus() != GetMessageStatus.FOUND &&
@@ -189,6 +192,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
                 });
         }
+        logger.debug("TieredMessageStore#getMessageAsync: get message from next store: topic: {}, queue: {}, queue offset: {}",
+            topic, queueId, offset);
         return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
     }
 

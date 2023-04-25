@@ -167,4 +167,8 @@ public class S3FileSegmentMetadata {
             this.readLock.unlock();
         }
     }
+
+    public void setSealed(boolean sealed) {
+        this.isSealed = sealed;
+    }
 }

@@ -176,6 +176,10 @@ public class S3FileSegment extends TieredFileSegment {
 
             boolean success = true;
 
+            if (!this.storeConfig.isEnableMerge()) {
+                this.metadata.setSealed(true);
+            }
+
             if (!this.metadata.isSealed()) {
                 // merge all chunks
                 String segmentName = this.segmentPath + File.separator + "segment-" + 0;
@@ -188,7 +192,7 @@ public class S3FileSegment extends TieredFileSegment {
                     success = false;
                 }
             }
-            if (success) {
+            if (this.storeConfig.isEnableMerge() && success) {
                 // old chunks still exist, keep deleting them
                 List<String> chunkKeys = this.metadata.getChunks().stream().map(ChunkMetadata::getChunkName).collect(Collectors.toList());
                 List<String> undeleteList = this.client.deleteObjets(chunkKeys).join();

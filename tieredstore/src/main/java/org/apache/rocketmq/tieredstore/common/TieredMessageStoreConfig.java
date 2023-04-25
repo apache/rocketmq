@@ -125,6 +125,8 @@ public class TieredMessageStoreConfig {
 
     private String objectStoreSecretKey = "";
 
+    private boolean enableMerge = false;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -388,5 +390,13 @@ public class TieredMessageStoreConfig {
 
     public String getObjectStoreRegion() {
         return objectStoreRegion;
+    }
+
+    public boolean isEnableMerge() {
+        return enableMerge;
+    }
+
+    public void setEnableMerge(boolean enableMerge) {
+        this.enableMerge = enableMerge;
     }
 }
