@@ -194,6 +194,10 @@ public class ConsumerLagCalculator {
 
     public void calculateLag(Consumer<CalculateLagResult> lagRecorder) {
         processAllGroup(info -> {
+            if (info.group == null || info.topic == null) {
+                return;
+            }
+
             CalculateLagResult result = new CalculateLagResult(info.group, info.topic, false);
 
             Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
@@ -260,6 +264,10 @@ public class ConsumerLagCalculator {
         long total = 0L;
         long earliestUnconsumedTimestamp = Long.MAX_VALUE;
 
+        if (group == null || topic == null) {
+            return new Pair<>(total, earliestUnconsumedTimestamp);
+        }
+
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
             for (int queueId = 0; queueId < topicConfig.getWriteQueueNums(); queueId++) {
@@ -313,6 +321,10 @@ public class ConsumerLagCalculator {
         long total = 0L;
         long earliestUnPulledTimestamp = Long.MAX_VALUE;
 
+        if (group == null || topic == null) {
+            return new Pair<>(total, earliestUnPulledTimestamp);
+        }
+
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
             for (int queueId = 0; queueId < topicConfig.getWriteQueueNums(); queueId++) {
@@ -362,6 +374,10 @@ public class ConsumerLagCalculator {
 
     public long getAvailableMsgCount(String group, String topic, boolean isPop) {
         long total = 0L;
+
+        if (group == null || topic == null) {
+            return total;
+        }
 
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
