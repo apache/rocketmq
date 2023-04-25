@@ -119,12 +119,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
         // determine whether tiered storage path conditions are met
         if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.NOT_IN_DISK)
-                && !next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
+            && !next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
             return true;
         }
 
         if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.NOT_IN_MEM)
-                && !next.checkInMemByConsumeOffset(topic, queueId, offset, batchSize)) {
+            && !next.checkInMemByConsumeOffset(topic, queueId, offset, batchSize)) {
             return true;
         }
         return false;
