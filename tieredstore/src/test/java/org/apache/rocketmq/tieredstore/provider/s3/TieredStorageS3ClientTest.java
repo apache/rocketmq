@@ -99,25 +99,6 @@ public class TieredStorageS3ClientTest extends MockS3TestBase {
     }
 
     @Test
-    public void testDeleteObject() {
-        InputStream inputStream = new ByteArrayInputStream("test".getBytes());
-        String chunkName = BASE_DIR + File.separator + "chunk-0";
-        CompletableFuture<Boolean> completableFuture = client.writeChunk(chunkName, inputStream, 4);
-        Assert.assertTrue(completableFuture.join());
-        byte[] bytes = client.readChunk(chunkName, 0, 4).join();
-        Assert.assertEquals("test", new String(bytes));
-
-        Assert.assertTrue(client.deleteObject(chunkName).join());
-        Exception exception = null;
-        try {
-            client.readChunk(chunkName, 0, 4).join();
-        } catch (Exception e) {
-            exception = e;
-        }
-        Assert.assertNotNull(exception);
-    }
-
-    @Test
     public void testExist() {
         String chunkName = BASE_DIR + File.separator + "chunk-0";
         Assert.assertFalse(client.exist(chunkName).join());

@@ -18,10 +18,14 @@
 package org.apache.rocketmq.tieredstore.provider.s3;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
+import io.opentelemetry.api.common.AttributesBuilder;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
@@ -55,7 +59,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_SUCCESS;
+
 public class TieredStorageS3Client {
+
+    private static final String OPERATION_LIST_OBJECTS = "list_objects";
+
+    private static final String OPERATION_DELETE_OBJECTS = "delete_objects";
+
+    private static final String OPERATION_UPLOAD_OBJECT = "upload_object";
+
+    private static final String OPERATION_DOWNLOAD_OBJECT = "download_object";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     private volatile static TieredStorageS3Client instance;
@@ -103,27 +118,36 @@ public class TieredStorageS3Client {
     public CompletableFuture<Boolean> writeChunk(String key, InputStream inputStream, long length) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder().bucket(this.bucket).key(key).build();
         AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(inputStream, length, this.asyncRequestBodyExecutor);
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_UPLOAD_OBJECT);
+        Stopwatch stopwatch = Stopwatch.createStarted();
         CompletableFuture<PutObjectResponse> putObjectResponseCompletableFuture = this.client.putObject(putObjectRequest, requestBody);
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
         putObjectResponseCompletableFuture.whenComplete((putObjectResponse, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Upload file to S3 failed, key: {}, region: {}, bucket: {}", key, this.region, this.bucket, throwable);
+                attributesBuilder.put(LABEL_SUCCESS, false);
                 completableFuture.complete(false);
             } else {
+                attributesBuilder.put(LABEL_SUCCESS, true);
                 completableFuture.complete(true);
             }
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
         });
         return completableFuture;
     }
 
     public CompletableFuture<List<ChunkMetadata>> listChunks(String prefix) {
         CompletableFuture<List<ChunkMetadata>> completableFuture = new CompletableFuture<>();
-        CompletableFuture<ListObjectsV2Response> listFuture = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix));
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_LIST_OBJECTS);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        CompletableFuture<ListObjectsV2Response> listFuture = this.listObjects(prefix);
         listFuture.whenComplete((listObjectsV2Response, throwable) -> {
             if (throwable != null) {
+                attributesBuilder.put(LABEL_SUCCESS, false);
                 LOGGER.error("List objects from S3 failed, prefix: {}, region: {}, bucket: {}", prefix, this.region, this.bucket, throwable);
                 completableFuture.complete(Collections.emptyList());
             } else {
+                attributesBuilder.put(LABEL_SUCCESS, true);
                 listObjectsV2Response.contents().forEach(s3Object -> LOGGER.info("List objects from S3, key: {}, region: {}, bucket: {}", s3Object.key(), this.region, this.bucket));
                 completableFuture.complete(listObjectsV2Response.contents().stream().map(obj -> {
                     ChunkMetadata chunkMetadata = new ChunkMetadata();
@@ -137,27 +161,41 @@ public class TieredStorageS3Client {
                     return chunkMetadata;
                 }).sorted((o1, o2) -> (int) (o1.getStartPosition() - o2.getStartPosition())).collect(Collectors.toList()));
             }
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
         });
         return completableFuture;
     }
 
-    public CompletableFuture<Boolean> exist(String prefix) {
+    public CompletableFuture<ListObjectsV2Response> listObjects(String prefix) {
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_LIST_OBJECTS);
+        Stopwatch stopwatch = Stopwatch.createStarted();
         CompletableFuture<ListObjectsV2Response> listFuture = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix));
-        return listFuture.thenApply(resp -> resp.contents().size() > 0);
+        return listFuture.thenApply(resp -> {
+            attributesBuilder.put(LABEL_SUCCESS, true);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            return resp;
+        }).exceptionally(throwable -> {
+            attributesBuilder.put(LABEL_SUCCESS, false);
+            LOGGER.error("List objects from S3 failed, prefix: {}, region: {}, bucket: {}", prefix, this.region, this.bucket, throwable);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            return null;
+        });
     }
 
-    public CompletableFuture<Boolean> deleteObject(String key) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        this.client.deleteObject(builder -> builder.bucket(this.bucket).key(key)).whenComplete((deleteObjectResponse, throwable) -> {
-            if (throwable != null) {
-                LOGGER.error("Delete object from S3 failed, key: {}, region: {}, bucket: {}", key, this.region, this.bucket, throwable);
-                future.complete(false);
-            } else {
-                LOGGER.info("Delete object from S3, key: {}, region: {}, bucket: {}", key, this.region, this.bucket);
-                future.complete(true);
-            }
+    public CompletableFuture<Boolean> exist(String prefix) {
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_LIST_OBJECTS);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        CompletableFuture<ListObjectsV2Response> listFuture = this.listObjects(prefix);
+        return listFuture.thenApply(resp -> {
+            attributesBuilder.put(LABEL_SUCCESS, true);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            return resp.contents().size() > 0;
+        }).exceptionally(throwable -> {
+            attributesBuilder.put(LABEL_SUCCESS, false);
+            LOGGER.error("Exist prefix failed, list objects from S3 failed, prefix: {}, region: {}, bucket: {}", prefix, this.region, this.bucket, throwable);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            return false;
         });
-        return future;
     }
 
     public CompletableFuture<List<String/*undeleted keys*/>> deleteObjets(final List<String> keys) {
@@ -167,7 +205,11 @@ public class TieredStorageS3Client {
         List<ObjectIdentifier> objects = keys.stream().map(key -> ObjectIdentifier.builder().key(key).build()).collect(Collectors.toList());
         Delete delete = Delete.builder().objects(objects).build();
         DeleteObjectsRequest deleteObjectsRequest = DeleteObjectsRequest.builder().bucket(this.bucket).delete(delete).build();
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_DELETE_OBJECTS);
+        Stopwatch stopwatch = Stopwatch.createStarted();
         return this.client.deleteObjects(deleteObjectsRequest).thenApply(resp -> {
+            attributesBuilder.put(LABEL_SUCCESS, true);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             List<String> undeletedKeys;
             if (resp.deleted().size() != keys.size()) {
                 List<String> deleted = resp.deleted().stream().map(DeletedObject::key).collect(Collectors.toList());
@@ -178,12 +220,14 @@ public class TieredStorageS3Client {
             return undeletedKeys;
         }).exceptionally(throwable -> {
             LOGGER.error("Delete objects from S3 failed, keys: {}, region: {}, bucket: {}", keys, this.region, this.bucket, throwable);
+            attributesBuilder.put(LABEL_SUCCESS, false);
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             return keys;
         });
     }
 
     public CompletableFuture<List<String>> deleteObjects(String prefix) {
-        CompletableFuture<List<String>> readObjectsByPrefix = this.client.listObjectsV2(builder -> builder.bucket(this.bucket).prefix(prefix)).
+        CompletableFuture<List<String>> readObjectsByPrefix = this.listObjects(prefix).
             thenApply(resp -> resp.contents().stream().map(S3Object::key).collect(Collectors.toList()));
         return readObjectsByPrefix.thenCompose(this::deleteObjets);
     }
@@ -191,13 +235,18 @@ public class TieredStorageS3Client {
     public CompletableFuture<byte[]> readChunk(String key, long startPosition, long endPosition) {
         GetObjectRequest request = GetObjectRequest.builder().bucket(this.bucket).key(key).range("bytes=" + startPosition + "-" + endPosition).build();
         CompletableFuture<byte[]> future = new CompletableFuture<>();
+        AttributesBuilder attributesBuilder = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_OPERATION, OPERATION_DOWNLOAD_OBJECT);
+        Stopwatch stopwatch = Stopwatch.createStarted();
         this.client.getObject(request, AsyncResponseTransformer.toBytes()).whenComplete((response, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Read chunk from S3 failed, key: {}, region: {}, bucket: {}", key, this.region, this.bucket, throwable);
+                attributesBuilder.put(LABEL_SUCCESS, false);
                 future.completeExceptionally(throwable);
             } else {
+                attributesBuilder.put(LABEL_SUCCESS, true);
                 future.complete(response.asByteArray());
             }
+            TieredStoreMetricsManager.providerRpcLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
         });
         return future;
     }

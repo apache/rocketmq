@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.tieredstore.provider.s3;
 
+import io.opentelemetry.api.common.Attributes;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
+import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -38,6 +40,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_QUEUE_ID;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 
 public class S3FileSegment extends TieredFileSegment {
 
@@ -70,6 +76,9 @@ public class S3FileSegment extends TieredFileSegment {
     private final TieredStorageS3Client client;
 
     private final S3FileSegmentMetadata metadata;
+
+    private final Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder().put(LABEL_TOPIC, messageQueue.getTopic())
+        .put(LABEL_QUEUE_ID, messageQueue.getQueueId()).put(LABEL_FILE_TYPE, this.fileType.name().toLowerCase()).build();
 
     /**
      * Executor for merging chunks into segment or deleting chunks.
@@ -270,6 +279,7 @@ public class S3FileSegment extends TieredFileSegment {
                 ByteBuffer byteBuffer = concurrentByteBuffer.close();
                 byteBuffer.rewind();
                 completableFuture.complete(byteBuffer);
+                TieredStoreMetricsManager.downloadBytes.record(length, attributes);
             }
         });
         return completableFuture;
@@ -298,6 +308,7 @@ public class S3FileSegment extends TieredFileSegment {
         }
         // upload chunk
         String chunkPath = this.chunkPath + File.separator + "chunk-" + position;
+
         this.client.writeChunk(chunkPath, inputStream, length).whenComplete((result, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Failed to write data to s3, position: {}, length: {}", position, length, throwable);
@@ -306,6 +317,7 @@ public class S3FileSegment extends TieredFileSegment {
                 completableFuture.completeExceptionally(exception);
             } else {
                 if (result) {
+                    TieredStoreMetricsManager.uploadBytes.record(length, attributes);
                     ChunkMetadata chunk = new ChunkMetadata(chunkPath, position, length);
                     if (!this.metadata.addChunk(chunk)) {
                         // the chunk is not valid
