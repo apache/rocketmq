@@ -1568,9 +1568,6 @@ public class BrokerController {
         if (this.coldDataCgCtrService != null) {
             this.coldDataCgCtrService.start();
         }
-
-        //Init state version after messageStore initialized.
-        //this.topicConfigManager.initStateVersion();
     }
 
     public void start() throws Exception {

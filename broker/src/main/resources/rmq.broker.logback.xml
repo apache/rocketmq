@@ -504,7 +504,7 @@
             <defaultValue>${file.separator}</defaultValue>
         </discriminator>
         <sift>
-            <appender name="RocketmqPopAppender"
+            <appender name="RocketmqColdCtrAppender"
                       class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <file>${user.home}/logs/rocketmqlogs/coldctr.log</file>
                 <append>true</append>
@@ -626,10 +626,6 @@
     <logger name="RocketmqColdCtr" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqColdCtrSiftingAppender"/>
-    </logger>
-
-    <logger name="RocketmqTraffic" additivity="false">
-        <level value="INFO"/>
     </logger>
 
     <logger name="RocketmqTraffic" additivity="false" level="INFO">

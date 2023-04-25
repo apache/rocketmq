@@ -21,7 +21,13 @@ import java.util.Iterator;
 import java.util.List;
 
 public class PIDAdaptiveColdCtrStrategy implements ColdCtrStrategy {
+    /**
+     * Stores the maximum number of recent et val
+     */
     private static final int MAX_STORE_NUMS = 10;
+    /**
+     * The weights of the three modules of the PID formula
+     */
     private static final Double KP = 0.5, KI = 0.3, KD = 0.2;
     private final List<Long> historyEtValList = new ArrayList<>();
     private final ColdDataCgCtrService coldDataCgCtrService;

@@ -17,11 +17,26 @@
 package org.apache.rocketmq.broker.coldctr;
 
 public interface ColdCtrStrategy {
+    /**
+     * Calculate the determining factor about whether to accelerate or decelerate
+     * @return
+     */
     Double decisionFactor();
-
+    /**
+     * Promote the speed for consumerGroup to read cold data
+     * @param consumerGroup
+     * @param currentThreshold
+     */
     void promote(String consumerGroup, Long currentThreshold);
-
+    /**
+     * Decelerate the speed for consumerGroup to read cold data
+     * @param consumerGroup
+     * @param currentThreshold
+     */
     void decelerate(String consumerGroup, Long currentThreshold);
-
+    /**
+     * Collect the total number of cold read data in the system
+     * @param globalAcc
+     */
     void collect(Long globalAcc);
 }

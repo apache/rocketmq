@@ -28,7 +28,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.store.util.LibC;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -36,7 +35,8 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class CommitLogSetReadAheadSubCommand implements SubCommand {
-
+    private static final String MADV_RANDOM = "1";
+    private static final String MADV_NORMAL = "0";
     @Override
     public String commandName() {
         return "setCommitLogReadAheadMode";
@@ -72,7 +72,7 @@ public class CommitLogSetReadAheadSubCommand implements SubCommand {
 
         try {
             String mode = commandLine.getOptionValue('m').trim();
-            if (!mode.equals(String.valueOf(LibC.MADV_RANDOM)) && !mode.equals(String.valueOf(LibC.MADV_NORMAL))) {
+            if (!mode.equals(MADV_RANDOM) && !mode.equals(MADV_NORMAL)) {
                 System.out.printf("set the read mode error; 0 is default, 1 random read\n");
                 return;
             }

@@ -28,6 +28,7 @@ import com.alibaba.fastjson.JSONObject;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.coldctr.AccAndTimeStamp;
@@ -185,6 +186,9 @@ public class ColdDataCgCtrService extends ServiceThread {
 
     public boolean isCgNeedColdDataFlowCtr(String consumerGroup) {
         if (!this.messageStoreConfig.isColdDataFlowControlEnable()) {
+            return false;
+        }
+        if (MixAll.isSysConsumerGroupForNoColdReadLimit(consumerGroup)) {
             return false;
         }
         AccAndTimeStamp accAndTimeStamp = cgColdThresholdMapRuntime.get(consumerGroup);
