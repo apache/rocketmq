@@ -154,7 +154,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             log.error("unexpect error when schedule renew task", e);
         }
 
-        log.info("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
+        log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
     }
 
     protected void renewMessage(ReceiptHandleGroup group, String msgID, String handleStr) {

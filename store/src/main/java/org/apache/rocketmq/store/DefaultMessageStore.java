@@ -200,16 +200,20 @@ public class DefaultMessageStore implements MessageStore {
 
     private long stateMachineVersion = 0L;
 
+    // this is a unmodifiableMap
+    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.aliveReplicasNum = messageStoreConfig.getTotalReplicas();
         this.brokerStatsManager = brokerStatsManager;
+        this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
@@ -385,9 +389,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
-        if (messageStoreConfig.isEnableCompaction() && this.compactionService != null) {
-            this.compactionService.start();
-        }
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -474,12 +475,13 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             this.storeStatsService.shutdown();
+            this.commitLog.shutdown();
+            this.reputMessageService.shutdown();
+            // dispatch-related services must be shut down after reputMessageService
             this.indexService.shutdown();
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
 
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
@@ -682,7 +684,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void truncateDirtyFiles(long offsetToTruncate) {
+
+        LOGGER.info("truncate dirty files to {}", offsetToTruncate);
+
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return;
         }
 
@@ -704,18 +710,24 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-        this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
+
+        long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
+
+        LOGGER.info("oldReputFromOffset is {}, reset reput from offset to {}", oldReputFromOffset, resetReputOffset);
+
+        this.reputMessageService.setReputFromOffset(resetReputOffset);
         this.reputMessageService.start();
     }
 
     @Override
     public boolean truncateFiles(long offsetToTruncate) {
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return true;
         }
 
         if (!isOffsetAligned(offsetToTruncate)) {
-            LOGGER.error("Offset {} not align, truncate failed, need manual fix");
+            LOGGER.error("offset {} is not align, truncate failed, need manual fix", offsetToTruncate);
             return false;
         }
         truncateDirtyFiles(offsetToTruncate);
@@ -2049,18 +2061,16 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    @Override
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return this.consumeQueueStore.getTopicConfigs();
+        return this.topicConfigTable;
     }
 
-    @Override
     public Optional<TopicConfig> getTopicConfig(String topic) {
-        return this.consumeQueueStore.getTopicConfig(topic);
-    }
+        if (this.topicConfigTable == null) {
+            return Optional.empty();
+        }
 
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
+        return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
 
     public BrokerIdentity getBrokerIdentity() {
