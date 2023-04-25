@@ -788,8 +788,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
         msg.setQueueOffset(queueOffset);
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+
+
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -815,8 +818,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
 
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -830,6 +834,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 queueOffsetOperator.increaseLmqOffset(key, (short) 1);
             }
         }
+    }
+
+    public boolean isNeedHandleMultiDispatch(MessageExtBrokerInner msg) {
+        return messageStore.getMessageStoreConfig().isEnableMultiDispatch() && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
