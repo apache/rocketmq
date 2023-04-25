@@ -49,18 +49,6 @@ public class MessageQueueSelector {
     private final AtomicInteger brokerIndex;
     private TopicRouteService topicRouteService;
 
-    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read) {
-        if (read) {
-            this.queues.addAll(buildRead(topicRouteWrapper));
-        } else {
-            this.queues.addAll(buildWrite(topicRouteWrapper));
-        }
-        buildBrokerActingQueues(topicRouteWrapper.getTopicName(), this.queues);
-        Random random = new Random();
-        this.queueIndex = new AtomicInteger(random.nextInt());
-        this.brokerIndex = new AtomicInteger(random.nextInt());
-    }
-
     public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, TopicRouteService topicRouteService, boolean read) {
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
@@ -172,7 +160,7 @@ public class MessageQueueSelector {
     }
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
-        if (topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable() && topicRouteService != null) {
+        if (topicRouteService != null && topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
             MessageQueue messageQueue = null;
             List<MessageQueue> messageQueueList = transferAddressableQueues(queues);
             AddressableMessageQueue addressableMessageQueue = null;

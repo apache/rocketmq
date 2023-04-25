@@ -284,7 +284,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         SendMessageActivity.SendMessageQueueSelector selector1 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
                 .addMessages(Message.newBuilder()

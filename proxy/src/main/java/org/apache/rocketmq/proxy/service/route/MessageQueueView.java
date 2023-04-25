@@ -20,19 +20,12 @@ import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class MessageQueueView {
-    public static final MessageQueueView WRAPPED_EMPTY_QUEUE = new MessageQueueView("", new TopicRouteData());
+    public static final MessageQueueView WRAPPED_EMPTY_QUEUE = new MessageQueueView("", new TopicRouteData(), null);
 
     private final MessageQueueSelector readSelector;
     private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
     private  TopicRouteService topicRouteService;
-
-    public MessageQueueView(String topic, TopicRouteData topicRouteData) {
-        this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
-
-        this.readSelector = new MessageQueueSelector(topicRouteWrapper, true);
-        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, false);
-    }
 
     public MessageQueueView(String topic, TopicRouteData topicRouteData, TopicRouteService topicRouteService) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);

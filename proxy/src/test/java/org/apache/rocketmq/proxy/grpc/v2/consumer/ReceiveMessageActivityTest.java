@@ -296,7 +296,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         }
         topicRouteData.setBrokerDatas(brokerDatas);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
