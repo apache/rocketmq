@@ -65,8 +65,8 @@ public interface RemotingClient extends RemotingService {
                     }
                 }
             });
-        } catch (Exception e) {
-            future.completeExceptionally(e);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
         }
         return future;
     }
