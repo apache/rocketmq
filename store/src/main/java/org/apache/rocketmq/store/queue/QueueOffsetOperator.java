@@ -28,47 +28,49 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
- * QueueOffsetAssigner is a component for assigning offsets for queues.
+ * QueueOffsetOperator is a component for operating offsets for queues.
  */
-public class QueueOffsetAssigner {
+public class QueueOffsetOperator {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private ConcurrentMap<String, Long> topicQueueTable = new ConcurrentHashMap<>(1024);
     private ConcurrentMap<String, Long> batchTopicQueueTable = new ConcurrentHashMap<>(1024);
     private ConcurrentMap<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
 
-    public long assignQueueOffset(String topicQueueKey, short messageNum) {
+    public long getQueueOffset(String topicQueueKey) {
+        return ConcurrentHashMapUtils.computeIfAbsent(this.topicQueueTable, topicQueueKey, k -> 0L);
+    }
+
+    public void increaseQueueOffset(String topicQueueKey, short messageNum) {
         Long queueOffset = ConcurrentHashMapUtils.computeIfAbsent(this.topicQueueTable, topicQueueKey, k -> 0L);
-        this.topicQueueTable.put(topicQueueKey, queueOffset + messageNum);
-        return queueOffset;
+        topicQueueTable.put(topicQueueKey, queueOffset + messageNum);
     }
 
     public void updateQueueOffset(String topicQueueKey, long offset) {
         this.topicQueueTable.put(topicQueueKey, offset);
     }
 
-    public long assignBatchQueueOffset(String topicQueueKey, short messageNum) {
-        Long topicOffset = ConcurrentHashMapUtils.computeIfAbsent(this.batchTopicQueueTable, topicQueueKey, k -> 0L);
-        this.batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
-        return topicOffset;
+    public long getBatchQueueOffset(String topicQueueKey) {
+        return ConcurrentHashMapUtils.computeIfAbsent(this.batchTopicQueueTable, topicQueueKey, k -> 0L);
     }
 
-    public long assignLmqOffset(String topicQueueKey, short messageNum) {
-        Long topicOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
-        this.lmqTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
-        return topicOffset;
+    public void increaseBatchQueueOffset(String topicQueueKey, short messageNum) {
+        Long batchQueueOffset = ConcurrentHashMapUtils.computeIfAbsent(this.batchTopicQueueTable, topicQueueKey, k -> 0L);
+        this.batchTopicQueueTable.put(topicQueueKey, batchQueueOffset + messageNum);
+    }
+
+    public long getLmqOffset(String topicQueueKey) {
+        return ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
+    }
+
+    public void increaseLmqOffset(String topicQueueKey, short messageNum) {
+        Long lmqOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
+        this.lmqTopicQueueTable.put(topicQueueKey, lmqOffset + messageNum);
     }
 
     public long currentQueueOffset(String topicQueueKey) {
-        return this.topicQueueTable.get(topicQueueKey);
-    }
-
-    public long currentBatchQueueOffset(String topicQueueKey) {
-        return this.batchTopicQueueTable.get(topicQueueKey);
-    }
-
-    public long currentLmqOffset(String topicQueueKey) {
-        return this.lmqTopicQueueTable.get(topicQueueKey);
+        Long currentQueueOffset = this.topicQueueTable.get(topicQueueKey);
+        return currentQueueOffset == null ? 0L : currentQueueOffset;
     }
 
     public synchronized void remove(String topic, Integer queueId) {
