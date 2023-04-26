@@ -143,9 +143,17 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * Assign queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
      * @param msg message itself
+     */
+    void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg);
+
+
+    /**
+     * Increase queue offset.
+     * @param queueOffsetAssigner the delegated queue offset assigner
+     * @param msg message itself
      * @param messageNum message number
      */
-    void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
+    void increaseQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
 
     /**
      * Estimate number of records matching given filter.
