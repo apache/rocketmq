@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.MqClientAdmin;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -69,7 +70,7 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.DeleteTopicFromNames
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
-public class MqClientAdminImpl {
+public class MqClientAdminImpl implements MqClientAdmin {
     private final static Logger log = LoggerFactory.getLogger(MqClientAdminImpl.class);
     private final RemotingClient remotingClient;
 
@@ -77,6 +78,7 @@ public class MqClientAdminImpl {
         this.remotingClient = remotingClient;
     }
 
+    @Override
     public CompletableFuture<List<MessageExt>> queryMessage(String address, boolean uniqueKeyFlag, boolean decompressBody,
         QueryMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<MessageExt>> future = new CompletableFuture<>();
@@ -98,6 +100,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<TopicStatsTable> getTopicStatsInfo(String address,
         GetTopicStatsInfoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<TopicStatsTable> future = new CompletableFuture<>();
@@ -114,6 +117,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<List<QueueTimeSpan>> queryConsumeTimeSpan(String address,
         QueryConsumeTimeSpanRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<QueueTimeSpan>> future = new CompletableFuture<>();
@@ -130,6 +134,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> updateOrCreateTopic(String address, CreateTopicRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -145,6 +150,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> updateOrCreateSubscriptionGroup(String address, SubscriptionGroupConfig config,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -162,6 +168,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> deleteTopicInBroker(String address, DeleteTopicRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -177,6 +184,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> deleteTopicInNameserver(String address, DeleteTopicFromNamesrvRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -192,6 +200,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> deleteKvConfig(String address, DeleteKVConfigRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -207,6 +216,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Void> deleteSubscriptionGroup(String address, DeleteSubscriptionGroupRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -222,6 +232,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<Map<MessageQueue, Long>> invokeBrokerToResetOffset(String address,
         ResetOffsetRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<Map<MessageQueue, Long>> future = new CompletableFuture<>();
@@ -240,6 +251,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<MessageExt> viewMessage(String address, ViewMessageRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<MessageExt> future = new CompletableFuture<>();
@@ -257,6 +269,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<ClusterInfo> getBrokerClusterInfo(String address, long timeoutMillis) {
         CompletableFuture<ClusterInfo> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
@@ -272,6 +285,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<ConsumerConnection> getConsumerConnectionList(String address,
         GetConsumerConnectionListRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumerConnection> future = new CompletableFuture<>();
@@ -288,6 +302,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<TopicList> queryTopicsByConsumer(String address,
         QueryTopicsByConsumerRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<TopicList> future = new CompletableFuture<>();
@@ -304,6 +319,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<SubscriptionData> querySubscriptionByConsumer(String address,
         QuerySubscriptionByConsumerRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<SubscriptionData> future = new CompletableFuture<>();
@@ -321,6 +337,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<ConsumeStats> getConsumeStats(String address, GetConsumeStatsRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<ConsumeStats> future = new CompletableFuture<>();
@@ -337,6 +354,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<GroupList> queryTopicConsumeByWho(String address,
         QueryTopicConsumeByWhoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<GroupList> future = new CompletableFuture<>();
@@ -353,6 +371,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<ConsumerRunningInfo> getConsumerRunningInfo(String address,
         GetConsumerRunningInfoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumerRunningInfo> future = new CompletableFuture<>();
@@ -369,6 +388,7 @@ public class MqClientAdminImpl {
         return future;
     }
 
+    @Override
     public CompletableFuture<ConsumeMessageDirectlyResult> consumeMessageDirectly(String address,
         ConsumeMessageDirectlyResultRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumeMessageDirectlyResult> future = new CompletableFuture<>();
