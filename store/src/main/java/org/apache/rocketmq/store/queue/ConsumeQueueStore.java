@@ -61,7 +61,7 @@ public class ConsumeQueueStore {
 
     protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;
-    protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
+    protected final QueueOffsetOperator queueOffsetOperator = new QueueOffsetOperator();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
 
     public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
@@ -87,7 +87,7 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
-     * @param request      dispatch request
+     * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
@@ -362,34 +362,39 @@ public class ConsumeQueueStore {
     }
 
     public Long getMaxOffset(String topic, int queueId) {
-        return this.queueOffsetAssigner.currentQueueOffset(topic + "-" + queueId);
+        return this.queueOffsetOperator.currentQueueOffset(topic + "-" + queueId);
     }
 
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
-        this.queueOffsetAssigner.setTopicQueueTable(topicQueueTable);
-        this.queueOffsetAssigner.setLmqTopicQueueTable(topicQueueTable);
+        this.queueOffsetOperator.setTopicQueueTable(topicQueueTable);
+        this.queueOffsetOperator.setLmqTopicQueueTable(topicQueueTable);
     }
 
     public ConcurrentMap getTopicQueueTable() {
-        return this.queueOffsetAssigner.getTopicQueueTable();
+        return this.queueOffsetOperator.getTopicQueueTable();
     }
 
     public void setBatchTopicQueueTable(ConcurrentMap<String, Long> batchTopicQueueTable) {
-        this.queueOffsetAssigner.setBatchTopicQueueTable(batchTopicQueueTable);
+        this.queueOffsetOperator.setBatchTopicQueueTable(batchTopicQueueTable);
     }
 
-    public void assignQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignQueueOffset(MessageExtBrokerInner msg) {
         ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
-        consumeQueue.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
+        consumeQueue.assignQueueOffset(this.queueOffsetOperator, msg);
+    }
+
+    public void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
+        consumeQueue.increaseQueueOffset(this.queueOffsetOperator, msg, messageNum);
     }
 
     public void updateQueueOffset(String topic, int queueId, long offset) {
         String topicQueueKey = topic + "-" + queueId;
-        this.queueOffsetAssigner.updateQueueOffset(topicQueueKey, offset);
+        this.queueOffsetOperator.updateQueueOffset(topicQueueKey, offset);
     }
 
     public void removeTopicQueueTable(String topic, Integer queueId) {
-        this.queueOffsetAssigner.remove(topic, queueId);
+        this.queueOffsetOperator.remove(topic, queueId);
     }
 
     public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable() {
