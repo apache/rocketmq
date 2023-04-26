@@ -51,7 +51,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
      * │                                     Store Unit                                    │
      * │                                                                                   │
      * </pre>
-     * ConsumeQueue's store unit. Size: CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
+     * ConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
      */
     public static final int CQ_STORE_UNIT_SIZE = 20;
     public static final int MSG_TAG_OFFSET_INDEX = 12;

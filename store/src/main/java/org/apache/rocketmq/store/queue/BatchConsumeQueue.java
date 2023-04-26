@@ -830,7 +830,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     /**
      * Here is vulnerable, the min value of the bytebuffer must be smaller or equal then the given value.
-     * Otherwise it may get -1
+     * Otherwise, it may get -1
      */
     protected int binarySearch(ByteBuffer byteBuffer, int left, int right, final int unitSize, final int unitShift,
         long targetValue) {
@@ -973,7 +973,6 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     /**
      * Batch msg offset (deep logic offset)
-     *
      * @return max deep offset
      */
     @Override

@@ -87,6 +87,7 @@ public class BrokerStartup {
         final NettyClientConfig nettyClientConfig = new NettyClientConfig();
         final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         nettyServerConfig.setListenPort(10911);
+        messageStoreConfig.setHaListenPort(0);
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine(
@@ -167,7 +168,10 @@ public class BrokerStartup {
             System.exit(-4);
         }
 
-        messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
+        if (messageStoreConfig.getHaListenPort() <= 0) {
+            messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
+        }
+
         brokerConfig.setInBrokerContainer(false);
 
         System.setProperty("brokerLogDir", "");
