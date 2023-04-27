@@ -506,7 +506,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             });
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
@@ -525,7 +525,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
@@ -549,7 +549,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {

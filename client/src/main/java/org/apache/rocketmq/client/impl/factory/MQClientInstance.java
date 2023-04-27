@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -65,6 +66,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.common.HeartbeatV2Result;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
@@ -122,6 +124,8 @@ public class MQClientInstance {
     private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
+    private final Set<String/* Broker address */> brokerSupportV2HeartbeatSet = new HashSet();
+    private final ConcurrentMap<String, Integer> brokerAddrHeartbeatFingerprintTable = new ConcurrentHashMap();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "MQClientFactoryScheduledThread"));
     private final PullMessageService pullMessageService;
     private final RebalanceService rebalanceService;
@@ -299,7 +303,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.cleanOfflineBroker();
-                MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                MQClientInstance.this.sendHeartbeatToAllBrokerWithLockV2(false);
             } catch (Exception e) {
                 log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
             }
@@ -458,6 +462,25 @@ public class MQClientInstance {
         }
     }
 
+    public void sendHeartbeatToAllBrokerWithLockV2(boolean isRebalance) {
+        if (this.lockHeartbeat.tryLock()) {
+            try {
+                if (clientConfig.isUseHeartbeatV2()) {
+                    this.sendHeartbeatToAllBrokerV2(isRebalance);
+                } else {
+                    this.sendHeartbeatToAllBroker();
+                }
+                this.uploadFilterClassSource();
+            } catch (final Exception e) {
+                log.error("sendHeartbeatToAllBrokerWithLockV2 exception", e);
+            } finally {
+                this.lockHeartbeat.unlock();
+            }
+        } else {
+            log.warn("sendHeartbeatToAllBrokerWithLockV2 lock heartBeat, but failed.");
+        }
+    }
+
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -516,7 +539,7 @@ public class MQClientInstance {
     }
 
     private void sendHeartbeatToAllBroker() {
-        final HeartbeatData heartbeatData = this.prepareHeartbeatData();
+        final HeartbeatData heartbeatData = this.prepareHeartbeatData(false);
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
@@ -560,6 +583,82 @@ public class MQClientInstance {
                     } else {
                         log.warn("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
                             id, addr, e);
+                    }
+                }
+            }
+        }
+    }
+
+    private void sendHeartbeatToAllBrokerV2(boolean isRebalance) {
+        HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
+        final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
+        final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
+        if (producerEmpty && consumerEmpty) {
+            log.warn("sendHeartbeatToAllBrokerV2 but no consumer and no producer");
+            return;
+        }
+        if (!this.brokerAddrTable.isEmpty()) {
+            if (isRebalance) {
+                resetBrokerAddrHeartbeatFingerprintMap();
+            }
+            long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+            int currentHeartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
+            heartbeatDataWithSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
+            HeartbeatData heartbeatDataWithoutSub = this.prepareHeartbeatData(true);
+            heartbeatDataWithoutSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
+
+            Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, HashMap<Long, String>> entry = it.next();
+                String brokerName = entry.getKey();
+                HashMap<Long, String> oneTable = entry.getValue();
+                if (oneTable != null) {
+                    for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                        Long id = entry1.getKey();
+                        String addr = entry1.getValue();
+                        if (addr != null) {
+                            if (consumerEmpty && id != MixAll.MASTER_ID) {
+                                continue;
+                            }
+                            try {
+                                int version = 0;
+                                boolean isBrokerSupportV2 = brokerSupportV2HeartbeatSet.contains(addr);
+                                HeartbeatV2Result heartbeatV2Result = null;
+                                if (isBrokerSupportV2 && null != brokerAddrHeartbeatFingerprintTable.get(addr) && brokerAddrHeartbeatFingerprintTable.get(addr) == currentHeartbeatFingerprint) {
+                                    heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithoutSub, 3000);
+                                    if (heartbeatV2Result.isSubChange()) {
+                                        brokerAddrHeartbeatFingerprintTable.remove(addr);
+                                    }
+                                    log.info("sendHeartbeatToAllBrokerV2 simple brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
+                                } else {
+                                    heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithSub, 3000);
+                                    if (heartbeatV2Result.isSupportV2()) {
+                                        brokerSupportV2HeartbeatSet.add(addr);
+                                        if (heartbeatV2Result.isSubChange()) {
+                                            brokerAddrHeartbeatFingerprintTable.remove(addr);
+                                        } else if (!brokerAddrHeartbeatFingerprintTable.containsKey(addr) || brokerAddrHeartbeatFingerprintTable.get(addr) != currentHeartbeatFingerprint) {
+                                            brokerAddrHeartbeatFingerprintTable.put(addr, currentHeartbeatFingerprint);
+                                        }
+                                    }
+                                    log.info("sendHeartbeatToAllBrokerV2 normal brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
+                                }
+                                version = heartbeatV2Result.getVersion();
+                                if (!this.brokerVersionTable.containsKey(brokerName)) {
+                                    this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
+                                }
+                                this.brokerVersionTable.get(brokerName).put(addr, version);
+                                if (times % 20 == 0) {
+                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] success", brokerName, id, addr);
+                                    log.info(heartbeatDataWithSub.toString());
+                                }
+                            } catch (Exception e) {
+                                if (this.isBrokerInNameServer(addr)) {
+                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] failed", brokerName, id, addr);
+                                } else {
+                                    log.info("ssendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] exception, because the broker not" + " up, forget it", brokerName, id, addr);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -680,7 +779,7 @@ public class MQClientInstance {
         return false;
     }
 
-    private HeartbeatData prepareHeartbeatData() {
+    private HeartbeatData prepareHeartbeatData(boolean isWithoutSub) {
         HeartbeatData heartbeatData = new HeartbeatData();
 
         // clientID
@@ -697,7 +796,9 @@ public class MQClientInstance {
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
                 consumerData.setUnitMode(impl.isUnitMode());
-
+                if (!isWithoutSub) {
+                    consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+                }
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }
         }
@@ -712,7 +813,7 @@ public class MQClientInstance {
                 heartbeatData.getProducerDataSet().add(producerData);
             }
         }
-
+        heartbeatData.setWithoutSub(isWithoutSub);
         return heartbeatData;
     }
 
@@ -1225,6 +1326,10 @@ public class MQClientInstance {
             MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
 
         return consumerRunningInfo;
+    }
+
+    private void resetBrokerAddrHeartbeatFingerprintMap() {
+        brokerAddrHeartbeatFingerprintTable.clear();
     }
 
     public ConsumerStatsManager getConsumerStatsManager() {

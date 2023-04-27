@@ -79,6 +79,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.common.HeartbeatV2Result;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -1387,6 +1388,30 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public HeartbeatV2Result sendHeartbeatV2(
+        final String addr,
+        final HeartbeatData heartbeatData,
+        final long timeoutMillis
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(clientConfig.getLanguage());
+        request.setBody(heartbeatData.encode());
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (response.getExtFields() != null) {
+                    return new HeartbeatV2Result(response.getVersion(), Boolean.parseBoolean(response.getExtFields().get(MixAll.IS_SUB_CHANGE)), Boolean.parseBoolean(response.getExtFields().get(MixAll.IS_SUPPORT_HEART_BEAT_V2)));
+                }
+                return new HeartbeatV2Result(response.getVersion(), false, false);
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
     public void unregisterClient(

@@ -76,6 +76,8 @@ public class MixAll {
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
+    public static final String IS_SUPPORT_HEART_BEAT_V2 = "IS_SUPPORT_HEART_BEAT_V2";
+    public static final String IS_SUB_CHANGE = "IS_SUB_CHANGE";
     public static final List<String> LOCAL_INET_ADDRESS = getLocalInetAddress();
     public static final String LOCALHOST = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";

@@ -988,7 +988,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+        this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -1237,7 +1237,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
             }
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);
@@ -1252,7 +1252,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             subscriptionData.setFilterClassSource(filterClassSource);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
             }
 
         } catch (Exception e) {
@@ -1272,7 +1272,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
             }
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);

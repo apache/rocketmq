@@ -81,7 +81,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
 
         // notify broker
-        this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
+        this.getmQClientFactory().sendHeartbeatToAllBrokerWithLockV2(true);
     }
 
     @Override

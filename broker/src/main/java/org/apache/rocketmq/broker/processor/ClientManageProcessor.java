@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -46,6 +49,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 public class ClientManageProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
+    private final ConcurrentMap<String /* ConsumerGroup */, Integer /* HeartbeatFingerprint */> consumerGroupHeartbeatTable = new ConcurrentHashMap<>();
 
     public ClientManageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -81,7 +85,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getLanguage(),
             request.getVersion()
         );
-
+        int heartbeatFingerprint = heartbeatData.getHeartbeatFingerprint();
+        boolean isSubChange = false;
         for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
             //Reject the PullConsumer
             if (brokerController.getBrokerConfig().isRejectPullConsumerEnable()) {
@@ -89,6 +94,10 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     continue;
                 }
             }
+            if (null != consumerGroupHeartbeatTable.get(consumerData.getGroupName()) && consumerGroupHeartbeatTable.get(consumerData.getGroupName()) != heartbeatData.getHeartbeatFingerprint()) {
+                isSubChange = true;
+            }
+            consumerGroupHeartbeatTable.put(consumerData.getGroupName(), heartbeatFingerprint);
 
             boolean hasOrderTopicSub = false;
 
@@ -116,15 +125,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
             }
             if (null != subscriptionGroupConfig) {
-                boolean changed = this.brokerController.getConsumerManager().registerConsumer(
-                    consumerData.getGroupName(),
-                    clientChannelInfo,
-                    consumerData.getConsumeType(),
-                    consumerData.getMessageModel(),
-                    consumerData.getConsumeFromWhere(),
-                    consumerData.getSubscriptionDataSet(),
-                    isNotifyConsumerIdsChangedEnable
-                );
+                boolean changed = false;
+                if (heartbeatData.isWithoutSub()) {
+                    changed = this.brokerController.getConsumerManager().registerConsumerWithoutSub(consumerData.getGroupName(), clientChannelInfo, consumerData.getConsumeType(), consumerData.getMessageModel(), consumerData.getConsumeFromWhere());
+                } else {
+                    changed = this.brokerController.getConsumerManager().registerConsumer(consumerData.getGroupName(), clientChannelInfo, consumerData.getConsumeType(), consumerData.getMessageModel(), consumerData.getConsumeFromWhere(), consumerData.getSubscriptionDataSet(), isNotifyConsumerIdsChangedEnable);
+                }
                 if (changed) {
                     LOGGER.info(
                         "ClientManageProcessor: registerConsumer info changed, SDK address={}, consumerData={}",
@@ -139,6 +145,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        response.addExtField(MixAll.IS_SUPPORT_HEART_BEAT_V2, Boolean.TRUE.toString());
+        response.addExtField(MixAll.IS_SUB_CHANGE, Boolean.valueOf(isSubChange).toString());
         return response;
     }
 
