@@ -28,9 +28,10 @@ public class TopicValidatorTest {
         assertThat(res.isValid()).isFalse();
         assertThat(res.getRemark()).contains("The specified topic is blank");
 
-        res = TopicValidator.validateTopic("../TopicTest");
+        String topic = "../TopicTest";
+        res = TopicValidator.validateTopic(topic);
         assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic contains illegal characters");
+        assertThat(res.getRemark()).contains(String.format("The specified topic[%s] contains illegal characters", topic));
 
         res = TopicValidator.validateTopic(generateString(128));
         assertThat(res.isValid()).isFalse();
