@@ -18,7 +18,6 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -43,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -73,6 +73,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
+    private Long brokerControllerId = null;
 
     public AutoSwitchHAService() {
     }
@@ -432,7 +434,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         List<Long> idList = this.connectionList.stream().map(connection -> ((AutoSwitchHAConnection)connection).getSlaveId()).collect(Collectors.toList());
         for (Long syncId : currentSyncStateSet) {
-            if (!idList.contains(syncId) && syncId != MixAll.MASTER_ID) {
+            if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
                 LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
                 return this.confirmOffset;
             }
@@ -553,6 +555,14 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
+    }
+
+    public Long getBrokerControllerId() {
+        return brokerControllerId;
+    }
+
+    public void setBrokerControllerId(Long brokerControllerId) {
+        this.brokerControllerId = brokerControllerId;
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {

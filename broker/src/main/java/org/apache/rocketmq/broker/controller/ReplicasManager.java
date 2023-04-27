@@ -268,6 +268,7 @@ public class ReplicasManager {
 
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
+                this.haService.setBrokerControllerId(this.brokerControllerId);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
