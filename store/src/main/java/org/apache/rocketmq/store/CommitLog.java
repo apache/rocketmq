@@ -853,7 +853,7 @@ public class CommitLog implements Swappable {
                 needAssignOffset = false;
             }
             if (needAssignOffset) {
-                defaultMessageStore.assignOffset(msg, getMessageNum(msg));
+                defaultMessageStore.assignOffset(msg);
             }
 
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
@@ -920,6 +920,10 @@ public class CommitLog implements Swappable {
                 beginTimeInLock = 0;
             } finally {
                 putMessageLock.unlock();
+            }
+            // Increase queue offset when messages are successfully written
+            if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
             }
         } finally {
             topicQueueLock.unlock(topicQueueKey);
@@ -1018,7 +1022,7 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(messageExtBatch, (short) putMessageContext.getBatchSize());
+            defaultMessageStore.assignOffset(messageExtBatch);
 
             putMessageLock.lock();
             try {
@@ -1068,6 +1072,11 @@ public class CommitLog implements Swappable {
                 beginTimeInLock = 0;
             } finally {
                 putMessageLock.unlock();
+            }
+
+            // Increase queue offset when messages are successfully written
+            if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                this.defaultMessageStore.increaseOffset(messageExtBatch, (short) putMessageContext.getBatchSize());
             }
         } finally {
             topicQueueLock.unlock(topicQueueKey);

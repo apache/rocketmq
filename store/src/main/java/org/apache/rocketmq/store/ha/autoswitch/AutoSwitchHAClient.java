@@ -447,7 +447,13 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             localEpochCache.initCacheFromEntries(localEpochEntries);
             localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
 
+            LOGGER.info("master epoch entries is {}", masterEpochCache.getAllEntries());
+            LOGGER.info("local epoch entries is {}", localEpochEntries);
+
             final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
+
+            LOGGER.info("truncateOffset is {}", truncateOffset);
+
             if (truncateOffset < 0) {
                 // If truncateOffset < 0, means we can't find a consistent point
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
@@ -495,7 +501,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             AutoSwitchHAClient.this.processPosition += headerSize + bodySize;
                             AutoSwitchHAClient.this.waitForRunning(1);
                             LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
-                                masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
+                                HAConnectionState.values()[masterState], AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
                             return false;
                         }
 

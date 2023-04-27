@@ -99,6 +99,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     public boolean viaTieredStorage(String topic, int queueId, long offset, int batchSize) {
         TieredMessageStoreConfig.TieredStorageLevel deepStorageLevel = storeConfig.getTieredStorageLevel();
+
+        if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE)) {
+            return true;
+        }
+
         if (!deepStorageLevel.isEnable()) {
             return false;
         }
@@ -122,7 +127,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             && !next.checkInMemByConsumeOffset(topic, queueId, offset, batchSize)) {
             return true;
         }
-        return deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE);
+        return false;
     }
 
     @Override

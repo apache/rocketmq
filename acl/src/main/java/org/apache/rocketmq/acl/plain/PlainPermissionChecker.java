@@ -27,19 +27,20 @@ public class PlainPermissionChecker implements PermissionChecker {
     public void check(AccessResource checkedAccess, AccessResource ownedAccess) {
         PlainAccessResource checkedPlainAccess = (PlainAccessResource) checkedAccess;
         PlainAccessResource ownedPlainAccess = (PlainAccessResource) ownedAccess;
-        if (Permission.needAdminPerm(checkedPlainAccess.getRequestCode()) && !ownedPlainAccess.isAdmin()) {
+
+        if (ownedPlainAccess.isAdmin()) {
+            // admin user don't need verification
+            return;
+        }
+        if (Permission.needAdminPerm(checkedPlainAccess.getRequestCode())) {
             throw new AclException(String.format("Need admin permission for request code=%d, but accessKey=%s is not", checkedPlainAccess.getRequestCode(), ownedPlainAccess.getAccessKey()));
         }
+
         Map<String, Byte> needCheckedPermMap = checkedPlainAccess.getResourcePermMap();
         Map<String, Byte> ownedPermMap = ownedPlainAccess.getResourcePermMap();
 
         if (needCheckedPermMap == null) {
             // If the needCheckedPermMap is null,then return
-            return;
-        }
-
-        if (ownedPermMap == null && ownedPlainAccess.isAdmin()) {
-            // If the ownedPermMap is null and it is an admin user, then return
             return;
         }
 
@@ -58,7 +59,7 @@ public class PlainPermissionChecker implements PermissionChecker {
                 continue;
             }
             if (!Permission.checkPermission(neededPerm, ownedPermMap.get(resource))) {
-                throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
+                throw new AclException(String.format("No permission for %s", PlainAccessResource.printStr(resource, isGroup)));
             }
         }
     }
