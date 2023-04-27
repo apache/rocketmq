@@ -33,6 +33,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -89,6 +91,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -1433,25 +1436,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
         final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
-        long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
-                requestResponseFuture.executeRequestCallback();
-            }
+        String msgType = msg.getProperty(MessageConst.PROPERTY_MESSAGE_TYPE);
+        if (StringUtils.isBlank(msgType)) {
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
+        } else if (!msgType.equals(MixAll.REPLY_MESSAGE_FLAG)) {
+            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "The message type must be is reply, but it is " + msgType);
+        }
 
-            @Override
-            public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
-            }
-        }, timeout - cost);
+        long cost = System.currentTimeMillis() - beginTimestamp;
+        this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout - cost);
     }
 
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
