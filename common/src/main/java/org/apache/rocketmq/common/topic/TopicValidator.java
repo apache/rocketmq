@@ -18,7 +18,10 @@ package org.apache.rocketmq.common.topic;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.PermName;
 
 public class TopicValidator {
 
@@ -36,7 +39,7 @@ public class TopicValidator {
     public static final String SYNC_BROKER_MEMBER_GROUP_PREFIX = SYSTEM_TOPIC_PREFIX + "SYNC_BROKER_MEMBER_";
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
-    private static final int TOPIC_MAX_LENGTH = 127;
+    public static final int TOPIC_MAX_LENGTH = 127;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
@@ -152,5 +155,9 @@ public class TopicValidator {
 
     public static Set<String> getNotAllowedSendTopicSet() {
         return NOT_ALLOWED_SEND_TOPIC_SET;
+    }
+
+    public static boolean checkTopicConfig(final TopicConfig topicConfig) {
+        return PermName.isValid(topicConfig.getPerm());
     }
 }
