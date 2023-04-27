@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -50,6 +51,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * SwitchAble ha service, support switch role to master or slave.
@@ -428,6 +430,14 @@ public class AutoSwitchHAService extends DefaultHAService {
     private long computeConfirmOffset() {
         final Set<Long> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        List<Long> idList = this.connectionList.stream().map(connection -> ((AutoSwitchHAConnection)connection).getSlaveId()).collect(Collectors.toList());
+        for (Long syncId : currentSyncStateSet) {
+            if (!idList.contains(syncId) && syncId != MixAll.MASTER_ID) {
+                LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
+                return this.confirmOffset;
+            }
+        }
+
         for (HAConnection connection : this.connectionList) {
             final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
             if (currentSyncStateSet.contains(slaveId)) {
