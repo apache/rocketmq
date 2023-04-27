@@ -29,8 +29,9 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
@@ -52,7 +53,7 @@ public class CompactionStore {
     private final String compactionPath;
     private final String compactionLogPath;
     private final String compactionCqPath;
-    private final MessageStore defaultMessageStore;
+    private final DefaultMessageStore defaultMessageStore;
     private final CompactionPositionMgr positionMgr;
     private final ConcurrentHashMap<String, CompactionLog> compactionLogTable;
     private final ScheduledExecutorService compactionSchedule;
@@ -64,7 +65,7 @@ public class CompactionStore {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public CompactionStore(MessageStore defaultMessageStore) {
+    public CompactionStore(DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
         this.compactionLogTable = new ConcurrentHashMap<>();
         MessageStoreConfig config = defaultMessageStore.getMessageStoreConfig();
@@ -73,7 +74,7 @@ public class CompactionStore {
         this.compactionLogPath = Paths.get(compactionPath, COMPACTION_LOG_DIR).toString();
         this.compactionCqPath = Paths.get(compactionPath, COMPACTION_CQ_DIR).toString();
         this.positionMgr = new CompactionPositionMgr(compactionPath);
-        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), config.getCompactionThreadNum());
+        this.compactionThreadNum = Math.min(Runtime.getRuntime().availableProcessors(), Math.max(1, config.getCompactionThreadNum()));
 
         this.compactionSchedule = Executors.newScheduledThreadPool(this.compactionThreadNum,
             new ThreadFactoryImpl("compactionSchedule_"));
@@ -169,6 +170,14 @@ public class CompactionStore {
         }
     }
 
+    public void doDispatch(DispatchRequest dispatchRequest, SelectMappedBufferResult smr) throws Exception {
+        CompactionLog clog = loadAndGetClog(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+
+        if (clog != null) {
+            clog.asyncPutMessage(smr.getByteBuffer(), dispatchRequest);
+        }
+    }
+
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize) {
         CompactionLog log = compactionLogTable.get(topic + "_" + queueId);
@@ -197,8 +206,7 @@ public class CompactionStore {
     }
 
     public void shutdown() {
-        this.flush(0);
-        positionMgr.persist();
+        // close the thread pool first
         compactionSchedule.shutdown();
         try {
             if (!compactionSchedule.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
@@ -208,6 +216,8 @@ public class CompactionStore {
         } catch (InterruptedException e) {
             log.warn("wait compaction schedule shutdown interrupted. ");
         }
+        this.flush(0);
+        positionMgr.persist();
     }
 
     public ScheduledExecutorService getCompactionSchedule() {

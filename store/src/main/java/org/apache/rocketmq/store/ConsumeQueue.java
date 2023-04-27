@@ -38,7 +38,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
-import org.apache.rocketmq.store.queue.QueueOffsetAssigner;
+import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
@@ -54,8 +54,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
      * │                                     Store Unit                                    │
      * │                                                                                   │
      * </pre>
-     * ConsumeQueue's store unit. Size:
-     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
+     * ConsumeQueue's store unit. Size: CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
      */
     public static final int CQ_STORE_UNIT_SIZE = 20;
     public static final int MSG_TAG_OFFSET_INDEX = 12;
@@ -785,13 +784,15 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg,
-        short messageNum) {
+    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
         String topicQueueKey = getTopic() + "-" + getQueueId();
-        long queueOffset = queueOffsetAssigner.assignQueueOffset(topicQueueKey, messageNum);
+        long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
         msg.setQueueOffset(queueOffset);
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch() || msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+
+
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -803,12 +804,40 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         for (int i = 0; i < queues.length; i++) {
             String key = queueKey(queues[i], msg);
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                queueOffsets[i] = queueOffsetAssigner.assignLmqOffset(key, (short) 1);
+                queueOffsets[i] = queueOffsetOperator.getLmqOffset(key);
             }
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
         removeWaitStorePropertyString(msg);
+    }
+
+    @Override
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
+        short messageNum) {
+        String topicQueueKey = getTopic() + "-" + getQueueId();
+        queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
+
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
+            return;
+        }
+        String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        if (StringUtils.isBlank(multiDispatchQueue)) {
+            return;
+        }
+        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        for (int i = 0; i < queues.length; i++) {
+            String key = queueKey(queues[i], msg);
+            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
+                queueOffsetOperator.increaseLmqOffset(key, (short) 1);
+            }
+        }
+    }
+
+    public boolean isNeedHandleMultiDispatch(MessageExtBrokerInner msg) {
+        return messageStore.getMessageStoreConfig().isEnableMultiDispatch() && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
@@ -968,7 +997,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         private int relativePos = 0;
 
         public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
-            this.sbr =  sbr;
+            this.sbr = sbr;
             if (sbr != null && sbr.getByteBuffer() != null) {
                 relativePos = sbr.getByteBuffer().position();
             }
@@ -988,11 +1017,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             if (!hasNext()) {
                 return null;
             }
-            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() - relativePos) / CQ_STORE_UNIT_SIZE;
             CqUnit cqUnit = new CqUnit(queueOffset,
-                    sbr.getByteBuffer().getLong(),
-                    sbr.getByteBuffer().getInt(),
-                    sbr.getByteBuffer().getLong());
+                sbr.getByteBuffer().getLong(),
+                sbr.getByteBuffer().getInt(),
+                sbr.getByteBuffer().getLong());
 
             if (isExtAddr(cqUnit.getTagsCode())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
@@ -1003,7 +1032,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 } else {
                     // can't find ext content.Client will filter messages by tag also.
                     log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
-                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                        cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
                 }
             }
             return cqUnit;

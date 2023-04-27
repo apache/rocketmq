@@ -225,8 +225,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         null);
                 }
 
-                this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
-
                 if (startFactory) {
                     mQClientFactory.start();
                 }

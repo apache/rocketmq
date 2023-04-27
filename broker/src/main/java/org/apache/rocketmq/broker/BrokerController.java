@@ -743,8 +743,7 @@ public class BrokerController {
 
         if (result) {
             try {
-                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
-                defaultMessageStore.setTopicConfigTable(topicConfigManager.getTopicConfigTable());
+                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
@@ -1574,8 +1573,12 @@ public class BrokerController {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isEnableControllerMode()) {
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
+        }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.replicasManager.setIsolatedAndBrokerPermission(false);
         }
 
         if (this.brokerOuterAPI != null) {
