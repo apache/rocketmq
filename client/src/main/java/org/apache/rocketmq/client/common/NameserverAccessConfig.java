@@ -14,21 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.mqclient;
 
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+package org.apache.rocketmq.client.common;
 
-public class DoNothingClientRemotingProcessor extends ClientRemotingProcessor {
+public class NameserverAccessConfig {
+    private String namesrvAddr;
+    private String namesrvDomain;
+    private String namesrvDomainSubgroup;
 
-    public DoNothingClientRemotingProcessor(MQClientInstance mqClientFactory) {
-        super(mqClientFactory);
+    public NameserverAccessConfig(String namesrvAddr, String namesrvDomain, String namesrvDomainSubgroup) {
+        this.namesrvAddr = namesrvAddr;
+        this.namesrvDomain = namesrvDomain;
+        this.namesrvDomainSubgroup = namesrvDomainSubgroup;
     }
 
-    @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        return null;
+    public String getNamesrvAddr() {
+        return namesrvAddr;
+    }
+
+    public String getNamesrvDomain() {
+        return namesrvDomain;
+    }
+
+    public String getNamesrvDomainSubgroup() {
+        return namesrvDomainSubgroup;
     }
 }
