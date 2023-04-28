@@ -35,9 +35,11 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 
-import static org.apache.rocketmq.broker.longpolling.PollingResult.*;
+import static org.apache.rocketmq.broker.longpolling.PollingResult.NOT_POLLING;
+import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_FULL;
+import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_SUC;
+import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_TIMEOUT;
 
 public class PopLongPollingService extends ServiceThread {
     private static final Logger POP_LOGGER =
@@ -212,7 +214,8 @@ public class PopLongPollingService extends ServiceThread {
      * @param requestHeader
      * @return
      */
-    public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand, final PopMessageRequestHeader requestHeader) {
+    public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
+        final PollingHeader requestHeader) {
         if (requestHeader.getPollTime() <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }

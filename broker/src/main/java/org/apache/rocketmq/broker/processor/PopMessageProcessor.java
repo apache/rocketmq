@@ -38,6 +38,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
@@ -183,7 +184,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
+        request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
         Channel channel = ctx.channel();
 
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
@@ -387,7 +388,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getQueueId());
                 }
             } else {
-                PollingResult pollingResult = popLongPollingService.polling(ctx, request, requestHeader);
+                PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader));
                 if (PollingResult.POLLING_SUC == pollingResult) {
                     return null;
                 } else if (PollingResult.POLLING_FULL == pollingResult) {

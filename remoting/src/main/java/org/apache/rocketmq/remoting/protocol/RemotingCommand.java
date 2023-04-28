@@ -602,13 +602,6 @@ public class RemotingCommand {
         extFields.put(key, value);
     }
 
-    public void addExtFieldIfNotExist(String key, String value) {
-        if (null == extFields) {
-            extFields = new HashMap<>(256);
-        }
-        extFields.putIfAbsent(key, value);
-    }
-
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="
