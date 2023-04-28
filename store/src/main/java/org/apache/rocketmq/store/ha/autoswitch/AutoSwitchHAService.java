@@ -431,8 +431,11 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     private long computeConfirmOffset() {
         final Set<Long> currentSyncStateSet = getSyncStateSet();
-        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        long newConfirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         List<Long> idList = this.connectionList.stream().map(connection -> ((AutoSwitchHAConnection)connection).getSlaveId()).collect(Collectors.toList());
+
+        // To avoid the syncStateSet is not consistent with connectionList.
+        // Fix issue: https://github.com/apache/rocketmq/issues/6662
         for (Long syncId : currentSyncStateSet) {
             if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
                 LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
@@ -443,10 +446,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         for (HAConnection connection : this.connectionList) {
             final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
             if (currentSyncStateSet.contains(slaveId)) {
-                confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+                newConfirmOffset = Math.min(newConfirmOffset, connection.getSlaveAckOffset());
             }
         }
-        return confirmOffset;
+        return newConfirmOffset;
     }
 
     public void setSyncStateSet(final Set<Long> syncStateSet) {

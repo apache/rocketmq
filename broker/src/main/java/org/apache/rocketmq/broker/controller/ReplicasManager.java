@@ -114,6 +114,7 @@ public class ReplicasManager {
         this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("ReplicasManager_scan_thread_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
+        this.haService.setBrokerControllerId(this.brokerControllerId);
         this.brokerConfig = brokerController.getBrokerConfig();
         this.availableControllerAddresses = new ConcurrentHashMap<>();
         this.syncStateSet = new HashSet<>();
@@ -268,7 +269,6 @@ public class ReplicasManager {
 
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
-                this.haService.setBrokerControllerId(this.brokerControllerId);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
