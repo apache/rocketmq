@@ -651,11 +651,11 @@ public class MQClientInstance {
                                     log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] success", brokerName, id, addr);
                                     log.info(heartbeatDataWithSub.toString());
                                 }
-                            } catch (Exception e) {
+                            } catch (MQBrokerException | RemotingException | InterruptedException e) {
                                 if (this.isBrokerInNameServer(addr)) {
                                     log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] failed", brokerName, id, addr);
                                 } else {
-                                    log.info("ssendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] exception, because the broker not" + " up, forget it", brokerName, id, addr);
+                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] exception, because the broker not" + " up, forget it", brokerName, id, addr);
                                 }
                             }
                         }
