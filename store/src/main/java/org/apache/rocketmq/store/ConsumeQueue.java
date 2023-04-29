@@ -729,7 +729,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        return !StringUtils.isBlank(multiDispatchQueue) && !StringUtils.isBlank(multiQueueOffset);
+        return StringUtils.isNotBlank(multiDispatchQueue) && StringUtils.isNotBlank(multiQueueOffset);
     }
 
     private void multiDispatchLmqQueue(DispatchRequest request, int maxRetries) {

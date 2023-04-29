@@ -28,13 +28,14 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 public class MultiDispatch {
     private final StringBuilder keyBuilder = new StringBuilder();
     private final DefaultMessageStore messageStore;
+    private static final short VALUE_OF_EACH_INCREMENT = 1;
 
     public MultiDispatch(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
-        keyBuilder.setLength(0);
+        keyBuilder.delete(0, keyBuilder.length());
         keyBuilder.append(queueName);
         keyBuilder.append('-');
         int queueId = msgInner.getQueueId();
@@ -46,19 +47,21 @@ public class MultiDispatch {
     }
 
     public void wrapMultiDispatch(final MessageExtBrokerInner msg) {
+
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        Long[] queueOffsets = new Long[queues.length];
-        for (int i = 0; i < queues.length; i++) {
-            String key = queueKey(queues[i], msg);
-            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                queueOffsets[i] = messageStore.getQueueStore().getLmqQueueOffset(key);
+        long[] queueOffsets = new long[queues.length];
+        if (messageStore.getMessageStoreConfig().isEnableLmq()) {
+            for (int i = 0; i < queues.length; i++) {
+                String key = queueKey(queues[i], msg);
+                if (MixAll.isLmq(key)) {
+                    queueOffsets[i] = messageStore.getQueueStore().getLmqQueueOffset(key);
+                }
             }
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
     }
-
 
     public void updateMultiQueueOffset(final MessageExtBrokerInner msgInner) {
         String multiDispatchQueue = msgInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -66,7 +69,7 @@ public class MultiDispatch {
         for (String queue : queues) {
             String key = queueKey(queue, msgInner);
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                messageStore.getQueueStore().increaseLmqOffset(key, (short) 1);
+                messageStore.getQueueStore().increaseLmqOffset(key, VALUE_OF_EACH_INCREMENT);
             }
         }
     }

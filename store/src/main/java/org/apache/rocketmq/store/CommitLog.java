@@ -1996,7 +1996,7 @@ public class CommitLog implements Swappable {
     }
 
     public static boolean isMultiDispatchMsg(MessageExtBrokerInner msg) {
-        return !StringUtils.isBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        return StringUtils.isNoneBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public static boolean isInnerBatchMsg(MessageExtBrokerInner msg) {

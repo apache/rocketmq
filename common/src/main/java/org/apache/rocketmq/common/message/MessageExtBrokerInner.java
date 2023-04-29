@@ -27,7 +27,7 @@ public class MessageExtBrokerInner extends MessageExt {
 
     private ByteBuffer encodedBuff;
 
-    private volatile boolean isEncodeCompleted;
+    private volatile boolean encodeCompleted;
 
     private MessageVersion version = MessageVersion.MESSAGE_VERSION_V1;
 
@@ -74,10 +74,10 @@ public class MessageExtBrokerInner extends MessageExt {
     }
 
     public boolean isEncodeCompleted() {
-        return isEncodeCompleted;
+        return encodeCompleted;
     }
 
     public void setEncodeCompleted(boolean encodeCompleted) {
-        isEncodeCompleted = encodeCompleted;
+        this.encodeCompleted = encodeCompleted;
     }
 }
