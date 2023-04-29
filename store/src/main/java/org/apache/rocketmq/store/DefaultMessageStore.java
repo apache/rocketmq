@@ -710,10 +710,15 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-
         long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
 
         LOGGER.info("oldReputFromOffset is {}, reset reput from offset to {}", oldReputFromOffset, resetReputOffset);
+
+        // normally, the reseted reputOffset should be still larger than the confirmOffset
+        // if something wrong, the confirmOffset should be same to the reseted reputOffset.
+        if (resetReputOffset < getConfirmOffset()) {
+            setConfirmOffset(resetReputOffset);
+        }
 
         this.reputMessageService.setReputFromOffset(resetReputOffset);
         this.reputMessageService.start();
@@ -3265,5 +3270,7 @@ public class DefaultMessageStore implements MessageStore {
             (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
     }
 
-
+    public long getReputFromOffset() {
+        return this.reputMessageService.getReputFromOffset();
+    }
 }

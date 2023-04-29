@@ -500,7 +500,9 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         boolean doNext = true;
-        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
+
+        // Here we could use reputFromOffset in DefaultMessageStore directly.
+        long reputFromOffset = this.defaultMessageStore.getReputFromOffset();
         do {
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
