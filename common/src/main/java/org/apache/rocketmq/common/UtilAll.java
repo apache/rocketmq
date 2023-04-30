@@ -69,12 +69,25 @@ public class UtilAll {
         HEX_ARRAY = "0123456789ABCDEF".toCharArray();
         Supplier<Integer> supplier = () -> {
             // format: "pid@hostname"
-            String currentJVM = ManagementFactory.getRuntimeMXBean().getName();
             try {
-                return Integer.parseInt(currentJVM.substring(0, currentJVM.indexOf('@')));
-            } catch (Exception e) {
-                return -1;
+                final Class<?> managementFactoryClass = Class.forName("java.lang.management.ManagementFactory");
+                final Method getRuntimeMXBean = managementFactoryClass.getDeclaredMethod("getRuntimeMXBean");
+                final Class<?> runtimeMXBeanClass = Class.forName("java.lang.management.RuntimeMXBean");
+                final Method getName = runtimeMXBeanClass.getDeclaredMethod("getName");
+
+                final Object runtimeMXBean = getRuntimeMXBean.invoke(null);
+                final String name = (String) getName.invoke(runtimeMXBean);
+
+                return Integer.parseInt(name.split("@")[0]);
+            } catch (final Exception ex) {
+                try {
+                    // try a Linux-specific way
+                    return Integer.parseInt(new File("/proc/self").getCanonicalFile().getName());
+                } catch (final IOException ignoredUseDefault) {
+                    // Ignore exception.
+                }
             }
+            return -1;
         };
         PID = supplier.get();
     }

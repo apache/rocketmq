@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +39,12 @@ public class UtilAllTest {
         String currentStackTrace = UtilAll.currentStackTrace();
         assertThat(currentStackTrace).contains("UtilAll.currentStackTrace");
         assertThat(currentStackTrace).contains("UtilAllTest.testCurrentStackTrace(");
+    }
+
+    @Test
+    public void testGetPID() {
+        int pid = UtilAll.getPid();
+        Assert.assertNotEquals(-1, pid);
     }
 
     @Test
