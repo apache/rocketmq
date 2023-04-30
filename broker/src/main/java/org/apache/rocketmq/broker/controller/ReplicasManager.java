@@ -549,6 +549,7 @@ public class ReplicasManager {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
             this.brokerControllerId = this.brokerMetadata.getBrokerId();
+            this.haService.setBrokerControllerId(this.brokerControllerId);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
