@@ -1725,7 +1725,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
+        if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group) && !MixAll.isSysConsumerGroup(group)) {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark("Group " + group + " does not exist");
             LOGGER.warn("Reset offset failed, group does not exist. topic={}, group={}", topic, group);
