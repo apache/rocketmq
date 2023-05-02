@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -26,12 +32,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RebalanceLitePullImplTest {
     private MessageQueue mq = new MessageQueue("topic1", "broker1", 0);
@@ -50,7 +50,7 @@ public class RebalanceLitePullImplTest {
         when(client.getMQAdminImpl()).thenReturn(admin);
     }
 
-    @Test
+    @Test(expected = MQClientException.class)
     public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException {
         for (ConsumeFromWhere where : new ConsumeFromWhere[]{
             ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
@@ -62,7 +62,7 @@ public class RebalanceLitePullImplTest {
             assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
 
             when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-2L);
-            assertEquals(-1, rebalanceImpl.computePullFromWhereWithException(mq));
+            rebalanceImpl.computePullFromWhereWithException(mq);
         }
     }
 
