@@ -189,7 +189,7 @@ public class TieredMessageStoreTest {
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        when(nextStore.checkInDiskByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
     }
 
