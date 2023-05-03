@@ -549,6 +549,7 @@ public class ReplicasManager {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
             this.brokerControllerId = this.brokerMetadata.getBrokerId();
+            this.haService.setBrokerControllerId(this.brokerControllerId);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
@@ -600,6 +601,7 @@ public class ReplicasManager {
         if (this.brokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
             this.brokerControllerId = brokerMetadata.getBrokerId();
+            this.haService.setBrokerControllerId(this.brokerControllerId);
             return;
         }
         // 2. check if temp metadata exist
