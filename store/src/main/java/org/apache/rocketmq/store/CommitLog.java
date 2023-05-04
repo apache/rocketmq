@@ -52,6 +52,7 @@ import org.apache.rocketmq.store.MessageExtEncoder.PutMessageThreadLocal;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
 /**
@@ -337,10 +338,19 @@ public class CommitLog implements Swappable {
             }
 
             processOffset += mappedFileOffset;
-            // Set a candidate confirm offset.
-            // In most cases, this value will be overwritten by confirmLog.init.
-            // It works if some confirmed messages are lost.
-            this.setConfirmOffset(lastValidMsgPhyOffset);
+
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                if (this.defaultMessageStore.getConfirmOffset() < this.defaultMessageStore.getMinPhyOffset()) {
+                    log.error("confirmOffset {} is less than minPhyOffset {}, correct confirmOffset to minPhyOffset", this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMinPhyOffset());
+                    this.defaultMessageStore.setConfirmOffset(this.defaultMessageStore.getMinPhyOffset());
+                } else if (this.defaultMessageStore.getConfirmOffset() > processOffset) {
+                    log.error("confirmOffset {} is larger than lastValidMsgPhyOffset {}, correct confirmOffset to processOffset", this.defaultMessageStore.getConfirmOffset(), processOffset);
+                    this.defaultMessageStore.setConfirmOffset(processOffset);
+                }
+            } else {
+                this.setConfirmOffset(lastValidMsgPhyOffset);
+            }
+
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -544,7 +554,18 @@ public class CommitLog implements Swappable {
     }
 
     public long getConfirmOffset() {
-        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+        if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+            if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE && !this.defaultMessageStore.getRunningFlags().isIsolated()) {
+                if (((AutoSwitchHAService) this.defaultMessageStore.getHaService()).getLocalSyncStateSet().size() == 1) {
+                    return this.defaultMessageStore.getMaxPhyOffset();
+                }
+                // First time compute confirmOffset.
+                if (this.confirmOffset <= 0) {
+                    setConfirmOffset(((AutoSwitchHAService) this.defaultMessageStore.getHaService()).computeConfirmOffset());
+                }
+            }
+            return this.confirmOffset;
+        } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
             return getMaxOffset();
@@ -553,6 +574,7 @@ public class CommitLog implements Swappable {
 
     public void setConfirmOffset(long phyOffset) {
         this.confirmOffset = phyOffset;
+        this.defaultMessageStore.getStoreCheckpoint().setConfirmPhyOffset(confirmOffset);
     }
 
     public long getLastFileFromOffset() {
@@ -605,8 +627,8 @@ public class CommitLog implements Swappable {
                         lastValidMsgPhyOffset = processOffset + mappedFileOffset;
                         mappedFileOffset += size;
 
-                        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
-                            if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
+                        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable() || this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                            if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getCommitLog().getConfirmOffset()) {
                                 this.getMessageStore().onCommitLogDispatch(dispatchRequest, doDispatch, mappedFile, true, false);
                             }
                         } else {
@@ -644,10 +666,17 @@ public class CommitLog implements Swappable {
             }
 
             processOffset += mappedFileOffset;
-            // Set a candidate confirm offset.
-            // In most cases, this value will be overwritten by confirmLog.init.
-            // It works if some confirmed messages are lost.
-            this.setConfirmOffset(lastValidMsgPhyOffset);
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                if (this.defaultMessageStore.getConfirmOffset() < this.defaultMessageStore.getMinPhyOffset()) {
+                    log.error("confirmOffset {} is less than minPhyOffset {}, correct confirmOffset to minPhyOffset", this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMinPhyOffset());
+                    this.defaultMessageStore.setConfirmOffset(this.defaultMessageStore.getMinPhyOffset());
+                } else if (this.defaultMessageStore.getConfirmOffset() > processOffset) {
+                    log.error("confirmOffset {} is larger than lastValidMsgPhyOffset {}, correct confirmOffset to processOffset", this.defaultMessageStore.getConfirmOffset(), processOffset);
+                    this.defaultMessageStore.setConfirmOffset(processOffset);
+                }
+            } else {
+                this.setConfirmOffset(lastValidMsgPhyOffset);
+            }
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -744,7 +773,7 @@ public class CommitLog implements Swappable {
         // dynamically adjust maxMessageSize, but not support DLedger mode temporarily
         int newMaxMessageSize = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize();
         if (newMaxMessageSize >= 10 &&
-                putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
+            putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
             putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
         }
     }
@@ -955,7 +984,6 @@ public class CommitLog implements Swappable {
 
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(messageExtBatch);
-
 
         if (needHandleHA && this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
             if (this.defaultMessageStore.getHaService().inSyncReplicasNums(currOffset) < this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas()) {
@@ -1828,7 +1856,6 @@ public class CommitLog implements Swappable {
         }
 
     }
-
 
     class DefaultFlushManager implements FlushManager {
 
