@@ -50,7 +50,7 @@ public class MultiDispatch {
 
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        long[] queueOffsets = new long[queues.length];
+        Long[] queueOffsets = new Long[queues.length];
         if (messageStore.getMessageStoreConfig().isEnableLmq()) {
             for (int i = 0; i < queues.length; i++) {
                 String key = queueKey(queues[i], msg);
