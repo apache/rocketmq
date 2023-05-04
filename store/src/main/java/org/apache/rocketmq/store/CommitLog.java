@@ -706,6 +706,9 @@ public class CommitLog implements Swappable {
         }
 
         this.mappedFileQueue.truncateDirtyFiles(phyOffset);
+        if (this.confirmOffset > phyOffset) {
+            this.setConfirmOffset(phyOffset);
+        }
     }
 
     protected void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
