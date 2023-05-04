@@ -122,10 +122,6 @@ public class ReplicasManager {
         this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity() + "-temp");
     }
 
-    public long getConfirmOffset() {
-        return this.haService.getConfirmOffset();
-    }
-
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
@@ -419,7 +415,7 @@ public class ReplicasManager {
                     this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                     this.brokerConfig.isInBrokerContainer(), this.getLastEpoch(),
                     this.brokerController.getMessageStore().getMaxPhyOffset(),
-                    this.getConfirmOffset(),
+                    this.brokerController.getMessageStore().getConfirmOffset(),
                     this.brokerConfig.getControllerHeartBeatTimeoutMills(),
                     this.brokerConfig.getBrokerElectionPriority()
                 );
@@ -881,11 +877,13 @@ public class ReplicasManager {
         if (isBrokerRoleConfirmed) {
             this.brokerController.setIsolated(false);
             this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
+            this.brokerController.getMessageStore().getRunningFlags().makeIsolated(false);
         } else {
             // prohibit writing and reading before confirming the broker role
             this.brokerController.setIsolated(true);
             this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
             this.brokerConfig.setBrokerPermission(0);
+            this.brokerController.getMessageStore().getRunningFlags().makeIsolated(true);
         }
     }
 }

@@ -168,7 +168,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.processPosition = 0;
         this.lastReadTimestamp = System.currentTimeMillis();
         this.lastWriteTimestamp = System.currentTimeMillis();
-        haService.updateConfirmOffset(-1);
     }
 
     public void reOpen() throws IOException {
@@ -565,7 +564,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
                                 }
 
-                                haService.updateConfirmOffset(Math.min(confirmOffset, messageStore.getMaxPhyOffset()));
+                                haService.getDefaultMessageStore().setConfirmOffset(Math.min(confirmOffset, messageStore.getMaxPhyOffset()));
 
                                 if (!reportSlaveMaxOffset(HAConnectionState.TRANSFER)) {
                                     LOGGER.error("AutoSwitchHAClient report max offset to master failed");

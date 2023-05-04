@@ -28,6 +28,8 @@ public class RunningFlags {
 
     private static final int DISK_FULL_BIT = 1 << 4;
 
+    private static final int ISOLATED_BIT = 1 << 5;
+
     private volatile int flagBits = 0;
 
     public RunningFlags() {
@@ -46,11 +48,11 @@ public class RunningFlags {
     }
 
     public boolean isReadable() {
-        if ((this.flagBits & NOT_READABLE_BIT) == 0) {
-            return true;
-        }
+        return (this.flagBits & NOT_READABLE_BIT) == 0;
+    }
 
-        return false;
+    public boolean isIsolated() {
+        return (this.flagBits & ISOLATED_BIT) != 0;
     }
 
     public boolean getAndMakeNotReadable() {
@@ -96,6 +98,14 @@ public class RunningFlags {
 
     public void makeLogicsQueueError() {
         this.flagBits |= WRITE_LOGICS_QUEUE_ERROR_BIT;
+    }
+
+    public void makeIsolated(boolean isolated) {
+        if (isolated) {
+            this.flagBits |= ISOLATED_BIT;
+        } else {
+            this.flagBits &= ~ISOLATED_BIT;
+        }
     }
 
     public boolean isLogicsQueueError() {
