@@ -710,8 +710,6 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-        setConfirmOffset(offsetToTruncate);
-
         long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
 
         LOGGER.info("oldReputFromOffset is {}, reset reput from offset to {}", oldReputFromOffset, resetReputOffset);
