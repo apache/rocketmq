@@ -547,7 +547,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             // EpochStartOffset
             this.byteBufferHeader.putLong(entry.getStartOffset());
             // Additional info(confirm offset)
-            final long confirmOffset = AutoSwitchHAConnection.this.haService.getConfirmOffset();
+            final long confirmOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getConfirmOffset();
             this.byteBufferHeader.putLong(confirmOffset);
             this.byteBufferHeader.flip();
         }
