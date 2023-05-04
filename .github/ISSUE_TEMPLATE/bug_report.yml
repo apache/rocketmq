@@ -34,28 +34,24 @@ body:
             I have confirmed that this bug belongs to the current repository, not other repositories of RocketMQ.
           required: true
 
-  - type: dropdown
+  - type: textarea
     attributes:
-      label: Environment
-      description: Describe the environment.
-      options:
-        - Linux
-        - Mac
-        - Windows
-        - Other
+      label: Runtime platform environment
+      description: Describe the runtime platform environment.
+      placeholder: >
+        OS: (e.g., "Ubuntu 20.04")
+        OS: (e.g., "Windows Server 2019")
     validations:
       required: true
 
-  - type: dropdown
+  - type: textarea
     attributes:
       label: RocketMQ version
       description: Describe the RocketMQ version.
-      options:
-        - develop
-        - 5.1.x
-        - 5.0.x
-        - 4.9.x
-        - Other
+      placeholder: >
+        branch: (e.g develop|4.9.x)
+        version: (e.g. 5.1.0|4.9.5)
+        Git commit id: (e.g. c88b5cfa72e204962929eea105687647146112c6)
     validations:
       required: true
 
