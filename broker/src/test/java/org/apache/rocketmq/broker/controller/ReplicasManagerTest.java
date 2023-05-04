@@ -38,6 +38,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.assertj.core.api.Assertions;
@@ -95,6 +96,8 @@ public class ReplicasManagerTest {
 
     private SyncStateSet syncStateSet;
 
+    private RunningFlags runningFlags = new RunningFlags();
+
     private static final String OLD_MASTER_ADDRESS = "192.168.1.1";
 
     private static final String NEW_MASTER_ADDRESS = "192.168.1.2";
@@ -150,6 +153,7 @@ public class ReplicasManagerTest {
         when(defaultMessageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(brokerController.getMessageStore().getHaService()).thenReturn(autoSwitchHAService);
+        when(brokerController.getMessageStore().getRunningFlags()).thenReturn(runningFlags);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(brokerController.getSlaveSynchronize()).thenReturn(slaveSynchronize);
