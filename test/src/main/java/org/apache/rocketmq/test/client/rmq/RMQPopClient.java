@@ -24,12 +24,13 @@ import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.test.clientinterface.MQConsumer;
 import org.apache.rocketmq.test.util.RandomUtil;
@@ -38,7 +39,7 @@ public class RMQPopClient implements MQConsumer {
 
     private static final long DEFAULT_TIMEOUT = 3000;
 
-    private MQClientAPIImpl mqClientAPI;
+    private MQClientAPIExt mqClientAPI;
 
     @Override
     public void create() {
@@ -52,8 +53,8 @@ public class RMQPopClient implements MQConsumer {
 
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyClientConfig.setUseTLS(useTLS);
-        this.mqClientAPI = new MQClientAPIImpl(
-            nettyClientConfig, new ClientRemotingProcessor(null), null, clientConfig);
+        this.mqClientAPI = new MQClientAPIExt(
+            clientConfig, nettyClientConfig, new ClientRemotingProcessor(null), null);
     }
 
     @Override
@@ -167,5 +168,16 @@ public class RMQPopClient implements MQConsumer {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    public CompletableFuture<Boolean> notification(String brokerAddr, String topic,
+        String consumerGroup, int queueId, long pollTime, long bornTime, long timeoutMillis) {
+        NotificationRequestHeader requestHeader = new NotificationRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setPollTime(pollTime);
+        requestHeader.setBornTime(bornTime);
+        return this.mqClientAPI.notification(brokerAddr, requestHeader, timeoutMillis);
     }
 }
