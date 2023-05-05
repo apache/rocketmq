@@ -1,0 +1,3 @@
+pull-requests:
+  - limits:
+      max-open: 10
