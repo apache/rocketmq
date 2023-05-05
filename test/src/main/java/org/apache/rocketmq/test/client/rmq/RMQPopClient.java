@@ -69,6 +69,12 @@ public class RMQPopClient implements MQConsumer {
     public CompletableFuture<PopResult> popMessageAsync(String brokerAddr, MessageQueue mq, long invisibleTime,
         int maxNums, String consumerGroup, long timeout, boolean poll, int initMode, boolean order,
         String expressionType, String expression) {
+        return popMessageAsync(brokerAddr, mq, invisibleTime, maxNums, consumerGroup, timeout, poll, initMode, order, expressionType, expression, null);
+    }
+
+    public CompletableFuture<PopResult> popMessageAsync(String brokerAddr, MessageQueue mq, long invisibleTime,
+        int maxNums, String consumerGroup, long timeout, boolean poll, int initMode, boolean order,
+        String expressionType, String expression, String attemptId) {
         PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(mq.getTopic());
@@ -79,6 +85,7 @@ public class RMQPopClient implements MQConsumer {
         requestHeader.setExpType(expressionType);
         requestHeader.setExp(expression);
         requestHeader.setOrder(order);
+        requestHeader.setAttemptId(attemptId);
         if (poll) {
             requestHeader.setPollTime(timeout);
             requestHeader.setBornTime(System.currentTimeMillis());
