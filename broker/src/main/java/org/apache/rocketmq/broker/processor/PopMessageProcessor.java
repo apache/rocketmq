@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -184,7 +185,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-        request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
+        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
+        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
+            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
+        }
         Channel channel = ctx.channel();
 
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
