@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.common.utils;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
