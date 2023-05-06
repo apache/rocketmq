@@ -14,21 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.mqclient;
 
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+package org.apache.rocketmq.common.utils;
 
-public class DoNothingClientRemotingProcessor extends ClientRemotingProcessor {
-
-    public DoNothingClientRemotingProcessor(MQClientInstance mqClientFactory) {
-        super(mqClientFactory);
-    }
-
-    @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        return null;
-    }
+public interface StartAndShutdown extends Start, Shutdown {
+    default void preShutdown() throws Exception {}
 }

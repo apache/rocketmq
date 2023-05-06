@@ -344,7 +344,7 @@ public class CommitLog implements Swappable {
                     log.error("confirmOffset {} is less than minPhyOffset {}, correct confirmOffset to minPhyOffset", this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMinPhyOffset());
                     this.defaultMessageStore.setConfirmOffset(this.defaultMessageStore.getMinPhyOffset());
                 } else if (this.defaultMessageStore.getConfirmOffset() > processOffset) {
-                    log.error("confirmOffset {} is larger than lastValidMsgPhyOffset {}, correct confirmOffset to processOffset", this.defaultMessageStore.getConfirmOffset(), processOffset);
+                    log.error("confirmOffset {} is larger than processOffset {}, correct confirmOffset to processOffset", this.defaultMessageStore.getConfirmOffset(), processOffset);
                     this.defaultMessageStore.setConfirmOffset(processOffset);
                 }
             } else {
@@ -555,7 +555,7 @@ public class CommitLog implements Swappable {
 
     public long getConfirmOffset() {
         if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
-            if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE && !this.defaultMessageStore.getRunningFlags().isIsolated()) {
+            if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE && !this.defaultMessageStore.getRunningFlags().isFenced()) {
                 if (((AutoSwitchHAService) this.defaultMessageStore.getHaService()).getLocalSyncStateSet().size() == 1) {
                     return this.defaultMessageStore.getMaxPhyOffset();
                 }
@@ -614,7 +614,8 @@ public class CommitLog implements Swappable {
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
-            long lastValidMsgPhyOffset = this.getConfirmOffset();
+            long lastValidMsgPhyOffset = processOffset;
+            long lastConfirmValidMsgPhyOffset = processOffset;
             // abnormal recover require dispatching
             boolean doDispatch = true;
             while (true) {
@@ -628,8 +629,9 @@ public class CommitLog implements Swappable {
                         mappedFileOffset += size;
 
                         if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable() || this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
-                            if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getCommitLog().getConfirmOffset()) {
+                            if (dispatchRequest.getCommitLogOffset() + size <= this.defaultMessageStore.getCommitLog().getConfirmOffset()) {
                                 this.getMessageStore().onCommitLogDispatch(dispatchRequest, doDispatch, mappedFile, true, false);
+                                lastConfirmValidMsgPhyOffset = dispatchRequest.getCommitLogOffset() + size;
                             }
                         } else {
                             this.getMessageStore().onCommitLogDispatch(dispatchRequest, doDispatch, mappedFile, true, false);
@@ -670,9 +672,9 @@ public class CommitLog implements Swappable {
                 if (this.defaultMessageStore.getConfirmOffset() < this.defaultMessageStore.getMinPhyOffset()) {
                     log.error("confirmOffset {} is less than minPhyOffset {}, correct confirmOffset to minPhyOffset", this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMinPhyOffset());
                     this.defaultMessageStore.setConfirmOffset(this.defaultMessageStore.getMinPhyOffset());
-                } else if (this.defaultMessageStore.getConfirmOffset() > processOffset) {
-                    log.error("confirmOffset {} is larger than lastValidMsgPhyOffset {}, correct confirmOffset to processOffset", this.defaultMessageStore.getConfirmOffset(), processOffset);
-                    this.defaultMessageStore.setConfirmOffset(processOffset);
+                } else if (this.defaultMessageStore.getConfirmOffset() > lastConfirmValidMsgPhyOffset) {
+                    log.error("confirmOffset {} is larger than lastConfirmValidMsgPhyOffset {}, correct confirmOffset to lastConfirmValidMsgPhyOffset", this.defaultMessageStore.getConfirmOffset(), lastConfirmValidMsgPhyOffset);
+                    this.defaultMessageStore.setConfirmOffset(lastConfirmValidMsgPhyOffset);
                 }
             } else {
                 this.setConfirmOffset(lastValidMsgPhyOffset);

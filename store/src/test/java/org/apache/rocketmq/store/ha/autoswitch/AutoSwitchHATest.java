@@ -232,11 +232,11 @@ public class AutoSwitchHATest {
 
         storeConfig2.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
-        messageStore2.getRunningFlags().makeIsolated(true);
+        messageStore2.getRunningFlags().makeFenced(true);
         assertTrue(messageStore2.load());
         messageStore2.start();
         messageStore2.getHaService().changeToMaster(2);
-        messageStore2.getRunningFlags().makeIsolated(false);
+        messageStore2.getRunningFlags().makeFenced(false);
         ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
 
         // Put message on master
@@ -493,10 +493,10 @@ public class AutoSwitchHATest {
         storeCheckpoint.setConfirmPhyOffset(setConfirmOffset);
         storeCheckpoint.shutdown();
         messageStore2 = buildMessageStore(storeConfig2, 2L);
-        messageStore2.getRunningFlags().makeIsolated(true);
+        messageStore2.getRunningFlags().makeFenced(true);
         assertTrue(messageStore2.load());
         messageStore2.start();
-        messageStore2.getRunningFlags().makeIsolated(false);
+        messageStore2.getRunningFlags().makeFenced(false);
         assertEquals(setConfirmOffset, messageStore2.getConfirmOffset());
         checkMessage(this.messageStore2, 5, 0);
     }
