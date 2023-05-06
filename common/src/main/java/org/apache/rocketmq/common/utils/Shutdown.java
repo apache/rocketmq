@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.common.utils;
 
 public interface Shutdown {
     void shutdown() throws Exception;

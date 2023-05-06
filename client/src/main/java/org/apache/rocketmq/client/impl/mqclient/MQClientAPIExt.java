@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.mqclient;
+package org.apache.rocketmq.client.impl.mqclient;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -84,7 +84,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     private final ClientConfig clientConfig;
 
-    private MqClientAdminImpl mqClientAdmin;
+    private final MqClientAdminImpl mqClientAdmin;
 
     public MQClientAPIExt(
         ClientConfig clientConfig,
