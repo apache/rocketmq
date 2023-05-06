@@ -555,7 +555,7 @@ public class CommitLog implements Swappable {
 
     public long getConfirmOffset() {
         if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
-            if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE && !this.defaultMessageStore.getRunningFlags().isIsolated()) {
+            if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE && !this.defaultMessageStore.getRunningFlags().isFenced()) {
                 if (((AutoSwitchHAService) this.defaultMessageStore.getHaService()).getLocalSyncStateSet().size() == 1) {
                     return this.defaultMessageStore.getMaxPhyOffset();
                 }

@@ -28,7 +28,7 @@ public class RunningFlags {
 
     private static final int DISK_FULL_BIT = 1 << 4;
 
-    private static final int ISOLATED_BIT = 1 << 5;
+    private static final int FENCED_BIT = 1 << 5;
 
     private volatile int flagBits = 0;
 
@@ -51,8 +51,8 @@ public class RunningFlags {
         return (this.flagBits & NOT_READABLE_BIT) == 0;
     }
 
-    public boolean isIsolated() {
-        return (this.flagBits & ISOLATED_BIT) != 0;
+    public boolean isFenced() {
+        return (this.flagBits & FENCED_BIT) != 0;
     }
 
     public boolean getAndMakeNotReadable() {
@@ -72,7 +72,7 @@ public class RunningFlags {
     }
 
     public boolean isWriteable() {
-        if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | DISK_FULL_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
+        if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | DISK_FULL_BIT | WRITE_INDEX_FILE_ERROR_BIT | FENCED_BIT)) == 0) {
             return true;
         }
 
@@ -100,11 +100,11 @@ public class RunningFlags {
         this.flagBits |= WRITE_LOGICS_QUEUE_ERROR_BIT;
     }
 
-    public void makeIsolated(boolean isolated) {
-        if (isolated) {
-            this.flagBits |= ISOLATED_BIT;
+    public void makeFenced(boolean fenced) {
+        if (fenced) {
+            this.flagBits |= FENCED_BIT;
         } else {
-            this.flagBits &= ~ISOLATED_BIT;
+            this.flagBits &= ~FENCED_BIT;
         }
     }
 
