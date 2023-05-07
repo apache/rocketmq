@@ -38,6 +38,9 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     @JSONField(serialize = false)
     private String filterClassSource;
 
+    @JSONField(serialize = false)
+    private transient long lastUpdateTime = System.currentTimeMillis();
+
     public SubscriptionData() {
 
     }
@@ -82,6 +85,14 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
 
     public long getSubVersion() {
         return subVersion;
+    }
+
+    public long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    public void setLastUpdateTime(long lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
     }
 
     public void setSubVersion(long subVersion) {
