@@ -765,7 +765,7 @@ public class BrokerController {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            this.replicasManager.setIsolatedAndBrokerPermission(false);
+            this.replicasManager.setFenced(true);
         }
 
         if (messageStore != null) {

@@ -17,7 +17,7 @@
 package org.apache.rocketmq.proxy.processor;
 
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.ServiceManager;
