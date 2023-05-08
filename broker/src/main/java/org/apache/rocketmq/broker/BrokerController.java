@@ -1288,7 +1288,7 @@ public class BrokerController {
         }
 
         if (this.notificationProcessor != null) {
-            this.notificationProcessor.shutdown();
+            this.notificationProcessor.getPopLongPollingService().shutdown();
         }
 
         if (this.consumerIdsChangeListener != null) {
@@ -1505,6 +1505,10 @@ public class BrokerController {
 
         if (this.ackMessageProcessor != null) {
             this.ackMessageProcessor.startPopReviveService();
+        }
+
+        if (this.notificationProcessor != null) {
+            this.notificationProcessor.getPopLongPollingService().start();
         }
 
         if (this.topicQueueMappingCleanService != null) {

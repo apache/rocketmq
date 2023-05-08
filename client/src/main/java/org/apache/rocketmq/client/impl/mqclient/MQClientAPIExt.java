@@ -601,21 +601,16 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
         try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (response.getCode() == ResponseCode.SUCCESS) {
-                        try {
-                            NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
-                            future.complete(responseHeader.isHasMsg());
-                        } catch (Throwable t) {
-                            future.completeExceptionally(t);
-                        }
-                    } else {
-                        future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+            this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenAccept(response -> {
+                if (response.getCode() == ResponseCode.SUCCESS) {
+                    try {
+                        NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
+                        future.complete(responseHeader.isHasMsg());
+                    } catch (Throwable t) {
+                        future.completeExceptionally(t);
                     }
                 } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
                 }
             });
         } catch (Throwable t) {
