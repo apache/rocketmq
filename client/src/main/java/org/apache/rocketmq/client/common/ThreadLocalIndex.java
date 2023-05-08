@@ -30,7 +30,7 @@ public class ThreadLocalIndex {
             index = random.nextInt();
         }
         this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
+        return index & POSITIVE_MASK;
     }
 
     @Override
