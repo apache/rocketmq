@@ -200,6 +200,7 @@ public class ConsumerManagerTest {
     public void removeExpireConsumerGroupInfo() {
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL);
         subscriptionData.setSubVersion(System.currentTimeMillis() - brokerConfig.getSubscriptionExpiredTimeout() * 2);
+        subscriptionData.setLastUpdateTime(System.currentTimeMillis() - brokerConfig.getSubscriptionExpiredTimeout() * 2);
         consumerManager.compensateSubscribeData(GROUP, TOPIC, subscriptionData);
         consumerManager.compensateSubscribeData(GROUP, TOPIC + "_1", new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
         consumerManager.removeExpireConsumerGroupInfo();
