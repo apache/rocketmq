@@ -82,7 +82,7 @@ public class UtilAll {
                 try {
                     // try a Linux-specific way
                     return Integer.parseInt(new File("/proc/self").getCanonicalFile().getName());
-                } catch (final IOException ignoredUseDefault) {
+                } catch (final Exception ignoredUseDefault) {
                     // Ignore exception.
                 }
             }
