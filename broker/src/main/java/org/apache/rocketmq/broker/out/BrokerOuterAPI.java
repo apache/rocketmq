@@ -1272,31 +1272,6 @@ public class BrokerOuterAPI {
         });
     }
 
-    public PullResult pullMessageFromSpecificBroker(String brokerName, String brokerAddr,
-        String consumerGroup, String topic, int queueId, long offset,
-        int maxNums, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
-        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-        requestHeader.setConsumerGroup(consumerGroup);
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
-        requestHeader.setQueueOffset(offset);
-        requestHeader.setMaxMsgNums(maxNums);
-        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
-        requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(0L);
-        requestHeader.setSubscription(SubscriptionData.SUB_ALL);
-        requestHeader.setSubVersion(System.currentTimeMillis());
-        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
-        requestHeader.setExpressionType(ExpressionType.TAG);
-        requestHeader.setBname(brokerName);
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        PullResultExt pullResultExt = this.processPullResponse(response, brokerAddr);
-        this.processPullResult(pullResultExt, brokerName, queueId);
-        return pullResultExt;
-    }
-
     public CompletableFuture<PullResult> pullMessageFromSpecificBrokerAsync(String brokerName, String brokerAddr,
         String consumerGroup, String topic, int queueId, long offset,
         int maxNums, long timeoutMillis) throws RemotingException, InterruptedException {
