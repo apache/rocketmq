@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +51,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * SwitchAble ha service, support switch role to master or slave.
@@ -67,10 +69,11 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     //  Indicate whether the syncStateSet is currently in the process of being synchronized to controller.
     private volatile boolean isSynchronizingSyncStateSet = false;
-    private volatile long confirmOffset = -1;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
+    private Long brokerControllerId = null;
 
     public AutoSwitchHAService() {
     }
@@ -124,7 +127,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
 
-        updateConfirmOffset(computeConfirmOffset());
+        this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
 
         if (truncateOffset >= 0) {
             this.epochCache.truncateSuffixByOffset(truncateOffset);
@@ -151,7 +154,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             defaultMessageStore.getTransientStorePool().setRealCommit(true);
         }
 
-        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
+        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, this.defaultMessageStore.getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
         this.defaultMessageStore.recoverTopicQueueTable();
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
@@ -260,6 +263,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.executorService.submit(() -> {
             syncStateSetChangedListeners.forEach(listener -> listener.accept(newSyncStateSet));
         });
+        LOGGER.info("Notify the syncStateSet has been changed into {}.", newSyncStateSet);
     }
 
     /**
@@ -305,10 +309,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         if (currentSyncStateSet.contains(slaveBrokerId)) {
             return;
         }
-        final long confirmOffset = getConfirmOffset();
+        final long confirmOffset = this.defaultMessageStore.getConfirmOffset();
         if (slaveMaxOffset >= confirmOffset) {
             final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
+                LOGGER.info("The slave {} has caught up, slaveMaxOffset: {}, confirmOffset: {}, epoch: {}, leader epoch startOffset: {}.",
+                        slaveBrokerId, slaveMaxOffset, confirmOffset, currentLeaderEpoch.getEpoch(), currentLeaderEpoch.getStartOffset());
                 currentSyncStateSet.add(slaveBrokerId);
                 markSynchronizingSyncStateSet(currentSyncStateSet);
                 // Notify the upper layer that syncStateSet changed.
@@ -342,27 +348,11 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.connectionCaughtUpTimeTable.put(slaveBrokerId, Math.max(prevTime, lastCaughtUpTimeMs));
     }
 
-    /**
-     * Get confirm offset (min slaveAckOffset of all syncStateSet members) for master
-     */
-    public long getConfirmOffset() {
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
-            if (getLocalSyncStateSet().size() == 1) {
-                return this.defaultMessageStore.getMaxPhyOffset();
-            }
-            // First time compute confirmOffset.
-            if (this.confirmOffset <= 0) {
-                this.confirmOffset = computeConfirmOffset();
-            }
-        }
-        return confirmOffset;
-    }
-
     public void updateConfirmOffsetWhenSlaveAck(final Long slaveBrokerId) {
         this.readLock.lock();
         try {
             if (this.syncStateSet.contains(slaveBrokerId)) {
-                this.confirmOffset = computeConfirmOffset();
+                this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
             }
         } finally {
             this.readLock.unlock();
@@ -421,20 +411,27 @@ public class AutoSwitchHAService extends DefaultHAService {
         return info;
     }
 
-    public void updateConfirmOffset(long confirmOffset) {
-        this.confirmOffset = confirmOffset;
-    }
-
-    private long computeConfirmOffset() {
+    public long computeConfirmOffset() {
         final Set<Long> currentSyncStateSet = getSyncStateSet();
-        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        long newConfirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        List<Long> idList = this.connectionList.stream().map(connection -> ((AutoSwitchHAConnection)connection).getSlaveId()).collect(Collectors.toList());
+
+        // To avoid the syncStateSet is not consistent with connectionList.
+        // Fix issue: https://github.com/apache/rocketmq/issues/6662
+        for (Long syncId : currentSyncStateSet) {
+            if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
+                LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
+                return this.defaultMessageStore.getConfirmOffset();
+            }
+        }
+
         for (HAConnection connection : this.connectionList) {
             final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
             if (currentSyncStateSet.contains(slaveId)) {
-                confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+                newConfirmOffset = Math.min(newConfirmOffset, connection.getSlaveAckOffset());
             }
         }
-        return confirmOffset;
+        return newConfirmOffset;
     }
 
     public void setSyncStateSet(final Set<Long> syncStateSet) {
@@ -443,7 +440,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             markSynchronizingSyncStateSetDone();
             this.syncStateSet.clear();
             this.syncStateSet.addAll(syncStateSet);
-            this.confirmOffset = computeConfirmOffset();
+            this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
         } finally {
             this.writeLock.unlock();
         }
@@ -500,7 +497,9 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         boolean doNext = true;
-        long reputFromOffset = this.defaultMessageStore.getMaxPhyOffset() - dispatchBehind;
+
+        // Here we could use reputFromOffset in DefaultMessageStore directly.
+        long reputFromOffset = this.defaultMessageStore.getReputFromOffset();
         do {
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
@@ -543,6 +542,14 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
+    }
+
+    public Long getBrokerControllerId() {
+        return brokerControllerId;
+    }
+
+    public void setBrokerControllerId(Long brokerControllerId) {
+        this.brokerControllerId = brokerControllerId;
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {

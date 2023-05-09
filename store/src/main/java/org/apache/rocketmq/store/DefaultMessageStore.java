@@ -335,10 +335,13 @@ public class DefaultMessageStore implements MessageStore {
                     new StoreCheckpoint(
                         StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+                setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
+
                 result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
+
 
             long maxOffset = this.getMaxPhyOffset();
             this.setBrokerInitMaxOffset(maxOffset);
@@ -709,7 +712,6 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
-
 
         long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
 
@@ -1589,9 +1591,6 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getConfirmOffset() {
-        if (this.brokerConfig.isEnableControllerMode()) {
-            return ((AutoSwitchHAService) this.haService).getConfirmOffset();
-        }
         return this.commitLog.getConfirmOffset();
     }
 
@@ -2053,11 +2052,21 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignOffset(MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
 
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            this.consumeQueueStore.assignQueueOffset(msg, messageNum);
+            this.consumeQueueStore.assignQueueOffset(msg);
+        }
+    }
+
+
+    @Override
+    public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            this.consumeQueueStore.increaseQueueOffset(msg, messageNum);
         }
     }
 
@@ -2737,9 +2746,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public boolean isCommitLogAvailable() {
-            if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
-                return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
-            }
             return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
         }
 
@@ -3255,5 +3261,7 @@ public class DefaultMessageStore implements MessageStore {
             (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
     }
 
-
+    public long getReputFromOffset() {
+        return this.reputMessageService.getReputFromOffset();
+    }
 }
