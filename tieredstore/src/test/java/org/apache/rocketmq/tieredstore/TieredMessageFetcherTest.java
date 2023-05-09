@@ -35,6 +35,7 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
@@ -65,6 +66,7 @@ public class TieredMessageFetcherTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredMessageFetcherTest", storeConfig.getBrokerName(), 0);
         TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
@@ -72,6 +74,7 @@ public class TieredMessageFetcherTest {
         TieredStoreTestUtil.destroyContainerManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     public Triple<TieredMessageFetcher, ByteBuffer, ByteBuffer> buildFetcher() {

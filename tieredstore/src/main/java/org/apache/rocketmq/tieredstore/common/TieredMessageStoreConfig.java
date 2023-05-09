@@ -24,10 +24,28 @@ public class TieredMessageStoreConfig {
     private String brokerName = localHostName();
     private String brokerClusterName = "DefaultCluster";
     private TieredStorageLevel tieredStorageLevel = TieredStorageLevel.NOT_IN_DISK;
+
+    /**
+     * All fetch requests are judged against this level first,
+     * and if the message cannot be read from the TiredMessageStore,
+     * these requests will still go to the next store for fallback processing.
+     */
     public enum TieredStorageLevel {
+        /**
+         * Disable tiered storage, all fetch request will be handled by default message store.
+         */
         DISABLE(0),
+        /**
+         * Only fetch request with offset not in disk will be handled by tiered storage.
+         */
         NOT_IN_DISK(1),
+        /**
+         * Only fetch request with offset not in memory(page cache) will be handled by tiered storage.
+         */
         NOT_IN_MEM(2),
+        /**
+         * All fetch request will be handled by tiered storage.
+         */
         FORCE(3);
 
         private final int value;

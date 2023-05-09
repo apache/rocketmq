@@ -14,9 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common;
 
-package org.apache.rocketmq.proxy.common;
+public enum BoundaryType {
+    /**
+     * Indicate that lower boundary is expected.
+     */
+    LOWER("lower"),
 
-public interface Shutdown {
-    void shutdown() throws Exception;
+    /**
+     * Indicate that upper boundary is expected.
+     */
+    UPPER("upper");
+
+    private String name;
+
+    BoundaryType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public static BoundaryType getType(String name) {
+        if (BoundaryType.UPPER.getName().equalsIgnoreCase(name)) {
+            return UPPER;
+        }
+        return LOWER;
+    }
 }

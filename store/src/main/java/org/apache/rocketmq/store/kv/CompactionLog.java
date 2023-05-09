@@ -28,6 +28,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
@@ -91,8 +92,8 @@ public class CompactionLog {
     private TopicPartitionLog current;
     private TopicPartitionLog compacting;
     private TopicPartitionLog replicating;
-    private CompactionPositionMgr positionMgr;
-    private AtomicReference<State> state;
+    private final CompactionPositionMgr positionMgr;
+    private final AtomicReference<State> state;
 
     public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
         throws IOException {
@@ -354,15 +355,35 @@ public class CompactionLog {
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
         final MessageExt msgExt, final TopicPartitionLog tpLog) {
+        return asyncPutMessage(msgBuffer, msgExt.getTopic(), msgExt.getQueueId(),
+            msgExt.getQueueOffset(), msgExt.getMsgId(), msgExt.getKeys(),
+            MessageExtBrokerInner.tagsString2tagsCode(msgExt.getTags()), msgExt.getStoreTimestamp(), tpLog);
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
+        final DispatchRequest dispatchRequest) {
+        return asyncPutMessage(msgBuffer, dispatchRequest.getTopic(), dispatchRequest.getQueueId(),
+            dispatchRequest.getConsumeQueueOffset(), dispatchRequest.getUniqKey(), dispatchRequest.getKeys(),
+            dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(), current);
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
+        final DispatchRequest dispatchRequest, final TopicPartitionLog tpLog) {
+        return asyncPutMessage(msgBuffer, dispatchRequest.getTopic(), dispatchRequest.getQueueId(),
+            dispatchRequest.getConsumeQueueOffset(), dispatchRequest.getUniqKey(), dispatchRequest.getKeys(),
+            dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(), tpLog);
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final ByteBuffer msgBuffer,
+        String topic, int queueId, long queueOffset, String msgId, String keys, long tagsCode, long storeTimestamp, final TopicPartitionLog tpLog) {
 
         // fix duplicate
-        if (tpLog.getCQ().getMaxOffsetInQueue() - 1 >= msgExt.getQueueOffset()) {
+        if (tpLog.getCQ().getMaxOffsetInQueue() - 1 >= queueOffset) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
-        if (StringUtils.isBlank(msgExt.getKeys())) {
-            log.warn("message {}-{}:{} have no key, will not put in compaction log",
-                msgExt.getTopic(), msgExt.getQueueId(), msgExt.getMsgId());
+        if (StringUtils.isBlank(keys)) {
+            log.warn("message {}-{}:{} have no key, will not put in compaction log", topic, queueId, msgId);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
@@ -381,7 +402,7 @@ public class CompactionLog {
 
             MappedFile mappedFile = tpLog.getLog().getLastMappedFile();
 
-            CompactionAppendMsgCallback callback = new CompactionAppendMessageCallback(msgExt, tpLog.getCQ());
+            CompactionAppendMsgCallback callback = new CompactionAppendMessageCallback(topic, queueId, tagsCode, storeTimestamp, tpLog.getCQ());
             AppendMessageResult result = mappedFile.appendMessage(msgBuffer, callback);
 
             switch (result.getStatus()) {
@@ -391,7 +412,7 @@ public class CompactionLog {
                     try {
                         tpLog.roll();
                     } catch (IOException e) {
-                        log.error("create mapped file2 error, topic: {}, clientAddr: {}", msgExt.getTopic(), msgExt.getBornHostString());
+                        log.error("create mapped file2 error, topic: {}, msgId: {}", topic, msgId);
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                     }
                     mappedFile = tpLog.getLog().getLastMappedFile();
@@ -524,7 +545,7 @@ public class CompactionLog {
                                     nextPhyFileStartOffset = rollNextFile(offsetPy);
                                     continue;
                                 }
-
+                                this.defaultMessageStore.getStoreStatsService().getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
                                 getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                                 status = GetMessageStatus.FOUND;
                                 nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -542,6 +563,14 @@ public class CompactionLog {
                 status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
             }
+
+            if (GetMessageStatus.FOUND == status) {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalFound().add(getResult.getMessageCount());
+            } else {
+                this.defaultMessageStore.getStoreStatsService().getGetMessageTimesTotalMiss().add(getResult.getMessageCount());
+            }
+            long elapsedTime = this.defaultMessageStore.getSystemClock().now() - beginTime;
+            this.defaultMessageStore.getStoreStatsService().setGetMessageEntireTimeMax(elapsedTime);
 
             getResult.setStatus(status);
             getResult.setNextBeginOffset(nextBeginOffset);
@@ -695,6 +724,7 @@ public class CompactionLog {
 
         src.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move file {} to parent directory exception: ", mappedFile.getFileName());
@@ -734,6 +764,7 @@ public class CompactionLog {
         fileListToDelete.forEach(MappedFile::renameToDelete);
         compactMq.getMappedFiles().forEach(mappedFile -> {
             try {
+                mappedFile.flush(0);
                 mappedFile.moveToParent();
             } catch (IOException e) {
                 log.error("move consume queue file {} to parent directory exception: ", mappedFile.getFileName(), e);
@@ -767,6 +798,15 @@ public class CompactionLog {
 //        return compactionScq;
 //    }
 
+    public void flush(int flushLeastPages) {
+        this.flushLog(flushLeastPages);
+        this.flushCQ(flushLeastPages);
+    }
+
+    public void flushLog(int flushLeastPages) {
+        getLog().flush(flushLeastPages);
+    }
+
     public void flushCQ(int flushLeastPages) {
         getCQ().flush(flushLeastPages);
     }
@@ -783,21 +823,31 @@ public class CompactionLog {
     }
 
     static class CompactionAppendMessageCallback implements CompactionAppendMsgCallback {
-        private final MessageExt msgExt;
-        private final SparseConsumeQueue bcq;
+        private final String topic;
+        private final int queueId;
+        private final long tagsCode;
+        private final long storeTimestamp;
 
+        private final SparseConsumeQueue bcq;
         public CompactionAppendMessageCallback(MessageExt msgExt, SparseConsumeQueue bcq) {
-            this.msgExt = msgExt;
+            this.topic = msgExt.getTopic();
+            this.queueId =  msgExt.getQueueId();
+            this.tagsCode = MessageExtBrokerInner.tagsString2tagsCode(msgExt.getTags());
+            this.storeTimestamp = msgExt.getStoreTimestamp();
+
+            this.bcq = bcq;
+        }
+        public CompactionAppendMessageCallback(String topic, int queueId, long tagsCode, long storeTimestamp, SparseConsumeQueue bcq) {
+            this.topic = topic;
+            this.queueId =  queueId;
+            this.tagsCode = tagsCode;
+            this.storeTimestamp = storeTimestamp;
+
             this.bcq = bcq;
         }
 
         @Override
         public AppendMessageResult doAppend(ByteBuffer bbDest, long fileFromOffset, int maxBlank, ByteBuffer bbSrc) {
-
-            String topic = msgExt.getTopic();
-            int queueId =  msgExt.getQueueId();
-            String tags = msgExt.getTags();
-            long storeTimestamp = msgExt.getStoreTimestamp();
 
             final int msgLen = bbSrc.getInt(0);
             MappedFile bcqMappedFile = bcq.getMappedFileQueue().getLastMappedFile();
@@ -823,7 +873,7 @@ public class CompactionLog {
             bbDest.putLong(destPos + logicOffsetPos + 8, physicalOffset);       //replace physical offset
 
             boolean result = bcq.putBatchMessagePositionInfo(physicalOffset, msgLen,
-                MessageExtBrokerInner.tagsString2tagsCode(tags), storeTimestamp, logicOffset, (short)1);
+                tagsCode, storeTimestamp, logicOffset, (short)1);
             if (!result) {
                 log.error("put message {}-{} position info failed", topic, queueId);
             }
@@ -832,15 +882,15 @@ public class CompactionLog {
     }
 
     static class OffsetMap {
-        private ByteBuffer dataBytes;
-        private int capacity;
-        private int entrySize;
+        private final ByteBuffer dataBytes;
+        private final int capacity;
+        private final int entrySize;
         private int entryNum;
-        private MessageDigest digest;
-        private int hashSize;
+        private final MessageDigest digest;
+        private final int hashSize;
         private long lastOffset;
-        private byte[] hash1;
-        private byte[] hash2;
+        private final byte[] hash1;
+        private final byte[] hash2;
 
         public OffsetMap(int memorySize) throws NoSuchAlgorithmException {
             this(memorySize, MessageDigest.getInstance("MD5"));
@@ -1077,7 +1127,7 @@ public class CompactionLog {
         }
     }
 
-    static enum State {
+    enum State {
         NORMAL,
         INITIALIZING,
         COMPACTING,

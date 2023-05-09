@@ -300,6 +300,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
                         this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
+                    break;
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");

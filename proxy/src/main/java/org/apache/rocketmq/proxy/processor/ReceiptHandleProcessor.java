@@ -40,14 +40,14 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -154,7 +154,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             log.error("unexpect error when schedule renew task", e);
         }
 
-        log.info("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
+        log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
     }
 
     protected void renewMessage(ReceiptHandleGroup group, String msgID, String handleStr) {

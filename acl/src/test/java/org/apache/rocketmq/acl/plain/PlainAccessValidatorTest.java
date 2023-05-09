@@ -483,7 +483,7 @@ public class PlainAccessValidatorTest {
             + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -529,9 +529,9 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(((List) verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(), 2);
 
         String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(aclFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
-        Assert.assertEquals(1, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+        PlainAccessData readableMap = AclUtils.getYamlDataObject(aclFileName, PlainAccessData.class);
+        List<PlainAccessData.DataVersion> dataVersions = readableMap.getDataVersion();
+        Assert.assertEquals(1L, dataVersions.get(0).getCounter());
 
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
@@ -568,7 +568,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -635,9 +635,9 @@ public class PlainAccessValidatorTest {
 
         String aclFileName = System.getProperty("rocketmq.home.dir")
             + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(aclFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
-        Assert.assertEquals(2, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+        PlainAccessData readableMap = AclUtils.getYamlDataObject(aclFileName, PlainAccessData.class);
+        List<PlainAccessData.DataVersion> dataVersions = readableMap.getDataVersion();
+        Assert.assertEquals(2L, dataVersions.get(0).getCounter());
 
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
@@ -648,7 +648,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -699,7 +699,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         List<String> globalWhiteAddrsList = new ArrayList<>();
@@ -710,9 +710,9 @@ public class PlainAccessValidatorTest {
 
         String aclFileName = System.getProperty("rocketmq.home.dir")
             + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(aclFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
-        Assert.assertEquals(1, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+        PlainAccessData readableMap = AclUtils.getYamlDataObject(aclFileName, PlainAccessData.class);
+        List<PlainAccessData.DataVersion> dataVersions = readableMap.getDataVersion();
+        Assert.assertEquals(1L, dataVersions.get(0).getCounter());
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
@@ -820,7 +820,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -840,7 +840,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
@@ -868,9 +868,9 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "127.0.0.1");
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), false);
 
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
-        Assert.assertEquals(1, dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+        PlainAccessData readableMap = AclUtils.getYamlDataObject(targetFileName, PlainAccessData.class);
+        List<PlainAccessData.DataVersion> dataVersions = readableMap.getDataVersion();
+        Assert.assertEquals(1L, dataVersions.get(0).getCounter());
 
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
@@ -935,7 +935,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -967,7 +967,7 @@ public class PlainAccessValidatorTest {
                 + File.separator + "conf/plain_acl_bak.yml".replace("/", File.separator);
         String targetFileName = System.getProperty("rocketmq.home.dir")
                 + File.separator + "conf/plain_acl.yml".replace("/", File.separator);
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(backupFileName, PlainAccessData.class);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -1068,13 +1068,13 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml".replace("/", File.separator));
 
         String targetFileName = Joiner.on(File.separator).join(new String[]{home.getAbsolutePath(), "conf", "plain_acl.yml"});
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        PlainAccessData backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, PlainAccessData.class);
 
         String targetFileName1 = Joiner.on(File.separator).join(new String[]{home.getAbsolutePath(), "conf", "acl", "plain_acl.yml"});
-        Map<String, Object> backUpAclConfigMap1 = AclUtils.getYamlDataObject(targetFileName1, Map.class);
+        PlainAccessData backUpAclConfigMap1 = AclUtils.getYamlDataObject(targetFileName1, PlainAccessData.class);
 
         String targetFileName2 = Joiner.on(File.separator).join(new String[]{home.getAbsolutePath(), "conf", "acl", "empty.yml"});
-        Map<String, Object> backUpAclConfigMap2 = AclUtils.getYamlDataObject(targetFileName2, Map.class);
+        PlainAccessData backUpAclConfigMap2 = AclUtils.getYamlDataObject(targetFileName2, PlainAccessData.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         List<String> globalWhiteAddrsList1 = new ArrayList<>();
@@ -1087,18 +1087,18 @@ public class PlainAccessValidatorTest {
         //Test parameter p is null
         plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList1, null);
         String defaultAclFile = targetFileName;
-        Map<String, Object> defaultAclFileMap = AclUtils.getYamlDataObject(defaultAclFile, Map.class);
-        List<String> defaultAclFileGlobalWhiteAddrList = (List<String>)defaultAclFileMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        PlainAccessData defaultAclFileMap = AclUtils.getYamlDataObject(defaultAclFile, PlainAccessData.class);
+        List<String> defaultAclFileGlobalWhiteAddrList = defaultAclFileMap.getGlobalWhiteRemoteAddresses();
         Assert.assertTrue(defaultAclFileGlobalWhiteAddrList.contains("10.10.154.1"));
         //Test parameter p is not null
         plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList2, targetFileName1);
-        Map<String, Object> aclFileMap1 =  AclUtils.getYamlDataObject(targetFileName1, Map.class);
-        List<String> aclFileGlobalWhiteAddrList1 = (List<String>)aclFileMap1.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        PlainAccessData aclFileMap1 =  AclUtils.getYamlDataObject(targetFileName1, PlainAccessData.class);
+        List<String> aclFileGlobalWhiteAddrList1 = aclFileMap1.getGlobalWhiteRemoteAddresses();
         Assert.assertTrue(aclFileGlobalWhiteAddrList1.contains("10.10.154.2"));
         //Test parameter p is not null, but the file does not have globalWhiteRemoteAddresses
         plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList3, targetFileName2);
-        Map<String, Object> aclFileMap2 =  AclUtils.getYamlDataObject(targetFileName2, Map.class);
-        List<String> aclFileGlobalWhiteAddrList2 = (List<String>)aclFileMap2.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        PlainAccessData aclFileMap2 =  AclUtils.getYamlDataObject(targetFileName2, PlainAccessData.class);
+        List<String> aclFileGlobalWhiteAddrList2 = aclFileMap2.getGlobalWhiteRemoteAddresses();
         Assert.assertTrue(aclFileGlobalWhiteAddrList2.contains("10.10.154.3"));
 
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);

@@ -77,10 +77,10 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                                     succ = false;
                                     break;
                                 }
-                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == -1) {
+                                if (dLegerServer.getDLedgerStore().getLedgerEndIndex() == -1) {
                                     break;
                                 }
-                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
+                                if (dLegerServer.getDLedgerStore().getLedgerEndIndex() == dLegerServer.getDLedgerStore().getCommittedIndex()
                                     && messageStore.dispatchBehindBytes() == 0) {
                                     break;
                                 }

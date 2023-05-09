@@ -74,6 +74,7 @@ import org.apache.rocketmq.common.namesrv.DefaultTopAddressing;
 import org.apache.rocketmq.common.namesrv.NameServerUpdateCallback;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -1766,10 +1767,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
+    public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
 
-        return getTopicRouteInfoFromNameServer(topic, timeoutMillis, false);
+        return getTopicRouteInfoFromNameServer(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, timeoutMillis, false);
     }
 
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
@@ -3070,8 +3071,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
     }
 
-    public Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName, String brokerName,
-                                                                          Long brokerId) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
+    public Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName,
+        String brokerName,
+        Long brokerId) throws MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingCommandException {
 
         //get controller leader address
         final GetMetaDataResponseHeader controllerMetaData = this.getControllerMetaData(controllerAddr);

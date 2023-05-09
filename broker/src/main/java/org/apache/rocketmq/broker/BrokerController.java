@@ -737,8 +737,7 @@ public class BrokerController {
 
         if (result) {
             try {
-                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
-                defaultMessageStore.setTopicConfigTable(topicConfigManager.getTopicConfigTable());
+                DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
 
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
@@ -764,6 +763,11 @@ public class BrokerController {
                 LOG.error("BrokerController#initialize: unexpected error occurs", e);
             }
         }
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.replicasManager.setFenced(true);
+        }
+
         if (messageStore != null) {
             registerMessageStoreHook();
             result = result && this.messageStore.load();
@@ -1284,7 +1288,7 @@ public class BrokerController {
         }
 
         if (this.notificationProcessor != null) {
-            this.notificationProcessor.shutdown();
+            this.notificationProcessor.getPopLongPollingService().shutdown();
         }
 
         if (this.consumerIdsChangeListener != null) {
@@ -1503,6 +1507,10 @@ public class BrokerController {
             this.ackMessageProcessor.startPopReviveService();
         }
 
+        if (this.notificationProcessor != null) {
+            this.notificationProcessor.getPopLongPollingService().start();
+        }
+
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
         }
@@ -1553,7 +1561,7 @@ public class BrokerController {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isEnableControllerMode()) {
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
         }
 
@@ -2301,5 +2309,4 @@ public class BrokerController {
     public BlockingQueue<Runnable> getAdminBrokerThreadPoolQueue() {
         return adminBrokerThreadPoolQueue;
     }
-
 }

@@ -36,8 +36,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -100,7 +100,7 @@ public class ProxyStartup {
                 }
             }));
         } catch (Exception e) {
-            System.err.println("find an unexpect err." + e);
+            e.printStackTrace();
             log.error("find an unexpect err.", e);
             System.exit(1);
         }
@@ -116,6 +116,8 @@ public class ProxyStartup {
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
+        log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
+
     }
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {
