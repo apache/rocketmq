@@ -19,18 +19,21 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.common.message.Message;
 
 public class RequestResponseFuture {
     private final String correlationId;
     private final RequestCallback requestCallback;
     private final long beginTimestamp = System.currentTimeMillis();
-    private final Message requestMsg = null;
     private long timeoutMillis;
     private CountDownLatch countDownLatch = new CountDownLatch(1);
     private volatile Message responseMsg = null;
-    private volatile boolean sendRequestOk = true;
+    private volatile boolean sendRequestOk = false;
     private volatile Throwable cause = null;
+
+    private AtomicInteger callbackCounter = new AtomicInteger(0);
 
     public RequestResponseFuture(String correlationId, long timeoutMillis, RequestCallback requestCallback) {
         this.correlationId = correlationId;
@@ -38,13 +41,43 @@ public class RequestResponseFuture {
         this.requestCallback = requestCallback;
     }
 
-    public void executeRequestCallback() {
-        if (requestCallback != null) {
-            if (sendRequestOk && cause == null) {
-                requestCallback.onSuccess(responseMsg);
-            } else {
-                requestCallback.onException(cause);
+    public void onSuccess(Message msg) {
+        if (!this.isSupportMultiCallback()) {
+            if (!this.callbackCounter.compareAndSet(0, 1)) {
+                return;
             }
+            this.responseMsg = msg;
+            this.countDownLatch.countDown();
+            if (this.requestCallback != null) {
+                try {
+                    this.requestCallback.onSuccess(msg);
+                } finally {
+                    RequestFutureHolder.getInstance().getRequestFutureTable().remove(this.correlationId);
+                }
+            }
+        } else {
+            int count = this.callbackCounter.incrementAndGet();
+            if (count == 0) { // exception
+                return;
+            }
+            if (count == 1) {
+                this.responseMsg = msg;
+                this.countDownLatch.countDown();
+            }
+            this.requestCallback.onSuccess(msg);
+        }
+    }
+
+    public void onException(Throwable e) {
+        if (!this.callbackCounter.compareAndSet(0, -1)) {
+            return;
+        }
+        this.cause = e;
+        this.countDownLatch.countDown();
+        try {
+            this.requestCallback.onException(e);
+        } finally {
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(this.correlationId);
         }
     }
 
@@ -58,45 +91,8 @@ public class RequestResponseFuture {
         return this.responseMsg;
     }
 
-    public void putResponseMessage(final Message responseMsg) {
-        this.responseMsg = responseMsg;
-        this.countDownLatch.countDown();
-    }
-
     public String getCorrelationId() {
         return correlationId;
-    }
-
-    public long getTimeoutMillis() {
-        return timeoutMillis;
-    }
-
-    public void setTimeoutMillis(long timeoutMillis) {
-        this.timeoutMillis = timeoutMillis;
-    }
-
-    public RequestCallback getRequestCallback() {
-        return requestCallback;
-    }
-
-    public long getBeginTimestamp() {
-        return beginTimestamp;
-    }
-
-    public CountDownLatch getCountDownLatch() {
-        return countDownLatch;
-    }
-
-    public void setCountDownLatch(CountDownLatch countDownLatch) {
-        this.countDownLatch = countDownLatch;
-    }
-
-    public Message getResponseMsg() {
-        return responseMsg;
-    }
-
-    public void setResponseMsg(Message responseMsg) {
-        this.responseMsg = responseMsg;
     }
 
     public boolean isSendRequestOk() {
@@ -107,15 +103,11 @@ public class RequestResponseFuture {
         this.sendRequestOk = sendRequestOk;
     }
 
-    public Message getRequestMsg() {
-        return requestMsg;
-    }
-
     public Throwable getCause() {
         return cause;
     }
 
-    public void setCause(Throwable cause) {
-        this.cause = cause;
+    protected boolean isSupportMultiCallback() {
+        return requestCallback != null && requestCallback.allowMultipleCallback();
     }
 }

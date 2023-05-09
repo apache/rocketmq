@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -609,8 +610,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RequestTimeoutException if request timeout.
      */
     @Override
-    public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
-        RemotingException, MQBrokerException, InterruptedException {
+    public Message request(final Message msg, final long timeout)
+            throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
         msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, timeout);
     }

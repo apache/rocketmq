@@ -19,49 +19,52 @@ package org.apache.rocketmq.remoting.protocol.header;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
 
 public class ReplyMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
-    private String producerGroup;
+    private String consumerGroup;
+    @CFNotNull
+    private String consumerResult;
+    @CFNotNull
+    private long consumerTimeStamp;
     @CFNotNull
     private String topic;
     @CFNotNull
-    private String defaultTopic;
+    private int flag;
     @CFNotNull
-    private Integer defaultTopicQueueNums;
-    @CFNotNull
-    private Integer queueId;
-    @CFNotNull
-    private Integer sysFlag;
-    @CFNotNull
-    private Long bornTimestamp;
-    @CFNotNull
-    private Integer flag;
-    @CFNullable
     private String properties;
-    @CFNullable
-    private Integer reconsumeTimes;
-    @CFNullable
-    private boolean unitMode = false;
+    @CFNotNull
+    private String transactionId;
 
-    @CFNotNull
-    private String bornHost;
-    @CFNotNull
-    private String storeHost;
-    @CFNotNull
-    private long storeTimestamp;
-
+    @Override
     public void checkFields() throws RemotingCommandException {
+
     }
 
-    public String getProducerGroup() {
-        return producerGroup;
+    public String getConsumerGroup() {
+        return consumerGroup;
     }
 
-    public void setProducerGroup(String producerGroup) {
-        this.producerGroup = producerGroup;
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
+
+    public String getConsumerResult() {
+        return consumerResult;
+    }
+
+    public void setConsumerResult(String consumerResult) {
+        this.consumerResult = consumerResult;
+    }
+
+    public long getConsumerTimeStamp() {
+        return consumerTimeStamp;
+    }
+
+    public void setConsumerTimeStamp(long consumerTimeStamp) {
+        this.consumerTimeStamp = consumerTimeStamp;
     }
 
     public String getTopic() {
@@ -72,51 +75,11 @@ public class ReplyMessageRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public String getDefaultTopic() {
-        return defaultTopic;
-    }
-
-    public void setDefaultTopic(String defaultTopic) {
-        this.defaultTopic = defaultTopic;
-    }
-
-    public Integer getDefaultTopicQueueNums() {
-        return defaultTopicQueueNums;
-    }
-
-    public void setDefaultTopicQueueNums(Integer defaultTopicQueueNums) {
-        this.defaultTopicQueueNums = defaultTopicQueueNums;
-    }
-
-    public Integer getQueueId() {
-        return queueId;
-    }
-
-    public void setQueueId(Integer queueId) {
-        this.queueId = queueId;
-    }
-
-    public Integer getSysFlag() {
-        return sysFlag;
-    }
-
-    public void setSysFlag(Integer sysFlag) {
-        this.sysFlag = sysFlag;
-    }
-
-    public Long getBornTimestamp() {
-        return bornTimestamp;
-    }
-
-    public void setBornTimestamp(Long bornTimestamp) {
-        this.bornTimestamp = bornTimestamp;
-    }
-
-    public Integer getFlag() {
+    public int getFlag() {
         return flag;
     }
 
-    public void setFlag(Integer flag) {
+    public void setFlag(int flag) {
         this.flag = flag;
     }
 
@@ -128,43 +91,11 @@ public class ReplyMessageRequestHeader implements CommandCustomHeader {
         this.properties = properties;
     }
 
-    public Integer getReconsumeTimes() {
-        return reconsumeTimes;
+    public String getTransactionId() {
+        return transactionId;
     }
 
-    public void setReconsumeTimes(Integer reconsumeTimes) {
-        this.reconsumeTimes = reconsumeTimes;
-    }
-
-    public boolean isUnitMode() {
-        return unitMode;
-    }
-
-    public void setUnitMode(boolean unitMode) {
-        this.unitMode = unitMode;
-    }
-
-    public String getBornHost() {
-        return bornHost;
-    }
-
-    public void setBornHost(String bornHost) {
-        this.bornHost = bornHost;
-    }
-
-    public String getStoreHost() {
-        return storeHost;
-    }
-
-    public void setStoreHost(String storeHost) {
-        this.storeHost = storeHost;
-    }
-
-    public long getStoreTimestamp() {
-        return storeTimestamp;
-    }
-
-    public void setStoreTimestamp(long storeTimestamp) {
-        this.storeTimestamp = storeTimestamp;
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 }

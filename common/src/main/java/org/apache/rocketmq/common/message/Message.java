@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -226,6 +228,10 @@ public class Message implements Serializable {
     }
 
     public long getDeliverTimeMs() {
-        return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+        String timerDeliverMs = this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS);
+        if (StringUtils.isNotBlank(timerDeliverMs)) {
+            return Long.parseLong(timerDeliverMs);
+        }
+        return 0;
     }
 }

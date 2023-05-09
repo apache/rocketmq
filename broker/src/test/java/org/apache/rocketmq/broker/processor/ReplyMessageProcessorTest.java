@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
@@ -28,8 +27,7 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -39,13 +37,9 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ReplyMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
-import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +50,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -84,45 +77,41 @@ public class ReplyMessageProcessorTest {
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
-        when(messageStore.now()).thenReturn(System.currentTimeMillis());
-        Channel mockChannel = mock(Channel.class);
-        when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
-        when(handlerContext.channel()).thenReturn(mockChannel);
         replyMessageProcessor = new ReplyMessageProcessor(brokerController);
     }
 
     @Test
     public void testProcessRequest_Success() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         brokerController.getProducerManager().registerProducer(group, clientInfo);
-        final RemotingCommand request = createSendMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE);
+        final RemotingCommand request = createReplyMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE, clientInfo.getClientId());
         when(brokerController.getBroker2Client().callClient(any(), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
-        RemotingCommand responseToReturn = replyMessageProcessor.processRequest(handlerContext, request);
-        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+
+        boolean res = replyMessageProcessor.pushReplyMessageToProducer(request, (ReplyMessageRequestHeader) request.decodeCommandCustomHeader(ReplyMessageRequestHeader.class));
+        assertThat(res).isEqualTo(Boolean.TRUE);
     }
 
-    private RemotingCommand createSendMessageRequestHeaderCommand(int requestCode) {
-        SendMessageRequestHeader requestHeader = createSendMessageRequestHeader();
+    private RemotingCommand createReplyMessageRequestHeaderCommand(int requestCode, String clientId) {
+        ReplyMessageRequestHeader requestHeader = createSendMessageRequestHeader(clientId);
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
         request.setBody(new byte[] {'a'});
         request.makeCustomHeaderToNet();
         return request;
     }
 
-    private SendMessageRequestHeader createSendMessageRequestHeader() {
-        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-        requestHeader.setProducerGroup(group);
-        requestHeader.setTopic(topic);
-        requestHeader.setDefaultTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC);
-        requestHeader.setDefaultTopicQueueNums(3);
-        requestHeader.setQueueId(1);
-        requestHeader.setSysFlag(0);
-        requestHeader.setBornTimestamp(System.currentTimeMillis());
-        requestHeader.setFlag(124);
-        requestHeader.setReconsumeTimes(0);
+    private ReplyMessageRequestHeader createSendMessageRequestHeader(String requestClientId) {
+        ReplyMessageRequestHeader requestHeader = new ReplyMessageRequestHeader();
+        requestHeader.setConsumerGroup("consumerGroup");
+        requestHeader.setConsumerResult("CONSUME_SUCCESS");
+        requestHeader.setConsumerTimeStamp(System.currentTimeMillis());
+        requestHeader.setTopic("TestTopic");
+        requestHeader.setFlag(0);
+        requestHeader.setTransactionId(null);
+
         Map<String, String> map = new HashMap<>();
-        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
+        map.put(MessageConst.PROPERTY_CORRELATION_ID, CorrelationIdUtil.createCorrelationId());
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, requestClientId);
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TTL, "30000");
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_SEND_TIME, String.valueOf(System.currentTimeMillis()));
         requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
         return requestHeader;
     }

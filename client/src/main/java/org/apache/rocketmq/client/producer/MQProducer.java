@@ -18,6 +18,8 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -113,8 +115,8 @@ public interface MQProducer extends MQAdmin {
         RemotingException, MQBrokerException, InterruptedException;
     
     //for rpc
-    Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
-        RemotingException, MQBrokerException, InterruptedException;
+    Message request(final Message msg, final long timeout) throws MQClientException, TimeoutException,
+            RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException;
 
     void request(final Message msg, final RequestCallback requestCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException, MQBrokerException;

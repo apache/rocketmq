@@ -34,7 +34,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -91,7 +90,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -1401,32 +1399,29 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
     }
 
-    public Message request(final Message msg,
-        long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public Message request(final Message msg, long timeout) throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
         long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
+
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
-
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, null);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
-
-            long cost = System.currentTimeMillis() - beginTimestamp;
-            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
+            SendCallback sendCallback = new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
+                    // only message send success, but not receive reply message
                     requestResponseFuture.setSendRequestOk(true);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
+                    requestResponseFuture.onException(e);
                 }
-            }, timeout - cost);
-
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
+            };
+            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - cost);
+            return waitResponse(msg, timeout - cost, requestResponseFuture);
         } finally {
             RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
@@ -1435,121 +1430,122 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void request(Message msg, final RequestCallback requestCallback, long timeout)
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
 
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, requestCallback);
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
-        String msgType = msg.getProperty(MessageConst.PROPERTY_MESSAGE_TYPE);
-        if (StringUtils.isBlank(msgType)) {
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
-        } else if (!msgType.equals(MixAll.REPLY_MESSAGE_FLAG)) {
-            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "The message type must be is reply, but it is " + msgType);
-        }
-
-        long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout - cost);
-    }
-
-    public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final long timeout) throws MQClientException, RemotingException, MQBrokerException,
-        InterruptedException, RequestTimeoutException {
-        long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
-        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
-
-        try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
-
-            long cost = System.currentTimeMillis() - beginTimestamp;
-            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
-                @Override
-                public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendRequestOk(true);
-                }
-
-                @Override
-                public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
-                }
-            }, timeout - cost);
-
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
-        } finally {
-            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
-        }
-    }
-
-    public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final RequestCallback requestCallback, final long timeout)
-        throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
-        long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
-        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
-
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
-
-        long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
+        SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                // only message send success, but not receive reply message
                 requestResponseFuture.setSendRequestOk(true);
             }
 
             @Override
             public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                requestResponseFuture.onException(e);
             }
-        }, timeout - cost);
-
+        };
+        this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - cost);
     }
 
-    public Message request(final Message msg, final MessageQueue mq, final long timeout)
-        throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+    public Message request(final Message msg, final MessageQueueSelector selector, final Object arg, final long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
         long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
+
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, null);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
-
-            long cost = System.currentTimeMillis() - beginTimestamp;
-            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
+            SendCallback sendCallback = new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
+                    // only message send success, but not receive reply message
                     requestResponseFuture.setSendRequestOk(true);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendRequestOk(false);
-                    requestResponseFuture.putResponseMessage(null);
-                    requestResponseFuture.setCause(e);
+                    requestResponseFuture.onException(e);
                 }
-            }, null, timeout - cost);
-
-            return waitResponse(msg, timeout, requestResponseFuture, cost);
+            };
+            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout - cost);
+            return waitResponse(msg, timeout - cost, requestResponseFuture);
         } finally {
             RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
     }
 
-    private Message waitResponse(Message msg, long timeout, RequestResponseFuture requestResponseFuture,
-        long cost) throws InterruptedException, RequestTimeoutException, MQClientException {
-        Message responseMessage = requestResponseFuture.waitResponseMessage(timeout - cost);
+    public void request(final Message msg, final MessageQueueSelector selector, final Object arg, final RequestCallback requestCallback,
+                        final long timeout) throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
+        long beginTimestamp = System.currentTimeMillis();
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
+
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, requestCallback);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+
+        SendCallback sendCallback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                // only message send success, but not receive reply message
+                requestResponseFuture.setSendRequestOk(true);
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                requestResponseFuture.onException(e);
+            }
+        };
+        this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout - cost);
+    }
+
+    public Message request(final Message msg, final MessageQueue mq, final long timeout)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        long beginTimestamp = System.currentTimeMillis();
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
+
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, null);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+
+        try {
+            SendCallback sendCallback = new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    // only message send success, but not receive reply message
+                    requestResponseFuture.setSendRequestOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.onException(e);
+                }
+            };
+            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null, timeout - cost);
+            return waitResponse(msg, timeout - cost, requestResponseFuture);
+        } finally {
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
+        }
+    }
+
+    private Message waitResponse(Message msg, long timeout, RequestResponseFuture requestResponseFuture)
+            throws RequestTimeoutException, InterruptedException, MQClientException {
+        Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
         if (responseMessage == null) {
             if (requestResponseFuture.isSendRequestOk()) {
                 throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
-                    "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
+                        "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
             } else {
-                throw new MQClientException("send request message to <" + msg.getTopic() + "> fail", requestResponseFuture.getCause());
+                throw new MQClientException("send request message to <" + msg.getTopic() + "> OK", requestResponseFuture.getCause());
             }
         }
         return responseMessage;
@@ -1558,50 +1554,40 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
-        prepareSendRequest(msg, timeout);
-        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        prepareSendRequest(msg, timeout, beginTimestamp);
+        long cost = System.currentTimeMillis() - beginTimestamp;
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout - cost, requestCallback);
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
-        long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
+        SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                // only message send success, but not receive reply message
                 requestResponseFuture.setSendRequestOk(true);
             }
 
             @Override
             public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                requestResponseFuture.onException(e);
             }
-        }, null, timeout - cost);
+        };
+        this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null, timeout - cost);
     }
 
-    private void requestFail(final String correlationId) {
-        RequestResponseFuture responseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
-        if (responseFuture != null) {
-            responseFuture.setSendRequestOk(false);
-            responseFuture.putResponseMessage(null);
-            try {
-                responseFuture.executeRequestCallback();
-            } catch (Exception e) {
-                log.warn("execute requestCallback in requestFail, and callback throw", e);
-            }
-        }
-    }
-
-    private void prepareSendRequest(final Message msg, long timeout) {
+    private void prepareSendRequest(final Message msg, long timeout, long beginTimestamp) {
         String correlationId = CorrelationIdUtil.createCorrelationId();
         String requestClientId = this.getMqClientFactory().getClientId();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, requestClientId);
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TTL, String.valueOf(timeout));
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_SEND_TIME, String.valueOf(beginTimestamp));
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TTL, String.valueOf(timeout));
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
 
+        // Early registration producer channel in ProducerManager
         boolean hasRouteData = this.getMqClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
         if (!hasRouteData) {
-            long beginTimestamp = System.currentTimeMillis();
             this.tryToFindTopicPublishInfo(msg.getTopic());
             this.getMqClientFactory().sendHeartbeatToAllBrokerWithLock();
             long cost = System.currentTimeMillis() - beginTimestamp;

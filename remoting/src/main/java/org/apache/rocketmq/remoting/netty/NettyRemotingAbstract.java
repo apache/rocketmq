@@ -216,6 +216,7 @@ public abstract class NettyRemotingAbstract {
         response.markResponseType();
         try {
             channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
+                assert future != null;
                 if (future.isSuccess()) {
                     log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
                         request.getCode(), response.getCode(), response.getOpaque(), channel);

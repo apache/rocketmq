@@ -52,7 +52,8 @@ public class MessageConst {
     public static final String PROPERTY_INSTANCE_ID = "INSTANCE_ID";
     public static final String PROPERTY_CORRELATION_ID = "CORRELATION_ID";
     public static final String PROPERTY_MESSAGE_REPLY_TO_CLIENT = "REPLY_TO_CLIENT";
-    public static final String PROPERTY_MESSAGE_TTL = "TTL";
+    public static final String PROPERTY_MESSAGE_REPLY_TTL = "REPLY_TTL";
+    public static final String PROPERTY_MESSAGE_REPLY_SEND_TIME = "REPLY_SEND_TIME";
     public static final String PROPERTY_REPLY_MESSAGE_ARRIVE_TIME = "ARRIVE_TIME";
     public static final String PROPERTY_PUSH_REPLY_TIME = "PUSH_REPLY_TIME";
     public static final String PROPERTY_CLUSTER = "CLUSTER";
@@ -136,7 +137,8 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_INSTANCE_ID);
         STRING_HASH_SET.add(PROPERTY_CORRELATION_ID);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_REPLY_TO_CLIENT);
-        STRING_HASH_SET.add(PROPERTY_MESSAGE_TTL);
+        STRING_HASH_SET.add(PROPERTY_MESSAGE_REPLY_TTL);
+        STRING_HASH_SET.add(PROPERTY_MESSAGE_REPLY_SEND_TIME);
         STRING_HASH_SET.add(PROPERTY_REPLY_MESSAGE_ARRIVE_TIME);
         STRING_HASH_SET.add(PROPERTY_PUSH_REPLY_TIME);
         STRING_HASH_SET.add(PROPERTY_CLUSTER);

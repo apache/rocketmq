@@ -14,17 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common.message;
 
-package org.apache.rocketmq.client.producer;
+public class MessageReply extends Message {
 
-import org.apache.rocketmq.common.message.Message;
+    private String consumerGroup;
+    private String consumerResult;
+    private long consumerTimeStamp;
 
-public interface RequestCallback {
-    void onSuccess(final Message message);
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
 
-    void onException(final Throwable e);
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
 
-    default boolean allowMultipleCallback() {
-        return false;
+    public String getConsumerResult() {
+        return consumerResult;
+    }
+
+    public void setConsumerResult(String consumerResult) {
+        this.consumerResult = consumerResult;
+    }
+
+    public long getConsumerTimeStamp() {
+        return consumerTimeStamp;
+    }
+
+    public void setConsumerTimeStamp(long consumerTimeStamp) {
+        this.consumerTimeStamp = consumerTimeStamp;
     }
 }
