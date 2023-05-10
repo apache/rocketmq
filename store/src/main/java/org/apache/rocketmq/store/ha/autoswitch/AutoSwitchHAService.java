@@ -435,7 +435,7 @@ public class AutoSwitchHAService extends DefaultHAService {
                     // So skip this ackOffset.
                     continue;
                 }
-                newConfirmOffset = Math.min(newConfirmOffset, connection.getSlaveAckOffset());
+                newConfirmOffset = Math.min(newConfirmOffset, slaveAckOffset);
             }
         }
         return newConfirmOffset;
