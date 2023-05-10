@@ -172,7 +172,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             .setLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
             .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
             .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
-            .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
+            .setProtocolType(ChannelProtocolType.GRPC_V2)
             .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
             .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
             .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME));

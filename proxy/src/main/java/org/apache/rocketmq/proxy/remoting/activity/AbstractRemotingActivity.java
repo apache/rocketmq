@@ -123,7 +123,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         ProxyContext context = ProxyContext.create();
         Channel channel = ctx.channel();
         context.setAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
-            .setProtocolType(ChannelProtocolType.REMOTING.getName())
+            .setProtocolType(ChannelProtocolType.REMOTING)
             .setChannel(channel)
             .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
             .setRemoteAddress(NetworkUtil.socketAddress2String(ctx.channel().remoteAddress()));

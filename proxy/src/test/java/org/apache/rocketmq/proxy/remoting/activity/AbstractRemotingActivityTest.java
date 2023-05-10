@@ -93,7 +93,7 @@ public class AbstractRemotingActivityTest extends InitConfigTest {
         ProxyContext context = remotingActivity.createContext(ctx, request);
 
         Assert.assertEquals(context.getAction(), RemotingHelper.getRequestCodeDesc(RequestCode.PULL_MESSAGE));
-        Assert.assertEquals(context.getProtocolType(), ChannelProtocolType.REMOTING.getName());
+        Assert.assertEquals(context.getProtocolType(), ChannelProtocolType.REMOTING);
         Assert.assertEquals(context.getLanguage(), LanguageCode.JAVA.name());
         Assert.assertEquals(context.getClientID(), CLIENT_ID);
         Assert.assertEquals(context.getClientVersion(), MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));

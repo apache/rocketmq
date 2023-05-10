@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.common;
 import io.netty.channel.Channel;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
@@ -122,12 +123,12 @@ public class ProxyContext {
         return this.getVal(ContextVariable.ACTION);
     }
 
-    public ProxyContext setProtocolType(String protocol) {
+    public ProxyContext setProtocolType(ChannelProtocolType protocol) {
         this.withVal(ContextVariable.PROTOCOL_TYPE, protocol);
         return this;
     }
 
-    public String getProtocolType() {
+    public ChannelProtocolType getProtocolType() {
         return this.getVal(ContextVariable.PROTOCOL_TYPE);
     }
 
