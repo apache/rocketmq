@@ -848,7 +848,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return messageStore.getMessageStoreConfig().isEnableMultiDispatch()
             && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             && !msg.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
-            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
+            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC)
+            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC);
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
