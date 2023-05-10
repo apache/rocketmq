@@ -11,6 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          ref: develop
+          persist-credentials: false
           submodules: true
       - uses: actions/setup-java@v3
         with:
