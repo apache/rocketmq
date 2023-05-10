@@ -428,14 +428,8 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         for (HAConnection connection : this.connectionList) {
             final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
-            if (currentSyncStateSet.contains(slaveId)) {
-                long slaveAckOffset = connection.getSlaveAckOffset();
-                if (slaveAckOffset <= 0) {
-                    // Slave's connection is just inited, the ack hasn't been calculated.
-                    // So skip this ackOffset.
-                    continue;
-                }
-                newConfirmOffset = Math.min(newConfirmOffset, slaveAckOffset);
+            if (currentSyncStateSet.contains(slaveId) && connection.getSlaveAckOffset() > 0) {
+                newConfirmOffset = Math.min(newConfirmOffset, connection.getSlaveAckOffset());
             }
         }
         return newConfirmOffset;
