@@ -29,6 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -414,7 +416,8 @@ public class DefaultMQProducerTest {
                     responseMsg.setBody(message.getBody());
                     for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                         RequestResponseFuture future = entry.getValue();
-                        future.putResponseMessage(responseMsg);
+                        future.setSendRequestOk(true);
+                        future.onSuccess(responseMsg);
                     }
                 }
             }
@@ -426,10 +429,26 @@ public class DefaultMQProducerTest {
         assertThat(result.getBody()).isEqualTo(new byte[] {'a'});
     }
 
-    @Test(expected = RequestTimeoutException.class)
+    @Test
     public void testRequestMessage_RequestTimeoutException() throws RemotingException, RequestTimeoutException, MQClientException, InterruptedException, MQBrokerException {
+        AtomicReference<Throwable> reference = new AtomicReference<>(null);
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        Message result = producer.request(message, 3 * 1000L);
+        producer.request(message, new RequestCallback() {
+            @Override
+            public void onSuccess(Message message) {
+
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                reference.set(e);
+            }
+        }, 3 * 1000L);
+
+        while (reference.get() == null) {
+            TimeUnit.SECONDS.sleep(1);
+        }
+        assertThat(reference.get()).isExactlyInstanceOf(RequestTimeoutException.class);
     }
 
     @Test
@@ -461,7 +480,7 @@ public class DefaultMQProducerTest {
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
             future.setSendRequestOk(true);
-            future.getRequestCallback().onSuccess(responseMsg);
+            future.onSuccess(responseMsg);
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
@@ -497,7 +516,7 @@ public class DefaultMQProducerTest {
             assertThat(responseMap).isNotNull();
             for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                 RequestResponseFuture future = entry.getValue();
-                future.getRequestCallback().onException(e);
+                future.onException(e);
             }
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);

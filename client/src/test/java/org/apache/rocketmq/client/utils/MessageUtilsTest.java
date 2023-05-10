@@ -36,7 +36,7 @@ public class MessageUtilsTest {
         Message msg = MessageUtil.createReplyMessage(createReplyMessage("clusterName"), new byte[] {'a'});
         assertThat(msg.getTopic()).isEqualTo("clusterName" + "_" + MixAll.REPLY_TOPIC_POSTFIX);
         assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT)).isEqualTo("127.0.0.1");
-        assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_TTL)).isEqualTo("3000");
+        assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TTL)).isEqualTo("3000");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class MessageUtilsTest {
         Map map = new HashMap<String, String>();
         map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
         map.put(MessageConst.PROPERTY_CLUSTER, clusterName);
-        map.put(MessageConst.PROPERTY_MESSAGE_TTL, "3000");
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TTL, "3000");
         MessageAccessor.setProperties(requestMessage, map);
         return requestMessage;
     }

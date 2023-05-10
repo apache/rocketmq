@@ -88,6 +88,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     private int maxReconsumeTimes = 16;
 
+    private int sendReplyMessageThreadNums = 4;
+
     public DefaultMQPullConsumer() {
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, null);
     }
@@ -465,5 +467,13 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void persist(MessageQueue mq) {
         this.getOffsetStore().persist(queueWithNamespace(mq));
+    }
+
+    public int getSendReplyMessageThreadNums() {
+        return sendReplyMessageThreadNums;
+    }
+
+    public void setSendReplyMessageThreadNums(int sendReplyMessageThreadNums) {
+        this.sendReplyMessageThreadNums = sendReplyMessageThreadNums;
     }
 }

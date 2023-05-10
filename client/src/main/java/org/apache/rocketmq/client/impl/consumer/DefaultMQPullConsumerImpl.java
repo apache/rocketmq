@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.client.consumer.ConsumerReplyMessageHookImpl;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -702,6 +703,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 }
 
                 this.offsetStore.load();
+
+                this.registerConsumeMessageHook(new ConsumerReplyMessageHookImpl(this.getDefaultMQPullConsumer().getConsumerGroup(),
+                        this.mQClientFactory, this.getDefaultMQPullConsumer().getSendReplyMessageThreadNums()));
 
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPullConsumer.getConsumerGroup(), this);
                 if (!registerOK) {

@@ -34,6 +34,7 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
+import org.apache.rocketmq.client.consumer.ConsumerReplyMessageHookImpl;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PopCallback;
@@ -957,7 +958,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeMessagePopService =
                         new ConsumeMessagePopConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
-
+                this.registerConsumeMessageHook(new ConsumerReplyMessageHookImpl(this.getDefaultMQPushConsumer().getConsumerGroup(),
+                        this.mQClientFactory, this.getDefaultMQPushConsumer().getSendReplyMessageThreadNums()));
                 this.consumeMessageService.start();
                 // POPTODO
                 this.consumeMessagePopService.start();

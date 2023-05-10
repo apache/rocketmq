@@ -40,7 +40,7 @@ public class RequestResponseFutureTest {
             }
         });
         future.setSendRequestOk(true);
-        future.executeRequestCallback();
+        future.onSuccess(null);
         assertThat(cc.get()).isEqualTo(1);
     }
 

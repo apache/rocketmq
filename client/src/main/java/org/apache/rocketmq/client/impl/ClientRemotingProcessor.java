@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.impl;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,15 +26,12 @@ import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.compression.Compressor;
-import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.common.message.MessageReply;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -228,39 +224,20 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        long receiveTime = System.currentTimeMillis();
         ReplyMessageRequestHeader requestHeader = (ReplyMessageRequestHeader) request.decodeCommandCustomHeader(ReplyMessageRequestHeader.class);
 
         try {
-            MessageExt msg = new MessageExt();
+            MessageReply msg = new MessageReply();
             msg.setTopic(requestHeader.getTopic());
-            msg.setQueueId(requestHeader.getQueueId());
-            msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
-
-            if (requestHeader.getBornHost() != null) {
-                msg.setBornHost(NetworkUtil.string2SocketAddress(requestHeader.getBornHost()));
-            }
-
-            if (requestHeader.getStoreHost() != null) {
-                msg.setStoreHost(NetworkUtil.string2SocketAddress(requestHeader.getStoreHost()));
-            }
-
-            byte[] body = request.getBody();
-            int sysFlag = requestHeader.getSysFlag();
-            if ((sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-                try {
-                    Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
-                    body = compressor.decompress(body);
-                } catch (IOException e) {
-                    logger.warn("err when uncompress constant", e);
-                }
-            }
-            msg.setBody(body);
             msg.setFlag(requestHeader.getFlag());
             MessageAccessor.setProperties(msg, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REPLY_MESSAGE_ARRIVE_TIME, String.valueOf(receiveTime));
-            msg.setBornTimestamp(requestHeader.getBornTimestamp());
-            msg.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
+            msg.setBody(request.getBody());
+            msg.setTransactionId(requestHeader.getTransactionId());
+
+            msg.setConsumerGroup(requestHeader.getConsumerGroup());
+            msg.setConsumerResult(requestHeader.getConsumerResult());
+            msg.setConsumerTimeStamp(requestHeader.getConsumerTimeStamp());
+
             logger.debug("receive reply message :{}", msg);
 
             processReplyMessage(msg);
@@ -275,21 +252,19 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private void processReplyMessage(MessageExt replyMsg) {
+    private void processReplyMessage(MessageReply replyMsg) {
         final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
         final RequestResponseFuture requestResponseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().get(correlationId);
+
         if (requestResponseFuture != null) {
-            requestResponseFuture.putResponseMessage(replyMsg);
-
-            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
-
-            if (requestResponseFuture.getRequestCallback() != null) {
-                requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
+            if (requestResponseFuture.isTimeout()) {
+                // wait time out remove
+                return;
             }
+            requestResponseFuture.onSuccess(replyMsg);
         } else {
-            String bornHost = replyMsg.getBornHostString();
-            logger.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
-                correlationId, bornHost));
+            logger.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s",
+                correlationId));
         }
     }
 }

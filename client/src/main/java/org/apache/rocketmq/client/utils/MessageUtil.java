@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.utils;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
@@ -31,7 +32,7 @@ public class MessageUtil {
             String cluster = requestMessage.getProperty(MessageConst.PROPERTY_CLUSTER);
             String replyTo = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
             String correlationId = requestMessage.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
-            String ttl = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_TTL);
+            String ttl = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TTL);
             replyMessage.setBody(body);
             if (cluster != null) {
                 String replyTopic = MixAll.getReplyTopic(cluster);
@@ -39,7 +40,7 @@ public class MessageUtil {
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, replyTo);
-                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TTL, ttl);
+                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TTL, ttl);
 
                 return replyMessage;
             } else {
@@ -51,5 +52,16 @@ public class MessageUtil {
 
     public static String getReplyToClient(final Message msg) {
         return msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
+    }
+
+    public static boolean isReplyMsg(Message msg) {
+        if (msg == null) {
+            return false;
+        }
+        String msgType = msg.getProperty(MessageConst.PROPERTY_MESSAGE_TYPE);
+        if (StringUtils.isBlank(msgType)) {
+            return false;
+        }
+        return msgType.equals(MixAll.REPLY_MESSAGE_FLAG);
     }
 }

@@ -288,6 +288,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     // force to use client rebalance
     private boolean clientRebalance = true;
 
+    private int sendReplyMessageThreadNums = 4;
+
     /**
      * Default constructor.
      */
@@ -357,10 +359,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
-        this.consumerGroup = consumerGroup;
-        this.namespace = namespace;
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        this(namespace, consumerGroup, rpcHook, allocateMessageQueueStrategy, false, null);
     }
 
     /**
@@ -414,7 +413,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        this.defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
             try {
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
@@ -986,5 +985,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setClientRebalance(boolean clientRebalance) {
         this.clientRebalance = clientRebalance;
+    }
+
+    public int getSendReplyMessageThreadNums() {
+        return sendReplyMessageThreadNums;
+    }
+
+    public void setSendReplyMessageThreadNums(int sendReplyMessageThreadNums) {
+        this.sendReplyMessageThreadNums = sendReplyMessageThreadNums;
     }
 }

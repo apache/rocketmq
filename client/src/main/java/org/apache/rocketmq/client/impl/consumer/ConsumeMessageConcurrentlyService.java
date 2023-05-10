@@ -405,7 +405,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             try {
                 if (msgs != null && !msgs.isEmpty()) {
                     for (MessageExt msg : msgs) {
-                        MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
+                        MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(beginTimestamp));
                     }
                 }
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);

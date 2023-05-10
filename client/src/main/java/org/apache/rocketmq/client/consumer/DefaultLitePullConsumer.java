@@ -156,6 +156,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      */
     private long topicMetadataCheckIntervalMillis = 30 * 1000;
 
+    private int sendReplyMessageThreadNums = 4;
+
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 
     /**
@@ -617,5 +619,13 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
         this.enableMsgTrace = enableMsgTrace;
+    }
+
+    public int getSendReplyMessageThreadNums() {
+        return sendReplyMessageThreadNums;
+    }
+
+    public void setSendReplyMessageThreadNums(int sendReplyMessageThreadNums) {
+        this.sendReplyMessageThreadNums = sendReplyMessageThreadNums;
     }
 }
