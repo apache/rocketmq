@@ -5,9 +5,6 @@ on:
   push:
     branches: [ cicd ]
 
-concurrency:
-  group: rocketmq-${{ github.ref }}
-
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
   DOCKER_REPO: zychen143/rocketmq
@@ -200,11 +197,17 @@ jobs:
           ref: develop
           persist-credentials: false
       - name: Set up JDK
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 8
-          distribution: "adopt"
+          distribution: "temurin"
           cache: "maven"
+      - name: Update pom version
+        run: |
+          VERSION=$(mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec)
+          VERSION=$(echo $VERSION | awk -F '-SNAPSHOT' '{print $1}')
+          VERSION=$VERSION-stable-SNAPSHOT
+          mvn versions:set -DnewVersion=$VERSION
       - name: Deploy to ASF Snapshots Repository
         timeout-minutes: 40
         run: mvn clean deploy -DskipTests=true --settings .github/asf-deploy-settings.xml
