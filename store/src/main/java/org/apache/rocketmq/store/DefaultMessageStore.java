@@ -1589,9 +1589,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // Fetch and compute the newest confirmOffset.
+    // Even if it is just inited.
     @Override
     public long getConfirmOffset() {
         return this.commitLog.getConfirmOffset();
+    }
+
+    // Fetch the original confirmOffset's value.
+    // Without checking and re-computing.
+    public long getConfirmOffsetDirectly() {
+        return this.commitLog.getConfirmOffsetDirectly();
     }
 
     @Override
