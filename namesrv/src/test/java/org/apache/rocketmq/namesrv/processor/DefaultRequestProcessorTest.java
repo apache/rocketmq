@@ -20,10 +20,13 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
@@ -157,6 +160,43 @@ public class DefaultRequestProcessorTest {
 
         assertThat(namesrvController.getKvConfigManager().getKVConfig("namespace", "key"))
             .isNull();
+    }
+
+    @Test
+    public void testProcessRequest_UpdateConfigPath() throws RemotingCommandException {
+        final RemotingCommand updateConfigRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_NAMESRV_CONFIG, null);
+        Properties properties = new Properties();
+
+        // Update allowed value
+        properties.setProperty("enableTopicList", "true");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        RemotingCommand response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        //update disallowed value
+        properties.clear();
+        properties.setProperty("configStorePathName", "test/path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config path");
+
+        //update disallowed values
+        properties.clear();
+        properties.setProperty("kvConfigPath", "test/path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config path");
     }
 
     @Test

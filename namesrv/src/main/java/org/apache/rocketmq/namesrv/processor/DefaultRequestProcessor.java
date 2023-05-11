@@ -581,6 +581,12 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 return response;
             }
 
+            if (properties.containsKey("kvConfigPath") || properties.containsKey("configStorePathName")) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("Can not update config path");
+                return response;
+            }
+
             this.namesrvController.getConfiguration().update(properties);
         }
 
