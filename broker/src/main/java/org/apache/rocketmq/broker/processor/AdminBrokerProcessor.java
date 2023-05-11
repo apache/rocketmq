@@ -778,7 +778,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, callerAddress);
 
                     if (properties.containsKey("brokerConfigPath")) {
-                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setCode(ResponseCode.NO_PERMISSION);
                         response.setRemark("Can not update config path");
                         return response;
                     }

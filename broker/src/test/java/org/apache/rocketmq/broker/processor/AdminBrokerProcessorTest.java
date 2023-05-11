@@ -303,7 +303,7 @@ public class AdminBrokerProcessorTest {
         response = adminBrokerProcessor.processRequest(ctx, updateConfigRequest);
 
         assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
         assertThat(response.getRemark()).contains("Can not update config path");
 
     }
