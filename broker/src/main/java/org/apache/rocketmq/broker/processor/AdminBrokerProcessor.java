@@ -775,13 +775,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
-                    LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
+                    LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, callerAddress);
+
+                    if (properties.containsKey("brokerConfigPath")) {
+                        response.setCode(ResponseCode.NO_PERMISSION);
+                        response.setRemark("Can not update config path");
+                        return response;
+                    }
+
                     this.brokerController.getConfiguration().update(properties);
                     if (properties.containsKey("brokerPermission")) {
                         long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
                         this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(stateMachineVersion);
                         this.brokerController.registerBrokerAll(false, false, true);
                     }
+
                 } else {
                     LOGGER.error("string2Properties error");
                     response.setCode(ResponseCode.SYSTEM_ERROR);
