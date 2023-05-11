@@ -776,6 +776,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
                     LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, callerAddress);
+
+                    if (properties.containsKey("brokerConfigPath")) {
+                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setRemark("Can not update config path");
+                        return response;
+                    }
+
                     this.brokerController.getConfiguration().update(properties);
                     if (properties.containsKey("brokerPermission")) {
                         long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
@@ -783,11 +790,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         this.brokerController.registerBrokerAll(false, false, true);
                     }
 
-                    if (properties.containsKey("brokerConfigPath")) {
-                        response.setCode(ResponseCode.SYSTEM_ERROR);
-                        response.setRemark("Can not update config path");
-                        return response;
-                    }
                 } else {
                     LOGGER.error("string2Properties error");
                     response.setCode(ResponseCode.SYSTEM_ERROR);
