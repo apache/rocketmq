@@ -1,19 +1,3 @@
-package org.apache.rocketmq.controller;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
-import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -30,6 +14,23 @@ import static org.assertj.core.api.Assertions.assertThat;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package org.apache.rocketmq.controller;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
+import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ControllerRequestProcessorTest {
 
