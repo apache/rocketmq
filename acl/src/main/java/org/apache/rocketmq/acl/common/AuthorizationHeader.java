@@ -51,14 +51,14 @@ public class AuthorizationHeader {
             String[] kv = keyValue.trim().split("=", 2);
             int kvLength = kv.length;
             if (kv.length != AUTH_HEADER_KV_LENGTH) {
-                throw new DecoderException("authorization keyValues length is incorrect, actual length=" + kvLength);
+                throw new DecoderException(String.format("authorization keyValues length is incorrect, actual length = %d", kvLength));
             }
             String authItem = kv[0];
             if (CREDENTIAL.equals(authItem)) {
                 String[] credential = kv[1].split(CREDENTIALS_SEPARATOR);
                 int credentialActualLength = credential.length;
                 if (credentialActualLength == 0) {
-                    throw new DecoderException("authorization credential length is incorrect, actual length=" + credentialActualLength);
+                    throw new DecoderException(String.format("authorization credential length is incorrect, actual length = %d", credentialActualLength));
                 }
                 this.accessKey = credential[0];
                 continue;
