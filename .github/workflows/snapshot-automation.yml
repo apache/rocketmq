@@ -5,6 +5,13 @@ on:
   push:
     branches: [ cicd ]
 
+concurrency:
+  group: rocketmq-${{ github.ref }}
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+  DOCKER_REPO: zychen143/rocketmq
+
 jobs:
   dist-tar:
     name: Build dist tar
@@ -13,8 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: develop
-          persist-credentials: false
           submodules: true
       - uses: actions/setup-java@v3
         with:
@@ -25,7 +30,7 @@ jobs:
         env:
           MAVEN_SETTINGS: ${{ github.workspace }}/.github/asf-deploy-settings.xml
         run: |
-          mvn -Prelease-all -DskipTests -Dspotbugs.skip=true install -s $MAVEN_SETTINGS
+          mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
       - uses: actions/upload-artifact@v3
         name: Upload distribution tar
         with:
