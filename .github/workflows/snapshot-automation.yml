@@ -2,10 +2,11 @@ name: Snapshot Release Automation
 on:
   schedule: # schedule the job to run at 12 a.m. daily
     - cron: "*/10 * * * *"
+  push:
+    branches: [ cicd ]
 
 jobs:
   dist-tar:
-    if: github.ref == 'refs/heads/cicd'
     name: Build dist tar
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -182,7 +183,6 @@ jobs:
           job-id: ${{ strategy.job-index }}
 
   snapshot:
-    if: github.ref == 'refs/heads/cicd'
     runs-on: ubuntu-latest
     needs: [ java-grpc-e2e-test ]
     env:
