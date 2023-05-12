@@ -1,7 +1,7 @@
 name: Snapshot Release Automation
 on:
   schedule: # schedule the job to run at 12 a.m. daily
-    - cron: "*/10 * * * *"
+    - cron: "0 0 * * *"
   push:
     branches: [ cicd ]
 
