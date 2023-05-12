@@ -2130,7 +2130,9 @@ public class CommitLog implements Swappable {
         private void initPageSize() {
             if (pageSize < 0) {
                 try {
-                    pageSize = LibC.INSTANCE.getpagesize();
+                    if (!MixAll.isWindows()) {
+                        pageSize = LibC.INSTANCE.getpagesize();
+                    }
                     log.info("initPageSize pageSize: {}", pageSize);
                 } catch (Exception e) {
                     defaultMessageStore.getMessageStoreConfig().setColdDataFlowControlEnable(false);
