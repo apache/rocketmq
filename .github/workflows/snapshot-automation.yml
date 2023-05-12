@@ -2,12 +2,10 @@ name: Snapshot Release Automation
 on:
   schedule: # schedule the job to run at 12 a.m. daily
     - cron: "0 0 * * *"
-  push:
-    branches: [ cicd ]
 
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
-  DOCKER_REPO: zychen143/rocketmq
+  DOCKER_REPO: apache/rocketmq-ci
 
 jobs:
   dist-tar:
