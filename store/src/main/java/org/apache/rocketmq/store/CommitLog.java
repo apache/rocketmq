@@ -2073,7 +2073,7 @@ public class CommitLog implements Swappable {
         }
 
         private void scanFilesInPageCache() {
-            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable()) {
+            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable() || MixAll.isWindows()) {
                 return;
             }
 
@@ -2168,6 +2168,9 @@ public class CommitLog implements Swappable {
     }
 
     public void scanFileAndSetReadMode(int mode) {
+        if (MixAll.isWindows()) {
+            return;
+        }
         try {
             log.info("scanFileAndSetReadMode mode: {}", mode);
             mappedFileQueue.getMappedFiles().stream().forEach(mappedFile -> {
@@ -2179,7 +2182,7 @@ public class CommitLog implements Swappable {
     }
 
     private int setFileReadMode(MappedFile mappedFile, int mode) {
-        if (null == mappedFile) {
+        if (null == mappedFile || MixAll.isWindows()) {
             log.error("setFileReadMode mappedFile is null");
             return -1;
         }
