@@ -46,7 +46,7 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2-extension-spring5</artifactId>
+            <artifactId>fastjson2-extension</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

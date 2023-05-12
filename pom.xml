@@ -103,7 +103,7 @@
         <netty.version>4.1.65.Final</netty.version>
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
-        <fastjson2.version>2.0.27</fastjson2.version>
+        <fastjson2.version>2.0.31</fastjson2.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
@@ -643,7 +643,7 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
-                <artifactId>fastjson2-extension-spring5</artifactId>
+                <artifactId>fastjson2-extension</artifactId>
                 <version>${fastjson2.version}</version>
             </dependency>
             <dependency>
