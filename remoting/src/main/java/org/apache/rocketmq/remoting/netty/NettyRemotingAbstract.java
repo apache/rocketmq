@@ -125,7 +125,7 @@ public abstract class NettyRemotingAbstract {
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
      * @param permitsOneway Number of permits for one-way requests.
-     * @param permitsAsync Number of permits for asynchronous requests.
+     * @param permitsAsync  Number of permits for asynchronous requests.
      */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
@@ -216,10 +216,7 @@ public abstract class NettyRemotingAbstract {
         response.markResponseType();
         try {
             channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
-                if (future.isSuccess()) {
-                    log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel);
-                } else {
+                if (!future.isSuccess()) {
                     log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
                         request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
                 }
