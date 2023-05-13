@@ -101,8 +101,6 @@ import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHeader;
-import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
@@ -203,8 +201,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor {
                 return this.getConsumerStatus(ctx, request);
             case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
                 return this.queryTopicConsumeByWho(ctx, request);
-            case RequestCode.REGISTER_FILTER_SERVER:
-                return this.registerFilterServer(ctx, request);
             case RequestCode.QUERY_CONSUME_TIME_SPAN:
                 return this.queryConsumeTimeSpan(ctx, request);
             case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER:
@@ -1087,23 +1083,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor {
         byte[] body = groupList.encode();
 
         response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-
-    private RemotingCommand registerFilterServer(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterFilterServerResponseHeader.class);
-        final RegisterFilterServerResponseHeader responseHeader = (RegisterFilterServerResponseHeader) response.readCustomHeader();
-        final RegisterFilterServerRequestHeader requestHeader =
-            (RegisterFilterServerRequestHeader) request.decodeCommandCustomHeader(RegisterFilterServerRequestHeader.class);
-
-        this.brokerController.getFilterServerManager().registerFilterServer(ctx.channel(), requestHeader.getFilterServerAddr());
-
-        responseHeader.setBrokerId(this.brokerController.getBrokerConfig().getBrokerId());
-        responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

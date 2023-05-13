@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -44,7 +45,6 @@ import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
-import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
@@ -145,7 +145,6 @@ public class BrokerController {
     private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
     private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
     private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
-    private final FilterServerManager filterServerManager;
     private final BrokerStatsManager brokerStatsManager;
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
@@ -198,7 +197,6 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
-        this.filterServerManager = new FilterServerManager(this);
 
         this.slaveSynchronize = new SlaveSynchronize(this);
 
@@ -802,10 +800,6 @@ public class BrokerController {
 
         this.consumerOffsetManager.persist();
 
-        if (this.filterServerManager != null) {
-            this.filterServerManager.shutdown();
-        }
-
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.shutdown();
         }
@@ -877,10 +871,6 @@ public class BrokerController {
 
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
-        }
-
-        if (this.filterServerManager != null) {
-            this.filterServerManager.start();
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -963,7 +953,7 @@ public class BrokerController {
             this.brokerConfig.getBrokerId(),
             this.getHAServerAddr(),
             topicConfigWrapper,
-            this.filterServerManager.buildNewFilterServerList(),
+            Lists.newArrayList(),
             oneway,
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isCompressedRegister());
@@ -1032,10 +1022,6 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getSendThreadPoolQueue() {
         return sendThreadPoolQueue;
-    }
-
-    public FilterServerManager getFilterServerManager() {
-        return filterServerManager;
     }
 
     public BrokerStatsManager getBrokerStatsManager() {
