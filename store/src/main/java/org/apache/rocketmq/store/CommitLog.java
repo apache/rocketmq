@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.lang.reflect.Field;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -59,6 +60,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
+import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
 /**
@@ -2131,6 +2133,8 @@ public class CommitLog implements Swappable {
                 try {
                     if (!MixAll.isWindows()) {
                         pageSize = LibC.INSTANCE.getpagesize();
+                    } else {
+                        pageSize = MixAll.getWinOsPageSize();
                     }
                     log.info("initPageSize pageSize: {}", pageSize);
                 } catch (Exception e) {

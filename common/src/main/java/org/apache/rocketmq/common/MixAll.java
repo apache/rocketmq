@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import sun.misc.Unsafe;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -514,5 +515,16 @@ public class MixAll {
             return true;
         }
         return false;
+    }
+
+    public static int getWinOsPageSize() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            Unsafe unsafe = (Unsafe)f.get(null);
+            return unsafe.pageSize();
+        } catch (Throwable e) {
+            return -1;
+        }
     }
 }
