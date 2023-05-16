@@ -2075,7 +2075,7 @@ public class CommitLog implements Swappable {
         }
 
         private void scanFilesInPageCache() {
-            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable()) {
+            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable() || pageSize <= 0) {
                 return;
             }
 
