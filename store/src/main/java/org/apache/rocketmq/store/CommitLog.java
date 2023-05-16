@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import io.netty.channel.Channel.Unsafe;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -2080,7 +2081,7 @@ public class CommitLog implements Swappable {
             try {
                 log.info("pageCacheMap key size: {}", pageCacheMap.size());
                 clearExpireMappedFile();
-                mappedFileQueue.getMappedFiles().stream().forEach(mappedFile -> {
+                mappedFileQueue.getMappedFiles().forEach(mappedFile -> {
                     byte[] pageCacheTable = checkFileInPageCache(mappedFile);
                     if (sampleSteps > 1) {
                         pageCacheTable = sampling(pageCacheTable, sampleSteps);
@@ -2093,12 +2094,11 @@ public class CommitLog implements Swappable {
         }
 
         private void clearExpireMappedFile() {
-            Set<String> currentFileSet = mappedFileQueue.getMappedFiles()
-                .stream().map(MappedFile::getFileName).collect(Collectors.toSet());
-            pageCacheMap.entrySet().stream().forEach(entry -> {
-                if (!currentFileSet.contains(entry.getKey())) {
-                    pageCacheMap.remove(entry.getKey());
-                    log.info("clearExpireMappedFile fileName: {}, has been clear", entry.getKey());
+            Set<String> currentFileSet = mappedFileQueue.getMappedFiles().stream().map(MappedFile::getFileName).collect(Collectors.toSet());
+            pageCacheMap.forEach((key, value) -> {
+                if (!currentFileSet.contains(key)) {
+                    pageCacheMap.remove(key);
+                    log.info("clearExpireMappedFile fileName: {}, has been clear", key);
                 }
             });
         }
@@ -2168,9 +2168,6 @@ public class CommitLog implements Swappable {
     }
 
     public void scanFileAndSetReadMode(int mode) {
-        if (MixAll.isWindows()) {
-            return;
-        }
         try {
             log.info("scanFileAndSetReadMode mode: {}", mode);
             mappedFileQueue.getMappedFiles().stream().forEach(mappedFile -> {
@@ -2182,7 +2179,7 @@ public class CommitLog implements Swappable {
     }
 
     private int setFileReadMode(MappedFile mappedFile, int mode) {
-        if (null == mappedFile || MixAll.isWindows()) {
+        if (null == mappedFile) {
             log.error("setFileReadMode mappedFile is null");
             return -1;
         }
