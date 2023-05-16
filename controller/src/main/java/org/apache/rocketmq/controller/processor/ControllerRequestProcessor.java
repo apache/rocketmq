@@ -241,6 +241,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return response;
             }
 
+            if (properties.containsKey("configStorePath")) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("Can not update config path");
+                return response;
+            }
+
             this.controllerManager.getConfiguration().update(properties);
         }
 

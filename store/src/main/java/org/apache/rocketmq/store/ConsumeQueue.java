@@ -749,6 +749,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         for (int i = 0; i < queues.length; i++) {
             String queueName = queues[i];
+            if (StringUtils.contains(queueName, File.separator)) {
+                continue;
+            }
             long queueOffset = Long.parseLong(queueOffsets[i]);
             int queueId = request.getQueueId();
             if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
