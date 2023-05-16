@@ -35,7 +35,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
-import io.netty.channel.Channel.Unsafe;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -2074,7 +2073,7 @@ public class CommitLog implements Swappable {
         }
 
         private void scanFilesInPageCache() {
-            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable() || MixAll.isWindows()) {
+            if (!defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable() || !defaultMessageStore.getMessageStoreConfig().isColdDataScanEnable()) {
                 return;
             }
 
