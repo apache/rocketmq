@@ -120,10 +120,6 @@ public class ReplicasManager {
         this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity() + "-temp");
     }
 
-    public long getConfirmOffset() {
-        return this.haService.getConfirmOffset();
-    }
-
     enum State {
         INITIAL,
         FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
@@ -205,7 +201,7 @@ public class ReplicasManager {
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterBrokerId, this.masterAddress);
                 this.state = State.RUNNING;
-                this.brokerController.setIsolated(false);
+                setFenced(false);
                 LOGGER.info("All register process has been done, change state to: {}", this.state);
             } else {
                 return false;
@@ -243,7 +239,6 @@ public class ReplicasManager {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
-
                 this.masterEpoch = newMasterEpoch;
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
                     // Change SyncStateSet
@@ -261,10 +256,6 @@ public class ReplicasManager {
                 final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
-                // Change record
-                this.masterAddress = this.brokerAddress;
-                this.masterBrokerId = this.brokerControllerId;
-
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
@@ -274,6 +265,10 @@ public class ReplicasManager {
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
                 this.brokerController.changeSpecialServiceStatus(true);
+
+                // Change record
+                this.masterAddress = this.brokerAddress;
+                this.masterBrokerId = this.brokerControllerId;
 
                 schedulingCheckSyncStateSet();
 
@@ -299,10 +294,6 @@ public class ReplicasManager {
                     return;
                 }
 
-                // Change record
-                this.masterAddress = newMasterAddress;
-                this.masterBrokerId = newMasterBrokerId;
-
                 // Stop checking syncStateSet because only master is able to check
                 stopCheckSyncStateSet();
 
@@ -311,6 +302,10 @@ public class ReplicasManager {
                 this.brokerController.changeSpecialServiceStatus(false);
                 // The brokerId in brokerConfig just means its role(master[0] or slave[>=1])
                 this.brokerConfig.setBrokerId(brokerControllerId);
+
+                // Change record
+                this.masterAddress = newMasterAddress;
+                this.masterBrokerId = newMasterBrokerId;
 
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
@@ -417,7 +412,7 @@ public class ReplicasManager {
                     this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                     this.brokerConfig.isInBrokerContainer(), this.getLastEpoch(),
                     this.brokerController.getMessageStore().getMaxPhyOffset(),
-                    this.getConfirmOffset(),
+                    this.brokerController.getMessageStore().getConfirmOffset(),
                     this.brokerConfig.getControllerHeartBeatTimeoutMills(),
                     this.brokerConfig.getBrokerElectionPriority()
                 );
@@ -547,6 +542,7 @@ public class ReplicasManager {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
             this.brokerControllerId = this.brokerMetadata.getBrokerId();
+            this.haService.setBrokerControllerId(this.brokerControllerId);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
@@ -598,6 +594,7 @@ public class ReplicasManager {
         if (this.brokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
             this.brokerControllerId = brokerMetadata.getBrokerId();
+            this.haService.setBrokerControllerId(this.brokerControllerId);
             return;
         }
         // 2. check if temp metadata exist
@@ -871,5 +868,10 @@ public class ReplicasManager {
 
     public TempBrokerMetadata getTempBrokerMetadata() {
         return tempBrokerMetadata;
+    }
+
+    public void setFenced(boolean fenced) {
+        this.brokerController.setIsolated(fenced);
+        this.brokerController.getMessageStore().getRunningFlags().makeFenced(fenced);
     }
 }

@@ -155,12 +155,12 @@ public class OffsetResetForPopIT extends BaseConf {
         // ack old msg, expect has no effect
         ackMessageSync(popResult1.getMsgFoundList());
         Assert.assertTrue(brokerController1.getConsumerOrderInfoManager()
-            .checkBlock(topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
+            .checkBlock(null, topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
 
         // ack new msg
         ackMessageSync(popResult2.getMsgFoundList());
         Assert.assertFalse(brokerController1.getConsumerOrderInfoManager()
-            .checkBlock(topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
+            .checkBlock(null, topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
     }
 
     @Test
@@ -176,12 +176,12 @@ public class OffsetResetForPopIT extends BaseConf {
         PopResult popResult = consumer.popOrderly(brokerController1.getBrokerAddr(), mq);
         Assert.assertEquals(messageCount - resetOffset, popResult.getMsgFoundList().size());
         Assert.assertTrue(brokerController1.getConsumerOrderInfoManager()
-            .checkBlock(topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
+            .checkBlock(null, topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
 
         ackMessageSync(popResult.getMsgFoundList());
         TimeUnit.SECONDS.sleep(1);
         Assert.assertFalse(brokerController1.getConsumerOrderInfoManager()
-            .checkBlock(topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
+            .checkBlock(null, topic, group, 0, RMQPopConsumer.DEFAULT_INVISIBLE_TIME));
     }
 
     @Test

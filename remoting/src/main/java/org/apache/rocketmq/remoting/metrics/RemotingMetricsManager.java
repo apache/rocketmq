@@ -36,8 +36,6 @@ import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.HISTOGRAM_RPC_LATENCY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.REQUEST_CODE_MAP;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESPONSE_CODE_MAP;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_CANCELED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_SUCCESS;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
@@ -95,11 +93,4 @@ public class RemotingMetricsManager {
         return result;
     }
 
-    public static String getRequestCodeDesc(int code) {
-        return REQUEST_CODE_MAP.getOrDefault(code, String.valueOf(code));
-    }
-
-    public static String getResponseCodeDesc(int code) {
-        return RESPONSE_CODE_MAP.getOrDefault(code, String.valueOf(code));
-    }
 }

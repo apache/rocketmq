@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.mqclient;
+package org.apache.rocketmq.client.impl.mqclient;
 
+import com.google.common.base.Strings;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.common.NameserverAccessConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 
@@ -40,10 +38,12 @@ public class MQClientAPIFactory implements StartAndShutdown {
     private final ClientRemotingProcessor clientRemotingProcessor;
     private final RPCHook rpcHook;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final NameserverAccessConfig nameserverAccessConfig;
 
-    public MQClientAPIFactory(String namePrefix, int clientNum,
+    public MQClientAPIFactory(NameserverAccessConfig nameserverAccessConfig, String namePrefix, int clientNum,
         ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, ScheduledExecutorService scheduledExecutorService) {
+        this.nameserverAccessConfig = nameserverAccessConfig;
         this.namePrefix = namePrefix;
         this.clientNum = clientNum;
         this.clientRemotingProcessor = clientRemotingProcessor;
@@ -55,15 +55,14 @@ public class MQClientAPIFactory implements StartAndShutdown {
 
     protected void init() {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false");
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        if (StringUtils.isEmpty(proxyConfig.getNamesrvDomain())) {
-            if (Strings.isNullOrEmpty(proxyConfig.getNamesrvAddr())) {
+        if (StringUtils.isEmpty(nameserverAccessConfig.getNamesrvDomain())) {
+            if (Strings.isNullOrEmpty(nameserverAccessConfig.getNamesrvAddr())) {
                 throw new RuntimeException("The configuration item NamesrvAddr is not configured");
             }
-            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, proxyConfig.getNamesrvAddr());
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, nameserverAccessConfig.getNamesrvAddr());
         } else {
-            System.setProperty("rocketmq.namesrv.domain", proxyConfig.getNamesrvDomain());
-            System.setProperty("rocketmq.namesrv.domain.subgroup", proxyConfig.getNamesrvDomainSubgroup());
+            System.setProperty("rocketmq.namesrv.domain", nameserverAccessConfig.getNamesrvDomain());
+            System.setProperty("rocketmq.namesrv.domain.subgroup", nameserverAccessConfig.getNamesrvDomainSubgroup());
         }
     }
 

@@ -602,6 +602,10 @@ public class RemotingCommand {
         extFields.put(key, value);
     }
 
+    public void addExtFieldIfNotExist(String key, String value) {
+        extFields.putIfAbsent(key, value);
+    }
+
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="

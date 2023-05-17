@@ -131,10 +131,10 @@
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <spring.version>5.3.26</spring.version>
+        <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.0.0</okio-jvm.version>
-        <opentelemetry.version>1.19.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.19.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.26.0</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.26.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
 
         <!-- Test dependencies -->
@@ -933,18 +933,16 @@
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-stdlib-common</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-jdk8</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-exporter-otlp</artifactId>
                 <version>${opentelemetry.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.squareup.okio</groupId>
-                        <artifactId>okio-jvm</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
