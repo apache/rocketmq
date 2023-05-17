@@ -865,7 +865,7 @@ public class CommitLog implements Swappable {
 
                 if (null == mappedFile || mappedFile.isFull()) {
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
-                    if (!MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable() && null != mappedFile) {
+                    if (isCloseReadAhead()) {
                         setFileReadMode(mappedFile, LibC.MADV_RANDOM);
                     }
                 }
@@ -891,7 +891,7 @@ public class CommitLog implements Swappable {
                             beginTimeInLock = 0;
                             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
-                        if (!MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable()) {
+                        if (isCloseReadAhead()) {
                             setFileReadMode(mappedFile, LibC.MADV_RANDOM);
                         }
                         result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
@@ -1031,7 +1031,7 @@ public class CommitLog implements Swappable {
 
                 if (null == mappedFile || mappedFile.isFull()) {
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
-                    if (!MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable() && null != mappedFile) {
+                    if (isCloseReadAhead()) {
                         setFileReadMode(mappedFile, LibC.MADV_RANDOM);
                     }
                 }
@@ -1055,7 +1055,7 @@ public class CommitLog implements Swappable {
                             beginTimeInLock = 0;
                             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
-                        if (!MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable()) {
+                        if (isCloseReadAhead()) {
                             setFileReadMode(mappedFile, LibC.MADV_RANDOM);
                         }
                         result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
@@ -1999,6 +1999,10 @@ public class CommitLog implements Swappable {
 
     public FlushManager getFlushManager() {
         return flushManager;
+    }
+
+    private boolean isCloseReadAhead() {
+        return !MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable();
     }
 
     public class ColdDataCheckService extends ServiceThread {
