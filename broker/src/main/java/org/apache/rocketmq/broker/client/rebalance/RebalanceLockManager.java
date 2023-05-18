@@ -50,7 +50,7 @@ public class RebalanceLockManager {
     }
 
     public boolean tryLock(final String group, final MessageQueue mq, final String clientId) {
-        if (this.isLocked(group, mq, clientId)){
+        if (this.isLocked(group, mq, clientId)) {
             return true;
         }
 
