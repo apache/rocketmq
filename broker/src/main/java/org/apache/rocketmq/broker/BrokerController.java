@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -55,7 +56,6 @@ import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
-import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
@@ -212,7 +212,6 @@ public class BrokerController {
     protected final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
     protected final BlockingQueue<Runnable> adminBrokerThreadPoolQueue;
     protected final BlockingQueue<Runnable> loadBalanceThreadPoolQueue;
-    protected final FilterServerManager filterServerManager;
     protected final BrokerStatsManager brokerStatsManager;
     protected final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
     protected final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
@@ -326,8 +325,6 @@ public class BrokerController {
         if (nettyClientConfig != null) {
             this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         }
-
-        this.filterServerManager = new FilterServerManager(this);
 
         this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);
         this.clientManageProcessor = new ClientManageProcessor(this);
@@ -646,8 +643,11 @@ public class BrokerController {
                                 BrokerController.this.getSlaveSynchronize().syncAll();
                                 lastSyncTimeMs = System.currentTimeMillis();
                             }
+                            
                             //timer checkpoint, latency-sensitive, so sync it more frequently
-                            BrokerController.this.getSlaveSynchronize().syncTimerCheckPoint();
+                            if (messageStoreConfig.isTimerWheelEnable()) {
+                                BrokerController.this.getSlaveSynchronize().syncTimerCheckPoint();
+                            }
                         } catch (Throwable e) {
                             LOG.error("Failed to sync all config for slave.", e);
                         }
@@ -1350,10 +1350,6 @@ public class BrokerController {
 
         this.consumerOffsetManager.persist();
 
-        if (this.filterServerManager != null) {
-            this.filterServerManager.shutdown();
-        }
-
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.shutdown();
         }
@@ -1525,10 +1521,6 @@ public class BrokerController {
 
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
-        }
-
-        if (this.filterServerManager != null) {
-            this.filterServerManager.start();
         }
 
         if (this.brokerStatsManager != null) {
@@ -1727,7 +1719,7 @@ public class BrokerController {
             this.brokerConfig.getBrokerId(),
             this.getHAServerAddr(),
             topicConfigWrapper,
-            this.filterServerManager.buildNewFilterServerList(),
+            Lists.newArrayList(),
             oneway,
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
@@ -2082,10 +2074,6 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getAckThreadPoolQueue() {
         return ackThreadPoolQueue;
-    }
-
-    public FilterServerManager getFilterServerManager() {
-        return filterServerManager;
     }
 
     public BrokerStatsManager getBrokerStatsManager() {
