@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -87,7 +88,7 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
-     * @param request dispatch request
+     * @param request      dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
@@ -314,36 +315,31 @@ public class ConsumeQueueStore {
         return doFindOrCreateConsumeQueue(topic, queueId);
     }
 
+    /**
+     * Finds or creates a ConsumeQueueInterface for the given topic and queue ID.
+     *
+     * @param topic   The topic for which the ConsumeQueueInterface.
+     * @param queueId The ID of the queue for which the ConsumeQueueInterface.
+     * @return The found or newly created ConsumeQueueInterface.
+     */
     private ConsumeQueueInterface doFindOrCreateConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueueInterface> map = consumeQueueTable.get(topic);
-        if (null == map) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> newMap = new ConcurrentHashMap<>(128);
-            ConcurrentMap<Integer, ConsumeQueueInterface> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
-            if (oldMap != null) {
-                map = oldMap;
-            } else {
-                map = newMap;
-            }
-        }
 
+        ConcurrentMap<Integer, ConsumeQueueInterface> map = ConcurrentHashMapUtils.computeIfAbsent(consumeQueueTable, topic, k -> new ConcurrentHashMap<>(128));
         ConsumeQueueInterface logic = map.get(queueId);
         if (logic != null) {
             return logic;
         }
 
-        ConsumeQueueInterface newLogic;
-
         Optional<TopicConfig> topicConfig = this.messageStore.getTopicConfig(topic);
-        // TODO maybe the topic has been deleted.
-        if (Objects.equals(CQType.BatchCQ, QueueTypeUtils.getCQType(topicConfig))) {
-            newLogic = new BatchConsumeQueue(
+        if (QueueTypeUtils.getCQType(topicConfig) == CQType.BatchCQ) {
+            logic = new BatchConsumeQueue(
                 topic,
                 queueId,
                 getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                 this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
                 this.messageStore);
         } else {
-            newLogic = new ConsumeQueue(
+            logic = new ConsumeQueue(
                 topic,
                 queueId,
                 getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
@@ -351,13 +347,10 @@ public class ConsumeQueueStore {
                 this.messageStore);
         }
 
-        ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, newLogic);
+        ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, logic);
         if (oldLogic != null) {
             logic = oldLogic;
-        } else {
-            logic = newLogic;
         }
-
         return logic;
     }
 
