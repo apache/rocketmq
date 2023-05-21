@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -37,6 +38,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
@@ -44,8 +46,8 @@ import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.TopicMetadata;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
@@ -53,13 +55,16 @@ import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
+
     protected static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    protected final TieredMessageFetcher fetcher;
-    protected final TieredDispatcher dispatcher;
+
     protected final String brokerName;
     protected final TieredMessageStoreConfig storeConfig;
-    protected final TieredContainerManager containerManager;
     protected final TieredMetadataStore metadataStore;
+
+    protected final TieredDispatcher dispatcher;
+    protected final TieredMessageFetcher fetcher;
+    protected final TieredFlatFileManager flatFileManager;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -74,13 +79,13 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.fetcher = new TieredMessageFetcher(storeConfig);
         this.dispatcher = new TieredDispatcher(next, storeConfig);
 
-        this.containerManager = TieredContainerManager.getInstance(storeConfig);
+        this.flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         next.addDispatcher(dispatcher);
     }
 
     @Override
     public boolean load() {
-        boolean loadContainer = containerManager.load();
+        boolean loadContainer = flatFileManager.load();
         boolean loadNextStore = next.load();
         boolean result = loadContainer && loadNextStore;
         if (result) {
@@ -108,7 +113,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             return false;
         }
 
-        TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
+        CompositeFlatFile container = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (container == null) {
             return false;
         }
@@ -193,9 +198,14 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        return super.asyncPutMessage(msg);
+    }
+
+    @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
         long minOffsetInNextStore = next.getMinOffsetInQueue(topic, queueId);
-        TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
+        CompositeFlatFile container = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (container == null) {
             return minOffsetInNextStore;
         }
@@ -341,7 +351,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         next.shutdown();
 
         dispatcher.shutdown();
-        TieredContainerManager.getInstance(storeConfig).shutdown();
+        TieredFlatFileManager.getInstance(storeConfig).shutdown();
         TieredStoreExecutor.shutdown();
     }
 
@@ -349,7 +359,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public void destroy() {
         next.destroy();
 
-        TieredContainerManager.getInstance(storeConfig).destroy();
+        TieredFlatFileManager.getInstance(storeConfig).destroy();
         try {
             metadataStore.destroy();
         } catch (Exception e) {
@@ -403,16 +413,16 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         String topic = topicMetadata.getTopic();
         metadataStore.iterateQueue(topic, queueMetadata -> {
             MessageQueue mq = queueMetadata.getQueue();
-            TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
+            CompositeFlatFile container = flatFileManager.getFlatFile(mq);
             if (container != null) {
-                containerManager.destroyContainer(mq);
+                flatFileManager.destroyCompositeFile(mq);
                 try {
                     metadataStore.deleteQueue(mq);
-                    metadataStore.deleteFileSegment(mq);
                 } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
-                logger.info("TieredMessageStore#destroyContainer: destroy container success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
+                logger.info("TieredMessageStore#destroyContainer: " +
+                    "destroy container success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
             }
         });
         metadataStore.deleteTopic(topicMetadata.getTopic());

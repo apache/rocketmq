@@ -16,25 +16,24 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.UUID;
-import org.apache.commons.io.FileUtils;
+import java.util.Objects;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
+import org.apache.rocketmq.tieredstore.metadata.FileSegmentMetadata;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -45,11 +44,11 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TieredDispatcherTest {
+
+    private final String storePath = TieredStoreTestUtil.getRandomStorePath();
     private TieredMessageStoreConfig storeConfig;
     private MessageQueue mq;
     private TieredMetadataStore metadataStore;
-
-    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -57,7 +56,7 @@ public class TieredDispatcherTest {
         storeConfig.setStorePathRootDir(storePath);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
-        mq = new MessageQueue("TieredMessageQueueContainerTest", storeConfig.getBrokerName(), 0);
+        mq = new MessageQueue("CompositeQueueFlatFileTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         TieredStoreExecutor.init();
     }
@@ -73,14 +72,22 @@ public class TieredDispatcherTest {
     @Test
     public void testDispatch() {
         metadataStore.addQueue(mq, 6);
-        MemoryFileSegment segment = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG, mq, 1000, storeConfig);
+        MemoryFileSegment segment = new MemoryFileSegment(FileSegmentType.COMMIT_LOG, mq, 1000, storeConfig);
         segment.initPosition(segment.getSize());
-        metadataStore.updateFileSegment(segment);
-        metadataStore.updateFileSegment(segment);
-        segment = new MemoryFileSegment(TieredFileSegment.FileSegmentType.CONSUME_QUEUE, mq, 6 * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE, storeConfig);
-        metadataStore.updateFileSegment(segment);
 
-        TieredContainerManager containerManager = TieredContainerManager.getInstance(storeConfig);
+        String filePath1 = TieredStoreUtil.toPath(mq);
+        FileSegmentMetadata segmentMetadata = new FileSegmentMetadata(
+            filePath1, 1000, FileSegmentType.COMMIT_LOG.getType());
+        metadataStore.updateFileSegment(segmentMetadata);
+        metadataStore.updateFileSegment(segmentMetadata);
+
+        segment = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, mq,
+            6 * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE, storeConfig);
+        FileSegmentMetadata segmentMetadata2 = new FileSegmentMetadata(
+            filePath1, segment.getBaseOffset(), FileSegmentType.CONSUME_QUEUE.getType());
+        metadataStore.updateFileSegment(segmentMetadata2);
+
+        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(storeConfig);
         DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
         TieredDispatcher dispatcher = new TieredDispatcher(defaultMessageStore, storeConfig);
 
@@ -88,12 +95,13 @@ public class TieredDispatcherTest {
         Mockito.when(defaultMessageStore.selectOneMessageByOffset(7, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
         DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), 6, 7, MessageBufferUtilTest.MSG_LEN, 1);
         dispatcher.dispatch(request);
-        Assert.assertNotNull(containerManager.getMQContainer(mq));
-        Assert.assertEquals(7, containerManager.getMQContainer(mq).getDispatchOffset());
+        Assert.assertNotNull(containerManager.getFlatFile(mq));
+        Assert.assertEquals(7, Objects.requireNonNull(containerManager.getFlatFile(mq)).getDispatchOffset());
 
-        TieredMessageQueueContainer container = containerManager.getOrCreateMQContainer(mq);
+        CompositeQueueFlatFile container = containerManager.getOrCreateFlatFileIfAbsent(mq);
+        Assert.assertNotNull(container);
         container.commit(true);
-        Assert.assertEquals(6, container.getBuildCQMaxOffset());
+        Assert.assertEquals(6, container.getConsumeQueueMaxOffset());
 
         dispatcher.buildCQAndIndexFile();
         Assert.assertEquals(7, container.getConsumeQueueMaxOffset());
@@ -116,7 +124,6 @@ public class TieredDispatcherTest {
         Assert.assertEquals(7, container.getConsumeQueueMaxOffset());
         Assert.assertEquals(7, container.getDispatchOffset());
 
-
         dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 7, 7, 0, 0, 0, buffer1);
         dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 8, 8, 0, 0, 0, buffer2);
         dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 9, 9, 0, 0, 0, buffer3);
@@ -127,7 +134,7 @@ public class TieredDispatcherTest {
     @Test
     public void testDispatchByMQContainer() {
         metadataStore.addQueue(mq, 6);
-        TieredContainerManager containerManager = TieredContainerManager.getInstance(storeConfig);
+        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(storeConfig);
         DefaultMessageStore defaultStore = Mockito.mock(DefaultMessageStore.class);
         Mockito.when(defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).thenReturn(Mockito.mock(ConsumeQueue.class));
         TieredDispatcher dispatcher = new TieredDispatcher(defaultStore, storeConfig);
@@ -160,7 +167,7 @@ public class TieredDispatcherTest {
         mockResult = new SelectMappedBufferResult(0, msg, MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultStore.selectOneMessageByOffset(8, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
 
-        dispatcher.dispatchByMQContainer(containerManager.getOrCreateMQContainer(mq));
-        Assert.assertEquals(8, containerManager.getMQContainer(mq).getDispatchOffset());
+        dispatcher.dispatchByMQContainer(containerManager.getOrCreateFlatFileIfAbsent(mq));
+        Assert.assertEquals(8, containerManager.getFlatFile(mq).getDispatchOffset());
     }
 }

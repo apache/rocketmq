@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 public interface TieredStoreProvider {
+
     /**
      * Get file path in backend file system
      *

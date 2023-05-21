@@ -18,17 +18,18 @@ package org.apache.rocketmq.tieredstore.common;
 
 import com.google.common.base.Objects;
 
-public class InflightRequestKey {
+public class InFlightRequestKey {
+
     private final String group;
     private long offset;
     private int batchSize;
     private final long requestTime = System.currentTimeMillis();
 
-    public InflightRequestKey(String group) {
+    public InFlightRequestKey(String group) {
         this.group = group;
     }
 
-    public InflightRequestKey(String group, long offset, int batchSize) {
+    public InFlightRequestKey(String group, long offset, int batchSize) {
         this.group = group;
         this.offset = offset;
         this.batchSize = batchSize;
@@ -50,16 +51,18 @@ public class InflightRequestKey {
         return requestTime;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        InflightRequestKey key = (InflightRequestKey) o;
+        InFlightRequestKey key = (InFlightRequestKey) o;
         return Objects.equal(group, key.group);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(group);
     }
 }

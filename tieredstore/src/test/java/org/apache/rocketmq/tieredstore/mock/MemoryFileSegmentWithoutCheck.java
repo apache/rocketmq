@@ -16,18 +16,27 @@
  */
 package org.apache.rocketmq.tieredstore.mock;
 
+import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
 public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
 
     public MemoryFileSegmentWithoutCheck(FileSegmentType fileType,
-        MessageQueue messageQueue, long baseOffset,
-        TieredMessageStoreConfig storeConfig) {
-        super(fileType, messageQueue, baseOffset, storeConfig);
+        MessageQueue messageQueue, long baseOffset, TieredMessageStoreConfig storeConfig) {
+        super(storeConfig, fileType,
+            storeConfig.getStorePathRootDir() + File.separator + TieredStoreUtil.toPath(messageQueue),
+            baseOffset);
+    }
+
+    public MemoryFileSegmentWithoutCheck(TieredMessageStoreConfig storeConfig,
+        FileSegmentType fileType, String filePath, long baseOffset) {
+        super(storeConfig, fileType, filePath, baseOffset);
     }
 
     @Override

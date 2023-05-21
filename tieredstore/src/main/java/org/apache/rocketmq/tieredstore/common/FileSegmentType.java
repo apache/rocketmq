@@ -14,42 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.exception;
+package org.apache.rocketmq.tieredstore.common;
 
-public enum TieredStoreErrorCode {
+public enum FileSegmentType {
+    COMMIT_LOG(0),
+    CONSUME_QUEUE(1),
+    INDEX(2);
 
-    /**
-     * Error code for an invalid offset.
-     */
-    ILLEGAL_OFFSET,
+    private final int type;
 
-    /**
-     * Error code for an invalid parameter.
-     */
-    ILLEGAL_PARAM,
+    FileSegmentType(int type) {
+        this.type = type;
+    }
 
-    /**
-     * Error code for an incorrect download length.
-     */
-    DOWNLOAD_LENGTH_NOT_CORRECT,
+    public int getType() {
+        return type;
+    }
 
-    /**
-     * Error code for no new data found in the storage system.
-     */
-    NO_NEW_DATA,
-
-    /**
-     * Error code for a storage provider error.
-     */
-    STORAGE_PROVIDER_ERROR,
-
-    /**
-     * Error code for an input/output error.
-     */
-    IO_ERROR,
-
-    /**
-     * Error code for an unknown error.
-     */
-    UNKNOWN
+    public static FileSegmentType valueOf(int type) {
+        switch (type) {
+            case 0:
+                return COMMIT_LOG;
+            case 1:
+                return CONSUME_QUEUE;
+            case 2:
+                return INDEX;
+            default:
+                throw new IllegalStateException("Unexpected value: " + type);
+        }
+    }
 }

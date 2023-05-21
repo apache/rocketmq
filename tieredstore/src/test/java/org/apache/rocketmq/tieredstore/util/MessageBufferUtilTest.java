@@ -25,8 +25,8 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -117,8 +117,8 @@ public class MessageBufferUtilTest {
     public void testSplitMessages() {
         ByteBuffer msgBuffer1 = buildMessageBuffer();
         msgBuffer1.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 10);
-        ByteBuffer msgBuffer2 = ByteBuffer.allocate(TieredCommitLog.CODA_SIZE);
 
+        ByteBuffer msgBuffer2 = ByteBuffer.allocate(TieredCommitLog.CODA_SIZE);
         msgBuffer2.putInt(TieredCommitLog.CODA_SIZE);
         msgBuffer2.putInt(TieredCommitLog.BLANK_MAGIC_CODE);
         msgBuffer2.putLong(System.currentTimeMillis());
@@ -127,7 +127,8 @@ public class MessageBufferUtilTest {
         ByteBuffer msgBuffer3 = buildMessageBuffer();
         msgBuffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 11);
 
-        ByteBuffer msgBuffer = ByteBuffer.allocate(msgBuffer1.remaining() + msgBuffer2.remaining() + msgBuffer3.remaining());
+        ByteBuffer msgBuffer = ByteBuffer.allocate(
+            msgBuffer1.remaining() + msgBuffer2.remaining() + msgBuffer3.remaining());
         msgBuffer.put(msgBuffer1);
         msgBuffer.put(msgBuffer2);
         msgBuffer.put(msgBuffer3);

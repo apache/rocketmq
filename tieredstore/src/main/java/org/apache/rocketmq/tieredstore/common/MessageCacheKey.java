@@ -17,18 +17,19 @@
 package org.apache.rocketmq.tieredstore.common;
 
 import java.util.Objects;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
 
 public class MessageCacheKey {
-    private TieredMessageQueueContainer container;
-    private long offset;
 
-    public MessageCacheKey(TieredMessageQueueContainer container, long offset) {
+    private final CompositeFlatFile container;
+    private final long offset;
+
+    public MessageCacheKey(CompositeFlatFile container, long offset) {
         this.container = container;
         this.offset = offset;
     }
 
-    public TieredMessageQueueContainer getContainer() {
+    public CompositeFlatFile getContainer() {
         return container;
     }
 

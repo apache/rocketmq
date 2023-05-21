@@ -16,33 +16,36 @@
  */
 package org.apache.rocketmq.tieredstore.mock;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
 public class MemoryFileSegment extends TieredFileSegment {
+
     protected final ByteBuffer memStore;
 
     public CompletableFuture<Boolean> blocker;
 
     protected boolean checkSize = true;
 
-    public MemoryFileSegment(TieredFileSegment.FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
+    public MemoryFileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
         TieredMessageStoreConfig storeConfig) {
-        super(fileType, messageQueue, baseOffset, storeConfig);
+        this(storeConfig, fileType, TieredStoreUtil.toPath(messageQueue), baseOffset);
+    }
+
+    public MemoryFileSegment(TieredMessageStoreConfig storeConfig,
+        FileSegmentType fileType, String filePath, long baseOffset) {
+        super(storeConfig, fileType, filePath, baseOffset);
         switch (fileType) {
             case COMMIT_LOG:
-                memStore = ByteBuffer.allocate(10000);
-                break;
-            case CONSUME_QUEUE:
-                memStore = ByteBuffer.allocate(10000);
-                break;
             case INDEX:
+            case CONSUME_QUEUE:
                 memStore = ByteBuffer.allocate(10000);
                 break;
             default:
@@ -54,7 +57,7 @@ public class MemoryFileSegment extends TieredFileSegment {
 
     @Override
     public String getPath() {
-        return "/tiered/" + fileType + File.separator + baseOffset;
+        return filePath;
     }
 
     @Override

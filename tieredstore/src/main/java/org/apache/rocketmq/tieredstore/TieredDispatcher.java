@@ -40,42 +40,43 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredDispatcher extends ServiceThread implements CommitLogDispatcher {
+
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private final MessageStore defaultStore;
-    private final TieredContainerManager tieredContainerManager;
+    private final TieredFlatFileManager tieredFlatFileManager;
     private final TieredMessageStoreConfig storeConfig;
     private final String brokerName;
 
-    private ConcurrentMap<TieredMessageQueueContainer, List<DispatchRequest>> dispatchRequestReadMap;
-    private ConcurrentMap<TieredMessageQueueContainer, List<DispatchRequest>> dispatchRequestWriteMap;
+    private ConcurrentMap<CompositeQueueFlatFile, List<DispatchRequest>> dispatchRequestReadMap;
+    private ConcurrentMap<CompositeQueueFlatFile, List<DispatchRequest>> dispatchRequestWriteMap;
     private final ReentrantLock dispatchRequestListLock;
 
     public TieredDispatcher(MessageStore defaultStore, TieredMessageStoreConfig storeConfig) {
         this.defaultStore = defaultStore;
         this.storeConfig = storeConfig;
         this.brokerName = storeConfig.getBrokerName();
-        this.tieredContainerManager = TieredContainerManager.getInstance(storeConfig);
+        this.tieredFlatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         this.dispatchRequestReadMap = new ConcurrentHashMap<>();
         this.dispatchRequestWriteMap = new ConcurrentHashMap<>();
         this.dispatchRequestListLock = new ReentrantLock();
 
         TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
-                for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
-                    if (!container.getQueueLock().isLocked()) {
+                for (CompositeQueueFlatFile container : tieredFlatFileManager.deepCopyFlatFileToList()) {
+                    if (!container.getCompositeFlatFileLock().isLocked()) {
                         TieredStoreExecutor.dispatchExecutor.execute(() -> {
                             try {
                                 dispatchByMQContainer(container);
@@ -88,10 +89,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             } catch (Throwable ignore) {
             }
         }, 30, 10, TimeUnit.SECONDS);
+
         TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
-                for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
-                    container.flushMetadata();
+                for (CompositeQueueFlatFile container : tieredFlatFileManager.deepCopyFlatFileToList()) {
+                    container.persistMetadata();
                 }
             } catch (Throwable e) {
                 logger.error("dispatch by queue container failed: ", e);
@@ -109,8 +111,8 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             return;
         }
 
-        TieredMessageQueueContainer container =
-            tieredContainerManager.getOrCreateMQContainer(new MessageQueue(topic, brokerName, request.getQueueId()));
+        CompositeQueueFlatFile container =
+            tieredFlatFileManager.getOrCreateFlatFileIfAbsent(new MessageQueue(topic, brokerName, request.getQueueId()));
         if (container == null) {
             logger.error("[Bug]TieredDispatcher#dispatch: dispatch failed, can not create container: topic: {}, queueId: {}", request.getTopic(), request.getQueueId());
             return;
@@ -129,20 +131,20 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
         if (request.getConsumeQueueOffset() == container.getDispatchOffset()) {
             try {
-                if (container.getQueueLock().isLocked() || !container.getQueueLock().tryLock(1, TimeUnit.MILLISECONDS)) {
+                if (container.getCompositeFlatFileLock().isLocked() || !container.getCompositeFlatFileLock().tryLock(1, TimeUnit.MILLISECONDS)) {
                     return;
                 }
             } catch (Exception e) {
                 logger.warn("TieredDispatcher#dispatch: dispatch failed, can not get container lock: topic: {}, queueId: {}", request.getTopic(), request.getQueueId(), e);
-                if (container.getQueueLock().isLocked()) {
-                    container.getQueueLock().unlock();
+                if (container.getCompositeFlatFileLock().isLocked()) {
+                    container.getCompositeFlatFileLock().unlock();
                 }
                 return;
             }
 
             // double check
             if (request.getConsumeQueueOffset() != container.getDispatchOffset()) {
-                container.getQueueLock().unlock();
+                container.getCompositeFlatFileLock().unlock();
                 return;
             }
 
@@ -150,7 +152,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             if (message == null) {
                 logger.error("TieredDispatcher#dispatch: dispatch failed, can not get message from next store: topic: {}, queueId: {}, commitLog offset: {}, size: {}",
                     request.getTopic(), request.getQueueId(), request.getCommitLogOffset(), request.getMsgSize());
-                container.getQueueLock().unlock();
+                container.getCompositeFlatFileLock().unlock();
                 return;
             }
 
@@ -167,7 +169,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                     Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, request.getTopic())
                         .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, request.getQueueId())
-                        .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
+                        .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     TieredStoreMetricsManager.messagesDispatchTotal.add(1, attributes);
                 }
@@ -175,10 +177,10 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 logger.error("TieredDispatcher#dispatch: dispatch failed: topic: {}, queueId: {}, queue offset: {}", request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset(), throwable);
             } finally {
                 message.release();
-                container.getQueueLock().unlock();
+                container.getCompositeFlatFileLock().unlock();
             }
         } else {
-            if (!container.getQueueLock().isLocked()) {
+            if (!container.getCompositeFlatFileLock().isLocked()) {
                 try {
                     TieredStoreExecutor.dispatchExecutor.execute(() -> {
                         try {
@@ -193,7 +195,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
     }
 
-    protected void dispatchByMQContainer(TieredMessageQueueContainer container) {
+    protected void dispatchByMQContainer(CompositeQueueFlatFile container) {
         if (stopped) {
             return;
         }
@@ -220,13 +222,13 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
 
         try {
-            if (!container.getQueueLock().tryLock(200, TimeUnit.MILLISECONDS)) {
+            if (!container.getCompositeFlatFileLock().tryLock(200, TimeUnit.MILLISECONDS)) {
                 return;
             }
         } catch (Exception e) {
             logger.warn("TieredDispatcher#dispatchByMQContainer: dispatch failed, can not get container lock: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId(), e);
-            if (container.getQueueLock().isLocked()) {
-                container.getQueueLock().unlock();
+            if (container.getCompositeFlatFileLock().isLocked()) {
+                container.getCompositeFlatFileLock().unlock();
             }
             return;
         }
@@ -273,14 +275,14 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, mq.getTopic())
                 .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, mq.getQueueId())
-                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
+                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(queueOffset - beforeOffset, attributes);
         } finally {
-            container.getQueueLock().unlock();
+            container.getCompositeFlatFileLock().unlock();
         }
         // If this queue dispatch falls too far, dispatch again immediately
-        if (container.getDispatchOffset() < maxOffsetInQueue && !container.getQueueLock().isLocked()) {
+        if (container.getDispatchOffset() < maxOffsetInQueue && !container.getCompositeFlatFileLock().isLocked()) {
             TieredStoreExecutor.dispatchExecutor.execute(() -> {
                 try {
                     dispatchByMQContainer(container);
@@ -291,7 +293,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
     }
 
-    public void handleAppendCommitLogResult(AppendResult result, TieredMessageQueueContainer container,
+    public void handleAppendCommitLogResult(AppendResult result, CompositeQueueFlatFile container,
         long queueOffset,
         long dispatchOffset, long newCommitLogOffset, int size, long tagCode, ByteBuffer message) {
         MessageQueue mq = container.getMessageQueue();
@@ -331,7 +333,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             dispatchRequest.setOffsetId(MessageBufferUtil.getOffsetId(message));
             List<DispatchRequest> requestList = dispatchRequestWriteMap.computeIfAbsent(container, k -> new ArrayList<>());
             requestList.add(dispatchRequest);
-            if (requestList.get(0).getConsumeQueueOffset() >= container.getBuildCQMaxOffset()) {
+            if (requestList.get(0).getConsumeQueueOffset() >= container.getConsumeQueueMaxOffset()) {
                 wakeup();
             }
         } finally {
@@ -380,8 +382,8 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         Map<MessageQueue, Long> cqMetricsMap = new HashMap<>();
         Map<MessageQueue, Long> ifMetricsMap = new HashMap<>();
 
-        for (Map.Entry<TieredMessageQueueContainer, List<DispatchRequest>> entry : dispatchRequestReadMap.entrySet()) {
-            TieredMessageQueueContainer container = entry.getKey();
+        for (Map.Entry<CompositeQueueFlatFile, List<DispatchRequest>> entry : dispatchRequestReadMap.entrySet()) {
+            CompositeQueueFlatFile container = entry.getKey();
             List<DispatchRequest> requestList = entry.getValue();
             if (container.isClosed()) {
                 requestList.clear();
@@ -398,7 +400,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 }
 
                 // wait uploading commitLog
-                if (container.getBuildCQMaxOffset() < request.getConsumeQueueOffset()) {
+                if (container.getCommitLogDispatchCommitOffset() < request.getConsumeQueueOffset()) {
                     break;
                 }
 
@@ -410,7 +412,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 } else if (result == AppendResult.OFFSET_INCORRECT) {
                     logger.error("build consumeQueue and indexFile failed, offset is messed up, try to rebuild cq: topic: {}, queue: {}, queue offset: {}, max queue offset: {}"
                         , request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset(), container.getConsumeQueueMaxOffset());
-                    container.getQueueLock().lock();
+                    container.getCompositeFlatFileLock().lock();
                     try {
                         // rollback dispatch offset, this operation will cause duplicate message in commitLog
                         container.initOffset(container.getConsumeQueueMaxOffset());
@@ -419,7 +421,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                         requestList.clear();
                         break;
                     } finally {
-                        container.getQueueLock().unlock();
+                        container.getCompositeFlatFileLock().unlock();
                     }
                 } else {
                     logger.warn("build consumeQueue failed, result: {}, topic: {}, queue: {}, queue offset: {}",
@@ -452,7 +454,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, messageQueue.getTopic())
                 .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, messageQueue.getQueueId())
-                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
+                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(count, attributes);
         });
@@ -460,7 +462,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, messageQueue.getTopic())
                 .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, messageQueue.getQueueId())
-                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.INDEX.name().toLowerCase())
+                .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.INDEX.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(count, attributes);
         });
