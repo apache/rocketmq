@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
-        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset, Integer electionPriority) {
+        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
+        Integer electionPriority) {
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerIdentityInfo);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
@@ -173,4 +175,15 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         return false;
     }
 
+    @Override
+    public Map<String, Map<String, Long>> getActiveBrokersNum() {
+        Map<String, Map<String, Long>> map = new HashMap<>();
+        this.brokerLiveTable.keySet().forEach(id -> {
+            map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
+            map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
+                 num == null ? 0L : num + 1L
+            );
+        });
+        return map;
+    }
 }

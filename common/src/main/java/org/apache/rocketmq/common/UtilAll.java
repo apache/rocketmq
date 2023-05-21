@@ -765,4 +765,31 @@ public class UtilAll {
             STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
     }
+
+    public static long calculateFileSizeInPath(File path) {
+        long size = 0;
+        try {
+            if (!path.exists()) {
+                return 0;
+            }
+            if (path.isFile()) {
+                return path.length();
+            }
+            if (path.isDirectory()) {
+                File[] files = path.listFiles();
+                if (files != null) {
+                    for (File file : files) {
+                        long fileSize = 0;
+                        fileSize = calculateFileSizeInPath(file);
+                        if (fileSize == -1) return -1;
+                        size += fileSize;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("calculate error", e);
+            return -1;
+        }
+        return size;
+    }
 }
