@@ -212,7 +212,6 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
-    @GuardedBy("bufferLock")
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public AppendResult append(ByteBuffer byteBuf, long timeStamp) {
         if (closed) {
