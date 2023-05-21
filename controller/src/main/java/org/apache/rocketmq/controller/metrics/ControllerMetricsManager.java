@@ -18,6 +18,7 @@
 package org.apache.rocketmq.controller.metrics;
 
 import com.google.common.base.Splitter;
+import io.openmessaging.storage.dledger.MemberState;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
@@ -60,9 +61,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.AGGREGATION_DELTA;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_DLEDGER_ERROR_TOTAL;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_ELECT_TOTAL;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_REQUEST_ERROR_TOTAL;
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_DLEDGER_OP_TOTAL;
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_ELECTION_TOTAL;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_REQUEST_TOTAL;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.GAUGE_ACTIVE_BROKER_NUM;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.GAUGE_DLEDGER_DISK_USAGE;
@@ -92,13 +92,11 @@ public class ControllerMetricsManager {
 
     public static ObservableLongGauge activeBrokerNum = new NopObservableLongGauge();
 
-    public static LongCounter requestErrorTotal = new NopLongCounter();
-
-    public static LongCounter dLedgerErrorTotal = new NopLongCounter();
-
     public static LongCounter requestTotal = new NopLongCounter();
 
-    public static LongCounter electTotal = new NopLongCounter();
+    public static LongCounter dLedgerOpTotal = new NopLongCounter();
+
+    public static LongCounter electionTotal = new NopLongCounter();
 
     // metrics about latency
     public static LongHistogram requestLatency = new NopLongHistogram();
@@ -136,10 +134,31 @@ public class ControllerMetricsManager {
         return instance;
     }
 
-    private static AttributesBuilder newAttributesBuilder() {
+    public static AttributesBuilder newAttributesBuilder() {
         AttributesBuilder builder = Attributes.builder();
         LABEL_MAP.forEach(builder::put);
         return builder;
+    }
+
+    public static void recordRole(MemberState.Role newRole, MemberState.Role oldRole) {
+        role.add(getRoleValue(newRole) - getRoleValue(oldRole),
+            newAttributesBuilder().build());
+    }
+
+    private static int getRoleValue(MemberState.Role role) {
+        switch (role) {
+            case UNKNOWN:
+                return 0;
+            case CANDIDATE:
+                return 1;
+            case FOLLOWER:
+                return 2;
+            case LEADER:
+                return 3;
+            default:
+                logger.error("Unknown role {}", role);
+                return 0;
+        }
     }
 
     private ControllerMetricsManager(ControllerManager controllerManager) {
@@ -236,19 +255,15 @@ public class ControllerMetricsManager {
                 });
             });
 
-        requestErrorTotal = meter.counterBuilder(COUNTER_REQUEST_ERROR_TOTAL)
-            .setDescription("total error request num")
-            .build();
-
-        dLedgerErrorTotal = meter.counterBuilder(COUNTER_DLEDGER_ERROR_TOTAL)
-            .setDescription("total error dledger num")
-            .build();
-
         requestTotal = meter.counterBuilder(COUNTER_REQUEST_TOTAL)
             .setDescription("total request num")
             .build();
 
-        electTotal = meter.counterBuilder(COUNTER_ELECT_TOTAL)
+        dLedgerOpTotal = meter.counterBuilder(COUNTER_DLEDGER_OP_TOTAL)
+            .setDescription("total dledger operation num")
+            .build();
+
+        electionTotal = meter.counterBuilder(COUNTER_ELECTION_TOTAL)
             .setDescription("total elect num")
             .build();
 
