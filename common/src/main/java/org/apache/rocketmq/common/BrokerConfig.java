@@ -221,6 +221,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkStayBufferTimeOut = 3 * 1000;
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
+    private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
 
     private boolean realTimeNotifyConsumerChange = true;
@@ -500,6 +501,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
         this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnablePopBatchAck() {
+        return enablePopBatchAck;
+    }
+
+    public void setEnablePopBatchAck(boolean enablePopBatchAck) {
+        this.enablePopBatchAck = enablePopBatchAck;
     }
 
     public boolean isEnableSkipLongAwaitingAck() {
