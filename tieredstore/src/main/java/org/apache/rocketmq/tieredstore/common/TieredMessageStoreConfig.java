@@ -123,7 +123,7 @@ public class TieredMessageStoreConfig {
     private String ossAccessKey = "";
     private String ossSecretKey = "";
 
-    // only for oss storage provider
+    // only for cos storage provider
     private String cosBucketName = "";
     private String cosAccessKey = "";
     private String cosSecretKey = "";
