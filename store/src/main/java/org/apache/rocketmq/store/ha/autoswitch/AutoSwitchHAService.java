@@ -421,13 +421,14 @@ public class AutoSwitchHAService extends DefaultHAService {
         for (Long syncId : currentSyncStateSet) {
             if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
                 LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
-                return this.defaultMessageStore.getConfirmOffset();
+                // Without check and re-compute, return the confirmOffset's value directly.
+                return this.defaultMessageStore.getConfirmOffsetDirectly();
             }
         }
 
         for (HAConnection connection : this.connectionList) {
             final Long slaveId = ((AutoSwitchHAConnection) connection).getSlaveId();
-            if (currentSyncStateSet.contains(slaveId)) {
+            if (currentSyncStateSet.contains(slaveId) && connection.getSlaveAckOffset() > 0) {
                 newConfirmOffset = Math.min(newConfirmOffset, connection.getSlaveAckOffset());
             }
         }

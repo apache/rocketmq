@@ -58,7 +58,6 @@ import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -470,7 +469,6 @@ public class MQClientInstance {
                 } else {
                     this.sendHeartbeatToAllBroker();
                 }
-                this.uploadFilterClassSource();
             } catch (final Exception e) {
                 log.error("sendHeartbeatToAllBrokerWithLockV2 exception", e);
             } finally {
@@ -485,7 +483,6 @@ public class MQClientInstance {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
-                this.uploadFilterClassSource();
             } catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
             } finally {
@@ -665,29 +662,6 @@ public class MQClientInstance {
         }
     }
 
-    private void uploadFilterClassSource() {
-        for (Entry<String, MQConsumerInner> next : this.consumerTable.entrySet()) {
-            MQConsumerInner consumer = next.getValue();
-            if (ConsumeType.CONSUME_PASSIVELY != consumer.consumeType()) {
-                continue;
-            }
-            Set<SubscriptionData> subscriptions = consumer.subscriptions();
-            for (SubscriptionData sub : subscriptions) {
-                if (sub.isClassFilterMode() && sub.getFilterClassSource() != null) {
-                    final String consumerGroup = consumer.groupName();
-                    final String className = sub.getSubString();
-                    final String topic = sub.getTopic();
-                    final String filterClassSource = sub.getFilterClassSource();
-                    try {
-                        this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic, filterClassSource);
-                    } catch (Exception e) {
-                        log.error("uploadFilterClassToAllFilterServer Exception", e);
-                    }
-                }
-            }
-        }
-    }
-
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
         try {
@@ -828,49 +802,6 @@ public class MQClientInstance {
         }
 
         return false;
-    }
-
-    /**
-     * This method will be removed in the version 5.0.0,because filterServer was removed,and method
-     * <code>subscribe(final String topic, final MessageSelector messageSelector)</code> is recommended.
-     */
-    @Deprecated
-    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
-        final String topic,
-        final String filterClassSource) {
-        byte[] classBody = null;
-        int classCRC = 0;
-        try {
-            classBody = filterClassSource.getBytes(MixAll.DEFAULT_CHARSET);
-            classCRC = UtilAll.crc32(classBody);
-        } catch (Exception e1) {
-            log.warn("uploadFilterClassToAllFilterServer Exception, ClassName: {} {}",
-                fullClassName,
-                UtilAll.exceptionSimpleDesc(e1));
-        }
-
-        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
-        if (topicRouteData != null
-            && topicRouteData.getFilterServerTable() != null && !topicRouteData.getFilterServerTable().isEmpty()) {
-            for (Entry<String, List<String>> next : topicRouteData.getFilterServerTable().entrySet()) {
-                List<String> value = next.getValue();
-                for (final String fsAddr : value) {
-                    try {
-                        this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic, fullClassName, classCRC, classBody,
-                            5000);
-
-                        log.info("register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}", fsAddr, consumerGroup,
-                            topic, fullClassName);
-
-                    } catch (Exception e) {
-                        log.error("uploadFilterClassToAllFilterServer Exception", e);
-                    }
-                }
-            }
-        } else {
-            log.warn("register message class filter failed, because no filter server, ConsumerGroup: {} Topic: {} ClassName: {}",
-                consumerGroup, topic, fullClassName);
-        }
     }
 
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
