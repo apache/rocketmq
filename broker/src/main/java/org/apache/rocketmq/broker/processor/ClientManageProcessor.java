@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker.processor;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -115,6 +114,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             if (null == subscriptionGroupConfig) {
                 continue;
             }
+
             isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
             int topicSysFlag = 0;
             if (consumerData.isUnitMode()) {
